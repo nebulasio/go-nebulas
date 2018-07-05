@@ -393,10 +393,14 @@ func TestV8ResourceLimit(t *testing.T) {
 	}
 }
 func TestRunScriptSourceTimeout(t *testing.T) {
+	core.NebCompatibility = core.NewCompatibilityLocal()
 	tests := []struct {
-		filepath string
+		filepath    string
+		height      uint64
+		expectedErr error
 	}{
-		{"test/test_infinite_loop.js"},
+		{"test/test_infinite_loop.js", 1, ErrExecutionTimeout},
+		{"test/test_infinite_loop.js", 2, core.ErrUnexpected},
 	}
 
 	for _, tt := range tests {
@@ -411,13 +415,13 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 			// assert.Nil(t, err)
 
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
-			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
+			ctx, err := NewContext(mockBlockForLib(tt.height), mockTransaction(), contract, context)
 
 			// direct run.
 			(func() {
 				engine := NewV8Engine(ctx)
 				_, err = engine.RunScriptSource(string(data), 0)
-				assert.Equal(t, ErrExecutionTimeout, err)
+				assert.Equal(t, tt.expectedErr, err)
 				engine.Dispose()
 			})()
 
@@ -429,7 +433,7 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 				engine := NewV8Engine(ctx)
 				engine.AddModule(moduleID, string(data), 0)
 				_, err = engine.RunScriptSource(runnableSource, 0)
-				assert.Equal(t, ErrExecutionTimeout, err)
+				assert.Equal(t, tt.expectedErr, err)
 				engine.Dispose()
 			})()
 		})
@@ -695,9 +699,9 @@ func TestInstructionCounter1_1_0TestSuite(t *testing.T) {
 		})
 	}
 }
-
-func TestInstructionCounter1_0_0TestSuite(t *testing.T) {
-	core.NebCompatibility = core.NewCompatibilityLocal()
+func TestCounter1_0_0TestSuite(t *testing.T) {
+	core.NebCompatibility = core.NewCompatibilityTestNet()
+	ClearSourceModuleCache()
 	tests := []struct {
 		filepath                                string
 		strictDisallowUsageOfInstructionCounter int
@@ -747,7 +751,7 @@ func TestInstructionCounter1_0_0TestSuite(t *testing.T) {
 			assert.Nil(t, err)
 			contract, err := context.CreateContractAccount(addr.Bytes(), nil, nil)
 			assert.Nil(t, err)
-			ctx, err := NewContext(mockBlockForLib(2), mockTransaction(), contract, context)
+			ctx, err := NewContext(mockBlockForLib(1), mockTransaction(), contract, context)
 
 			moduleID := ContractName
 			runnableSource := fmt.Sprintf("var x = require(\"%s\");", moduleID)
