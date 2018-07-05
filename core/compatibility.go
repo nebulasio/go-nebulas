@@ -394,3 +394,14 @@ func TransferFromContractFailureEventRecordableAtHeight(blockHeight uint64) bool
 func NvmGasLimitWithoutTimeoutAtHeight(blockHeight uint64) bool {
 	return blockHeight >= NebCompatibility.NvmGasLimitWithoutTimeoutHeight()
 }
+
+// GetNearestInstructionCounterVersionAtHeight ..
+func GetNearestInstructionCounterVersionAtHeight(blockHeight uint64) string {
+	m := NebCompatibility.V8JSLibVersionHeightMap()
+	for _, v := range m.DescKeys {
+		if v == "1.1.0" && blockHeight >= m.Data[v] {
+			return v
+		}
+	}
+	return "1.0.0"
+}

@@ -623,7 +623,8 @@ func TestMultiEngine(t *testing.T) {
 	}
 	wg.Wait()
 }
-func TestInstructionCounterTestSuite(t *testing.T) {
+
+func TestInstructionCounter1_1_0TestSuite(t *testing.T) {
 	core.NebCompatibility = core.NewCompatibilityLocal()
 	tests := []struct {
 		filepath                                string
@@ -675,6 +676,78 @@ func TestInstructionCounterTestSuite(t *testing.T) {
 			contract, err := context.CreateContractAccount(addr.Bytes(), nil, &corepb.ContractMeta{Version: "1.1.0"})
 			assert.Nil(t, err)
 			ctx, err := NewContext(mockBlockForLib(3), mockTransaction(), contract, context)
+
+			moduleID := ContractName
+			runnableSource := fmt.Sprintf("var x = require(\"%s\");", moduleID)
+
+			engine := NewV8Engine(ctx)
+			engine.strictDisallowUsageOfInstructionCounter = tt.strictDisallowUsageOfInstructionCounter
+			engine.enableLimits = true
+			err = engine.AddModule(moduleID, string(data), 0)
+			if err != nil {
+				assert.Equal(t, tt.expectedErr, err)
+			} else {
+				result, err := engine.RunScriptSource(runnableSource, 0)
+				assert.Equal(t, tt.expectedErr, err)
+				assert.Equal(t, tt.expectedResult, result)
+			}
+			engine.Dispose()
+		})
+	}
+}
+
+func TestInstructionCounter1_0_0TestSuite(t *testing.T) {
+	core.NebCompatibility = core.NewCompatibilityLocal()
+	tests := []struct {
+		filepath                                string
+		strictDisallowUsageOfInstructionCounter int
+		expectedErr                             error
+		expectedResult                          string
+	}{
+		{"./test/instruction_counter_tests/redefine1.js", 1, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine2.js", 1, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine3.js", 1, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine4.js", 1, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine5.js", 1, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine6.js", 1, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine7.js", 1, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/function.js", 1, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine1.js", 0, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine2.js", 0, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine3.js", 0, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine4.js", 0, core.ErrExecutionFailed, "Error: still not break the jail of _instruction_counter."},
+		{"./test/instruction_counter_tests/redefine5.js", 0, ErrInjectTracingInstructionFailed, ""},
+		{"./test/instruction_counter_tests/redefine6.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/redefine7.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/function.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/if.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/switch.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/for_1_0_0.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/with.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/while_1_0_0.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/throw.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/switch.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/condition_operator.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/storage_usage.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/event_usage.js", 0, nil, "\"\""},
+		{"./test/instruction_counter_tests/blockchain_usage.js", 0, nil, "\"\""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filepath, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.filepath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
+			assert.Nil(t, err)
+			owner.AddBalance(newUint128FromIntWrapper(1000000000))
+			addr, err := core.NewContractAddressFromData([]byte("n1FkntVUMPAsESuCAAPK711omQk19JotBjM"), byteutils.FromUint64(1))
+			assert.Nil(t, err)
+			contract, err := context.CreateContractAccount(addr.Bytes(), nil, nil)
+			assert.Nil(t, err)
+			ctx, err := NewContext(mockBlockForLib(2), mockTransaction(), contract, context)
 
 			moduleID := ContractName
 			runnableSource := fmt.Sprintf("var x = require(\"%s\");", moduleID)

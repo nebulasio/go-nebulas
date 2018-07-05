@@ -132,6 +132,20 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 		return nil
 	}
 
+	// for instruction_counter.js
+	if strings.HasSuffix(libname, "instruction_counter.js") {
+		v := core.GetNearestInstructionCounterVersionAtHeight(e.ctx.block.Height())
+		if len(v) == 0 {
+			logging.VLog().WithFields(logrus.Fields{
+				"libname":     libname,
+				"blockHeight": e.ctx.block.Height(),
+			}).Error("instruction_counter version not found.")
+			return nil
+		}
+		return C.CString(JSLibRootName + v + libname[JSLibRootNameLen-1:])
+	}
+
+	// block after core.V8JSLibVersionControlHeight, inclusive
 	if core.V8JSLibVersionControlAtHeight(e.ctx.block.Height()) {
 		if e.ctx.contract == nil {
 			logging.VLog().WithFields(logrus.Fields{
@@ -144,8 +158,8 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 			logging.VLog().WithFields(logrus.Fields{
 				"libname": libname,
 				"height":  e.ctx.block.Height(),
-			}).Error("e.context.contract.ContractMeta is nil.")
-			return nil
+			}).Debug("e.context.contract.ContractMeta is nil.")
+			return attachDefaultVersionLib(libname)
 		}
 		cv := e.ctx.contract.ContractMeta().Version
 
@@ -178,6 +192,10 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 		return C.CString(JSLibRootName + ver + libname[JSLibRootNameLen-1:])
 	}
 
+	return attachDefaultVersionLib(libname)
+}
+
+func attachDefaultVersionLib(libname string) *C.char {
 	// block created before core.V8JSLibVersionControlHeight, default lib version: 1.0.0
 	if !strings.HasPrefix(libname, JSLibRootName) {
 		if strings.HasPrefix(libname, "/") {
