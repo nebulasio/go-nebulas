@@ -282,7 +282,7 @@ func TestInnerTransactions(t *testing.T) {
 				call{
 					"save",
 					"[1]",
-					[]string{"1", "3", "2", "4999999999999832053999994", "5000004280820167946000000"},
+					[]string{"1", "3", "2", "4999999999999832690999994", "5000004280820167309000000"},
 				},
 			},
 		},
@@ -473,10 +473,12 @@ func TestInnerTransactions(t *testing.T) {
 func TestInnerTransactionsMaxMulit(t *testing.T) {
 	core.NebCompatibility = core.NewCompatibilityLocal()
 	tests := []struct {
-		name        string
-		contracts   []contract
-		call        call
-		expectedErr string
+		name                   string
+		contracts              []contract
+		call                   call
+		innerExpectedErr       string
+		contractExpectedErr    string
+		contractExpectedResult string
 	}{
 		{
 			"deploy test_require_module.js",
@@ -503,6 +505,8 @@ func TestInnerTransactionsMaxMulit(t *testing.T) {
 				[]string{""},
 			},
 			"multi execution failed",
+			"Call: out of limit nvm count",
+			"out of limit nvm count",
 		},
 	}
 
@@ -648,9 +652,23 @@ func TestInnerTransactionsMaxMulit(t *testing.T) {
 		// events.
 		fmt.Printf("==events:%v\n", events)
 		for _, event := range events {
+			fmt.Printf("topic:%v\n", event.Topic)
+			if event.Topic == "chain.transactionResult" {
+				var jEvent SysEvent
+				if err := json.Unmarshal([]byte(event.Data), &jEvent); err == nil {
+					assert.Equal(t, tt.contractExpectedErr, jEvent.Err)
+					assert.Equal(t, tt.contractExpectedResult, jEvent.Result)
+				}
+			} else {
+				var jEvent InnerEvent
+				if err := json.Unmarshal([]byte(event.Data), &jEvent); err == nil {
+					assert.Equal(t, tt.innerExpectedErr, jEvent.Error)
+				}
+			}
 
 			fmt.Println("==============", event.Data) //FIXME: except event err
 		}
+
 		//
 	}
 }
@@ -936,16 +954,23 @@ type SysEvent struct {
 	Err     string `json:"error"`
 	Result  string `json:"execute_result"`
 }
+type InnerEvent struct {
+	From  string `json:"from"`
+	To    string `json:"to"`
+	Value int    `json:"value"`
+	Error string `json:"error"`
+}
 
 func TestInnerTransactionsMemLimit(t *testing.T) {
 	core.NebCompatibility = core.NewCompatibilityLocal()
 	tests := []struct {
-		name           string
-		contracts      []contract
-		call           call
-		expectedErr    string
-		memArr         []int
-		memExpectedErr []string
+		name              string
+		contracts         []contract
+		call              call
+		expectedErr       string
+		memArr            []int
+		memExpectedErr    []string
+		memExpectedResult []string
 	}{
 		{
 			"deploy test_require_module.js",
@@ -974,11 +999,13 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 			"multi execution failed",
 			[]int{5 * 1024 * 1024, 10 * 1024 * 1024, 20 * 1024 * 1024, 40 * 1024 * 1024},
 			// []int{20 * 1024 * 1024},
-			//FIXME: event err to "exceed memory limits"
 			[]string{"",
-				"Inner Call: inner transation err [exceed memory limits] engine index:1",
-				"Inner Call: inner transation err [exceed memory limits] engine index:0",
+				"exceed memory limits",
+				"exceed memory limits",
 				"exceed memory limits"},
+			[]string{"\"\"",
+				"null", "null", "null",
+			},
 		},
 	}
 
@@ -1120,11 +1147,12 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 			tail = neb.chain.TailBlock()
 			events, err := tail.FetchEvents(txCall.Hash())
 			for _, event := range events {
-
+				fmt.Printf("mem err:%v", event.Data)
 				var jEvent SysEvent
 				if err := json.Unmarshal([]byte(event.Data), &jEvent); err == nil {
 					if jEvent.Hash != "" {
 						assert.Equal(t, tt.memExpectedErr[i], jEvent.Err)
+						assert.Equal(t, tt.memExpectedResult[i], jEvent.Result)
 					}
 				}
 

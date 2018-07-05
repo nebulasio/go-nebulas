@@ -88,14 +88,7 @@ ProxyBankContract.prototype = {
         // this.transferEvent(true, address, 0, mem);
     },
     saveToLoop: function (address, to, height) {
-
-        var funcs =  {
-            saveToLoop: function() { 
-            
-            }
-        }
-
-        var c = new Blockchain.Contract(address, funcs);
+        var c = new Blockchain.Contract(address);
 
         // var args = "[\"" + address + "\", \"" + to + "\", \""+ height +"\"]";
         c.value(5).call("saveToLoop", address, to, height); 
