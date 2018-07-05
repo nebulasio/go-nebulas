@@ -360,7 +360,6 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 	return TransferFuncSuccess
 }
 
-
 // VerifyAddressFunc verify address is valid
 //export VerifyAddressFunc
 func VerifyAddressFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size_t) int {
@@ -551,26 +550,27 @@ func GetContractSourceFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.si
 }
 
 //packErrInfoAndSetHead->packInner
-func setHeadErrAndLog(e *V8Engine, index uint32, err string, flag bool) string {
+func setHeadErrAndLog(e *V8Engine, index uint32, err error, result string, flag bool) string {
 	//rStr := packErrInfo(errType, rerrType, rerr, format, a...)
-
-	formatEx := InnerTransactionErrPrefix + err + InnerTransactionErrEnding
+	formatEx := InnerTransactionErrPrefix + err.Error() + InnerTransactionResult + result + InnerTransactionErrEnding
 	rStr := fmt.Sprintf(formatEx, index)
 
 	if flag == true {
 		logging.CLog().Errorf(rStr)
 	}
-
+	logging.CLog().Errorf("setHeadErrAndLog err:%v, result:%v", err, result)
 	if index == 0 {
-		e.innerErrMsg = rStr
+		e.innerErrMsg = result
+		e.innerErr = err
 	} else {
-		setHeadV8ErrMsg(e.ctx.head, rStr)
+		setHeadV8ErrMsg(e.ctx.head, err, result)
 	}
+	// logging.CLog().Errorf("setHeadErrAndLog1111111 err:%v, result:%v", e.innerErr, result)
 	return rStr
 }
 
 //setHeadV8ErrMsg set head node err info
-func setHeadV8ErrMsg(handler unsafe.Pointer, err string) {
+func setHeadV8ErrMsg(handler unsafe.Pointer, err error, result string) {
 	if handler == nil {
 		logging.CLog().Errorf("the main node")
 		return
@@ -580,7 +580,9 @@ func setHeadV8ErrMsg(handler unsafe.Pointer, err string) {
 		logging.VLog().Errorf("the handler not found the v8 engine")
 		return
 	}
-	engine.innerErrMsg = err
+	logging.CLog().Errorf("setHeadErrAndLogsssssss err:%v, result:%v", err, result)
+	engine.innerErr = err
+	engine.innerErrMsg = result
 }
 
 // InnerContractFunc multi run contract. output[c standard]: if err return nil else return "*"
@@ -593,7 +595,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	}
 	index := engine.ctx.index
 	if engine.ctx.index >= uint32(MultiNvmMax) {
-		setHeadErrAndLog(engine, index, ErrNvmNumLimit.Error(), true)
+		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, ErrNvmNumLimit.Error(), true)
 		return nil
 	}
 	var gasSum uint64
@@ -602,19 +604,19 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 
 	addr, err := core.AddressParse(C.GoString(address))
 	if err != nil {
-		setHeadErrAndLog(engine, index, err.Error(), true)
+		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 		return nil
 	}
 	contract, err := core.CheckContract(addr, ws)
 	if err != nil {
-		setHeadErrAndLog(engine, index, err.Error(), true)
+		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 		return nil
 	}
 	logging.CLog().Infof("inner contract:%v", contract.ContractMeta())
 
 	deploy, err := getPayLoadByAddress(ws, C.GoString(address))
 	if err != nil {
-		setHeadErrAndLog(engine, index, err.Error(), true)
+		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 		return nil
 	}
 
@@ -622,12 +624,12 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	payloadType := core.TxPayloadCallType
 	callpayload, err := core.NewCallPayload(C.GoString(funcName), C.GoString(args))
 	if err != nil {
-		setHeadErrAndLog(engine, index, err.Error(), true)
+		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 		return nil
 	}
 	payload, err := callpayload.ToBytes()
 	if err != nil {
-		setHeadErrAndLog(engine, index, err.Error(), true)
+		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 		return nil
 	}
 
@@ -635,27 +637,27 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	from := engine.ctx.contract.Address()
 	fromAddr, err := core.AddressParseFromBytes(from)
 	if err != nil {
-		setHeadErrAndLog(engine, index, err.Error(), true)
+		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 		return nil
 	}
 	//transfer
 	var transferCostGas uint64
 	iRet := TransferByAddress(handler, fromAddr, addr, C.GoString(v), &transferCostGas) //TODO: gas cost?
 	if iRet != 0 {
-		setHeadErrAndLog(engine, index, ErrInnerTransferFailed.Error(), true)
+		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, ErrInnerTransferFailed.Error(), true)
 		return nil
 	}
 	gasSum += transferCostGas
 
 	toValue, err := util.NewUint128FromString(C.GoString(v))
 	if err != nil {
-		setHeadErrAndLog(engine, index, err.Error(), true)
+		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 		return nil
 	}
 	newTx, err := core.NewTransaction(parentTx.ChainID(), fromAddr, addr, toValue, parentTx.Nonce(), payloadType,
 		payload, parentTx.GasPrice(), parentTx.GasLimit())
 	if err != nil {
-		setHeadErrAndLog(engine, index, err.Error(), false)
+		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), false)
 		logging.VLog().WithFields(logrus.Fields{
 			"from":  fromAddr.String(),
 			"to":    addr.String(),
@@ -675,19 +677,20 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	//TODO: 确定world reset 是否需要
 	newCtx, err := NewChildContext(engine.ctx.block, newTx, contract, engine.ctx.state, head, engine.ctx.index+1, engine.ctx.contextRand)
 	if err != nil {
-		setHeadErrAndLog(engine, index, err.Error(), true)
+		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 		return nil
 	}
 
 	remainInstruction, remainMem := engine.GetNVMVerbResources()
 	iCost := uint64(InnerContractFuncCost) + transferCostGas
 	if remainInstruction <= uint64(iCost) {
-		logging.CLog().Infof("remainInstruction:%v, mem:%v", remainInstruction, remainMem)
-		setHeadErrAndLog(engine, index, ErrInnerInsufficientGas.Error(), true)
+		logging.CLog().Errorf("remainInstruction:%v, mem:%v, err:%v", remainInstruction, remainMem, ErrInnerInsufficientGas.Error())
+		setHeadErrAndLog(engine, index, ErrInsufficientGas, "", false)
 		return nil
 	}
 	if remainMem <= 0 {
-		setHeadErrAndLog(engine, index, ErrInnerInsufficientMem.Error(), true)
+		logging.CLog().Errorf("remainInstruction:%v, mem:%v, err:%v", remainInstruction, remainMem, ErrInnerInsufficientMem.Error())
+		setHeadErrAndLog(engine, index, ErrExceedMemoryLimits, "", false)
 		return nil
 	}
 	remainInstruction -= uint64(InnerContractFuncCost)
@@ -700,7 +703,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 
 	val, err := engineNew.Call(string(deploy.Source), deploy.SourceType, C.GoString(funcName), C.GoString(args))
 	gasCout := engineNew.ExecutionInstructions()
-
+	logging.CLog().Infof("-------gas cost:%v", gasCout)
 	gasSum += gasCout
 	errStr := ""
 	if err != nil {
@@ -721,7 +724,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 			"value": toValue.String(),
 			"err":   errMarshal.Error(),
 		}).Error("failed to marshal TransferFromContractEvent")
-		setHeadErrAndLog(engine, index, errMarshal.Error(), true)
+		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, errMarshal.Error(), true)
 
 		return nil
 	}
@@ -730,11 +733,9 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		if err == core.ErrInnerExecutionFailed {
 			logging.CLog().Errorf("check inner err, engine index:%v", index)
 			// return nil
-		} else if err == core.ErrExecutionFailed {
-			logging.CLog().Errorf("inner err:%v, engine index:%v", val, index)
-			setHeadErrAndLog(engine, index, err.Error(), false)
 		} else {
-			setHeadErrAndLog(engine, index, err.Error(), true)
+			errLog := setHeadErrAndLog(engine, index, err, val, false)
+			logging.CLog().Errorf(errLog)
 		}
 
 		return nil

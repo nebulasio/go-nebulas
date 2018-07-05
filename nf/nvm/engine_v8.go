@@ -116,6 +116,7 @@ type V8Engine struct {
 	lcsHandler                              uint64
 	gcsHandler                              uint64
 	innerErrMsg                             string
+	innerErr                                error
 }
 
 type sourceModuleItem struct {
@@ -434,6 +435,9 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	}
 	if e.innerErrMsg != "" {
 		result = e.innerErrMsg
+	}
+	if e.innerErr != nil {
+		err = e.innerErr
 	}
 	return result, err
 }

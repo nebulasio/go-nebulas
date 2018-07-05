@@ -692,23 +692,20 @@ func TestInnerTransactionsGasLimit(t *testing.T) {
 				[]string{""},
 			},
 			"multi execution failed",
-			//[]int{10000, 20000, 21300, 25300, 31500},
-			//25118 in c and gas is 1
-			//25117 in B and after cost c is 0
-			//25116 in B not enough to cost in C
-			//23117 在B内不足支付到C{engine.call system failed the gas over!!!,engine index:1}
-			//22436 A不足支付B{engine.call system failed the gas over!!!,engine index:0}
-			//22437 A刚好支付B剩余1{engine.call insuff limit err:insufficient gas,engine index:0}
-			//20336 仅够支付A{engine.call system failed the gas over!!!,engine index:0}
-			//20335 A不足gas{insufficient gas}
-			//10000 不能进入trans
-			//tmp 23117
-			// []int{20175, 20174, 53000, 57248, 57249, 94697, 94710, 95105, 95092, 96093},
-			[]int{20175, 20174, 53000, 57248, 57249, 94697, 94710, 95092, 95105, 95269, 96093},
-			// []int{95269},
+			//96093 “”	"\"\""
+			//95269	insufficient gas "null"	B+C执行完毕，代码回到A执行失败
+			//95105	insufficient gas "null"
+			//95092	insufficient gas	"\"\""	C刚好最后一句代码gas limit
+			//94710	insufficient gas "null"
+			//94697	insufficient gas "null"
+			//57249	insufficient gas "null"
+			//57248 insufficient gas "null"
+			//53000	insufficient gas "null"
+			// []int{20175, 20174, 53000, 57248, 57249, 94697, 94710, 95092, 95105, 95269, 96093},
+			[]int{20175},
 			//95093->95105, 94698->94710
 			//96093 “”	"\"\""
-			//95269	insufficient gas "null"
+			//95269	insufficient gas "null"	B+C执行完毕，代码回到A执行失败
 			//95105 c刚好消费殆尽,代码回到B后gas不足. Call: inner transation err [insufficient gas] engine index:0
 			//95092	Inner Call: inner transation err [insufficient gas] engine index:1
 			//94710 Inner Call: inner transation err [insufficient gas] engine index:1","execute_result":"inner transation err [insufficient gas] engine index:1"
@@ -722,23 +719,23 @@ func TestInnerTransactionsGasLimit(t *testing.T) {
 			//TODO: 增加第二阶完成，第一阶gas insuff。。应该是Call: err
 			//FIXME: event err to insufficient gas
 			[]string{"insufficient gas", "out of gas limit",
-				"Inner Call: inner transation err [preparation inner nvm insufficient gas] engine index:0",
-				"Inner Call: inner transation err [preparation inner nvm insufficient gas] engine index:0",
-				"Inner Call: inner transation err [insufficient gas] engine index:0",
-				"Inner Call: inner transation err [preparation inner nvm insufficient gas] engine index:1",
-				"Inner Call: inner transation err [insufficient gas] engine index:1",
-				"Inner Call: inner transation err [insufficient gas] engine index:1",
-				"Inner Call: inner transation err [insufficient gas] engine index:0",
+				"insufficient gas",
+				"insufficient gas",
+				"insufficient gas",
+				"insufficient gas",
+				"insufficient gas",
+				"insufficient gas",
+				"insufficient gas",
 				"insufficient gas",
 				"",
 			},
-			[]string{"null", "", "inner transation err [preparation inner nvm insufficient gas] engine index:0",
-				"inner transation err [preparation inner nvm insufficient gas] engine index:0",
-				"inner transation err [insufficient gas] engine index:0",
-				"inner transation err [preparation inner nvm insufficient gas] engine index:1",
-				"inner transation err [insufficient gas] engine index:1",
-				"inner transation err [insufficient gas] engine index:1",
-				"inner transation err [insufficient gas] engine index:0",
+			[]string{"null", "", "null",
+				"null",
+				"null",
+				"null",
+				"null",
+				"\"\"",
+				"null",
 				"null",
 				"\"\""},
 		},

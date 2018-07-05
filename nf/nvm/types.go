@@ -42,6 +42,7 @@ var (
 var (
 	EventNameSpaceContract    = "chain.contract" //ToRefine: move to core
 	InnerTransactionErrPrefix = "inner transation err ["
+	InnerTransactionResult    = "] result ["
 	InnerTransactionErrEnding = "] engine index:%v"
 )
 
