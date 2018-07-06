@@ -181,6 +181,7 @@ function checkTransaction(txhash, done){
                 if (resp.contract_address) {
                     console.log("deploy private key:" + deploy.getPrivateKeyString());
                     console.log("deploy address:" + deploy.getAddressString());
+                    console.log("deploy privatekey:" + deploy.getPrivateKeyString());
                     console.log("deploy contract address:" + resp.contract_address);
                     // console.log("deploy receipt:" + JSON.stringify(resp));
 

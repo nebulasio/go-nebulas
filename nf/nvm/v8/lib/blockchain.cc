@@ -20,6 +20,7 @@
 #include "blockchain.h"
 #include "global.h"
 #include "../engine.h"
+#include "global.h"
 #include "instruction_counter.h"
 #include "logger.h"
 #include "limits.h"
@@ -30,18 +31,24 @@ static TransferFunc sTransfer = NULL;
 static VerifyAddressFunc sVerifyAddress = NULL;
 static GetPreBlockHashFunc sGetPreBlockHash = NULL;
 static GetPreBlockSeedFunc sGetPreBlockSeed = NULL;
+static GetContractSourceFunc sGetContractSource = NULL;
+static InnerContractFunc sRunInnerContract = NULL;
 
 void InitializeBlockchain(GetTxByHashFunc getTx, GetAccountStateFunc getAccount,
                           TransferFunc transfer,
                           VerifyAddressFunc verifyAddress,
                           GetPreBlockHashFunc getPreBlockHash,
-                          GetPreBlockSeedFunc getPreBlockSeed) {
+                          GetPreBlockSeedFunc getPreBlockSeed,
+                          GetContractSourceFunc contractSource,
+                          InnerContractFunc rMultContract) {
   sGetTxByHash = getTx;
   sGetAccountState = getAccount;
   sTransfer = transfer;
   sVerifyAddress = verifyAddress;
   sGetPreBlockHash = getPreBlockHash;
   sGetPreBlockSeed = getPreBlockSeed;
+  sGetContractSource = contractSource;
+  sRunInnerContract = rMultContract;
 }
 
 void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
@@ -69,6 +76,16 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
 
   blockTpl->Set(String::NewFromUtf8(isolate, "verifyAddress"),
                 FunctionTemplate::New(isolate, VerifyAddressCallback),
+                static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                               PropertyAttribute::ReadOnly));
+  
+  blockTpl->Set(String::NewFromUtf8(isolate, "getContractSource"),
+                FunctionTemplate::New(isolate, GetContractSourceCallback),
+                static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                               PropertyAttribute::ReadOnly));
+
+  blockTpl->Set(String::NewFromUtf8(isolate, "runContractSource"),
+                FunctionTemplate::New(isolate, RunInnerContractSourceCallBack),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                                PropertyAttribute::ReadOnly));
 
@@ -341,6 +358,106 @@ void GetPreBlockSeedCallback(const FunctionCallbackInfo<Value> &info) {
   if (exceptionInfo != NULL) {
     free(exceptionInfo);
     exceptionInfo = NULL;
+  }
+
+  // record storage usage.
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
+}
+
+void GetContractSourceCallback(const FunctionCallbackInfo<Value> &info) {
+  Isolate *isolate = info.GetIsolate();
+  Local<Object> thisArg = info.Holder();
+  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
+
+  if (info.Length() != 1) {
+    isolate->ThrowException(String::NewFromUtf8(
+        isolate, "Blockchain.GetContractSource() requires 1 arguments"));
+    return;
+  }
+
+  Local<Value> address = info[0];
+  if (!address->IsString()) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "address must be string"));
+    return;
+  }
+
+  size_t cnt = 0;
+
+  char *value = sGetContractSource(handler->Value(),
+                           *String::Utf8Value(address->ToString()), &cnt);
+  if (value == NULL) {
+    info.GetReturnValue().SetNull();  //TODO: throw err
+  } else {
+    info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
+    free(value);
+  }
+
+  // record storage usage.
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
+}
+
+void RunInnerContractSourceCallBack(const FunctionCallbackInfo<Value> &info) {
+  Isolate *isolate = info.GetIsolate();
+  Local<Object> thisArg = info.Holder();
+  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
+
+  if (info.Length() != 4) {
+    char msg[128];
+    snprintf(msg, 128, "Blockchain.RunInnerContractSourceCallBack() requires 4 arguments,args:%d", info.Length());
+    isolate->ThrowException(String::NewFromUtf8(
+        isolate, msg));
+    return;
+  }
+
+  Local<Value> address = info[0];
+  if (!address->IsString()) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "address must be string"));
+    return;
+  }
+  Local<Value> funcName = info[1];
+  if (!address->IsString()) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "func must be string"));
+    return;
+  }
+  Local<Value> val = info[2];
+  if (!val->IsString()) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "val must be string"));
+    return;
+  }
+  Local<Value> args = info[3];
+  if (!args->IsString()) {
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "args must be string"));
+    return;
+  }
+
+  size_t cnt = 0;
+  char *value = sRunInnerContract(handler->Value(),
+                           *String::Utf8Value(address->ToString()), *String::Utf8Value(funcName->ToString()),
+                           *String::Utf8Value(val->ToString()), *String::Utf8Value(args->ToString()),
+                           &cnt);
+  // Local<Object> rObj = v8::Object::New(isolate);                      
+  if (value == NULL) {
+    Local<Context> context = isolate->GetCurrentContext();
+    V8Engine *e = GetV8EngineInstance(context);
+    SetInnerNvmHappen(e);
+    TerminateExecution(e);
+    return;
+  } else {
+    // Local<Boolean> flag = Boolean::New(isolate, true);
+    // rObj->Set(v8::String::NewFromUtf8(isolate, "code"), flag);
+    // Local<String> valueStr = v8::String::NewFromUtf8(isolate, value);
+
+    // rObj->Set(v8::String::NewFromUtf8(isolate, "data"), valueStr);
+    // info.GetReturnValue().Set(rObj);
+
+    info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
+
+    free(value);
   }
 
   // record storage usage.

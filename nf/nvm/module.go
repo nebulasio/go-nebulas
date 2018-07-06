@@ -132,8 +132,21 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 		return nil
 	}
 
+	// for instruction_counter.js
+	if strings.HasSuffix(libname, "instruction_counter.js") {
+		v := core.GetNearestInstructionCounterVersionAtHeight(e.ctx.block.Height())
+		if len(v) == 0 {
+			logging.VLog().WithFields(logrus.Fields{
+				"libname":     libname,
+				"blockHeight": e.ctx.block.Height(),
+			}).Error("instruction_counter version not found.")
+			return nil
+		}
+		return C.CString(JSLibRootName + v + libname[JSLibRootNameLen-1:])
+	}
+
 	// block after core.V8JSLibVersionControlHeight, inclusive
-	if e.ctx.block.Height() >= core.V8JSLibVersionControlHeight {
+	if core.V8JSLibVersionControlAtHeight(e.ctx.block.Height()) {
 		if e.ctx.contract == nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"libname": libname,

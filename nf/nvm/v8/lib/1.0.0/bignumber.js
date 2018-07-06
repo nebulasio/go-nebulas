@@ -4,7 +4,7 @@
     'use strict';
 
     const ErrIsNaNOrInfinity = new Error("NaN or Infinity");
-    const NaNAndInfinityCheckHeight = 482100;
+    const NaNAndInfinityCheckHeight = 482100; // mainnet-504800, testnet-482100
 
     function checkNaNOrInfinity(n) {
         if (GlobalVars.Blockchain && GlobalVars.Blockchain.block && GlobalVars.Blockchain.block.height >= NaNAndInfinityCheckHeight) {

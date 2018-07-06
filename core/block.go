@@ -45,7 +45,9 @@ var (
 	BlockHashLength = 32
 
 	// ParallelNum num
-	ParallelNum = 1
+	PackedParallelNum = 2
+
+	VerifyParallelNum = 8
 
 	// VerifyExecutionTimeout 0 means unlimited
 	VerifyExecutionTimeout = 0
@@ -194,10 +196,10 @@ func (block *Block) FromProto(msg proto.Message) error {
 			if err := block.header.FromProto(msg.Header); err != nil {
 				return err
 			}
-			if msg.Height >= RandomAvailableHeight && !block.HasRandomSeed() {
+			if RandomAvailableAtHeight(msg.Height) && !block.HasRandomSeed() {
 				logging.VLog().WithFields(logrus.Fields{
 					"blockHeight":      msg.Height,
-					"compatibleHeight": RandomAvailableHeight,
+					"compatibleHeight": NebCompatibility.RandomAvailableHeight(),
 				}).Info("No random found in block header.")
 				return ErrInvalidProtoToBlockHeader
 			}
@@ -383,7 +385,7 @@ func (block *Block) Transactions() Transactions {
 
 // RandomSeed block random seed (VRF)
 func (block *Block) RandomSeed() string {
-	if block.height >= RandomAvailableHeight {
+	if RandomAvailableAtHeight(block.height) {
 		return byteutils.Hex(block.header.random.VrfSeed)
 	}
 	return ""
@@ -391,7 +393,7 @@ func (block *Block) RandomSeed() string {
 
 // RandomProof block random proof (VRF)
 func (block *Block) RandomProof() string {
-	if block.height >= RandomAvailableHeight {
+	if RandomAvailableAtHeight(block.height) {
 		return byteutils.Hex(block.header.random.VrfProof)
 	}
 	return ""
@@ -399,12 +401,12 @@ func (block *Block) RandomProof() string {
 
 // RandomAvailable check if Math.random available in contract
 func (block *Block) RandomAvailable() bool {
-	return block.height >= RandomAvailableHeight
+	return RandomAvailableAtHeight(block.height)
 }
 
 // DateAvailable check if date available in contract
 func (block *Block) DateAvailable() bool {
-	return block.height >= DateAvailableHeight
+	return DateAvailableAtHeight(block.height)
 }
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
@@ -497,7 +499,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 	toBlacklist := new(sync.Map)
 
 	// parallelCh is used as access tokens here
-	parallelCh := make(chan bool, ParallelNum)
+	parallelCh := make(chan bool, PackedParallelNum)
 	// mergeCh is used as lock here
 	mergeCh := make(chan bool, 1)
 	over := false
@@ -810,7 +812,7 @@ func (block *Block) Seal() error {
 
 func (block *Block) String() string {
 	random := ""
-	if block.height >= RandomAvailableHeight && block.header.random != nil {
+	if RandomAvailableAtHeight(block.height) && block.header.random != nil {
 		if block.header.random.VrfSeed != nil {
 			random += "/vrf_seed/" + byteutils.Hex(block.header.random.VrfSeed)
 		}
@@ -988,7 +990,20 @@ func (block *Block) execute() error {
 		mergeCh: make(chan bool, 1),
 		block:   block,
 	}
-	dispatcher := dag.NewDispatcher(block.dependency, ParallelNum, int64(VerifyExecutionTimeout), context, func(node *dag.Node, context interface{}) error { // TODO: if system occurs, the block won't be retried any more
+	parallelNum := VerifyParallelNum
+
+	if !WsResetRecordDependencyAtHeight(block.Height()) && len(block.transactions) > 0 {
+		addrs := make(map[byteutils.HexHash]bool)
+		for _, tx := range block.transactions {
+			if _, ok := addrs[tx.to.address.Hex()]; ok {
+				parallelNum = 1
+				break
+			}
+			addrs[tx.to.address.Hex()] = true
+		}
+	}
+
+	dispatcher := dag.NewDispatcher(block.dependency, parallelNum, int64(VerifyExecutionTimeout), context, func(node *dag.Node, context interface{}) error { // TODO: if system occurs, the block won't be retried any more
 		ctx := context.(*verifyCtx)
 		block := ctx.block
 		mergeCh := ctx.mergeCh
@@ -1305,4 +1320,43 @@ func MockBlock(header *BlockHeader, height uint64) *Block {
 		header: header,
 		height: height,
 	}
+}
+
+// MockBlockEx return new block to inner nvm unit test
+func MockBlockEx(chainID uint32, coinbase *Address, parent *Block, height uint64) (*Block, error) { // ToCheck: check args. // ToCheck: check full-functional block.
+	worldState, err := parent.worldState.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	block := &Block{
+		header: &BlockHeader{
+			chainID:       chainID,
+			parentHash:    parent.Hash(),
+			coinbase:      coinbase,
+			timestamp:     time.Now().Unix(),
+			consensusRoot: &consensuspb.ConsensusRoot{},
+			random:        &corepb.Random{},
+		},
+		transactions: make(Transactions, 0),
+		dependency:   dag.NewDag(),
+
+		worldState: worldState,
+		height:     height,
+		sealed:     false,
+
+		txPool:       parent.txPool,
+		eventEmitter: parent.eventEmitter,
+		nvm:          parent.nvm,
+		storage:      parent.storage,
+	}
+
+	if err := block.Begin(); err != nil {
+		return nil, err
+	}
+	if err := block.rewardCoinbaseForMint(); err != nil {
+		return nil, err
+	}
+
+	return block, nil
 }

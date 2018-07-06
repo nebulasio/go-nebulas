@@ -23,7 +23,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -49,33 +48,6 @@ type version struct {
 	major, minor, patch int
 }
 
-type heightOfVersionSlice []*struct {
-	version string
-	height  uint64
-}
-
-func (h heightOfVersionSlice) String() string {
-	var buf bytes.Buffer
-	buf.WriteString("{")
-	for _, v := range h {
-		if buf.Len() > 1 {
-			buf.WriteString(",")
-		}
-		buf.WriteString(v.version + "=" + strconv.FormatUint(v.height, 10))
-	}
-	buf.WriteString("}")
-	return buf.String()
-}
-func (h heightOfVersionSlice) Len() int {
-	return len(h)
-}
-func (h heightOfVersionSlice) Less(i, j int) bool {
-	return h[i].height < h[j].height
-}
-func (h heightOfVersionSlice) Swap(i, j int) {
-	h[i], h[j] = h[j], h[i]
-}
-
 // var ..
 var (
 	// NOTE: versions should be arranged in ascending order
@@ -83,15 +55,15 @@ var (
 	V8JSLibs = map[string][]string{
 		"execution_env.js":       {"1.0.0", "1.0.5"},
 		"bignumber.js":           {"1.0.0"},
-		"random.js":              {"1.0.0", "1.0.5"},
+		"random.js":              {"1.0.0", "1.0.5", "1.1.0"},
 		"date.js":                {"1.0.0", "1.0.5"},
 		"tsc.js":                 {"1.0.0"},
 		"util.js":                {"1.0.0"},
 		"esprima.js":             {"1.0.0"},
 		"assert.js":              {"1.0.0"},
-		"instruction_counter.js": {"1.0.0"},
+		"instruction_counter.js": {"1.0.0", "1.1.0"},
 		"typescriptServices.js":  {"1.0.0"},
-		"blockchain.js":          {"1.0.0", "1.0.5"},
+		"blockchain.js":          {"1.0.0", "1.0.5", "1.1.0"},
 		"console.js":             {"1.0.0"},
 		"event.js":               {"1.0.0"},
 		"storage.js":             {"1.0.0"},
@@ -109,222 +81,103 @@ var (
 
 /**********     js lib relative  END   **********/
 
-// others, e.g. local/develop
-const (
-	// LocalTransferFromContractEventRecordableHeight
-	LocalTransferFromContractEventRecordableHeight uint64 = 2
+// V8JSLibVersionHeightMap key is version in string format, value is height
+type V8JSLibVersionHeightMap struct {
+	Data     map[string]uint64
+	DescKeys []string
+}
 
-	// LocalAcceptFuncAvailableHeight
-	LocalAcceptFuncAvailableHeight uint64 = 2
-
-	// LocalRandomAvailableHeight
-	LocalRandomAvailableHeight uint64 = 2
-
-	// LocalDateAvailableHeight
-	LocalDateAvailableHeight uint64 = 2
-
-	// LocalRecordCallContractResultHeight
-	LocalRecordCallContractResultHeight uint64 = 2
-
-	//LocalNvmMemoryLimitWithoutInjectHeight
-	LocalNvmMemoryLimitWithoutInjectHeight uint64 = 2
-
-	//LocalWdResetRecordDependencyHeight
-	LocalWsResetRecordDependencyHeight uint64 = 2
-
-	// LocalV8JSLibVersionControlHeight
-	LocalV8JSLibVersionControlHeight uint64 = 2
-
-	//LocalNetTransferFromContractFailureEventRecordableHeight
-	LocalTransferFromContractFailureEventRecordableHeight uint64 = 2
-
-	//LocalNetNewNvmExeTimeoutConsumeGasHeight
-	LocalNewNvmExeTimeoutConsumeGasHeight uint64 = 2
-)
-
-// var for local/develop
-var (
-	LocalV8JSLibVersionHeightSlice = heightOfVersionSlice{
-		{"1.0.5", LocalV8JSLibVersionControlHeight},
+// GetHeightOfVersion ..
+func (v *V8JSLibVersionHeightMap) GetHeightOfVersion(version string) uint64 {
+	if r, ok := v.Data[version]; ok {
+		return r
 	}
-)
+	return 0
+}
 
-// TestNet
-const (
-	// TestNetTransferFromContractEventRecordableHeight
-	TestNetTransferFromContractEventRecordableHeight uint64 = 199666
-
-	// TestNetAcceptFuncAvailableHeight
-	TestNetAcceptFuncAvailableHeight uint64 = 199666
-
-	// TestNetRandomAvailableHeight
-	TestNetRandomAvailableHeight uint64 = 199666
-
-	// TestNetDateAvailableHeight
-	TestNetDateAvailableHeight uint64 = 199666
-
-	// TestNetRecordCallContractResultHeight
-	TestNetRecordCallContractResultHeight uint64 = 199666
-
-	//TestNetNvmMemoryLimitWithoutInjectHeight
-	TestNetNvmMemoryLimitWithoutInjectHeight uint64 = 281800
-
-	//TestNetWdResetRecordDependencyHeight
-	TestNetWsResetRecordDependencyHeight uint64 = 281800
-
-	// TestNetV8JSLibVersionControlHeight
-	TestNetV8JSLibVersionControlHeight uint64 = 424400
-
-	//TestNetTransferFromContractFailureEventRecordableHeight
-	TestNetTransferFromContractFailureEventRecordableHeight uint64 = 424400
-
-	//TestNetNewNvmExeTimeoutConsumeGasHeight
-	TestNetNewNvmExeTimeoutConsumeGasHeight uint64 = 424400
-)
-
-// var for TestNet
-var (
-	TestNetV8JSLibVersionHeightSlice = heightOfVersionSlice{
-		{"1.0.5", TestNetV8JSLibVersionControlHeight},
+func (v *V8JSLibVersionHeightMap) String() string {
+	var buf bytes.Buffer
+	buf.WriteString("{")
+	for _, ver := range v.DescKeys {
+		if buf.Len() > 1 {
+			buf.WriteString(",")
+		}
+		buf.WriteString(ver + "=" + strconv.FormatUint(v.Data[ver], 10))
 	}
-)
+	buf.WriteString("}")
+	return buf.String()
+}
 
-// MainNet
-const (
-	// MainNetTransferFromContractEventRecordableHeight
-	MainNetTransferFromContractEventRecordableHeight uint64 = 225666
+func (v *V8JSLibVersionHeightMap) validate() {
+	var lastVersion *version
+	for _, key := range v.DescKeys {
+		cur, err := parseVersion(key)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"version": key,
+				"err":     err,
+			}).Fatal("parse version error.")
+		}
 
-	// MainNetAcceptFuncAvailableHeight
-	MainNetAcceptFuncAvailableHeight uint64 = 225666
+		if lastVersion != nil {
+			if compareVersion(cur, lastVersion) >= 0 || v.Data[key] >= v.Data[lastVersion.String()] {
+				logging.VLog().WithFields(logrus.Fields{
+					"version": key,
+					"height":  v.Data[key],
+				}).Fatal("non descending order version map.")
+			}
+		}
 
-	// MainNetRandomAvailableHeight
-	MainNetRandomAvailableHeight uint64 = 225666
-
-	// MainNetDateAvailableHeight
-	MainNetDateAvailableHeight uint64 = 225666
-
-	// MainNetRecordCallContractResultHeight
-	MainNetRecordCallContractResultHeight uint64 = 225666
-
-	//MainNetNvmMemoryLimitWithoutInjectHeight
-	MainNetNvmMemoryLimitWithoutInjectHeight uint64 = 325666
-
-	//MainNetWdResetRecordDependencyHeight
-	MainNetWsResetRecordDependencyHeight uint64 = 325666
-
-	// MainNetV8JSLibVersionControlHeight
-	MainNetV8JSLibVersionControlHeight uint64 = 460000
-
-	//MainNetTransferFromContractFailureEventRecordableHeight
-	MainNetTransferFromContractFailureEventRecordableHeight uint64 = 460000
-
-	//MainNetNewNvmExeTimeoutConsumeGasHeight
-	MainNetNewNvmExeTimeoutConsumeGasHeight uint64 = 460000
-)
-
-// var for MainNet
-var (
-	MainNetV8JSLibVersionHeightSlice = heightOfVersionSlice{
-		{"1.0.5", MainNetV8JSLibVersionControlHeight},
+		lastVersion = cur
 	}
-)
+}
 
-var (
-	// TransferFromContractEventRecordableHeight record event 'TransferFromContractEvent' since this height
-	TransferFromContractEventRecordableHeight = TestNetTransferFromContractEventRecordableHeight
+// Compatibility ..
+type Compatibility interface {
+	TransferFromContractEventRecordableHeight() uint64
+	AcceptFuncAvailableHeight() uint64
+	RandomAvailableHeight() uint64
+	DateAvailableHeight() uint64
+	RecordCallContractResultHeight() uint64
+	NvmMemoryLimitWithoutInjectHeight() uint64
+	WsResetRecordDependencyHeight() uint64
+	V8JSLibVersionControlHeight() uint64
+	TransferFromContractFailureEventRecordableHeight() uint64
+	NewNvmExeTimeoutConsumeGasHeight() uint64
+	V8JSLibVersionHeightMap() *V8JSLibVersionHeightMap
+	NvmGasLimitWithoutTimeoutHeight() uint64
+}
 
-	// AcceptFuncAvailableHeight 'accept' func available since this height
-	AcceptFuncAvailableHeight = TestNetAcceptFuncAvailableHeight
-
-	// RandomAvailableHeight make 'Math.random' available in contract since this height
-	RandomAvailableHeight = TestNetRandomAvailableHeight
-
-	// DateAvailableHeight make 'Date' available in contract since this height
-	DateAvailableHeight = TestNetDateAvailableHeight
-
-	// RecordCallContractResultHeight record result of call contract to event `TopicTransactionExecutionResult` since this height
-	RecordCallContractResultHeight = TestNetRecordCallContractResultHeight
-
-	// NvmMemoryLimitWithoutInjectHeight memory of nvm contract without inject code
-	NvmMemoryLimitWithoutInjectHeight = TestNetNvmMemoryLimitWithoutInjectHeight
-
-	//WsResetRecordDependencyHeight if tx execute faied, worldstate reset and need to record to address dependency
-	WsResetRecordDependencyHeight = TestNetWsResetRecordDependencyHeight
-
-	// V8JSLibVersionControlHeight enable v8 js lib version control
-	V8JSLibVersionControlHeight = TestNetV8JSLibVersionControlHeight
-
-	// V8JSLibVersionHeightSlice all version-height pairs
-	V8JSLibVersionHeightSlice = TestNetV8JSLibVersionHeightSlice
-
-	// TransferFromContractFailureEventRecordableHeight record event 'TransferFromContractEvent' since this height
-	TransferFromContractFailureEventRecordableHeight = TestNetTransferFromContractFailureEventRecordableHeight
-
-	//NewNvmExeTimeoutConsumeGasHeight
-	NewNvmExeTimeoutConsumeGasHeight = TestNetNewNvmExeTimeoutConsumeGasHeight
-)
+// NebCompatibility ..
+var NebCompatibility = NewCompatibilityTestNet()
 
 // SetCompatibilityOptions set compatibility height according to chain_id
 func SetCompatibilityOptions(chainID uint32) {
 
 	if chainID == MainNetID {
-		TransferFromContractEventRecordableHeight = MainNetTransferFromContractEventRecordableHeight
-		AcceptFuncAvailableHeight = MainNetAcceptFuncAvailableHeight
-		RandomAvailableHeight = MainNetRandomAvailableHeight
-		DateAvailableHeight = MainNetDateAvailableHeight
-		RecordCallContractResultHeight = MainNetRecordCallContractResultHeight
-		NvmMemoryLimitWithoutInjectHeight = MainNetNvmMemoryLimitWithoutInjectHeight
-		WsResetRecordDependencyHeight = MainNetWsResetRecordDependencyHeight
-		V8JSLibVersionControlHeight = MainNetV8JSLibVersionControlHeight
-		V8JSLibVersionHeightSlice = MainNetV8JSLibVersionHeightSlice
-		TransferFromContractFailureEventRecordableHeight = MainNetTransferFromContractFailureEventRecordableHeight
-		NewNvmExeTimeoutConsumeGasHeight = MainNetNewNvmExeTimeoutConsumeGasHeight
+		NebCompatibility = NewCompatibilityMainNet()
 	} else if chainID == TestNetID {
-
-		TransferFromContractEventRecordableHeight = TestNetTransferFromContractEventRecordableHeight
-		AcceptFuncAvailableHeight = TestNetAcceptFuncAvailableHeight
-		RandomAvailableHeight = TestNetRandomAvailableHeight
-		DateAvailableHeight = TestNetDateAvailableHeight
-		RecordCallContractResultHeight = TestNetRecordCallContractResultHeight
-		NvmMemoryLimitWithoutInjectHeight = TestNetNvmMemoryLimitWithoutInjectHeight
-		WsResetRecordDependencyHeight = TestNetWsResetRecordDependencyHeight
-		V8JSLibVersionControlHeight = TestNetV8JSLibVersionControlHeight
-		V8JSLibVersionHeightSlice = TestNetV8JSLibVersionHeightSlice
-		TransferFromContractFailureEventRecordableHeight = TestNetTransferFromContractFailureEventRecordableHeight
-		NewNvmExeTimeoutConsumeGasHeight = TestNetNewNvmExeTimeoutConsumeGasHeight
+		NebCompatibility = NewCompatibilityTestNet()
 	} else {
-
-		TransferFromContractEventRecordableHeight = LocalTransferFromContractEventRecordableHeight
-		AcceptFuncAvailableHeight = LocalAcceptFuncAvailableHeight
-		RandomAvailableHeight = LocalRandomAvailableHeight
-		DateAvailableHeight = LocalDateAvailableHeight
-		RecordCallContractResultHeight = LocalRecordCallContractResultHeight
-		NvmMemoryLimitWithoutInjectHeight = LocalNvmMemoryLimitWithoutInjectHeight
-		WsResetRecordDependencyHeight = LocalWsResetRecordDependencyHeight
-		V8JSLibVersionControlHeight = LocalV8JSLibVersionControlHeight
-		V8JSLibVersionHeightSlice = LocalV8JSLibVersionHeightSlice
-		TransferFromContractFailureEventRecordableHeight = LocalTransferFromContractFailureEventRecordableHeight
-		NewNvmExeTimeoutConsumeGasHeight = LocalNewNvmExeTimeoutConsumeGasHeight
+		NebCompatibility = NewCompatibilityLocal()
 	}
-
-	// sort V8JSLibVersionHeightSlice in descending order by height
-	sort.Sort(sort.Reverse(V8JSLibVersionHeightSlice))
 
 	logging.VLog().WithFields(logrus.Fields{
 		"chain_id": chainID,
-		"TransferFromContractEventRecordableHeight": TransferFromContractEventRecordableHeight,
-		"AcceptFuncAvailableHeight":                 AcceptFuncAvailableHeight,
-		"RandomAvailableHeight":                     RandomAvailableHeight,
-		"DateAvailableHeight":                       DateAvailableHeight,
-		"RecordCallContractResultHeight":            RecordCallContractResultHeight,
-		"NvmMemoryLimitWithoutInjectHeight":         NvmMemoryLimitWithoutInjectHeight,
-		"WsResetRecordDependencyHeight":             WsResetRecordDependencyHeight,
-		"V8JSLibVersionControlHeight":               V8JSLibVersionControlHeight,
-		"V8JSLibVersionHeightSlice":                 V8JSLibVersionHeightSlice,
-		"TransferFromContractFailureHeight":         TransferFromContractFailureEventRecordableHeight,
-		"NewNvmExeTimeoutConsumeGasHeight":          NewNvmExeTimeoutConsumeGasHeight,
+		"TransferFromContractEventRecordableHeight": NebCompatibility.TransferFromContractEventRecordableHeight(),
+		"AcceptFuncAvailableHeight":                 NebCompatibility.AcceptFuncAvailableHeight(),
+		"RandomAvailableHeight":                     NebCompatibility.RandomAvailableHeight(),
+		"DateAvailableHeight":                       NebCompatibility.DateAvailableHeight(),
+		"RecordCallContractResultHeight":            NebCompatibility.RecordCallContractResultHeight(),
+		"NvmMemoryLimitWithoutInjectHeight":         NebCompatibility.NvmMemoryLimitWithoutInjectHeight(),
+		"WsResetRecordDependencyHeight":             NebCompatibility.WsResetRecordDependencyHeight(),
+		"V8JSLibVersionControlHeight":               NebCompatibility.V8JSLibVersionControlHeight(),
+		"V8JSLibVersionHeightMap":                   NebCompatibility.V8JSLibVersionHeightMap().String(),
+		"TransferFromContractFailureHeight":         NebCompatibility.TransferFromContractFailureEventRecordableHeight(),
+		"NewNvmExeTimeoutConsumeGasHeight":          NebCompatibility.NewNvmExeTimeoutConsumeGasHeight(),
 	}).Info("Set compatibility options.")
 
+	NebCompatibility.V8JSLibVersionHeightMap().validate()
 	checkJSLib()
 }
 
@@ -468,11 +321,87 @@ func init() {
 
 // GetMaxV8JSLibVersionAtHeight ..
 func GetMaxV8JSLibVersionAtHeight(blockHeight uint64) string {
-	// V8JSLibVersionHeightSlice is already sorted at SetCompatibilityOptions func
-	for _, v := range V8JSLibVersionHeightSlice {
-		if blockHeight >= v.height {
-			return v.version
+	m := NebCompatibility.V8JSLibVersionHeightMap()
+	for _, v := range m.DescKeys {
+		if blockHeight >= m.Data[v] {
+			return v
 		}
 	}
 	return ""
+}
+
+// V8BlockSeedAvailableAtHeight ..
+func V8BlockSeedAvailableAtHeight(blockHeight uint64) bool {
+	/*  For old contract, Blockchain.block.seed should not be disable
+	 * 		return blockHeight >= NebCompatibility.RandomAvailableHeight() &&
+	 * 		blockHeight < NebCompatibility.V8JSLibVersionHeightMap().GetHeightOfVersion("1.1.0")
+	 */
+
+	return blockHeight >= NebCompatibility.RandomAvailableHeight()
+}
+
+// V8JSLibVersionControlAtHeight ..
+func V8JSLibVersionControlAtHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.V8JSLibVersionControlHeight()
+}
+
+// RandomAvailableAtHeight ..
+func RandomAvailableAtHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.RandomAvailableHeight()
+}
+
+// DateAvailableAtHeight ..
+func DateAvailableAtHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.DateAvailableHeight()
+}
+
+// AcceptAvailableAtHeight ..
+func AcceptAvailableAtHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.AcceptFuncAvailableHeight()
+}
+
+// WsResetRecordDependencyAtHeight ..
+func WsResetRecordDependencyAtHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.WsResetRecordDependencyHeight()
+}
+
+// RecordCallContractResultAtHeight ..
+func RecordCallContractResultAtHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.RecordCallContractResultHeight()
+}
+
+// NvmMemoryLimitWithoutInjectAtHeight ..
+func NvmMemoryLimitWithoutInjectAtHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.NvmMemoryLimitWithoutInjectHeight()
+}
+
+// NewNvmExeTimeoutConsumeGasAtHeight ..
+func NewNvmExeTimeoutConsumeGasAtHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.NewNvmExeTimeoutConsumeGasHeight()
+}
+
+// TransferFromContractEventRecordableAtHeight ..
+func TransferFromContractEventRecordableAtHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.TransferFromContractEventRecordableHeight()
+}
+
+// TransferFromContractFailureEventRecordableAtHeight ..
+func TransferFromContractFailureEventRecordableAtHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.TransferFromContractFailureEventRecordableHeight()
+}
+
+// NvmGasLimitWithoutTimeoutAtHeight ..
+func NvmGasLimitWithoutTimeoutAtHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.NvmGasLimitWithoutTimeoutHeight()
+}
+
+// GetNearestInstructionCounterVersionAtHeight ..
+func GetNearestInstructionCounterVersionAtHeight(blockHeight uint64) string {
+	m := NebCompatibility.V8JSLibVersionHeightMap()
+	for _, v := range m.DescKeys {
+		if v == "1.1.0" && blockHeight >= m.Data[v] {
+			return v
+		}
+	}
+	return "1.0.0"
 }

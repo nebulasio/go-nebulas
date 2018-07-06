@@ -19,6 +19,9 @@
 package nvm
 
 import (
+	"math/rand"
+	"unsafe"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -50,12 +53,20 @@ type SerializableTransaction struct {
 	GasLimit  string `json:"gasLimit"`
 }
 
+// ContextRand ..
+type ContextRand struct {
+	rand *rand.Rand
+}
+
 // Context nvm engine context
 type Context struct {
-	block    Block
-	tx       Transaction
-	contract Account
-	state    WorldState
+	block       Block
+	tx          Transaction
+	contract    Account
+	state       WorldState
+	head        unsafe.Pointer
+	index       uint32
+	contextRand *ContextRand
 }
 
 // NewContext create a engine context
@@ -64,14 +75,31 @@ func NewContext(block Block, tx Transaction, contract Account, state WorldState)
 		return nil, ErrContextConstructArrEmpty
 	}
 	ctx := &Context{
-		block:    block,
-		tx:       tx,
-		contract: contract,
-		state:    state,
+		block:       block,
+		tx:          tx,
+		contract:    contract,
+		state:       state,
+		contextRand: &ContextRand{},
 	}
 	return ctx, nil
 }
 
+// NewChildContext create a child engine context
+func NewChildContext(block Block, tx Transaction, contract Account, state WorldState, head unsafe.Pointer, index uint32, ctxRand *ContextRand) (*Context, error) {
+	if block == nil || tx == nil || contract == nil || state == nil || head == nil {
+		return nil, ErrContextConstructArrEmpty
+	}
+	ctx := &Context{
+		block:       block,
+		tx:          tx,
+		contract:    contract,
+		state:       state,
+		head:        head,
+		index:       index,
+		contextRand: ctxRand,
+	}
+	return ctx, nil
+}
 func toSerializableAccount(acc Account) *SerializableAccount {
 	sAcc := &SerializableAccount{
 		Nonce:   acc.Nonce(),
@@ -86,7 +114,7 @@ func toSerializableBlock(block Block) *SerializableBlock {
 		Hash:      "",
 		Height:    block.Height(),
 	}
-	if block.RandomAvailable() {
+	if core.V8BlockSeedAvailableAtHeight(block.Height()) {
 		sBlock.Seed = block.RandomSeed()
 	}
 	return sBlock
