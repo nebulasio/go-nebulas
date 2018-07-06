@@ -382,7 +382,7 @@ func NewNvmExeTimeoutConsumeGasAtHeight(blockHeight uint64) bool {
 
 // TransferFromContractEventRecordableAtHeight ..
 func TransferFromContractEventRecordableAtHeight(blockHeight uint64) bool {
-	return blockHeight > NebCompatibility.TransferFromContractEventRecordableHeight() // TODO: > ?
+	return blockHeight >= NebCompatibility.TransferFromContractEventRecordableHeight()
 }
 
 // TransferFromContractFailureEventRecordableAtHeight ..
