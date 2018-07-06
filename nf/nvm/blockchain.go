@@ -703,7 +703,6 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 
 	val, err := engineNew.Call(string(deploy.Source), deploy.SourceType, C.GoString(funcName), C.GoString(args))
 	gasCout := engineNew.ExecutionInstructions()
-	logging.CLog().Infof("-------gas cost:%v", gasCout)
 	gasSum += gasCout
 	errStr := ""
 	if err != nil {

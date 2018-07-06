@@ -16,19 +16,10 @@ ProxyBankContract.prototype = {
         console.log("rand:", rand);
 
         var c = new Blockchain.Contract(address);
-
-        // var args = 
-        // var args = "[\"" + to + "\"]";
         c.value(0).call("getRandom", to, rand); 
         return rand;
     },
     getRandomSingle: function(address, to) {
-        var funcs =  {
-            getRandom: function() { 
-                
-            }
-        }
-        
         var rand = _native_math.random();
         console.log("rand:", rand);
         return rand;
@@ -40,16 +31,12 @@ ProxyBankContract.prototype = {
             }
         }
         var c = new Blockchain.Contract(address, funcs);
-        console.log("=============================address:", address);
-        // return c;
-        // c.value(5).call("save", args); 
     },
     save: function (address, to, height) {
 
         console.log("enter inner transaction begin create inner client");
         var c = new Blockchain.Contract(address);
         console.log("exit inner transaction");
-        // var args = "[\"" + to + "\", \""+ height +"\"]";
         c.value(5).call("save", to, height); 
         this.transferEvent(true, address, height);
     },
@@ -58,7 +45,6 @@ ProxyBankContract.prototype = {
         var m = new ArrayBuffer(mem);
         var c = new Blockchain.Contract(address);
         
-        // var args = "[\"" + to + "\", \""+ mem +"\"]";
         c.value(0).call("saveMem", to, mem); 
         this.transferEvent(true, address, 0, mem);
     },
@@ -68,16 +54,23 @@ ProxyBankContract.prototype = {
             return;
         }
         var c = new Blockchain.Contract(address);
-        // var args = "[\"" + to + "\", \""+ flag +"\"]";
         c.value(0).call("saveErr", to, flag); 
         // this.transferEvent(true, address, 0, mem);
     },
     saveToLoop: function (address, to, height) {
         var c = new Blockchain.Contract(address);
 
-        // var args = "[\"" + address + "\", \"" + to + "\", \""+ height +"\"]";
         c.value(5).call("saveToLoop", address, to, height); 
         this.transferEvent(true, address, height);
+    },
+    saveTimeOut: function(address, to, flag) {
+        if (flag == 0) {
+            while(1) {
+
+            }
+        }
+        var c = new Blockchain.Contract(address);
+        c.value(0).call("saveTimeOut", to, flag); 
     },
     transferEvent: function (status, address, height, mem) {
         Event.Trigger("test_inner_transaction", {

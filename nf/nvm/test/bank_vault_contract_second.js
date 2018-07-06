@@ -65,15 +65,8 @@ BankVaultContractS.prototype = {
         this.transferEvent(true, height);
 	},
 	saveMem: function (address, mem) {
-        var funcs =  {
-            saveMem: function() { 
-            
-            }
-		}
-		// throw("+++++++second throw");
         var m = new ArrayBuffer(mem);
-		var c = new Blockchain.Contract(address, funcs);
-        // var args = "[\"" + mem +"\"]";
+		var c = new Blockchain.Contract(address);
         c.value(0).call("saveMem", mem); 
         this.transferEvent(true, 0, mem);
 	},
@@ -82,16 +75,19 @@ BankVaultContractS.prototype = {
             throw("saveErr in bank_vault_contract_second");
             return;
         }
-        var funcs =  {
-            saveErr: function() { 
-            
-            }
-        }
-        var c = new Blockchain.Contract(address, funcs);
-        // var args = "[\"" + address + "\", \""+ flag +"\"]";
+        var c = new Blockchain.Contract(address);
         c.value(0).call("saveErr", address, flag); 
         // this.transferEvent(true, address, 0, mem);
-    },
+	},
+	saveTimeOut: function(address, flag) {
+		if (flag == 1) {
+            while(1) {
+
+			}
+        }
+        var c = new Blockchain.Contract(address);
+        c.value(0).call("saveTimeOut", address, flag); 
+	},
 	transferEvent: function (status, height, mem) {
         Event.Trigger("bank_vault_contract_second", {
             Status: status,
