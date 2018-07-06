@@ -11,20 +11,15 @@ ProxyBankContract.prototype = {
         //
     },
     getRandom: function(address, to) {
-        var funcs =  {
-            getRandom: function() { 
-                
-            }
-        }
         
         var rand = _native_math.random();
         console.log("rand:", rand);
 
-        var c = new Blockchain.Contract(address, funcs);
+        var c = new Blockchain.Contract(address);
 
         // var args = 
         // var args = "[\"" + to + "\"]";
-        c.value(0).call("getRandom", to); 
+        c.value(0).call("getRandom", to, rand); 
         return rand;
     },
     getRandomSingle: function(address, to) {
@@ -59,14 +54,9 @@ ProxyBankContract.prototype = {
         this.transferEvent(true, address, height);
     },
     saveMem: function (address, to, mem) {
-        var funcs =  {
-            saveMem: function() { 
-            
-            }
-        }
         console.log("saveMem:", mem);
         var m = new ArrayBuffer(mem);
-        var c = new Blockchain.Contract(address, funcs);
+        var c = new Blockchain.Contract(address);
         
         // var args = "[\"" + to + "\", \""+ mem +"\"]";
         c.value(0).call("saveMem", to, mem); 
@@ -77,12 +67,7 @@ ProxyBankContract.prototype = {
             throw("saveErr in test_inner_transaction");
             return;
         }
-        var funcs =  {
-            saveErr: function() { 
-            
-            }
-        }
-        var c = new Blockchain.Contract(address, funcs);
+        var c = new Blockchain.Contract(address);
         // var args = "[\"" + to + "\", \""+ flag +"\"]";
         c.value(0).call("saveErr", to, flag); 
         // this.transferEvent(true, address, 0, mem);
