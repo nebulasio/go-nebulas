@@ -182,7 +182,7 @@ describe('test transfer from contract', function () {
                 //     console.log("----step2. have been on chain");
                 //     done();
                 // });
-                
+
                 var callerContract = {
                     "source": callerContractSrc,
                     "sourceType": "js",
@@ -398,6 +398,26 @@ describe('test transfer from contract', function () {
         var testInput = {
             contract: {
                 "function": "testTryCatch",
+                "args": "[\"" + calleeContractAddress + "\",\"msg4\", \"湖人总冠军\"]"
+            },
+            value: 2,
+        };
+        
+        var testExpect = {
+            txStatus: 0,
+            reward: "25214000000",
+            callerBalance: callerBalance.toString(),
+            calleeBalance: calleeBalance.toString(),
+            errInfo: "execution failed", //TODO: ["execution failed", ...]
+        }
+
+        doTest(testInput, testExpect, done);
+    });
+
+    it ('10# callee contract timeout ', function(done) {
+        var testInput = {
+            contract: {
+                "function": "testTimeOut",
                 "args": "[\"" + calleeContractAddress + "\",\"msg4\", \"湖人总冠军\"]"
             },
             value: 2,

@@ -33,15 +33,13 @@ BankVaultContract.prototype = {
 	init: function () {
 		//TODO:
 	},
-	getRandom: function() {
+	getRandom: function(randA, randB) {
 		console.log("second bank");
-		var funcs =  {
-            getRandom: function() { 
-            }
-		}
         var rand = _native_math.random();
 		console.log("rand_last:", rand);
-
+		if (rand == randA || rand == randB) {
+			throw("check the rand is equal");
+		}
 		
     },
 	save: function (height) {

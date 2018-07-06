@@ -401,6 +401,12 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 			err = core.ErrUnexpected
 		} else if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
 			err = core.ErrUnexpected
+		} else if core.NewNvmExeTimeoutConsumeGasAtHeight(ctx.block.Height()) {
+			if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
+				e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+			} else {
+				e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
+			}
 		} else {
 			err = ErrExecutionTimeout
 		}
