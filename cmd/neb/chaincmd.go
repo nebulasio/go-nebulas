@@ -51,7 +51,7 @@ The genesis command for genesis dump or other commands.`,
 				Usage:  "dump the genesis",
 				Action: MergeFlags(dumpGenesis),
 				Description: `
-    neb account new
+   genesis dump
 
 Dump the genesis config info.`,
 			},
