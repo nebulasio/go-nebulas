@@ -45,7 +45,9 @@ var (
 	BlockHashLength = 32
 
 	// ParallelNum num
-	ParallelNum = 1
+	PackedParallelNum = 2
+
+	VerifyParallelNum = 8
 
 	// VerifyExecutionTimeout 0 means unlimited
 	VerifyExecutionTimeout = 0
@@ -497,7 +499,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 	toBlacklist := new(sync.Map)
 
 	// parallelCh is used as access tokens here
-	parallelCh := make(chan bool, ParallelNum)
+	parallelCh := make(chan bool, PackedParallelNum)
 	// mergeCh is used as lock here
 	mergeCh := make(chan bool, 1)
 	over := false
@@ -988,7 +990,20 @@ func (block *Block) execute() error {
 		mergeCh: make(chan bool, 1),
 		block:   block,
 	}
-	dispatcher := dag.NewDispatcher(block.dependency, ParallelNum, int64(VerifyExecutionTimeout), context, func(node *dag.Node, context interface{}) error { // TODO: if system occurs, the block won't be retried any more
+	parallelNum := VerifyParallelNum
+
+	if !WsResetRecordDependencyAtHeight(block.Height()) && len(block.transactions) > 0 {
+		addrs := make(map[byteutils.HexHash]bool)
+		for _, tx := range block.transactions {
+			if _, ok := addrs[tx.to.address.Hex()]; ok {
+				parallelNum = 1
+				break
+			}
+			addrs[tx.to.address.Hex()] = true
+		}
+	}
+
+	dispatcher := dag.NewDispatcher(block.dependency, parallelNum, int64(VerifyExecutionTimeout), context, func(node *dag.Node, context interface{}) error { // TODO: if system occurs, the block won't be retried any more
 		ctx := context.(*verifyCtx)
 		block := ctx.block
 		mergeCh := ctx.mergeCh
