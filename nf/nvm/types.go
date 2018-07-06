@@ -88,6 +88,18 @@ const (
 	VerifyAddressGasBase   = 100
 	GetPreBlockHashGasBase = 2000
 	GetPreBlockSeedGasBase = 2000
+
+	//inner nvm
+	GetContractSourceFuncCost = 5000
+	InnerContractFuncCost     = 30000
+
+	//random
+	GetTxRandomFuncCost = 1000
+)
+
+//inner nvm
+const (
+	MultiNvmMax = 3
 )
 
 //MultiV8error err info, err only in InnerContractFunc .so not to deine #
@@ -96,18 +108,6 @@ type MultiV8error struct {
 	index   uint32
 	errStr  string
 }
-
-//nvm args define //TODO: 确定所有值的大小
-var (
-	MultiNvmMax               = 3
-	GetTxByHashFuncCost       = 1000
-	GetAccountStateFuncCost   = 1000
-	TransferFuncCost          = 2000
-	VerifyAddressFuncCost     = 100
-	GetContractSourceFuncCost = 5000
-	InnerContractFuncCost     = 30000
-	GetTxRandomFuncCost       = 1000
-)
 
 // Block interface breaks cycle import dependency and hides unused services.
 type Block interface {

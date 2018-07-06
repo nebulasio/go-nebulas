@@ -48,7 +48,7 @@ func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char, gasCnt *C.size_t) *C.
 	}
 
 	// calculate Gas.
-	*gasCnt = C.size_t(GetTxByHashFuncCost)
+	*gasCnt = C.size_t(GetTxByHashGasBase)
 
 	txHash, err := byteutils.FromHex(C.GoString(hash))
 	if err != nil {
@@ -98,7 +98,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size
 	}
 
 	// calculate Gas.
-	*gasCnt = C.size_t(GetAccountStateFuncCost)
+	*gasCnt = C.size_t(GetAccountStateGasBase)
 
 	addr, err := core.AddressParse(C.GoString(address))
 	if err != nil {
@@ -207,7 +207,7 @@ func TransferByAddress(handler unsafe.Pointer, from *core.Address, to *core.Addr
 		logging.VLog().Fatal("Unexpected error: failed to get engine.")
 	}
 
-	*gasCnt = uint64(TransferFuncCost)
+	*gasCnt = uint64(TransferGasBase)
 
 	iRtn := transfer(engine, from, to, value)
 	if iRtn != TransferSuccess {
@@ -364,7 +364,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 //export VerifyAddressFunc
 func VerifyAddressFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size_t) int {
 	// calculate Gas.
-	*gasCnt = C.size_t(VerifyAddressFuncCost)
+	*gasCnt = C.size_t(VerifyAddressGasBase)
 
 	addr, err := core.AddressParse(C.GoString(address))
 	if err != nil {
