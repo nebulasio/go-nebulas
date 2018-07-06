@@ -31,7 +31,7 @@ void NewRandomInstance(Isolate *isolate, Local<Context> context,
   context->Global()->DefineOwnProperty(
       context, String::NewFromUtf8(isolate, "_native_math"), instance,
       static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
-                                     PropertyAttribute::ReadOnly));
+                                     PropertyAttribute::ReadOnly | PropertyAttribute::DontEnum));
 }
 
 void RandomCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {

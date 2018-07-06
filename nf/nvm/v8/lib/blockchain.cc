@@ -82,12 +82,14 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
   blockTpl->Set(String::NewFromUtf8(isolate, "getContractSource"),
                 FunctionTemplate::New(isolate, GetContractSourceCallback),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
-                                               PropertyAttribute::ReadOnly));
+                                               PropertyAttribute::ReadOnly | 
+                                               PropertyAttribute::DontEnum));
 
   blockTpl->Set(String::NewFromUtf8(isolate, "runContractSource"),
                 FunctionTemplate::New(isolate, RunInnerContractSourceCallBack),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
-                                               PropertyAttribute::ReadOnly));
+                                               PropertyAttribute::ReadOnly |
+                                               PropertyAttribute::DontEnum));
 
   blockTpl->Set(String::NewFromUtf8(isolate, "getPreBlockHash"),
               FunctionTemplate::New(isolate, GetPreBlockHashCallback),
