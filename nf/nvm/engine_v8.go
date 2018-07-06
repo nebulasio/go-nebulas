@@ -373,12 +373,9 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		C.uintptr_t(e.gcsHandler))
 
 	if e.innerErrMsg != "" && e.innerErr != nil {
-		result = e.innerErrMsg
-		err = e.innerErr
+		result := e.innerErrMsg
+		err := e.innerErr
 		return result, err
-	} else if e.innerErrMsg == "" || e.innerErr == nil {
-		err = core.ErrUnexpected
-		return "", core.ErrUnexpected
 	}
 
 	e.CollectTracingStats()
