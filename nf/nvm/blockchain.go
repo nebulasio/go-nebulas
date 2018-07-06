@@ -599,7 +599,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		return nil
 	}
 	var gasSum uint64
-	gasSum = uint64(InnerContractFuncCost)
+	gasSum = uint64(InnerContractGasBase)
 	ws := engine.ctx.state
 
 	addr, err := core.AddressParse(C.GoString(address))
@@ -682,7 +682,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	}
 
 	remainInstruction, remainMem := engine.GetNVMVerbResources()
-	iCost := uint64(InnerContractFuncCost) + transferCostGas
+	iCost := uint64(InnerContractGasBase) + transferCostGas
 	if remainInstruction <= uint64(iCost) {
 		logging.CLog().Errorf("remainInstruction:%v, mem:%v, err:%v", remainInstruction, remainMem, ErrInnerInsufficientGas.Error())
 		setHeadErrAndLog(engine, index, ErrInsufficientGas, "", false)
@@ -693,7 +693,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		setHeadErrAndLog(engine, index, ErrExceedMemoryLimits, "", false)
 		return nil
 	}
-	remainInstruction -= uint64(InnerContractFuncCost)
+	remainInstruction -= uint64(InnerContractGasBase)
 	remainInstruction -= uint64(transferCostGas)
 
 	logging.CLog().Infof("begin create New V8,intance:%v, mem:%v, cost:%v", remainInstruction, remainMem, iCost)

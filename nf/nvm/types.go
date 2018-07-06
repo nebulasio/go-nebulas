@@ -90,11 +90,11 @@ const (
 	GetPreBlockSeedGasBase = 2000
 
 	//inner nvm
-	GetContractSourceFuncCost = 5000
-	InnerContractFuncCost     = 30000
+	GetContractSourceGasBase = 5000
+	InnerContractGasBase     = 30000
 
 	//random
-	GetTxRandomFuncCost = 1000
+	GetTxRandomGasBase = 1000
 )
 
 //inner nvm

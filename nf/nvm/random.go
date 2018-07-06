@@ -27,7 +27,7 @@ func GetTxRandomFunc(handler unsafe.Pointer, gasCnt *C.size_t, result **C.char, 
 		return C.NVM_UNEXPECTED_ERR
 	}
 	// calculate Gas.
-	*gasCnt = C.size_t(GetTxRandomFuncCost)
+	*gasCnt = C.size_t(GetTxRandomGasBase)
 
 	if engine.ctx.contextRand == nil {
 		logging.VLog().WithFields(logrus.Fields{
