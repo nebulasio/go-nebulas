@@ -372,6 +372,15 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
 
+	if e.innerErrMsg != "" && e.innerErr != nil {
+		result = e.innerErrMsg
+		err = e.innerErr
+		return result, err
+	} else if e.innerErrMsg == "" || e.innerErr == nil {
+		err = core.ErrUnexpected
+		return "", core.ErrUnexpected
+	}
+
 	e.CollectTracingStats()
 
 	//set err
@@ -441,12 +450,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	} else if ret == C.NVM_SUCCESS {
 		result = "\"\"" // default JSON String.
 	}
-	if e.innerErrMsg != "" {
-		result = e.innerErrMsg
-	}
-	if e.innerErr != nil {
-		err = e.innerErr
-	}
+
 	return result, err
 }
 
