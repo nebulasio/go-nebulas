@@ -39,6 +39,11 @@ SuperWiki.prototype = {
         console.log("child nvm!");
     },
 
+    testTimeOut: function() {
+        while(true){
+        }
+    },
+
     saveWithNoValue: function (key, value) {
         console.log("reach child contract");
 
