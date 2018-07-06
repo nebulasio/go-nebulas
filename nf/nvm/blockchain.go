@@ -533,7 +533,7 @@ func GetContractSourceFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.si
 		logging.VLog().Error("Failed to get engine.")
 		return nil
 	}
-	*gasCnt = C.size_t(GetContractSourceFuncCost)
+	*gasCnt = C.size_t(GetContractSourceGasBase)
 	ws := engine.ctx.state
 
 	deploy, err := getPayLoadByAddress(ws, C.GoString(address))
