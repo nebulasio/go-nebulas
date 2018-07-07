@@ -100,6 +100,11 @@ SuperWiki.prototype = {
         this.repo.put(key, wikiItem);
     },
 
+    testTimeOut: function() {
+        while(true){
+        }
+    },
+
     get: function (key) {
         key = key.trim();
         if ( key === "" ) {

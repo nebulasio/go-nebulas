@@ -8,6 +8,12 @@ kvStore.prototype = {
         //
     },
 
+    testTimeOut: function(address) {
+        var real_kv = new Blockchain.Contract(address);
+
+        real_kv.call("testTimeOut");
+    },
+
     testTpsForNormalCall: function() {
         
     },
@@ -77,6 +83,10 @@ kvStore.prototype = {
         } catch(err) {
             return;
         }
+    },
+
+    accept: function() {
+
     },
 }
 
