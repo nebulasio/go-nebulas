@@ -258,11 +258,6 @@ func (e *V8Engine) SetTimeOut(timeout uint64) {
 
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
 func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTotalMemorySize uint64) error {
-	if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
-		if limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
-			return ErrOutOfNvmMaxGasLimit
-		}
-	}
 
 	e.v8engine.limits_of_executed_instructions = C.size_t(limitsOfExecutionInstructions)
 	e.v8engine.limits_of_total_memory_size = C.size_t(limitsOfTotalMemorySize)
@@ -353,7 +348,6 @@ func (e *V8Engine) GetNVMVerbResources() (uint64, uint64) {
 
 // RunScriptSource run js source.
 func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string, error) {
-
 	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))
 
@@ -363,12 +357,26 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		ret     C.int
 		cResult *C.char
 	)
+	ctx := e.Context()
+	if ctx == nil || ctx.block == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"ctx": ctx,
+		}).Error("Unexpected: Failed to get current height")
+		err = core.ErrUnexpected
+		return "", err
+	}
 	// done := make(chan bool, 1)
 	// go func() {
 	// 	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 	// 		C.uintptr_t(e.gcsHandler))
 	// 	done <- true
 	// }()
+	if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
+		if e.limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
+			e.SetExecutionLimits(MaxLimitsOfExecutionInstructions, e.limitsOfTotalMemorySize)
+		}
+	}
+
 	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
 
@@ -376,22 +384,13 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 
 	if ret == C.NVM_EXE_TIMEOUT_ERR {
 		err = ErrExecutionTimeout
-		ctx := e.Context()
-		if ctx == nil || ctx.block == nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"err": err,
-				"ctx": ctx,
-			}).Error("Unexpected: Failed to get current height")
+		if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
 			err = core.ErrUnexpected
-		} else {
-			if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
-				err = core.ErrUnexpected
-			} else if core.NewNvmExeTimeoutConsumeGasAtHeight(ctx.block.Height()) {
-				if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
-					e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
-				} else {
-					e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
-				}
+		} else if core.NewNvmExeTimeoutConsumeGasAtHeight(ctx.block.Height()) {
+			if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
+				e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+			} else {
+				e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
 			}
 		}
 	} else if ret == C.NVM_UNEXPECTED_ERR {
@@ -432,6 +431,12 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		err = e.innerErr
 	}
 
+	if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
+		if e.limitsOfExecutionInstructions == MaxLimitsOfExecutionInstructions && err == ErrInsufficientGas {
+			err = ErrExecutionTimeout
+			result = "\"null\""
+		}
+	}
 	return result, err
 }
 
