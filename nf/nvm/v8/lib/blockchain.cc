@@ -448,7 +448,6 @@ void RunInnerContractSourceCallBack(const FunctionCallbackInfo<Value> &info) {
     V8Engine *e = GetV8EngineInstance(context);
     SetInnerNvmHappen(e);
     TerminateExecution(e);
-    return;
   } else {
     // Local<Boolean> flag = Boolean::New(isolate, true);
     // rObj->Set(v8::String::NewFromUtf8(isolate, "code"), flag);
