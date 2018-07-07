@@ -371,16 +371,20 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	// 		C.uintptr_t(e.gcsHandler))
 	// 	done <- true
 	// }()
-	if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
-		if e.limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
-			e.SetExecutionLimits(MaxLimitsOfExecutionInstructions, e.limitsOfTotalMemorySize)
-		}
-	}
 
 	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
 
 	e.CollectTracingStats()
+
+	if ret == C.NVM_INNER_EXE_ERR {
+		result = e.innerErrMsg
+		err = e.innerErr
+		if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions {
+			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+		}
+		return result, err
+	}
 
 	if ret == C.NVM_EXE_TIMEOUT_ERR {
 		err = ErrExecutionTimeout
@@ -397,11 +401,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		err = core.ErrUnexpected
 	} else {
 		if ret != C.NVM_SUCCESS {
-			if ret == C.NVM_INNER_EXE_ERR {
-				err = core.ErrInnerExecutionFailed
-			} else {
-				err = core.ErrExecutionFailed
-			}
+			err = core.ErrExecutionFailed
 		}
 		if e.limitsOfExecutionInstructions > 0 &&
 			e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
@@ -423,20 +423,6 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		result = "\"\"" // default JSON String.
 	}
 
-	if e.innerErrMsg != "" {
-		result = e.innerErrMsg
-	}
-
-	if e.innerErr != nil {
-		err = e.innerErr
-	}
-
-	if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
-		if e.limitsOfExecutionInstructions == MaxLimitsOfExecutionInstructions && err == ErrInsufficientGas {
-			err = ErrExecutionTimeout
-			result = "\"null\""
-		}
-	}
 	return result, err
 }
 
@@ -492,7 +478,20 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 			return "", err
 		}
 	}
-	return e.RunScriptSource(runnableSource, sourceLineOffset)
+	if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
+		if e.limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
+			e.SetExecutionLimits(MaxLimitsOfExecutionInstructions, e.limitsOfTotalMemorySize)
+		}
+	}
+	result, err := e.RunScriptSource(runnableSource, sourceLineOffset)
+
+	if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
+		if e.limitsOfExecutionInstructions == MaxLimitsOfExecutionInstructions && err == ErrInsufficientGas {
+			err = ErrExecutionTimeout
+			result = "\"null\""
+		}
+	}
+	return result, err
 }
 
 // ClearModuleCache ..
