@@ -600,6 +600,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	}
 	var gasSum uint64
 	gasSum = uint64(InnerContractGasBase)
+	*gasCnt = C.size_t(gasSum)
 	ws := engine.ctx.state
 
 	addr, err := core.AddressParse(C.GoString(address))
@@ -648,6 +649,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		return nil
 	}
 	gasSum += transferCostGas
+	*gasCnt = C.size_t(gasSum)
 
 	toValue, err := util.NewUint128FromString(C.GoString(v))
 	if err != nil {
@@ -704,6 +706,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	val, err := engineNew.Call(string(deploy.Source), deploy.SourceType, C.GoString(funcName), C.GoString(args))
 	gasCout := engineNew.ExecutionInstructions()
 	gasSum += gasCout
+	*gasCnt = C.size_t(gasSum)
 	errStr := ""
 	if err != nil {
 		errStr = err.Error()
@@ -740,6 +743,6 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		return nil
 	}
 	logging.CLog().Infof("end cal val:%v,gascount:%v,gasSum:%v, engine index:%v", val, gasCout, gasSum, index)
-	*gasCnt = C.size_t(gasSum)
+	// *gasCnt = C.size_t(gasSum)
 	return C.CString(string(val))
 }
