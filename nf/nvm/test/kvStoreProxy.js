@@ -14,6 +14,11 @@ kvStore.prototype = {
         real_kv.call("testTimeOut");
     },
 
+    testOom: function(address) {
+        var real_kv = new Blockchain.Contract(address);
+        real_kv.call("testOom");
+    },
+
     testTpsForNormalCall: function() {
         
     },

@@ -244,6 +244,7 @@ describe('test transfer from contract', function () {
 
         doTest(testInput, testExpect, done);
     });
+
     it ('2# test normal call by use "call"', function(done) {
         var testInput = {
             contract: {
@@ -428,6 +429,27 @@ describe('test transfer from contract', function () {
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "insufficient gas", 
+        }
+
+        doTest(testInput, testExpect, done);
+    });
+
+    it ('11# callee contract out of memory', function(done) {
+        var testInput = {
+            contract: {
+                "function": "testOom",
+                "args": "[\"" + calleeContractAddress + "\",\"msg4\", \"湖人总冠军\"]"
+            },
+            value: 2,
+            gasLimit: 5000000,
+        };
+        
+        var testExpect = {
+            txStatus: 0,
+            reward: "2000000000000",
+            callerBalance: callerBalance.toString(),
+            calleeBalance: calleeBalance.toString(),
+            errInfo: "exceed memory limits", 
         }
 
         doTest(testInput, testExpect, done);
