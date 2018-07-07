@@ -347,7 +347,7 @@ describe('test transfer from contract', function () {
             reward: "55210000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
-            errInfo: "Call: inner transfer failed",
+            errInfo: "Call: Inner Contract: inner transfer failed",
         }
 
         doTest(testInput, testExpect, done);
@@ -388,7 +388,7 @@ describe('test transfer from contract', function () {
             reward: "55214000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
-            errInfo: "Call: inner transfer failed",
+            errInfo: "Call: Inner Contract: inner transfer failed",
         }
 
         doTest(testInput, testExpect, done);
