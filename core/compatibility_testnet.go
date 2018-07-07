@@ -16,6 +16,8 @@ type CompatibilityTestNet struct {
 
 	wsResetRecordDependencyHeight uint64
 
+	wsResetRecordDependencyHeight2 uint64
+
 	v8JSLibVersionControlHeight uint64
 
 	transferFromContractFailureEventRecordableHeight uint64
@@ -43,12 +45,13 @@ func NewCompatibilityTestNet() Compatibility {
 		v8JSLibVersionHeightMap: &V8JSLibVersionHeightMap{
 			Data: map[string]uint64{
 				"1.0.5": 424400, // v8JSLibVersionControlHeight
-				"1.1.0": 500000,
+				"1.1.0": 600000,
 			},
 			DescKeys: []string{"1.1.0", "1.0.5"},
 		},
 
 		nvmGasLimitWithoutTimeoutHeight: 600000,
+		wsResetRecordDependencyHeight2:  600000,
 	}
 }
 
@@ -85,6 +88,11 @@ func (c *CompatibilityTestNet) NvmMemoryLimitWithoutInjectHeight() uint64 {
 // WsResetRecordDependencyHeight ..
 func (c *CompatibilityTestNet) WsResetRecordDependencyHeight() uint64 {
 	return c.wsResetRecordDependencyHeight
+}
+
+// WsResetRecordDependencyHeight2 ..
+func (c *CompatibilityTestNet) WsResetRecordDependencyHeight2() uint64 {
+	return c.wsResetRecordDependencyHeight2
 }
 
 // V8JSLibVersionControlHeight ..

@@ -140,7 +140,8 @@ type Compatibility interface {
 	DateAvailableHeight() uint64
 	RecordCallContractResultHeight() uint64
 	NvmMemoryLimitWithoutInjectHeight() uint64
-	WsResetRecordDependencyHeight() uint64
+	WsResetRecordDependencyHeight() uint64  //reserve address of to
+	WsResetRecordDependencyHeight2() uint64 //reserve change log
 	V8JSLibVersionControlHeight() uint64
 	TransferFromContractFailureEventRecordableHeight() uint64
 	NewNvmExeTimeoutConsumeGasHeight() uint64
@@ -171,6 +172,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		"RecordCallContractResultHeight":            NebCompatibility.RecordCallContractResultHeight(),
 		"NvmMemoryLimitWithoutInjectHeight":         NebCompatibility.NvmMemoryLimitWithoutInjectHeight(),
 		"WsResetRecordDependencyHeight":             NebCompatibility.WsResetRecordDependencyHeight(),
+		"WsResetRecordDependencyHeight2":            NebCompatibility.WsResetRecordDependencyHeight2(),
 		"V8JSLibVersionControlHeight":               NebCompatibility.V8JSLibVersionControlHeight(),
 		"V8JSLibVersionHeightMap":                   NebCompatibility.V8JSLibVersionHeightMap().String(),
 		"TransferFromContractFailureHeight":         NebCompatibility.TransferFromContractFailureEventRecordableHeight(),
@@ -365,6 +367,11 @@ func AcceptAvailableAtHeight(blockHeight uint64) bool {
 // WsResetRecordDependencyAtHeight ..
 func WsResetRecordDependencyAtHeight(blockHeight uint64) bool {
 	return blockHeight >= NebCompatibility.WsResetRecordDependencyHeight()
+}
+
+// WsResetRecordDependencyAtHeight2 ..
+func WsResetRecordDependencyAtHeight2(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.WsResetRecordDependencyHeight2()
 }
 
 // RecordCallContractResultAtHeight ..
