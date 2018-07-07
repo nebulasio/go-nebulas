@@ -626,7 +626,7 @@ func TestInnerTransactionsMaxMulit(t *testing.T) {
 		payloadCall, _ := callPayload.ToBytes()
 
 		value, _ := util.NewUint128FromInt(6)
-		gasLimit, _ := util.NewUint128FromInt(200000)
+		gasLimit, _ := util.NewUint128FromInt(20000000)
 
 		proxyContractAddress, err := core.AddressParse(contractsAddr[0])
 		fmt.Printf("++++++++++++pack transaction")

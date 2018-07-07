@@ -376,10 +376,16 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		C.uintptr_t(e.gcsHandler))
 
 	e.CollectTracingStats()
-
-	if ret == C.NVM_INNER_EXE_ERR {
-		result = e.innerErrMsg
-		err = e.innerErr
+	if e.innerErr != nil {
+		if e.innerErrMsg == "" {
+			result = "Inner Contract: \"\""
+		} else {
+			result = "Inner Contract: " + e.innerErrMsg
+		}
+		err := e.innerErr
+		if cResult != nil {
+			C.free(unsafe.Pointer(cResult))
+		}
 		if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions {
 			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
 		}
@@ -401,7 +407,11 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		err = core.ErrUnexpected
 	} else {
 		if ret != C.NVM_SUCCESS {
-			err = core.ErrExecutionFailed
+			if ret == C.NVM_INNER_EXE_ERR {
+				err = core.ErrInnerExecutionFailed
+			} else {
+				err = core.ErrExecutionFailed
+			}
 		}
 		if e.limitsOfExecutionInstructions > 0 &&
 			e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
