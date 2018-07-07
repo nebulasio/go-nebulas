@@ -441,6 +441,12 @@ func submitTx(tx *Transaction, block *Block, ws WorldState,
 		metricsUnexpectedBehavior.Update(1)
 		return true, err
 	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"tx.hash": tx.Hash(),
+		"gas":     gas,
+	}).Debug("record gas")
+
 	if err := tx.recordResultEvent(gas, exeErr, ws, block, exeResult); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   err,

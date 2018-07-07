@@ -203,11 +203,13 @@ func FindLastNearestLibVersion(deployVersion, libname string) string {
 		}
 		for i := len(libs) - 1; i >= 0; i-- {
 			if compareVersion(libs[i], v) <= 0 {
-				logging.VLog().WithFields(logrus.Fields{
-					"libname":       libname,
-					"deployVersion": deployVersion,
-					"return":        libs[i],
-				}).Debug("filter js lib.")
+				/*
+					logging.VLog().WithFields(logrus.Fields{
+						"libname":       libname,
+						"deployVersion": deployVersion,
+						"return":        libs[i],
+					}).Debug("filter js lib.")
+				*/
 				return V8JSLibs[libname][i]
 			}
 		}
