@@ -299,7 +299,7 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
-            reward: "25212000000",
+            reward: "57245000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "execution failed",
@@ -343,7 +343,7 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
-            reward: "25210000000",
+            reward: "55210000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "Call: inner transfer failed",
@@ -364,7 +364,7 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
-            reward: "25210000000", //TODO: to check
+            reward: "32300000000", //TODO: to check
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "insufficient gas",
@@ -384,7 +384,7 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
-            reward: "25214000000",
+            reward: "55214000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "Call: inner transfer failed",
@@ -404,7 +404,7 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
-            reward: "25206000000",
+            reward: "57245000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "execution failed", //TODO: ["execution failed", ...]
