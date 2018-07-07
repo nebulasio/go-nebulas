@@ -377,7 +377,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 
 	e.CollectTracingStats()
 	if e.innerErr != nil {
-		if e.innerErrMsg == "" {
+		if e.innerErrMsg == "" { //the first call of muti-nvm
 			result = "Inner Contract: \"\""
 		} else {
 			result = "Inner Contract: " + e.innerErrMsg
@@ -405,13 +405,14 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		}
 	} else if ret == C.NVM_UNEXPECTED_ERR {
 		err = core.ErrUnexpected
+	} else if ret == C.NVM_INNER_EXE_ERR {
+		err = core.ErrInnerExecutionFailed
+		if e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
+			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+		}
 	} else {
 		if ret != C.NVM_SUCCESS {
-			if ret == C.NVM_INNER_EXE_ERR {
-				err = core.ErrInnerExecutionFailed
-			} else {
-				err = core.ErrExecutionFailed
-			}
+			err = core.ErrExecutionFailed
 		}
 		if e.limitsOfExecutionInstructions > 0 &&
 			e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
