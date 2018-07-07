@@ -446,7 +446,7 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
-            reward: "2000000000000",
+            reward: "5000000000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "exceed memory limits", 
