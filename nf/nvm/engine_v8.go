@@ -372,9 +372,16 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
 
-	if e.innerErrMsg != "" && e.innerErr != nil {
-		result := e.innerErrMsg
+	if e.innerErr != nil {
+		if e.innerErrMsg == "" {
+			result = "Inner Contract: \"\""
+		} else {
+			result = "Inner Contract: " + e.innerErrMsg
+		}
 		err := e.innerErr
+		if cResult != nil {
+			C.free(unsafe.Pointer(cResult))
+		}
 		return result, err
 	}
 
