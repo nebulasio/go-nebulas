@@ -372,19 +372,6 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
 
-	if e.innerErr != nil {
-		if e.innerErrMsg == "" {
-			result = "Inner Contract: \"\""
-		} else {
-			result = "Inner Contract: " + e.innerErrMsg
-		}
-		err := e.innerErr
-		if cResult != nil {
-			C.free(unsafe.Pointer(cResult))
-		}
-		return result, err
-	}
-
 	e.CollectTracingStats()
 
 	if ret == C.NVM_EXE_TIMEOUT_ERR {
@@ -435,6 +422,14 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		C.free(unsafe.Pointer(cResult))
 	} else if ret == C.NVM_SUCCESS {
 		result = "\"\"" // default JSON String.
+	}
+
+	if e.innerErrMsg != "" {
+		result = e.innerErrMsg
+	}
+
+	if e.innerErr != nil {
+		err = e.innerErr
 	}
 
 	return result, err
