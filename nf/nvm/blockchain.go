@@ -558,7 +558,7 @@ func setHeadErrAndLog(e *V8Engine, index uint32, err error, result string, flag 
 	if flag == true {
 		logging.CLog().Errorf(rStr)
 	}
-	logging.CLog().Errorf("setHeadErrAndLog err:%v, result:%v", err, result)
+	// logging.CLog().Errorf("setHeadErrAndLog err:%v, result:%v", err, result)
 	if index == 0 {
 		e.innerErrMsg = result
 		e.innerErr = err
@@ -580,7 +580,7 @@ func setHeadV8ErrMsg(handler unsafe.Pointer, err error, result string) {
 		logging.VLog().Errorf("the handler not found the v8 engine")
 		return
 	}
-	logging.CLog().Errorf("setHeadErrAndLogsssssss err:%v, result:%v", err, result)
+	// logging.CLog().Errorf("setHeadErrAndLogsssssss err:%v, result:%v", err, result)
 	engine.innerErr = err
 	engine.innerErrMsg = result
 }
@@ -687,12 +687,12 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	iCost := uint64(InnerContractGasBase) + transferCostGas
 	if remainInstruction <= uint64(iCost) {
 		logging.CLog().Errorf("remainInstruction:%v, mem:%v, err:%v", remainInstruction, remainMem, ErrInnerInsufficientGas.Error())
-		setHeadErrAndLog(engine, index, ErrInsufficientGas, "", false)
+		setHeadErrAndLog(engine, index, ErrInsufficientGas, "null", false)
 		return nil
 	}
 	if remainMem <= 0 {
 		logging.CLog().Errorf("remainInstruction:%v, mem:%v, err:%v", remainInstruction, remainMem, ErrInnerInsufficientMem.Error())
-		setHeadErrAndLog(engine, index, ErrExceedMemoryLimits, "", false)
+		setHeadErrAndLog(engine, index, ErrExceedMemoryLimits, "null", false)
 		return nil
 	}
 	remainInstruction -= uint64(InnerContractGasBase)

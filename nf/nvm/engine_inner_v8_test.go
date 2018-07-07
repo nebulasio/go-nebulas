@@ -505,8 +505,8 @@ func TestInnerTransactionsMaxMulit(t *testing.T) {
 				[]string{""},
 			},
 			"multi execution failed",
-			"Call: out of limit nvm count",
-			"out of limit nvm count",
+			"Call: Inner Contract: out of limit nvm count",
+			"Inner Contract: out of limit nvm count",
 		},
 	}
 
@@ -652,7 +652,7 @@ func TestInnerTransactionsMaxMulit(t *testing.T) {
 		// events.
 		fmt.Printf("==events:%v\n", events)
 		for _, event := range events {
-			fmt.Printf("topic:%v\n", event.Topic)
+			fmt.Printf("topic:%v--event:%v\n", event.Topic, event.Data)
 			if event.Topic == "chain.transactionResult" {
 				var jEvent SysEvent
 				if err := json.Unmarshal([]byte(event.Data), &jEvent); err == nil {
@@ -718,8 +718,8 @@ func TestInnerTransactionsGasLimit(t *testing.T) {
 			//57249	insufficient gas "null"
 			//57248 insufficient gas "null"
 			//53000	insufficient gas "null"
-			// []int{20175, 20174, 53000, 57248, 57249, 94697, 94710, 95092, 95105, 95269, 96093},
-			[]int{20175},
+			[]int{20175, 20174, 53000, 57248, 57249, 94697, 94710, 95092, 95105, 95269, 96093},
+			// []int{53000},
 			//95093->95105, 94698->94710
 			//96093 “”	"\"\""
 			//95269	insufficient gas "null"	B+C执行完毕，代码回到A执行失败
@@ -744,13 +744,13 @@ func TestInnerTransactionsGasLimit(t *testing.T) {
 				"insufficient gas",
 				"",
 			},
-			[]string{"null", "", "null",
-				"null",
-				"null",
-				"null",
-				"null",
-				"\"\"",
-				"null",
+			[]string{"null", "", "Inner Contract: null",
+				"Inner Contract: null",
+				"Inner Contract: null",
+				"Inner Contract: null",
+				"Inner Contract: null",
+				"Inner Contract: \"\"",
+				"Inner Contract: null",
 				"null",
 				"\"\""},
 		},
@@ -995,13 +995,13 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 			},
 			"multi execution failed",
 			[]int{5 * 1024 * 1024, 10 * 1024 * 1024, 20 * 1024 * 1024, 40 * 1024 * 1024},
-			// []int{20 * 1024 * 1024},
+			// []int{40 * 1024 * 1024},
 			[]string{"",
 				"exceed memory limits",
 				"exceed memory limits",
 				"exceed memory limits"},
 			[]string{"\"\"",
-				"null", "null", "null",
+				"Inner Contract: null", "Inner Contract: null", "null",
 			},
 		},
 	}
@@ -1193,8 +1193,8 @@ func TestInnerTransactionsErr(t *testing.T) {
 			},
 			[]uint32{0, 1, 2},
 			[]string{"Call: saveErr in test_inner_transaction",
-				"Call: saveErr in bank_vault_contract_second",
-				"Call: saveErr in bank_vault_contract"},
+				"Call: Inner Contract: saveErr in bank_vault_contract_second",
+				"Call: Inner Contract: saveErr in bank_vault_contract"},
 		},
 	}
 
@@ -1328,7 +1328,7 @@ func TestInnerTransactionsErr(t *testing.T) {
 			tail = neb.chain.TailBlock()
 			events, err := tail.FetchEvents(txCall.Hash())
 			for _, event := range events {
-
+				fmt.Printf("event:%v\n", event.Data)
 				var jEvent SysEvent
 				if err := json.Unmarshal([]byte(event.Data), &jEvent); err == nil {
 					if jEvent.Hash != "" {
