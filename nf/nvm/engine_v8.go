@@ -78,9 +78,9 @@ const (
 	ExecutionTimeOutErr = 2
 
 	// ExecutionTimeout max v8 execution timeout.
-	ExecutionTimeout                 = 5 * 1000 * 1000
+	ExecutionTimeout                 = 15 * 1000 * 1000
 	TimeoutGasLimitCost              = 100000000
-	MaxLimitsOfExecutionInstructions = 1000000000000 // TODO: set max gasLimit with execution 5s *0.8
+	MaxLimitsOfExecutionInstructions = 50000000 // TODO: set max gasLimit with execution 5s *0.8
 )
 
 // const (
