@@ -711,7 +711,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	if err != nil {
 		errStr = err.Error()
 	}
-	event := &InnerTransferContractEvent{
+	event := &InnerContractEvent{
 		From:  fromAddr.String(),
 		To:    addr.String(),
 		Value: toValue.String(),
@@ -730,7 +730,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 
 		return nil
 	}
-	engine.ctx.state.RecordEvent(parentTx.Hash(), &state.Event{Topic: core.TopicInnerTransferContract, Data: string(eData)})
+	engine.ctx.state.RecordEvent(parentTx.Hash(), &state.Event{Topic: core.TopicInnerContract, Data: string(eData)})
 	if err != nil {
 		if err == core.ErrInnerExecutionFailed {
 			logging.CLog().Errorf("check inner err, engine index:%v", index)
