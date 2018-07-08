@@ -95,7 +95,7 @@ function doTest(testInput, testExpect, done) {
                 try {
                     expect(resp).to.not.be.a('undefined');
                     console.log("----step2. have been on chain， To check balances");
-                    console.log(JSON.stringify(resp));
+                    console.log("================result", JSON.stringify(resp));
                     expect(resp.status).to.be.equal(testExpect.txStatus);
                     neb.api.getAccountState(callerContractAddress).then(function(state){
                         expect(state.balance).to.be.equal(testExpect.callerBalance);
@@ -108,14 +108,14 @@ function doTest(testInput, testExpect, done) {
                     }).then(function(result){
                         console.log(JSON.stringify(result));
                         //result = {"result":"{\"key\":\"msg1\",\"value\":\"湖人总冠军\"}","execute_err":"","estimate_gas":"20511"}
-                        if (testExpect.status == 0) {
+                        if (testExpect.txStatus == 1) {
                             expect(result.result).equal(testExpect.result);
                         }
                         console.log("----step4, to check the err info by get event");
                         return neb.api.getEventsByHash(resp.hash);
                     }).then(function(result){
                         console.log(JSON.stringify(result));
-                        if (testExpect.status == 1) {
+                        if (testExpect.txStatus == 0) {
                             expect(JSON.parse(result.events[0].data).error).equal(testExpect.errInfo);
                         }
                         return neb.api.getAccountState(coinbase);
@@ -268,7 +268,7 @@ describe('test transfer from contract', function () {
 
         doTest(testInput, testExpect, done);
     });
-
+    
     it ('3# not exsit callee contract', function(done) {
         var testInput = {
             contract: {
@@ -285,10 +285,10 @@ describe('test transfer from contract', function () {
             calleeBalance: calleeBalance.toString(),
             errInfo: "Call: Inner Call: no contract at this address",
         }
-
+        
         doTest(testInput, testExpect, done);
     });
-
+    
     it ('4# function not exsit in callee contract', function(done) {
         var testInput = {
             contract: {
@@ -300,7 +300,7 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
-            reward: "25212000000",
+            reward: "57245000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "execution failed",
@@ -344,10 +344,10 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
-            reward: "25210000000",
+            reward: "55210000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
-            errInfo: "Inner Call: inner transation err [inner transfer failed] engine index:0",
+            errInfo: "Call: Inner Contract: inner transfer failed",
         }
 
         doTest(testInput, testExpect, done);
@@ -365,10 +365,10 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
-            reward: "25210000000", //TODO: to check
+            reward: "32300000000", //TODO: to check
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
-            errInfo: "Inner Call: inner transation err [preparation inner nvm insufficient gas] engine index:0",
+            errInfo: "insufficient gas",
         }
 
         doTest(testInput, testExpect, done);
@@ -385,10 +385,10 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
-            reward: "25214000000",
+            reward: "55214000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
-            errInfo: "Inner Call: inner transation err [inner transfer failed] engine index:0",
+            errInfo: "Call: Inner Contract: inner transfer failed",
         }
 
         doTest(testInput, testExpect, done);
@@ -405,7 +405,7 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
-            reward: "25214000000",
+            reward: "57245000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "execution failed", //TODO: ["execution failed", ...]
@@ -425,10 +425,31 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
-            reward: "25214000000",
+            reward: "2000000000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
-            errInfo: "execution failed", //TODO: ["execution failed", ...]
+            errInfo: "insufficient gas", 
+        }
+
+        doTest(testInput, testExpect, done);
+    });
+
+    it ('11# callee contract out of memory', function(done) {
+        var testInput = {
+            contract: {
+                "function": "testOom",
+                "args": "[\"" + calleeContractAddress + "\",\"msg4\", \"湖人总冠军\"]"
+            },
+            value: 2,
+            gasLimit: 5000000,
+        };
+        
+        var testExpect = {
+            txStatus: 0,
+            reward: "5000000000000",
+            callerBalance: callerBalance.toString(),
+            calleeBalance: calleeBalance.toString(),
+            errInfo: "exceed memory limits", 
         }
 
         doTest(testInput, testExpect, done);

@@ -57,7 +57,7 @@ type TransferFromContractFailureEvent struct {
 }
 
 // InnerTransferContractEvent event for inner transfer in contract
-type InnerTransferContractEvent struct {
+type InnerContractEvent struct {
 	From  string `json:"from"`
 	To    string `json:"to"`
 	Value string `json:"value"`

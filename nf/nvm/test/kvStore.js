@@ -44,6 +44,20 @@ SuperWiki.prototype = {
         }
     },
 
+    testOom: function(){
+        var list = new Array();
+        console.log("oom-=================");
+        while (true) {
+            var buffer = new ArrayBuffer(4096);
+            var array = new Int32Array(buffer);
+            // for (var i = 0; i < 10240; i++) {
+            //     array[i] = i;
+            // }
+            array[1023] = 1;
+            list.push(buffer);
+        }
+    },
+
     saveWithNoValue: function (key, value) {
         console.log("reach child contract");
 
@@ -100,7 +114,13 @@ SuperWiki.prototype = {
         this.repo.put(key, wikiItem);
     },
 
+    testTimeOut: function() {
+        while(true){
+        }
+    },
+
     get: function (key) {
+        console.log("child get");
         key = key.trim();
         if ( key === "" ) {
             throw new Error("empty key")

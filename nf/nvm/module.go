@@ -155,10 +155,12 @@ func AttachLibVersionDelegateFunc(handler unsafe.Pointer, require *C.char) *C.ch
 			return nil
 		}
 		if e.ctx.contract.ContractMeta() == nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"libname": libname,
-				"height":  e.ctx.block.Height(),
-			}).Debug("e.context.contract.ContractMeta is nil.")
+			/*
+				logging.VLog().WithFields(logrus.Fields{
+					"libname": libname,
+					"height":  e.ctx.block.Height(),
+				}).Debug("e.context.contract.ContractMeta is nil.")
+			*/
 			return attachDefaultVersionLib(libname)
 		}
 		cv := e.ctx.contract.ContractMeta().Version

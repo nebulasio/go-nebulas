@@ -78,9 +78,9 @@ const (
 	ExecutionTimeOutErr = 2
 
 	// ExecutionTimeout max v8 execution timeout.
-	ExecutionTimeout                 = 5 * 1000 * 1000
+	ExecutionTimeout                 = 15 * 1000 * 1000
 	TimeoutGasLimitCost              = 100000000
-	MaxLimitsOfExecutionInstructions = 1000000000000 // TODO: set max gasLimit with execution 5s *0.8
+	MaxLimitsOfExecutionInstructions = 50000000 // TODO: set max gasLimit with execution 5s *0.8
 )
 
 // const (
@@ -258,11 +258,6 @@ func (e *V8Engine) SetTimeOut(timeout uint64) {
 
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
 func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTotalMemorySize uint64) error {
-	if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
-		if limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
-			return ErrOutOfNvmMaxGasLimit
-		}
-	}
 
 	e.v8engine.limits_of_executed_instructions = C.size_t(limitsOfExecutionInstructions)
 	e.v8engine.limits_of_total_memory_size = C.size_t(limitsOfTotalMemorySize)
@@ -353,7 +348,6 @@ func (e *V8Engine) GetNVMVerbResources() (uint64, uint64) {
 
 // RunScriptSource run js source.
 func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string, error) {
-
 	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))
 
@@ -363,70 +357,62 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		ret     C.int
 		cResult *C.char
 	)
+	ctx := e.Context()
+	if ctx == nil || ctx.block == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"ctx": ctx,
+		}).Error("Unexpected: Failed to get current height")
+		err = core.ErrUnexpected
+		return "", err
+	}
 	// done := make(chan bool, 1)
 	// go func() {
 	// 	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 	// 		C.uintptr_t(e.gcsHandler))
 	// 	done <- true
 	// }()
+
 	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
 
-	if e.innerErrMsg != "" && e.innerErr != nil {
-		result := e.innerErrMsg
+	e.CollectTracingStats()
+	if e.innerErr != nil {
+		if e.innerErrMsg == "" { //the first call of muti-nvm
+			result = "Inner Contract: \"\""
+		} else {
+			result = "Inner Contract: " + e.innerErrMsg
+		}
 		err := e.innerErr
+		if cResult != nil {
+			C.free(unsafe.Pointer(cResult))
+		}
+		if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions {
+			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+		}
 		return result, err
 	}
 
-	e.CollectTracingStats()
-
-	//set err
-	//if ret == C.NVM_EXE_TIMEOUT_ERR {
-	//	err = ErrExecutionTimeout
-	//	ctx := e.Context()
-	//	if ctx == nil || ctx.block == nil {
-	//		logging.VLog().WithFields(logrus.Fields{
-	//			"err": err,
-	//			"ctx": ctx,
-	//		}).Error("Unexpected: Failed to get current height")
-	//		err = core.ErrUnexpected
-	//	} else if core.NewNvmExeTimeoutConsumeGasAtHeight(ctx.block.Height()) {
-	//		if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
-	//			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
-	//		} else {
-	//			e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
-	//		}
-	//	}
-	//} else
 	if ret == C.NVM_EXE_TIMEOUT_ERR {
 		err = ErrExecutionTimeout
-		ctx := e.Context()
-		if ctx == nil || ctx.block == nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"err": err,
-				"ctx": ctx,
-			}).Error("Unexpected: Failed to get current height")
+		if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
 			err = core.ErrUnexpected
-		} else {
-			if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
-				err = core.ErrUnexpected
-			} else if core.NewNvmExeTimeoutConsumeGasAtHeight(ctx.block.Height()) {
-				if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
-					e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
-				} else {
-					e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
-				}
+		} else if core.NewNvmExeTimeoutConsumeGasAtHeight(ctx.block.Height()) {
+			if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
+				e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+			} else {
+				e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
 			}
 		}
 	} else if ret == C.NVM_UNEXPECTED_ERR {
 		err = core.ErrUnexpected
+	} else if ret == C.NVM_INNER_EXE_ERR {
+		err = core.ErrInnerExecutionFailed
+		if e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
+			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+		}
 	} else {
 		if ret != C.NVM_SUCCESS {
-			if ret == C.NVM_INNER_EXE_ERR {
-				err = core.ErrInnerExecutionFailed
-			} else {
-				err = core.ErrExecutionFailed
-			}
+			err = core.ErrExecutionFailed
 		}
 		if e.limitsOfExecutionInstructions > 0 &&
 			e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
@@ -503,7 +489,20 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 			return "", err
 		}
 	}
-	return e.RunScriptSource(runnableSource, sourceLineOffset)
+	if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
+		if e.limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
+			e.SetExecutionLimits(MaxLimitsOfExecutionInstructions, e.limitsOfTotalMemorySize)
+		}
+	}
+	result, err := e.RunScriptSource(runnableSource, sourceLineOffset)
+
+	if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
+		if e.limitsOfExecutionInstructions == MaxLimitsOfExecutionInstructions && err == ErrInsufficientGas {
+			err = ErrExecutionTimeout
+			result = "\"null\""
+		}
+	}
+	return result, err
 }
 
 // ClearModuleCache ..

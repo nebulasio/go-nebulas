@@ -25,6 +25,8 @@ type CompatibilityLocal struct {
 	v8JSLibVersionHeightMap *V8JSLibVersionHeightMap
 
 	nvmGasLimitWithoutTimeoutHeight uint64
+
+	wsResetRecordDependencyHeight2 uint64
 }
 
 // NewCompatibilityLocal ..
@@ -40,6 +42,7 @@ func NewCompatibilityLocal() Compatibility {
 		v8JSLibVersionControlHeight:                      2,
 		transferFromContractFailureEventRecordableHeight: 2,
 		newNvmExeTimeoutConsumeGasHeight:                 2,
+		wsResetRecordDependencyHeight2:                   2,
 		v8JSLibVersionHeightMap: &V8JSLibVersionHeightMap{
 			Data: map[string]uint64{
 				"1.0.5": 2,
@@ -84,6 +87,11 @@ func (c *CompatibilityLocal) NvmMemoryLimitWithoutInjectHeight() uint64 {
 // WsResetRecordDependencyHeight ..
 func (c *CompatibilityLocal) WsResetRecordDependencyHeight() uint64 {
 	return c.wsResetRecordDependencyHeight
+}
+
+// WsResetRecordDependencyHeight2 ..
+func (c *CompatibilityLocal) WsResetRecordDependencyHeight2() uint64 {
+	return c.wsResetRecordDependencyHeight2
 }
 
 // V8JSLibVersionControlHeight ..

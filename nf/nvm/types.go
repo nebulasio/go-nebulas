@@ -159,5 +159,5 @@ type WorldState interface {
 	GetContractAccount(addr byteutils.Hash) (state.Account, error)
 	PutTx(txHash byteutils.Hash, txBytes []byte) error
 	RecordGas(from string, gas *util.Uint128) error
-	Reset(addr byteutils.Hash) error //Need to consider risk
+	Reset(addr byteutils.Hash, isResetChangeLog bool) error //Need to consider risk
 }

@@ -82,12 +82,14 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
   blockTpl->Set(String::NewFromUtf8(isolate, "getContractSource"),
                 FunctionTemplate::New(isolate, GetContractSourceCallback),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
-                                               PropertyAttribute::ReadOnly));
+                                               PropertyAttribute::ReadOnly | 
+                                               PropertyAttribute::DontEnum));
 
   blockTpl->Set(String::NewFromUtf8(isolate, "runContractSource"),
                 FunctionTemplate::New(isolate, RunInnerContractSourceCallBack),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
-                                               PropertyAttribute::ReadOnly));
+                                               PropertyAttribute::ReadOnly |
+                                               PropertyAttribute::DontEnum));
 
   blockTpl->Set(String::NewFromUtf8(isolate, "getPreBlockHash"),
               FunctionTemplate::New(isolate, GetPreBlockHashCallback),
@@ -446,7 +448,6 @@ void RunInnerContractSourceCallBack(const FunctionCallbackInfo<Value> &info) {
     V8Engine *e = GetV8EngineInstance(context);
     SetInnerNvmHappen(e);
     TerminateExecution(e);
-    return;
   } else {
     // Local<Boolean> flag = Boolean::New(isolate, true);
     // rObj->Set(v8::String::NewFromUtf8(isolate, "code"), flag);

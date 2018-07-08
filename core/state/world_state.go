@@ -326,10 +326,8 @@ func (s *states) CheckAndUpdateTo(parent *states) ([]interface{}, error) {
 	return dependency, nil
 }
 
-func (s *states) Reset(addr byteutils.Hash) error {
-	if err := s.changelog.Reset(); err != nil {
-		return err
-	}
+func (s *states) Reset(addr byteutils.Hash, isResetChangeLog bool) error {
+
 	if err := s.stateDB.Reset(); err != nil {
 		return err
 	}
@@ -337,9 +335,16 @@ func (s *states) Reset(addr byteutils.Hash) error {
 		return err
 	}
 
-	// record dependency
-	if err := s.changelog.Put(addr, addr); err != nil {
-		return err
+	if isResetChangeLog {
+		if err := s.changelog.Reset(); err != nil {
+			return err
+		}
+		if addr != nil {
+			// record dependency
+			if err := s.changelog.Put(addr, addr); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -652,8 +657,8 @@ func (tws *txWorldState) CheckAndUpdate() ([]interface{}, error) {
 	return dependencies, nil
 }
 
-func (tws *txWorldState) Reset(addr byteutils.Hash) error {
-	if err := tws.states.Reset(addr); err != nil {
+func (tws *txWorldState) Reset(addr byteutils.Hash, isResetChangeLog bool) error {
+	if err := tws.states.Reset(addr, isResetChangeLog); err != nil {
 		return err
 	}
 	return nil

@@ -558,7 +558,7 @@ func setHeadErrAndLog(e *V8Engine, index uint32, err error, result string, flag 
 	if flag == true {
 		logging.CLog().Errorf(rStr)
 	}
-	logging.CLog().Errorf("setHeadErrAndLog err:%v, result:%v", err, result)
+	// logging.CLog().Errorf("setHeadErrAndLog err:%v, result:%v", err, result)
 	if index == 0 {
 		e.innerErrMsg = result
 		e.innerErr = err
@@ -580,7 +580,7 @@ func setHeadV8ErrMsg(handler unsafe.Pointer, err error, result string) {
 		logging.VLog().Errorf("the handler not found the v8 engine")
 		return
 	}
-	logging.CLog().Errorf("setHeadErrAndLogsssssss err:%v, result:%v", err, result)
+	// logging.CLog().Errorf("setHeadErrAndLogsssssss err:%v, result:%v", err, result)
 	engine.innerErr = err
 	engine.innerErrMsg = result
 }
@@ -600,6 +600,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	}
 	var gasSum uint64
 	gasSum = uint64(InnerContractGasBase)
+	*gasCnt = C.size_t(gasSum)
 	ws := engine.ctx.state
 
 	addr, err := core.AddressParse(C.GoString(address))
@@ -648,6 +649,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		return nil
 	}
 	gasSum += transferCostGas
+	*gasCnt = C.size_t(gasSum)
 
 	toValue, err := util.NewUint128FromString(C.GoString(v))
 	if err != nil {
@@ -685,12 +687,12 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	iCost := uint64(InnerContractGasBase) + transferCostGas
 	if remainInstruction <= uint64(iCost) {
 		logging.CLog().Errorf("remainInstruction:%v, mem:%v, err:%v", remainInstruction, remainMem, ErrInnerInsufficientGas.Error())
-		setHeadErrAndLog(engine, index, ErrInsufficientGas, "", false)
+		setHeadErrAndLog(engine, index, ErrInsufficientGas, "null", false)
 		return nil
 	}
 	if remainMem <= 0 {
 		logging.CLog().Errorf("remainInstruction:%v, mem:%v, err:%v", remainInstruction, remainMem, ErrInnerInsufficientMem.Error())
-		setHeadErrAndLog(engine, index, ErrExceedMemoryLimits, "", false)
+		setHeadErrAndLog(engine, index, ErrExceedMemoryLimits, "null", false)
 		return nil
 	}
 	remainInstruction -= uint64(InnerContractGasBase)
@@ -704,11 +706,12 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	val, err := engineNew.Call(string(deploy.Source), deploy.SourceType, C.GoString(funcName), C.GoString(args))
 	gasCout := engineNew.ExecutionInstructions()
 	gasSum += gasCout
+	*gasCnt = C.size_t(gasSum)
 	errStr := ""
 	if err != nil {
 		errStr = err.Error()
 	}
-	event := &InnerTransferContractEvent{
+	event := &InnerContractEvent{
 		From:  fromAddr.String(),
 		To:    addr.String(),
 		Value: toValue.String(),
@@ -727,7 +730,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 
 		return nil
 	}
-	engine.ctx.state.RecordEvent(parentTx.Hash(), &state.Event{Topic: core.TopicInnerTransferContract, Data: string(eData)})
+	engine.ctx.state.RecordEvent(parentTx.Hash(), &state.Event{Topic: core.TopicInnerContract, Data: string(eData)})
 	if err != nil {
 		if err == core.ErrInnerExecutionFailed {
 			logging.CLog().Errorf("check inner err, engine index:%v", index)
@@ -740,6 +743,6 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		return nil
 	}
 	logging.CLog().Infof("end cal val:%v,gascount:%v,gasSum:%v, engine index:%v", val, gasCout, gasSum, index)
-	*gasCnt = C.size_t(gasSum)
+	// *gasCnt = C.size_t(gasSum)
 	return C.CString(string(val))
 }

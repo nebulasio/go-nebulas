@@ -421,13 +421,20 @@ func submitTx(tx *Transaction, block *Block, ws WorldState,
 		// if execution failed, the previous changes on world state should be reset
 		// record dependency
 
-		addr := tx.to.address
-		if !WsResetRecordDependencyAtHeight(block.Height()) {
-			addr = tx.from.address
-		}
-		if err := ws.Reset(addr); err != nil {
-			// if reset failed, the tx should be given back
-			return true, err
+		if WsResetRecordDependencyAtHeight2(block.Height()) {
+			if err := ws.Reset(nil, false); err != nil {
+				// if reset failed, the tx should be given back
+				return true, err
+			}
+		} else {
+			addr := tx.to.address
+			if !WsResetRecordDependencyAtHeight(block.Height()) {
+				addr = tx.from.address
+			}
+			if err := ws.Reset(addr, true); err != nil {
+				// if reset failed, the tx should be given back
+				return true, err
+			}
 		}
 	}
 
@@ -441,6 +448,7 @@ func submitTx(tx *Transaction, block *Block, ws WorldState,
 		metricsUnexpectedBehavior.Update(1)
 		return true, err
 	}
+
 	if err := tx.recordResultEvent(gas, exeErr, ws, block, exeResult); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   err,
