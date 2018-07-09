@@ -489,20 +489,8 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 			return "", err
 		}
 	}
-	if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
-		if e.limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
-			e.SetExecutionLimits(MaxLimitsOfExecutionInstructions, e.limitsOfTotalMemorySize)
-		}
-	}
-	result, err := e.RunScriptSource(runnableSource, sourceLineOffset)
 
-	if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
-		if e.limitsOfExecutionInstructions == MaxLimitsOfExecutionInstructions && err == ErrInsufficientGas {
-			err = ErrExecutionTimeout
-			result = "\"null\""
-		}
-	}
-	return result, err
+	return e.RunScriptSource(runnableSource, sourceLineOffset)
 }
 
 // ClearModuleCache ..

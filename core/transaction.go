@@ -48,8 +48,8 @@ var (
 	// TransactionMaxGasPrice max gasPrice:1 * 10 ** 12
 	TransactionMaxGasPrice, _ = util.NewUint128FromString("1000000000000")
 
-	// TransactionMaxGas max gas:50 * 10 ** 9
-	TransactionMaxGas, _ = util.NewUint128FromString("50000000000")
+	// TransactionMaxGas max gas:1 * 10 ** 7
+	TransactionMaxGas, _ = util.NewUint128FromString("10000000")
 
 	// TransactionGasPrice default gasPrice : 10**6
 	TransactionGasPrice, _ = util.NewUint128FromInt(1000000)
