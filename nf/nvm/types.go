@@ -52,6 +52,7 @@ var (
 )
 
 //transfer err code enum
+//TODO: TransferSubBalance -> ErrTransferSubBalance	all errcode update
 const (
 	TransferFuncSuccess = iota
 	TransferSuccess

@@ -446,7 +446,7 @@ void RunInnerContractSourceCallBack(const FunctionCallbackInfo<Value> &info) {
   if (value == NULL) {
     Local<Context> context = isolate->GetCurrentContext();
     V8Engine *e = GetV8EngineInstance(context);
-    SetInnerNvmHappen(e);
+    SetInnerNvmHappen(e); //FIXME: SetInnerContractErrFlag
     TerminateExecution(e);
   } else {
     // Local<Boolean> flag = Boolean::New(isolate, true);

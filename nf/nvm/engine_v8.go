@@ -329,12 +329,12 @@ func (e *V8Engine) CollectTracingStats() {
 }
 
 // GetNVMVerbResources return current NVM verb total resource
-func (e *V8Engine) GetNVMVerbResources() (uint64, uint64) {
+func (e *V8Engine) GetNVMVerbResources() (uint64, uint64) { //TODO: GetNVMVerbResources -> GetNVMLeftResources
 	e.CollectTracingStats()
 	var instruction uint64
 	var mem uint64
 	if e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
-		instruction = 0
+		instruction = 0 //TODO: code to update
 	} else {
 		instruction = e.limitsOfExecutionInstructions - e.actualCountOfExecutionInstructions
 	}
@@ -392,7 +392,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		return result, err
 	}
 
-	if ret == C.NVM_EXE_TIMEOUT_ERR {
+	if ret == C.NVM_EXE_TIMEOUT_ERR { //TODO: errcode in v8
 		err = ErrExecutionTimeout
 		if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
 			err = core.ErrUnexpected
@@ -407,7 +407,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		err = core.ErrUnexpected
 	} else if ret == C.NVM_INNER_EXE_ERR {
 		err = core.ErrInnerExecutionFailed
-		if e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
+		if e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions { //TODO: 代码是否必须
 			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
 		}
 	} else {
