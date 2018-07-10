@@ -30,16 +30,16 @@ var (
 	ErrSetMemorySmall                  = errors.New("set memory small than v8 limit")
 	ErrDisallowCallNotStandardFunction = errors.New("disallow call not standard function")
 
-	ErrNvmNumLimit          = errors.New("out of limit nvm count")
-	ErrInnerTransferFailed  = errors.New("inner transfer failed")
-	ErrInnerInsufficientGas = errors.New("preparation inner nvm insufficient gas")
-	ErrInnerInsufficientMem = errors.New("preparation inner nvm insufficient mem")
+	ErrMaxInnerContractLevelLimit = errors.New("out of limit nvm count")
+	ErrInnerTransferFailed        = errors.New("inner transfer failed")
+	ErrInnerInsufficientGas       = errors.New("preparation inner nvm insufficient gas")
+	ErrInnerInsufficientMem       = errors.New("preparation inner nvm insufficient mem")
 
 	ErrOutOfNvmMaxGasLimit = errors.New("out of nvm max gas limit")
 )
 
 //define
-var (
+const (
 	EventNameSpaceContract    = "chain.contract" //ToRefine: move to core
 	InnerTransactionErrPrefix = "inner transation err ["
 	InnerTransactionResult    = "] result ["
@@ -52,18 +52,17 @@ var (
 )
 
 //transfer err code enum
-//TODO: TransferSubBalance -> ErrTransferSubBalance	all errcode update
 const (
-	TransferFuncSuccess = iota
-	TransferSuccess
-	TransferGetEngineErr
-	TransferAddressParseErr
-	TransferGetAccountErr
-	TransferStringToBigIntErr
-	TransferSubBalance
-	TransferAddBalance
-	TransferRecordEventFailed
-	TransferAddressFailed
+	SuccessTransferFunc = iota
+	SuccessTransfer
+	ErrTransferGetEngine
+	ErrTransferAddressParse
+	ErrTransferGetAccount
+	ErrTransferStringToUint128
+	ErrTransferSubBalance
+	ErrTransferAddBalance
+	ErrTransferRecordEvent
+	ErrTransferAddress
 )
 
 //the max recent block number can query
@@ -92,7 +91,7 @@ const (
 
 	//inner nvm
 	GetContractSourceGasBase = 5000
-	InnerContractGasBase     = 30000
+	InnerContractGasBase     = 32000
 
 	//random
 	GetTxRandomGasBase = 1000
@@ -100,7 +99,7 @@ const (
 
 //inner nvm
 const (
-	MultiNvmMax = 3
+	MaxInnerContractLevel = 3
 )
 
 //MultiV8error err info, err only in InnerContractFunc .so not to deine #
@@ -131,6 +130,7 @@ type Transaction interface {
 	Timestamp() int64
 	GasPrice() *util.Uint128
 	GasLimit() *util.Uint128
+	NewInnerTransaction(from, to *core.Address, value *util.Uint128, payloadType string, payload []byte) (*core.Transaction, error)
 }
 
 // Account interface breaks cycle import dependency and hides unused services.
@@ -161,4 +161,10 @@ type WorldState interface {
 	PutTx(txHash byteutils.Hash, txBytes []byte) error
 	RecordGas(from string, gas *util.Uint128) error
 	Reset(addr byteutils.Hash, isResetChangeLog bool) error //Need to consider risk
+}
+
+// PayLoad struct in getPayloadByAddress
+type PayLoad struct {
+	deploy   *core.DeployPayload
+	contract Account
 }

@@ -215,7 +215,7 @@ EXPORT char *TranspileTypeScriptModuleThread(V8Engine *e, const char *source,
 EXPORT int RunScriptSourceThread(char **result, V8Engine *e, const char *source,
                     int source_line_offset, uintptr_t lcs_handler,
                     uintptr_t gcs_handler);
-void SetInnerNvmHappen(V8Engine *e);
+void SetInnerContractErrFlag(V8Engine *e);
 
 bool CreateScriptThread(v8ThreadContext *pc);
 void SetRunScriptArgs(v8ThreadContext *pc, V8Engine *e, int opt, const char *source, int line_offset, int allow_usage);

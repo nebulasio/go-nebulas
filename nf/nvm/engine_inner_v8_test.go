@@ -626,7 +626,7 @@ func TestInnerTransactionsMaxMulit(t *testing.T) {
 		payloadCall, _ := callPayload.ToBytes()
 
 		value, _ := util.NewUint128FromInt(6)
-		gasLimit, _ := util.NewUint128FromInt(20000000)
+		gasLimit, _ := util.NewUint128FromInt(2000000)
 
 		proxyContractAddress, err := core.AddressParse(contractsAddr[0])
 		fmt.Printf("++++++++++++pack transaction")
@@ -1128,7 +1128,7 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 			payloadCall, _ := callPayload.ToBytes()
 
 			value, _ := util.NewUint128FromInt(6)
-			gasLimit, _ := util.NewUint128FromInt(int64(tt.memArr[i]))
+			gasLimit, _ := util.NewUint128FromInt(5000000)
 			proxyContractAddress, err := core.AddressParse(contractsAddr[0])
 			txCall, err := core.NewTransaction(neb.chain.ChainID(), a, proxyContractAddress, value,
 				uint64(len(contractsAddr)+1), core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
@@ -1717,7 +1717,7 @@ func TestMultiLibVersion(t *testing.T) {
 			ctx, err := NewContext(mockBlockForLib(2000000), mockTransaction(), contract, context)
 
 			engine := NewV8Engine(ctx)
-			engine.SetExecutionLimits(10000000, 10000000)
+			engine.SetExecutionLimits(5000000, 10000000)
 			result, err := engine.RunScriptSource(string(data), 0)
 			assert.Equal(t, tt.expectedErr, err)
 			assert.Equal(t, tt.expectedResult, result)
@@ -1833,7 +1833,7 @@ func TestInnerTransactionsTimeOut(t *testing.T) {
 				payloadDeploy, _ := deploy.ToBytes()
 
 				value, _ := util.NewUint128FromInt(0)
-				gasLimit, _ := util.NewUint128FromInt(200000000)
+				gasLimit, _ := util.NewUint128FromInt(5000000)
 				txDeploy, err := core.NewTransaction(neb.chain.ChainID(), a, a, value, uint64(k+1), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
 				assert.Nil(t, err)
 				assert.Nil(t, manager.SignTransaction(a, txDeploy))

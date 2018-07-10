@@ -338,6 +338,16 @@ func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonc
 	return tx, nil
 }
 
+// NewChildTransaction return child tx to inner nvm
+func (tx *Transaction) NewInnerTransaction(from, to *Address, value *util.Uint128, payloadType string, payload []byte) (*Transaction, error) {
+	innerTx, err := NewTransaction(tx.chainID, from, to, value, InnerTransactionNonce, payloadType, payload, tx.GasPrice(), tx.GasLimit())
+	if err != nil {
+		return nil, ErrCreateInnerTx
+	}
+	innerTx.SetHash(tx.hash)
+	return innerTx, nil
+}
+
 // Hash return the hash of transaction.
 func (tx *Transaction) Hash() byteutils.Hash {
 	return tx.hash

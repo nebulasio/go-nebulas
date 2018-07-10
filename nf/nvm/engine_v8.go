@@ -328,21 +328,19 @@ func (e *V8Engine) CollectTracingStats() {
 	e.actualTotalMemorySize = uint64(e.v8engine.stats.total_memory_size)
 }
 
-// GetNVMVerbResources return current NVM verb total resource
-func (e *V8Engine) GetNVMVerbResources() (uint64, uint64) { //TODO: GetNVMVerbResources -> GetNVMLeftResources
+// GetNVMLeftResources return current NVM verb total resource
+func (e *V8Engine) GetNVMLeftResources() (uint64, uint64) {
 	e.CollectTracingStats()
-	var instruction uint64
-	var mem uint64
-	if e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
-		instruction = 0 //TODO: code to update
-	} else {
+	instruction := uint64(0)
+	mem := uint64(0)
+	if e.limitsOfExecutionInstructions >= e.actualCountOfExecutionInstructions {
 		instruction = e.limitsOfExecutionInstructions - e.actualCountOfExecutionInstructions
 	}
-	if e.limitsOfTotalMemorySize < e.actualTotalMemorySize {
-		mem = 0
-	} else {
+
+	if e.limitsOfTotalMemorySize >= e.actualTotalMemorySize {
 		mem = e.limitsOfTotalMemorySize - e.actualTotalMemorySize
 	}
+
 	return instruction, mem
 }
 
