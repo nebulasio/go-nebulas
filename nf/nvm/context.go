@@ -84,8 +84,8 @@ func NewContext(block Block, tx Transaction, contract Account, state WorldState)
 	return ctx, nil
 }
 
-// NewChildContext create a child engine context
-func NewChildContext(block Block, tx Transaction, contract Account, state WorldState, head unsafe.Pointer, index uint32, ctxRand *ContextRand) (*Context, error) {
+// NewInnerContext create a child engine context
+func NewInnerContext(block Block, tx Transaction, contract Account, state WorldState, head unsafe.Pointer, index uint32, ctxRand *ContextRand) (*Context, error) {
 	if block == nil || tx == nil || contract == nil || state == nil || head == nil {
 		return nil, ErrContextConstructArrEmpty
 	}
