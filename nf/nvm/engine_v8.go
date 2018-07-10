@@ -80,7 +80,7 @@ const (
 	// ExecutionTimeout max v8 execution timeout.
 	ExecutionTimeout                 = 15 * 1000 * 1000
 	TimeoutGasLimitCost              = 100000000
-	MaxLimitsOfExecutionInstructions = 50000000 // TODO: set max gasLimit with execution 5s *0.8
+	MaxLimitsOfExecutionInstructions = 10000000 // TODO: set max gasLimit with execution 5s *0.8
 )
 
 // const (
@@ -488,7 +488,20 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 		}
 	}
 
-	return e.RunScriptSource(runnableSource, sourceLineOffset)
+	if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
+		if e.limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
+			e.SetExecutionLimits(MaxLimitsOfExecutionInstructions, e.limitsOfTotalMemorySize)
+		}
+	}
+	result, err := e.RunScriptSource(runnableSource, sourceLineOffset)
+
+	if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
+		if e.limitsOfExecutionInstructions == MaxLimitsOfExecutionInstructions && err == ErrInsufficientGas {
+			err = ErrExecutionTimeout
+			result = "\"null\""
+		}
+	}
+	return result, err
 }
 
 // ClearModuleCache ..
