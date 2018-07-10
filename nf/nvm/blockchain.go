@@ -130,7 +130,7 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size
 	return C.NVM_SUCCESS
 }
 
-func recordTransferFailureEvent(errNo int, from string, to string, value string,
+func recordTransferEvent(errNo int, from string, to string, value string,
 	height uint64, wsState WorldState, txHash byteutils.Hash) {
 
 	if errNo == SuccessTransferFunc && core.TransferFromContractEventRecordableAtHeight(height) {
@@ -310,18 +310,20 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 		return ErrTransferAddressParse
 	}
 	transferValueStr := C.GoString(v)
-	iRet := TransferByAddress(handler, cAddr, addr, transferValueStr)
-	if iRet != 0 {
-		if iRet == ErrTransferStringToUint128 {
-			recordTransferFailureEvent(ErrTransferStringToUint128, cAddr.String(), addr.String(), "", height, wsState, txHash)
-		} else if iRet == ErrTransferSubBalance {
-			recordTransferFailureEvent(ErrTransferSubBalance, cAddr.String(), addr.String(), transferValueStr, height, wsState, txHash)
-		}
-		return iRet
+	ret := TransferByAddress(handler, cAddr, addr, transferValueStr)
+
+	if ret != ErrTransferStringToUint128 && ret != ErrTransferSubBalance && ret != SuccessTransferFunc { // Unepected to happen, should not to be on chain
+		logging.VLog().WithFields(logrus.Fields{
+			"txhash":      engine.ctx.tx.Hash().String(),
+			"fromAddress": cAddr.String(),
+			"toAddress":   addr.String(),
+			"value":       transferValueStr,
+			"ret":         ret,
+		}).Fatal("Unexpected error")
 	}
 
-	recordTransferFailureEvent(SuccessTransferFunc, cAddr.String(), addr.String(), transferValueStr, height, wsState, txHash)
-	return SuccessTransferFunc
+	recordTransferEvent(ret, cAddr.String(), addr.String(), transferValueStr, height, wsState, txHash)
+	return ret
 }
 
 // VerifyAddressFunc verify address is valid
