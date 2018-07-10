@@ -306,7 +306,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 			"handler":   uint64(uintptr(handler)),
 			"toAddress": C.GoString(to),
 		}).Debug("TransferFunc parse address failed.")
-		recordTransferFailureEvent(ErrTransferAddressParse, cAddr.String(), "", "", height, wsState, txHash)
+		recordTransferEvent(ErrTransferAddressParse, cAddr.String(), "", "", height, wsState, txHash)
 		return ErrTransferAddressParse
 	}
 	transferValueStr := C.GoString(v)
