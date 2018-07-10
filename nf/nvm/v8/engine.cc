@@ -349,7 +349,7 @@ void TerminateExecution(V8Engine *e) {
   isolate->TerminateExecution();
   e->is_requested_terminate_execution = true;
 }
-void SetInnerNvmHappen(V8Engine *e) {
+void SetInnerContractErrFlag(V8Engine *e) {
   e->is_inner_nvm_error_happen = true;
 }
 void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
