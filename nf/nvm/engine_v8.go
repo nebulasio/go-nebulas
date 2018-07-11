@@ -405,9 +405,12 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		err = core.ErrUnexpected
 	} else if ret == C.NVM_INNER_EXE_ERR {
 		err = core.ErrInnerExecutionFailed
-		// if e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions { //TODO: 代码是否必须
-		// 	e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
-		// }
+		if e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
+			logging.VLog().WithFields(logrus.Fields{
+				"actualGas": e.actualCountOfExecutionInstructions,
+				"limitGas":  e.limitsOfExecutionInstructions,
+			}).Error("Unexpected error: actual gas exceed the limit")
+		}
 	} else {
 		if ret != C.NVM_SUCCESS {
 			err = core.ErrExecutionFailed

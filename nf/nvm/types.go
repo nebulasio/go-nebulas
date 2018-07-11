@@ -163,8 +163,8 @@ type WorldState interface {
 	Reset(addr byteutils.Hash, isResetChangeLog bool) error //Need to consider risk
 }
 
-// PayLoad struct in getPayloadByAddress
-type PayLoad struct {
+// Payload struct in getPayloadByAddress
+type Payload struct {
 	deploy   *core.DeployPayload
 	contract Account
 }

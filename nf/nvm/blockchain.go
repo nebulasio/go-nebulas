@@ -472,7 +472,7 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, offset C.ulonglong,
 }
 
 //getPayloadByAddress
-func getPayloadByAddress(ws WorldState, address string) (*PayLoad, error) {
+func getPayloadByAddress(ws WorldState, address string) (*Payload, error) {
 	addr, err := core.AddressParse(address)
 	if err != nil {
 		return nil, err
@@ -491,7 +491,7 @@ func getPayloadByAddress(ws WorldState, address string) (*PayLoad, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &PayLoad{deploy, contract}, nil
+	return &Payload{deploy, contract}, nil
 }
 
 // GetContractSourceFunc get contract code by address
