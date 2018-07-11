@@ -16,8 +16,6 @@ type CompatibilityMainNet struct {
 
 	wsResetRecordDependencyHeight uint64
 
-	wsResetRecordDependencyHeight2 uint64
-
 	v8JSLibVersionControlHeight uint64
 
 	transferFromContractFailureEventRecordableHeight uint64
@@ -27,6 +25,10 @@ type CompatibilityMainNet struct {
 	v8JSLibVersionHeightMap *V8JSLibVersionHeightMap
 
 	nvmGasLimitWithoutTimeoutHeight uint64
+
+	transferFromContractFailureEventRecordableHeight2 uint64
+
+	wsResetRecordDependencyHeight2 uint64
 }
 
 // NewCompatibilityMainNet ..
@@ -49,8 +51,9 @@ func NewCompatibilityMainNet() Compatibility {
 			},
 			DescKeys: []string{"1.1.0", "1.0.5"},
 		},
-		nvmGasLimitWithoutTimeoutHeight: 600000,
-		wsResetRecordDependencyHeight2:  600000,
+		nvmGasLimitWithoutTimeoutHeight:                   600000,
+		wsResetRecordDependencyHeight2:                    600000,
+		transferFromContractFailureEventRecordableHeight2: 600000,
 	}
 }
 
@@ -102,6 +105,11 @@ func (c *CompatibilityMainNet) V8JSLibVersionControlHeight() uint64 {
 // TransferFromContractFailureEventRecordableHeight ..
 func (c *CompatibilityMainNet) TransferFromContractFailureEventRecordableHeight() uint64 {
 	return c.transferFromContractFailureEventRecordableHeight
+}
+
+// TransferFromContractFailureEventRecordableHeight2 ..
+func (c *CompatibilityMainNet) TransferFromContractFailureEventRecordableHeight2() uint64 {
+	return c.transferFromContractFailureEventRecordableHeight2
 }
 
 // NewNvmExeTimeoutConsumeGasHeight ..

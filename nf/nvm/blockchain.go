@@ -159,6 +159,9 @@ func recordTransferEvent(errNo int, from string, to string, value string,
 			errMsg = "failed to parse to address"
 		case ErrTransferStringToUint128:
 			errMsg = "failed to parse transfer amount"
+			if !core.TransferFromContractFailureEventRecordableAtHeight2(height) {
+				value = ""
+			}
 		case ErrTransferSubBalance:
 			errMsg = "failed to sub balace from contract address"
 		default:
@@ -231,7 +234,7 @@ func transfer(e *V8Engine, from *core.Address, to *core.Address, val string) int
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(e.lcsHandler),
-			"address": fromAcc.Address().String(),
+			"address": from,
 			"err":     err,
 		}).Error("Failed to get from account state")
 		return ErrTransferGetAccount
@@ -243,6 +246,7 @@ func transfer(e *V8Engine, from *core.Address, to *core.Address, val string) int
 			"handler": uint64(e.lcsHandler),
 			"address": to,
 			"err":     err,
+			"val":     val,
 		}).Error("Failed to get amount failed.")
 		return ErrTransferStringToUint128
 	}

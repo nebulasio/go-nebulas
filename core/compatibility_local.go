@@ -27,22 +27,26 @@ type CompatibilityLocal struct {
 	nvmGasLimitWithoutTimeoutHeight uint64
 
 	wsResetRecordDependencyHeight2 uint64
+
+	transferFromContractFailureEventRecordableHeight2 uint64
 }
 
 // NewCompatibilityLocal ..
 func NewCompatibilityLocal() Compatibility {
 	return &CompatibilityLocal{
-		transferFromContractEventRecordableHeight:        2,
-		acceptFuncAvailableHeight:                        2,
-		randomAvailableHeight:                            2,
-		dateAvailableHeight:                              2,
-		recordCallContractResultHeight:                   2,
-		nvmMemoryLimitWithoutInjectHeight:                325666,
-		wsResetRecordDependencyHeight:                    2,
-		v8JSLibVersionControlHeight:                      2,
-		transferFromContractFailureEventRecordableHeight: 2,
-		newNvmExeTimeoutConsumeGasHeight:                 2,
-		wsResetRecordDependencyHeight2:                   2,
+		transferFromContractEventRecordableHeight:         2,
+		acceptFuncAvailableHeight:                         2,
+		randomAvailableHeight:                             2,
+		dateAvailableHeight:                               2,
+		recordCallContractResultHeight:                    2,
+		nvmMemoryLimitWithoutInjectHeight:                 325666,
+		wsResetRecordDependencyHeight:                     2,
+		v8JSLibVersionControlHeight:                       2,
+		transferFromContractFailureEventRecordableHeight:  2,
+		newNvmExeTimeoutConsumeGasHeight:                  2,
+		wsResetRecordDependencyHeight2:                    2,
+		transferFromContractFailureEventRecordableHeight2: 2,
+
 		v8JSLibVersionHeightMap: &V8JSLibVersionHeightMap{
 			Data: map[string]uint64{
 				"1.0.5": 2,
@@ -102,6 +106,11 @@ func (c *CompatibilityLocal) V8JSLibVersionControlHeight() uint64 {
 // TransferFromContractFailureEventRecordableHeight ..
 func (c *CompatibilityLocal) TransferFromContractFailureEventRecordableHeight() uint64 {
 	return c.transferFromContractFailureEventRecordableHeight
+}
+
+// TransferFromContractFailureEventRecordableHeight2 ..
+func (c *CompatibilityLocal) TransferFromContractFailureEventRecordableHeight2() uint64 {
+	return c.transferFromContractFailureEventRecordableHeight2
 }
 
 // NewNvmExeTimeoutConsumeGasHeight ..
