@@ -213,7 +213,7 @@ func NewV8Engine(ctx *Context) *V8Engine {
 	if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
 		engine.SetTimeOut(ExecutionTimeout)
 	}
-
+	// engine.SetInnerVer()
 	return engine
 }
 
@@ -254,6 +254,9 @@ func (e *V8Engine) SetTestingFlag(flag bool) {
 // SetTimeOut set nvm timeout, if not set, the default is 5*1000*1000
 func (e *V8Engine) SetTimeOut(timeout uint64) {
 	e.v8engine.timeout = C.int(timeout) //TODO:
+}
+func (e *V8Engine) SetInnerVer() {
+	C.SetInnerVer(e.v8engine)
 }
 
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.

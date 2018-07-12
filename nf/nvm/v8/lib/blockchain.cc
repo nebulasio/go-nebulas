@@ -52,7 +52,7 @@ void InitializeBlockchain(GetTxByHashFunc getTx, GetAccountStateFunc getAccount,
 }
 
 void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
-                           void *handler) {
+                           void *handler, uint64_t build_flag) {
   Local<ObjectTemplate> blockTpl = ObjectTemplate::New(isolate);
   blockTpl->SetInternalFieldCount(1);
 
@@ -78,18 +78,24 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
                 FunctionTemplate::New(isolate, VerifyAddressCallback),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                                PropertyAttribute::ReadOnly));
-  
-  blockTpl->Set(String::NewFromUtf8(isolate, "getContractSource"),
+  if (build_flag == (build_flag & BUILD_BLOCKCHAIN_GET_RUN_SOURCE)) {
+    printf("load getContractSource\n");
+    blockTpl->Set(String::NewFromUtf8(isolate, "getContractSource"),
                 FunctionTemplate::New(isolate, GetContractSourceCallback),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                                PropertyAttribute::ReadOnly | 
                                                PropertyAttribute::DontEnum));
-
-  blockTpl->Set(String::NewFromUtf8(isolate, "runContractSource"),
+  }
+  
+  if (build_flag == (build_flag & BUILD_BLOCKCHAIN_RUN_CONTRACT)) {
+    printf("load runContractSource\n");
+    blockTpl->Set(String::NewFromUtf8(isolate, "runContractSource"),
                 FunctionTemplate::New(isolate, RunInnerContractSourceCallBack),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                                PropertyAttribute::ReadOnly |
                                                PropertyAttribute::DontEnum));
+  }
+  
 
   blockTpl->Set(String::NewFromUtf8(isolate, "getPreBlockHash"),
               FunctionTemplate::New(isolate, GetPreBlockHashCallback),

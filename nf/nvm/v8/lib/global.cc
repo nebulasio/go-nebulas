@@ -51,8 +51,14 @@ void SetGlobalObjectProperties(Isolate *isolate, Local<Context> context,
   NewStorageTypeInstance(isolate, context, lcsHandler, gcsHandler);
   NewInstructionCounterInstance(isolate, context,
                                 &(e->stats.count_of_executed_instructions), e);
-  NewRandomInstance(isolate, context, lcsHandler);
-  NewBlockchainInstance(isolate, context, lcsHandler);
+  uint64_t build_flag = e->ver;
+  if (build_flag == (build_flag & BUILD_MATH)) {
+    NewRandomInstance(isolate, context, lcsHandler);
+  }
+  if (build_flag == (build_flag & BUILD_BLOCKCHAIN)) {
+    NewBlockchainInstance(isolate, context, lcsHandler, build_flag);
+  }
+  
   NewCryptoInstance(isolate, context);
 }
 
