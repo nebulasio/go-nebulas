@@ -338,11 +338,18 @@ func TestV8ResourceLimit(t *testing.T) {
 		})
 	}
 }
+
 func TestRunScriptSourceTimeout(t *testing.T) {
+	// core.NebCompatibility = core.NewCompatibilityLocal()
+	core.SetCompatibilityOptions(100)
+
 	tests := []struct {
-		filepath string
+		filepath    string
+		height      uint64
+		expectedErr error
 	}{
-		{"test/test_infinite_loop.js"},
+		{"test/test_infinite_loop.js", 1, ErrExecutionTimeout},
+		{"test/test_infinite_loop.js", 2, core.ErrUnexpected},
 	}
 
 	for _, tt := range tests {
@@ -357,13 +364,14 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 			// assert.Nil(t, err)
 
 			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
-			ctx, err := NewContext(mockBlock(), mockTransaction(), contract, context)
+			ctx, err := NewContext(mockBlockForLib(tt.height), mockTransaction(), contract, context)
 
 			// direct run.
 			(func() {
 				engine := NewV8Engine(ctx)
+				engine.SetTimeOut(5 * 1000 * 1000)
 				_, err = engine.RunScriptSource(string(data), 0)
-				assert.Equal(t, ErrExecutionTimeout, err)
+				assert.Equal(t, tt.expectedErr, err)
 				engine.Dispose()
 			})()
 
@@ -373,11 +381,60 @@ func TestRunScriptSourceTimeout(t *testing.T) {
 				runnableSource := fmt.Sprintf("require(\"%s\");", moduleID)
 
 				engine := NewV8Engine(ctx)
+				engine.SetTimeOut(5 * 1000 * 1000)
 				engine.AddModule(moduleID, string(data), 0)
 				_, err = engine.RunScriptSource(runnableSource, 0)
-				assert.Equal(t, ErrExecutionTimeout, err)
+				assert.Equal(t, tt.expectedErr, err)
 				engine.Dispose()
 			})()
+		})
+	}
+}
+func TestCallTimeout(t *testing.T) {
+	core.SetCompatibilityOptions(100)
+
+	tests := []struct {
+		name         string
+		contractPath string
+		sourceType   string
+		height       uint64
+		gasLimit     uint64
+		expectedErr  error
+	}{
+		{"case1", "./test/test_oom_4.js", "js", 1, 10000001, ErrInsufficientGas},
+		{"case1", "./test/test_oom_4.js", "js", 1, 50000000000, ErrExecutionTimeout},
+		{"case1", "./test/test_oom_4.js", "js", 2, 10000001, ErrExecutionTimeout},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contractPath)
+			assert.Nil(t, err, "contract path read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
+			assert.Nil(t, err)
+			owner.AddBalance(newUint128FromIntWrapper(10000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
+
+			ctx, err := NewContext(mockBlockForLib(tt.height), mockTransaction(), contract, context)
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(10000, 10000000)
+			_, err = engine.DeployAndInit(string(data), "js", "1")
+			engine.CollectTracingStats()
+			fmt.Printf("total:%v", engine.actualTotalMemorySize)
+			engine.Dispose()
+
+			engine = NewV8Engine(ctx)
+			engine.SetExecutionLimits(tt.gasLimit, 10000000)
+			_, err = engine.Call(string(data), "js", "loop", "")
+			// assert.Nil(t, err)
+			// assert.Equal(t, tt.initExceptErr, err.Error)
+
+			assert.Equal(t, tt.expectedErr, err)
+			engine.Dispose()
+
 		})
 	}
 }

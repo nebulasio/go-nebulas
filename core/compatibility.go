@@ -278,7 +278,6 @@ var (
 
 // SetCompatibilityOptions set compatibility height according to chain_id
 func SetCompatibilityOptions(chainID uint32) {
-
 	if chainID == MainNetID {
 		TransferFromContractEventRecordableHeight = MainNetTransferFromContractEventRecordableHeight
 		AcceptFuncAvailableHeight = MainNetAcceptFuncAvailableHeight
@@ -319,7 +318,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		V8JSLibVersionHeightSlice = LocalV8JSLibVersionHeightSlice
 		TransferFromContractFailureEventRecordableHeight = LocalTransferFromContractFailureEventRecordableHeight
 		NewNvmExeTimeoutConsumeGasHeight = LocalNewNvmExeTimeoutConsumeGasHeight
-		NvmGasLimitWithoutTimeoutAtHeight = LocalNewNvmExeTimeoutConsumeGasHeight
+		NvmGasLimitWithoutTimeoutAtHeight = LocalNvmGasLimitWithoutTimeoutAtHeight
 	}
 
 	// sort V8JSLibVersionHeightSlice in descending order by height
