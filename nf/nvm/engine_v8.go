@@ -74,8 +74,9 @@ const (
 	ExecutionTimeOutErr = 2
 
 	// ExecutionTimeoutInSeconds max v8 execution timeout.
-	ExecutionTimeoutInSeconds = 5
-	TimeoutGasLimitCost       = 100000000
+	ExecutionTimeout                 = 15 * 1000 * 1000
+	TimeoutGasLimitCost              = 100000000
+	MaxLimitsOfExecutionInstructions = 10000000 // 10,000,000
 )
 
 //engine_v8 private data
@@ -193,6 +194,10 @@ func NewV8Engine(ctx *Context) *V8Engine {
 	})()
 	// engine.v8engine.lcs = C.uintptr_t(engine.lcsHandler)
 	// engine.v8engine.gcs = C.uintptr_t(engine.gcsHandler)
+	if ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
+		engine.SetTimeOut(ExecutionTimeout)
+	}
+
 	return engine
 }
 
@@ -317,6 +322,16 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		ret     C.int
 		cResult *C.char
 	)
+
+	ctx := e.Context()
+	if ctx == nil || ctx.block == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"ctx": ctx,
+		}).Error("Unexpected: Failed to get current height")
+		err = core.ErrUnexpected
+		return "", err
+	}
+
 	// done := make(chan bool, 1)
 	// go func() {
 	// 	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
@@ -330,12 +345,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	//set err
 	if ret == C.NVM_EXE_TIMEOUT_ERR {
 		err = ErrExecutionTimeout
-		ctx := e.Context()
-		if ctx == nil || ctx.block == nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"err": err,
-				"ctx": ctx,
-			}).Error("Unexpected: Failed to get current height")
+		if ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
 			err = core.ErrUnexpected
 		} else if ctx.block.Height() >= core.NewNvmExeTimeoutConsumeGasHeight {
 			if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
@@ -425,7 +435,21 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 			return "", err
 		}
 	}
-	return e.RunScriptSource(runnableSource, sourceLineOffset)
+
+	if e.ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
+		if e.limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
+			e.SetExecutionLimits(MaxLimitsOfExecutionInstructions, e.limitsOfTotalMemorySize)
+		}
+	}
+	result, err := e.RunScriptSource(runnableSource, sourceLineOffset)
+
+	if e.ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
+		if e.limitsOfExecutionInstructions == MaxLimitsOfExecutionInstructions && err == ErrInsufficientGas {
+			err = ErrExecutionTimeout
+			result = "\"null\""
+		}
+	}
+	return result, err
 }
 
 // AddModule add module.
