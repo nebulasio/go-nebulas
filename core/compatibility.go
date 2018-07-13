@@ -140,13 +140,14 @@ type Compatibility interface {
 	DateAvailableHeight() uint64
 	RecordCallContractResultHeight() uint64
 	NvmMemoryLimitWithoutInjectHeight() uint64
-	WsResetRecordDependencyHeight() uint64  //reserve address of to
-	WsResetRecordDependencyHeight2() uint64 //reserve change log
+	WsResetRecordDependencyHeight() uint64 //reserve address of to
 	V8JSLibVersionControlHeight() uint64
 	TransferFromContractFailureEventRecordableHeight() uint64
 	NewNvmExeTimeoutConsumeGasHeight() uint64
 	V8JSLibVersionHeightMap() *V8JSLibVersionHeightMap
 	NvmGasLimitWithoutTimeoutHeight() uint64
+	WsResetRecordDependencyHeight2() uint64 //reserve change log
+	TransferFromContractFailureEventRecordableHeight2() uint64
 }
 
 // NebCompatibility ..
@@ -176,6 +177,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		"V8JSLibVersionControlHeight":               NebCompatibility.V8JSLibVersionControlHeight(),
 		"V8JSLibVersionHeightMap":                   NebCompatibility.V8JSLibVersionHeightMap().String(),
 		"TransferFromContractFailureHeight":         NebCompatibility.TransferFromContractFailureEventRecordableHeight(),
+		"TransferFromContractFailureHeight2":        NebCompatibility.TransferFromContractFailureEventRecordableHeight2(),
 		"NewNvmExeTimeoutConsumeGasHeight":          NebCompatibility.NewNvmExeTimeoutConsumeGasHeight(),
 	}).Info("Set compatibility options.")
 
@@ -399,6 +401,11 @@ func TransferFromContractFailureEventRecordableAtHeight(blockHeight uint64) bool
 	return blockHeight >= NebCompatibility.TransferFromContractFailureEventRecordableHeight()
 }
 
+// TransferFromContractFailureEventRecordableAtHeight2 ..
+func TransferFromContractFailureEventRecordableAtHeight2(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.TransferFromContractFailureEventRecordableHeight2()
+}
+
 // NvmGasLimitWithoutTimeoutAtHeight ..
 func NvmGasLimitWithoutTimeoutAtHeight(blockHeight uint64) bool {
 	return blockHeight >= NebCompatibility.NvmGasLimitWithoutTimeoutHeight()
@@ -413,4 +420,10 @@ func GetNearestInstructionCounterVersionAtHeight(blockHeight uint64) string {
 		}
 	}
 	return "1.0.0"
+}
+
+// EnableInnerContractAtHeight ..
+func EnableInnerContractAtHeight(blockHeight uint64) bool {
+	m := NebCompatibility.V8JSLibVersionHeightMap()
+	return blockHeight >= m.Data["1.1.0"]
 }

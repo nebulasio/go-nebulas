@@ -4,6 +4,8 @@ package core
 type CompatibilityTestNet struct {
 	transferFromContractEventRecordableHeight uint64
 
+	transferFromContractFailureEventRecordableHeight2 uint64
+
 	acceptFuncAvailableHeight uint64
 
 	randomAvailableHeight uint64
@@ -50,8 +52,9 @@ func NewCompatibilityTestNet() Compatibility {
 			DescKeys: []string{"1.1.0", "1.0.5"},
 		},
 
-		nvmGasLimitWithoutTimeoutHeight: 600000,
-		wsResetRecordDependencyHeight2:  600000,
+		nvmGasLimitWithoutTimeoutHeight:                   600000,
+		wsResetRecordDependencyHeight2:                    600000,
+		transferFromContractFailureEventRecordableHeight2: 600000,
 	}
 }
 
@@ -103,6 +106,11 @@ func (c *CompatibilityTestNet) V8JSLibVersionControlHeight() uint64 {
 // TransferFromContractFailureEventRecordableHeight ..
 func (c *CompatibilityTestNet) TransferFromContractFailureEventRecordableHeight() uint64 {
 	return c.transferFromContractFailureEventRecordableHeight
+}
+
+// TransferFromContractFailureEventRecordableHeight2 ..
+func (c *CompatibilityTestNet) TransferFromContractFailureEventRecordableHeight2() uint64 {
+	return c.transferFromContractFailureEventRecordableHeight2
 }
 
 // NewNvmExeTimeoutConsumeGasHeight ..

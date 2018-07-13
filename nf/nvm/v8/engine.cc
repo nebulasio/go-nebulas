@@ -103,8 +103,11 @@ V8Engine *CreateEngine() {
   e->allocator = allocator;
   e->isolate = isolate;
   e->timeout = ExecuteTimeOut;
-
+  e->ver = BUILD_DEFAULT_VER; //default load initial com
   return e;
+}
+void EnableInnerContract(V8Engine *e) {
+  e->ver = BUILD_INNER_VER;
 }
 
 void DeleteEngine(V8Engine *e) {
@@ -349,7 +352,7 @@ void TerminateExecution(V8Engine *e) {
   isolate->TerminateExecution();
   e->is_requested_terminate_execution = true;
 }
-void SetInnerNvmHappen(V8Engine *e) {
+void SetInnerContractErrFlag(V8Engine *e) {
   e->is_inner_nvm_error_happen = true;
 }
 void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
@@ -364,7 +367,6 @@ void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
 int IsEngineLimitsExceeded(V8Engine *e) {
   // TODO: read memory stats everytime may impact the performance.
   ReadMemoryStatistics(e);
-
   if (e->limits_of_executed_instructions > 0 &&
       e->limits_of_executed_instructions <
           e->stats.count_of_executed_instructions) {
@@ -375,7 +377,8 @@ int IsEngineLimitsExceeded(V8Engine *e) {
     // reach memory limits.
     return NVM_MEM_LIMIT_ERR;
   }
-
+  // 
+  
   return 0;
 }
 

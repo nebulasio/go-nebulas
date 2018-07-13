@@ -49,6 +49,15 @@ enum OptType {
   INSTRUCTIONTS  = 2,
   RUNSCRIPT       = 3,
 };
+#define BUILD_FUNC_MASK         0x00
+#define BUILD_ALL             0xFFFFFFFFFFFFFFFF
+#define BUILD_MATH            0x0000000000000001
+#define BUILD_MATH_RANDOM       0x0000000000000002
+#define BUILD_BLOCKCHAIN        0x0000000000000004
+#define BUILD_BLOCKCHAIN_GET_RUN_SOURCE     0x0000000000000008
+#define BUILD_BLOCKCHAIN_RUN_CONTRACT   0x0000000000000010
+#define BUILD_DEFAULT_VER (BUILD_MATH | BUILD_BLOCKCHAIN)
+#define BUILD_INNER_VER  (BUILD_MATH | BUILD_MATH_RANDOM | BUILD_BLOCKCHAIN | BUILD_BLOCKCHAIN_GET_RUN_SOURCE | BUILD_BLOCKCHAIN_RUN_CONTRACT)
 
 // log
 typedef void (*LogFunc)(int level, const char *msg);
@@ -157,7 +166,7 @@ typedef struct V8Engine {
   bool is_inner_nvm_error_happen;
   int testing;
   int timeout;
-  
+  uint64_t ver;
   V8EngineStats stats;
  
 } V8Engine;
@@ -215,7 +224,9 @@ EXPORT char *TranspileTypeScriptModuleThread(V8Engine *e, const char *source,
 EXPORT int RunScriptSourceThread(char **result, V8Engine *e, const char *source,
                     int source_line_offset, uintptr_t lcs_handler,
                     uintptr_t gcs_handler);
-void SetInnerNvmHappen(V8Engine *e);
+EXPORT void EnableInnerContract(V8Engine *e);
+
+void SetInnerContractErrFlag(V8Engine *e);
 
 bool CreateScriptThread(v8ThreadContext *pc);
 void SetRunScriptArgs(v8ThreadContext *pc, V8Engine *e, int opt, const char *source, int line_offset, int allow_usage);

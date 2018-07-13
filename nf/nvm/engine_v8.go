@@ -80,7 +80,7 @@ const (
 	// ExecutionTimeout max v8 execution timeout.
 	ExecutionTimeout                 = 15 * 1000 * 1000
 	TimeoutGasLimitCost              = 100000000
-	MaxLimitsOfExecutionInstructions = 50000000 // TODO: set max gasLimit with execution 5s *0.8
+	MaxLimitsOfExecutionInstructions = 10000000 // TODO: set max gasLimit with execution 5s *0.8
 )
 
 // const (
@@ -214,6 +214,9 @@ func NewV8Engine(ctx *Context) *V8Engine {
 		engine.SetTimeOut(ExecutionTimeout)
 	}
 
+	if core.EnableInnerContractAtHeight(ctx.block.Height()) {
+		engine.EnableInnerContract()
+	}
 	return engine
 }
 
@@ -254,6 +257,9 @@ func (e *V8Engine) SetTestingFlag(flag bool) {
 // SetTimeOut set nvm timeout, if not set, the default is 5*1000*1000
 func (e *V8Engine) SetTimeOut(timeout uint64) {
 	e.v8engine.timeout = C.int(timeout) //TODO:
+}
+func (e *V8Engine) EnableInnerContract() {
+	C.EnableInnerContract(e.v8engine)
 }
 
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
@@ -328,21 +334,19 @@ func (e *V8Engine) CollectTracingStats() {
 	e.actualTotalMemorySize = uint64(e.v8engine.stats.total_memory_size)
 }
 
-// GetNVMVerbResources return current NVM verb total resource
-func (e *V8Engine) GetNVMVerbResources() (uint64, uint64) {
+// GetNVMLeftResources return current NVM verb total resource
+func (e *V8Engine) GetNVMLeftResources() (uint64, uint64) {
 	e.CollectTracingStats()
-	var instruction uint64
-	var mem uint64
-	if e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
-		instruction = 0
-	} else {
+	instruction := uint64(0)
+	mem := uint64(0)
+	if e.limitsOfExecutionInstructions >= e.actualCountOfExecutionInstructions {
 		instruction = e.limitsOfExecutionInstructions - e.actualCountOfExecutionInstructions
 	}
-	if e.limitsOfTotalMemorySize < e.actualTotalMemorySize {
-		mem = 0
-	} else {
+
+	if e.limitsOfTotalMemorySize >= e.actualTotalMemorySize {
 		mem = e.limitsOfTotalMemorySize - e.actualTotalMemorySize
 	}
+
 	return instruction, mem
 }
 
@@ -374,8 +378,8 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 
 	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
-
 	e.CollectTracingStats()
+
 	if e.innerErr != nil {
 		if e.innerErrMsg == "" { //the first call of muti-nvm
 			result = "Inner Contract: \"\""
@@ -392,7 +396,7 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		return result, err
 	}
 
-	if ret == C.NVM_EXE_TIMEOUT_ERR {
+	if ret == C.NVM_EXE_TIMEOUT_ERR { //TODO: errcode in v8
 		err = ErrExecutionTimeout
 		if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
 			err = core.ErrUnexpected
@@ -408,7 +412,10 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	} else if ret == C.NVM_INNER_EXE_ERR {
 		err = core.ErrInnerExecutionFailed
 		if e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
-			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+			logging.VLog().WithFields(logrus.Fields{
+				"actualGas": e.actualCountOfExecutionInstructions,
+				"limitGas":  e.limitsOfExecutionInstructions,
+			}).Error("Unexpected error: actual gas exceed the limit")
 		}
 	} else {
 		if ret != C.NVM_SUCCESS {
@@ -489,6 +496,7 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 			return "", err
 		}
 	}
+
 	if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
 		if e.limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
 			e.SetExecutionLimits(MaxLimitsOfExecutionInstructions, e.limitsOfTotalMemorySize)

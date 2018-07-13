@@ -25,7 +25,7 @@
 using namespace v8;
 
 void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
-                           void *handler);
+                           void *handler, uint64_t build_flag);
 
 void BlockchainConstructor(const FunctionCallbackInfo<Value> &info);
 void GetTransactionByHashCallback(const FunctionCallbackInfo<Value> &info);

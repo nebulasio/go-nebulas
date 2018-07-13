@@ -72,6 +72,11 @@ const (
 	TxExecutionPendding = 2
 )
 
+const (
+	//InnerTransactionNonce inner tx nonce
+	InnerTransactionNonce = 0
+)
+
 // Error Types
 var (
 	ErrInvalidBlockOnCanonicalChain                      = errors.New("invalid block, it's not on canonical chain")
@@ -176,6 +181,8 @@ var (
 
 	// unsupported keyword error in smart contract
 	ErrUnsupportedKeyword = errors.New("transaction data has unsupported keyword")
+
+	ErrCreateInnerTx = errors.New("Failed to create inner transaction")
 )
 
 // Default gas count

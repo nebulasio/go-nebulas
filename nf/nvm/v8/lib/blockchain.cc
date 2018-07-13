@@ -52,7 +52,7 @@ void InitializeBlockchain(GetTxByHashFunc getTx, GetAccountStateFunc getAccount,
 }
 
 void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
-                           void *handler) {
+                           void *handler, uint64_t build_flag) {
   Local<ObjectTemplate> blockTpl = ObjectTemplate::New(isolate);
   blockTpl->SetInternalFieldCount(1);
 
@@ -78,18 +78,24 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
                 FunctionTemplate::New(isolate, VerifyAddressCallback),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                                PropertyAttribute::ReadOnly));
-  
-  blockTpl->Set(String::NewFromUtf8(isolate, "getContractSource"),
+  if (BUILD_BLOCKCHAIN_GET_RUN_SOURCE == (build_flag & BUILD_BLOCKCHAIN_GET_RUN_SOURCE)) {
+    // printf("load getContractSource\n");
+    blockTpl->Set(String::NewFromUtf8(isolate, "getContractSource"),
                 FunctionTemplate::New(isolate, GetContractSourceCallback),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                                PropertyAttribute::ReadOnly | 
                                                PropertyAttribute::DontEnum));
-
-  blockTpl->Set(String::NewFromUtf8(isolate, "runContractSource"),
+  }
+  
+  if (BUILD_BLOCKCHAIN_RUN_CONTRACT == (build_flag & BUILD_BLOCKCHAIN_RUN_CONTRACT)) {
+    // printf("load runContractSource\n");
+    blockTpl->Set(String::NewFromUtf8(isolate, "runContractSource"),
                 FunctionTemplate::New(isolate, RunInnerContractSourceCallBack),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                                PropertyAttribute::ReadOnly |
                                                PropertyAttribute::DontEnum));
+  }
+  
 
   blockTpl->Set(String::NewFromUtf8(isolate, "getPreBlockHash"),
               FunctionTemplate::New(isolate, GetPreBlockHashCallback),
@@ -446,7 +452,7 @@ void RunInnerContractSourceCallBack(const FunctionCallbackInfo<Value> &info) {
   if (value == NULL) {
     Local<Context> context = isolate->GetCurrentContext();
     V8Engine *e = GetV8EngineInstance(context);
-    SetInnerNvmHappen(e);
+    SetInnerContractErrFlag(e);
     TerminateExecution(e);
   } else {
     // Local<Boolean> flag = Boolean::New(isolate, true);

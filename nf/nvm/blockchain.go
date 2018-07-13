@@ -130,10 +130,10 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size
 	return C.NVM_SUCCESS
 }
 
-func recordTransferFailureEvent(errNo int, from string, to string, value string,
+func recordTransferEvent(errNo int, from string, to string, value string,
 	height uint64, wsState WorldState, txHash byteutils.Hash) {
 
-	if errNo == TransferFuncSuccess && core.TransferFromContractEventRecordableAtHeight(height) {
+	if errNo == SuccessTransferFunc && core.TransferFromContractEventRecordableAtHeight(height) {
 		event := &TransferFromContractEvent{
 			Amount: value,
 			From:   from,
@@ -153,13 +153,16 @@ func recordTransferFailureEvent(errNo int, from string, to string, value string,
 	} else if core.TransferFromContractFailureEventRecordableAtHeight(height) {
 		var errMsg string
 		switch errNo {
-		case TransferFuncSuccess:
+		case SuccessTransferFunc:
 			errMsg = ""
-		case TransferAddressParseErr:
+		case ErrTransferAddressParse:
 			errMsg = "failed to parse to address"
-		case TransferStringToBigIntErr:
+		case ErrTransferStringToUint128:
 			errMsg = "failed to parse transfer amount"
-		case TransferSubBalance:
+			if !core.TransferFromContractFailureEventRecordableAtHeight2(height) {
+				value = ""
+			}
+		case ErrTransferSubBalance:
 			errMsg = "failed to sub balace from contract address"
 		default:
 			logging.VLog().WithFields(logrus.Fields{
@@ -171,7 +174,7 @@ func recordTransferFailureEvent(errNo int, from string, to string, value string,
 		}
 
 		status := uint8(1)
-		if errNo != TransferFuncSuccess {
+		if errNo != SuccessTransferFunc {
 			status = 0
 		}
 
@@ -200,21 +203,20 @@ func recordTransferFailureEvent(errNo int, from string, to string, value string,
 }
 
 //TransferByAddress value from to
-func TransferByAddress(handler unsafe.Pointer, from *core.Address, to *core.Address, value string, gasCnt *uint64) int {
+func TransferByAddress(handler unsafe.Pointer, from *core.Address, to *core.Address, value string) int {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx == nil || engine.ctx.block == nil ||
 		engine.ctx.state == nil || engine.ctx.tx == nil {
 		logging.VLog().Fatal("Unexpected error: failed to get engine.")
 	}
 
-	*gasCnt = uint64(TransferGasBase)
-
+	// *gasCnt = uint64(TransferGasBase)
 	iRtn := transfer(engine, from, to, value)
-	if iRtn != TransferSuccess {
+	if iRtn != SuccessTransfer {
 		return iRtn
 	}
 
-	return TransferFuncSuccess
+	return SuccessTransferFunc
 }
 
 func transfer(e *V8Engine, from *core.Address, to *core.Address, val string) int {
@@ -224,18 +226,18 @@ func transfer(e *V8Engine, from *core.Address, to *core.Address, val string) int
 			"handler": uint64(e.lcsHandler),
 			"address": to,
 			"err":     err,
-		}).Error("GetAccountStateFunc get account state failed.")
-		return TransferGetAccountErr
+		}).Error("Failed to get to account state")
+		return ErrTransferGetAccount
 	}
 
 	fromAcc, err := e.ctx.state.GetOrCreateUserAccount(from.Bytes())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"handler": uint64(e.lcsHandler),
-			"address": fromAcc.Address().String(),
+			"address": from,
 			"err":     err,
-		}).Error("GetAccountStateFunc get account state failed.")
-		return TransferGetAccountErr
+		}).Error("Failed to get from account state")
+		return ErrTransferGetAccount
 	}
 
 	amount, err := util.NewUint128FromString(val)
@@ -244,22 +246,22 @@ func transfer(e *V8Engine, from *core.Address, to *core.Address, val string) int
 			"handler": uint64(e.lcsHandler),
 			"address": to,
 			"err":     err,
-		}).Error("GetAmountFunc get amount failed.")
-		return TransferStringToBigIntErr
+			"val":     val,
+		}).Error("Failed to get amount failed.")
+		return ErrTransferStringToUint128
 	}
-	logging.CLog().Infof("amount:%v", amount)
 	// update balance
 	if amount.Cmp(util.NewUint128()) > 0 {
-		err = fromAcc.SubBalance(amount)
+		err = fromAcc.SubBalance(amount) //TODO: add unit amount不足，超大, NaN
 		if err != nil {
-			logging.CLog().WithFields(logrus.Fields{
+			logging.VLog().WithFields(logrus.Fields{
 				"handler": uint64(e.lcsHandler),
 				"account": fromAcc,
 				"from":    from,
 				"amount":  amount,
 				"err":     err,
-			}).Error("TransferFunc SubBalance failed.")
-			return TransferSubBalance
+			}).Error("Failed to sub balance")
+			return ErrTransferSubBalance
 		}
 
 		err = toAcc.AddBalance(amount)
@@ -269,11 +271,12 @@ func transfer(e *V8Engine, from *core.Address, to *core.Address, val string) int
 				"amount":  amount,
 				"address": to,
 				"err":     err,
-			}).Error("failed to add balance")
-			return TransferAddBalance
+			}).Error("Failed to add balance")
+			//TODO: Failed to / Successed to	/ Unexpected error
+			return ErrTransferAddBalance
 		}
 	}
-	return TransferSuccess
+	return SuccessTransfer
 }
 
 // TransferFunc transfer vale to address
@@ -307,57 +310,24 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 			"handler":   uint64(uintptr(handler)),
 			"toAddress": C.GoString(to),
 		}).Debug("TransferFunc parse address failed.")
-		recordTransferFailureEvent(TransferAddressParseErr, cAddr.String(), "", "", height, wsState, txHash)
-		return TransferAddressParseErr
+		recordTransferEvent(ErrTransferAddressParse, cAddr.String(), "", "", height, wsState, txHash)
+		return ErrTransferAddressParse
 	}
+	transferValueStr := C.GoString(v)
+	ret := TransferByAddress(handler, cAddr, addr, transferValueStr)
 
-	toAcc, err := engine.ctx.state.GetOrCreateUserAccount(addr.Bytes())
-	if err != nil {
+	if ret != ErrTransferStringToUint128 && ret != ErrTransferSubBalance && ret != SuccessTransferFunc { // Unepected to happen, should not to be on chain
 		logging.VLog().WithFields(logrus.Fields{
-			"handler": uint64(uintptr(handler)),
-			"address": addr,
-			"err":     err,
-		}).Fatal("GetAccountStateFunc get account state failed.")
+			"txhash":      engine.ctx.tx.Hash().String(),
+			"fromAddress": cAddr.String(),
+			"toAddress":   addr.String(),
+			"value":       transferValueStr,
+			"ret":         ret,
+		}).Fatal("Unexpected error")
 	}
 
-	amount, err := util.NewUint128FromString(C.GoString(v))
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"handler": uint64(uintptr(handler)),
-			"address": addr,
-			"err":     err,
-		}).Debug("GetAmountFunc get amount failed.")
-		recordTransferFailureEvent(TransferStringToBigIntErr, cAddr.String(), addr.String(), "", height, wsState, txHash)
-		return TransferStringToBigIntErr
-	}
-	// update balance
-	if amount.Cmp(util.NewUint128()) > 0 {
-		err = engine.ctx.contract.SubBalance(amount)
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"handler": uint64(uintptr(handler)),
-				"key":     C.GoString(to),
-				"err":     err,
-			}).Debug("TransferFunc SubBalance failed.")
-			recordTransferFailureEvent(TransferSubBalance, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
-			return TransferSubBalance
-		}
-
-		err = toAcc.AddBalance(amount)
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"account": toAcc,
-				"amount":  amount,
-				"address": addr,
-				"err":     err,
-			}).Fatal("failed to add balance")
-			//			recordTransferFailureEvent(TransferSubBalance, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
-			// return TransferAddBalance
-		}
-	}
-
-	recordTransferFailureEvent(TransferFuncSuccess, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
-	return TransferFuncSuccess
+	recordTransferEvent(ret, cAddr.String(), addr.String(), transferValueStr, height, wsState, txHash)
+	return ret
 }
 
 // VerifyAddressFunc verify address is valid
@@ -501,8 +471,8 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, offset C.ulonglong,
 	return C.NVM_SUCCESS
 }
 
-//getPayLoadByAddress
-func getPayLoadByAddress(ws WorldState, address string) (*core.DeployPayload, error) {
+//getPayloadByAddress
+func getPayloadByAddress(ws WorldState, address string) (*Payload, error) {
 	addr, err := core.AddressParse(address)
 	if err != nil {
 		return nil, err
@@ -521,7 +491,7 @@ func getPayLoadByAddress(ws WorldState, address string) (*core.DeployPayload, er
 	if err != nil {
 		return nil, err
 	}
-	return deploy, nil
+	return &Payload{deploy, contract}, nil
 }
 
 // GetContractSourceFunc get contract code by address
@@ -536,7 +506,7 @@ func GetContractSourceFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.si
 	*gasCnt = C.size_t(GetContractSourceGasBase)
 	ws := engine.ctx.state
 
-	deploy, err := getPayLoadByAddress(ws, C.GoString(address))
+	payload, err := getPayloadByAddress(ws, C.GoString(address))
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"address": address,
@@ -546,7 +516,7 @@ func GetContractSourceFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.si
 		return nil
 	}
 
-	return C.CString(string(deploy.Source))
+	return C.CString(string(payload.deploy.Source))
 }
 
 //packErrInfoAndSetHead->packInner
@@ -556,31 +526,28 @@ func setHeadErrAndLog(e *V8Engine, index uint32, err error, result string, flag 
 	rStr := fmt.Sprintf(formatEx, index)
 
 	if flag == true {
-		logging.CLog().Errorf(rStr)
+		logging.VLog().Errorf(rStr)
 	}
-	// logging.CLog().Errorf("setHeadErrAndLog err:%v, result:%v", err, result)
 	if index == 0 {
 		e.innerErrMsg = result
 		e.innerErr = err
 	} else {
 		setHeadV8ErrMsg(e.ctx.head, err, result)
 	}
-	// logging.CLog().Errorf("setHeadErrAndLog1111111 err:%v, result:%v", e.innerErr, result)
 	return rStr
 }
 
 //setHeadV8ErrMsg set head node err info
 func setHeadV8ErrMsg(handler unsafe.Pointer, err error, result string) {
 	if handler == nil {
-		logging.CLog().Errorf("the main node")
+		logging.VLog().Errorf("invalid handler is nil")
 		return
 	}
 	engine := getEngineByEngineHandler(handler)
 	if engine == nil {
-		logging.VLog().Errorf("the handler not found the v8 engine")
+		logging.VLog().Errorf("not found the v8 engine")
 		return
 	}
-	// logging.CLog().Errorf("setHeadErrAndLogsssssss err:%v, result:%v", err, result)
 	engine.innerErr = err
 	engine.innerErrMsg = result
 }
@@ -590,16 +557,15 @@ func setHeadV8ErrMsg(handler unsafe.Pointer, err error, result string) {
 func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char, v *C.char, args *C.char, gasCnt *C.size_t) *C.char {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
-		logging.CLog().Errorf(ErrEngineNotFound.Error())
+		logging.VLog().Errorf(ErrEngineNotFound.Error())
 		return nil
 	}
 	index := engine.ctx.index
-	if engine.ctx.index >= uint32(MultiNvmMax) {
-		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, ErrNvmNumLimit.Error(), true)
+	if engine.ctx.index >= uint32(MaxInnerContractLevel) {
+		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, ErrMaxInnerContractLevelLimit.Error(), true)
 		return nil
 	}
-	var gasSum uint64
-	gasSum = uint64(InnerContractGasBase)
+	gasSum := uint64(InnerContractGasBase)
 	*gasCnt = C.size_t(gasSum)
 	ws := engine.ctx.state
 
@@ -613,14 +579,14 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 		return nil
 	}
-	logging.CLog().Infof("inner contract:%v", contract.ContractMeta())
+	logging.VLog().Infof("inner contract:%v", contract.ContractMeta())
 
-	deploy, err := getPayLoadByAddress(ws, C.GoString(address))
+	payload, err := getPayloadByAddress(ws, C.GoString(address))
 	if err != nil {
 		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 		return nil
 	}
-
+	deploy := payload.deploy
 	//run
 	payloadType := core.TxPayloadCallType
 	callpayload, err := core.NewCallPayload(C.GoString(funcName), C.GoString(args))
@@ -628,7 +594,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 		return nil
 	}
-	payload, err := callpayload.ToBytes()
+	newPayloadHex, err := callpayload.ToBytes()
 	if err != nil {
 		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 		return nil
@@ -642,33 +608,33 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		return nil
 	}
 	//transfer
-	var transferCostGas uint64
-	iRet := TransferByAddress(handler, fromAddr, addr, C.GoString(v), &transferCostGas) //TODO: gas cost?
+	// var transferCostGas uint64
+	innerTxValueStr := C.GoString(v)
+	iRet := TransferByAddress(handler, fromAddr, addr, innerTxValueStr)
 	if iRet != 0 {
 		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, ErrInnerTransferFailed.Error(), true)
 		return nil
 	}
-	gasSum += transferCostGas
-	*gasCnt = C.size_t(gasSum)
+	// gasSum += transferCostGas
+	// *gasCnt = C.size_t(gasSum)
 
-	toValue, err := util.NewUint128FromString(C.GoString(v))
+	toValue, err := util.NewUint128FromString(innerTxValueStr)
 	if err != nil {
 		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 		return nil
 	}
-	newTx, err := core.NewTransaction(parentTx.ChainID(), fromAddr, addr, toValue, parentTx.Nonce(), payloadType,
-		payload, parentTx.GasPrice(), parentTx.GasLimit())
+
+	newTx, err := parentTx.NewInnerTransaction(parentTx.To(), addr, toValue, payloadType, newPayloadHex)
 	if err != nil {
 		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), false)
 		logging.VLog().WithFields(logrus.Fields{
 			"from":  fromAddr.String(),
 			"to":    addr.String(),
-			"value": C.GoString(v),
+			"value": innerTxValueStr,
 			"err":   err,
-		}).Error("failed to marshal TransferFromContractEvent")
+		}).Error("failed to create new tx")
 		return nil
 	}
-	newTx.SetHash(parentTx.Hash())
 	// event address need to user
 	var head unsafe.Pointer
 	if engine.ctx.head == nil {
@@ -676,29 +642,35 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	} else {
 		head = engine.ctx.head
 	}
-	//TODO: 确定world reset 是否需要
-	newCtx, err := NewChildContext(engine.ctx.block, newTx, contract, engine.ctx.state, head, engine.ctx.index+1, engine.ctx.contextRand)
+	newCtx, err := NewInnerContext(engine.ctx.block, newTx, contract, engine.ctx.state, head, engine.ctx.index+1, engine.ctx.contextRand)
 	if err != nil {
 		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 		return nil
 	}
 
-	remainInstruction, remainMem := engine.GetNVMVerbResources()
-	iCost := uint64(InnerContractGasBase) + transferCostGas
-	if remainInstruction <= uint64(iCost) {
-		logging.CLog().Errorf("remainInstruction:%v, mem:%v, err:%v", remainInstruction, remainMem, ErrInnerInsufficientGas.Error())
+	remainInstruction, remainMem := engine.GetNVMLeftResources()
+	if remainInstruction <= uint64(InnerContractGasBase) {
+		logging.VLog().WithFields(logrus.Fields{
+			"remainInstruction": remainInstruction,
+			"mem":               remainMem,
+			"err":               ErrInnerInsufficientGas.Error(),
+		}).Error("failed to prepare create nvm")
 		setHeadErrAndLog(engine, index, ErrInsufficientGas, "null", false)
 		return nil
+	} else {
+		remainInstruction -= InnerContractGasBase
 	}
 	if remainMem <= 0 {
-		logging.CLog().Errorf("remainInstruction:%v, mem:%v, err:%v", remainInstruction, remainMem, ErrInnerInsufficientMem.Error())
+		logging.VLog().WithFields(logrus.Fields{
+			"remainInstruction": remainInstruction,
+			"mem":               remainMem,
+			"err":               ErrInnerInsufficientMem.Error(),
+		}).Error("failed to prepare create nvm")
 		setHeadErrAndLog(engine, index, ErrExceedMemoryLimits, "null", false)
 		return nil
 	}
-	remainInstruction -= uint64(InnerContractGasBase)
-	remainInstruction -= uint64(transferCostGas)
 
-	logging.CLog().Infof("begin create New V8,intance:%v, mem:%v, cost:%v", remainInstruction, remainMem, iCost)
+	logging.VLog().Debugf("begin create New V8,intance:%v, mem:%v", remainInstruction, remainMem)
 	engineNew := NewV8Engine(newCtx)
 	defer engineNew.Dispose()
 	engineNew.SetExecutionLimits(remainInstruction, remainMem)
@@ -720,7 +692,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 
 	eData, errMarshal := json.Marshal(event)
 	if errMarshal != nil {
-		logging.CLog().WithFields(logrus.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"from":  fromAddr.String(),
 			"to":    addr.String(),
 			"value": toValue.String(),
@@ -733,16 +705,14 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 	engine.ctx.state.RecordEvent(parentTx.Hash(), &state.Event{Topic: core.TopicInnerContract, Data: string(eData)})
 	if err != nil {
 		if err == core.ErrInnerExecutionFailed {
-			logging.CLog().Errorf("check inner err, engine index:%v", index)
-			// return nil
+			logging.VLog().Errorf("check inner err, engine index:%v", index)
 		} else {
 			errLog := setHeadErrAndLog(engine, index, err, val, false)
-			logging.CLog().Errorf(errLog)
+			logging.VLog().Errorf(errLog)
 		}
 
 		return nil
 	}
-	logging.CLog().Infof("end cal val:%v,gascount:%v,gasSum:%v, engine index:%v", val, gasCout, gasSum, index)
-	// *gasCnt = C.size_t(gasSum)
+	logging.VLog().Infof("end cal val:%v,gascount:%v,gasSum:%v, engine index:%v", val, gasCout, gasSum, index)
 	return C.CString(string(val))
 }
