@@ -106,7 +106,7 @@ V8Engine *CreateEngine() {
   e->ver = BUILD_DEFAULT_VER; //default load initial com
   return e;
 }
-void SetInnerVer(V8Engine *e) {
+void EnableInnerContract(V8Engine *e) {
   e->ver = BUILD_INNER_VER;
 }
 

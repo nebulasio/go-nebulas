@@ -224,7 +224,7 @@ EXPORT char *TranspileTypeScriptModuleThread(V8Engine *e, const char *source,
 EXPORT int RunScriptSourceThread(char **result, V8Engine *e, const char *source,
                     int source_line_offset, uintptr_t lcs_handler,
                     uintptr_t gcs_handler);
-EXPORT void SetInnerVer(V8Engine *e);
+EXPORT void EnableInnerContract(V8Engine *e);
 
 void SetInnerContractErrFlag(V8Engine *e);
 

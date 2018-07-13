@@ -213,7 +213,8 @@ func NewV8Engine(ctx *Context) *V8Engine {
 	if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
 		engine.SetTimeOut(ExecutionTimeout)
 	}
-	engine.SetInnerVer()
+
+	engine.EnableInnerContract()
 	return engine
 }
 
@@ -255,8 +256,8 @@ func (e *V8Engine) SetTestingFlag(flag bool) {
 func (e *V8Engine) SetTimeOut(timeout uint64) {
 	e.v8engine.timeout = C.int(timeout) //TODO:
 }
-func (e *V8Engine) SetInnerVer() {
-	C.SetInnerVer(e.v8engine)
+func (e *V8Engine) EnableInnerContract() {
+	C.EnableInnerContract(e.v8engine)
 }
 
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
@@ -375,8 +376,8 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 
 	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
-
 	e.CollectTracingStats()
+
 	if e.innerErr != nil {
 		if e.innerErrMsg == "" { //the first call of muti-nvm
 			result = "Inner Contract: \"\""
