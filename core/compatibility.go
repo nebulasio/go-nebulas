@@ -421,3 +421,9 @@ func GetNearestInstructionCounterVersionAtHeight(blockHeight uint64) string {
 	}
 	return "1.0.0"
 }
+
+// EnableInnerContractAtHeight ..
+func EnableInnerContractAtHeight(blockHeight uint64) bool {
+	m := NebCompatibility.V8JSLibVersionHeightMap()
+	return blockHeight >= m.Data["1.1.0"]
+}

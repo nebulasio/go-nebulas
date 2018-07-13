@@ -214,7 +214,9 @@ func NewV8Engine(ctx *Context) *V8Engine {
 		engine.SetTimeOut(ExecutionTimeout)
 	}
 
-	engine.EnableInnerContract()
+	if core.EnableInnerContractAtHeight(ctx.block.Height()) {
+		engine.EnableInnerContract()
+	}
 	return engine
 }
 
