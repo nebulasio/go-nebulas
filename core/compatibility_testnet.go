@@ -47,14 +47,14 @@ func NewCompatibilityTestNet() Compatibility {
 		v8JSLibVersionHeightMap: &V8JSLibVersionHeightMap{
 			Data: map[string]uint64{
 				"1.0.5": 424400, // v8JSLibVersionControlHeight
-				"1.1.0": 600000,
+				"1.1.0": 582800,
 			},
 			DescKeys: []string{"1.1.0", "1.0.5"},
 		},
 
-		nvmGasLimitWithoutTimeoutHeight:                   600000,
-		wsResetRecordDependencyHeight2:                    600000,
-		transferFromContractFailureEventRecordableHeight2: 600000,
+		nvmGasLimitWithoutTimeoutHeight:                   582800,
+		wsResetRecordDependencyHeight2:                    582800,
+		transferFromContractFailureEventRecordableHeight2: 582800,
 	}
 }
 
