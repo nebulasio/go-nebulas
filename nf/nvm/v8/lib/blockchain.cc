@@ -78,8 +78,8 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
                 FunctionTemplate::New(isolate, VerifyAddressCallback),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                                PropertyAttribute::ReadOnly));
-  if (build_flag == (build_flag & BUILD_BLOCKCHAIN_GET_RUN_SOURCE)) {
-    printf("load getContractSource\n");
+  if (BUILD_BLOCKCHAIN_GET_RUN_SOURCE == (build_flag & BUILD_BLOCKCHAIN_GET_RUN_SOURCE)) {
+    // printf("load getContractSource\n");
     blockTpl->Set(String::NewFromUtf8(isolate, "getContractSource"),
                 FunctionTemplate::New(isolate, GetContractSourceCallback),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
@@ -87,8 +87,8 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
                                                PropertyAttribute::DontEnum));
   }
   
-  if (build_flag == (build_flag & BUILD_BLOCKCHAIN_RUN_CONTRACT)) {
-    printf("load runContractSource\n");
+  if (BUILD_BLOCKCHAIN_RUN_CONTRACT == (build_flag & BUILD_BLOCKCHAIN_RUN_CONTRACT)) {
+    // printf("load runContractSource\n");
     blockTpl->Set(String::NewFromUtf8(isolate, "runContractSource"),
                 FunctionTemplate::New(isolate, RunInnerContractSourceCallBack),
                 static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |

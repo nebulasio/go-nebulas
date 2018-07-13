@@ -52,10 +52,10 @@ void SetGlobalObjectProperties(Isolate *isolate, Local<Context> context,
   NewInstructionCounterInstance(isolate, context,
                                 &(e->stats.count_of_executed_instructions), e);
   uint64_t build_flag = e->ver;
-  if (build_flag == (build_flag & BUILD_MATH)) {
+  if (BUILD_MATH == (build_flag & BUILD_MATH)) {
     NewRandomInstance(isolate, context, lcsHandler);
   }
-  if (build_flag == (build_flag & BUILD_BLOCKCHAIN)) {
+  if (BUILD_BLOCKCHAIN == (build_flag & BUILD_BLOCKCHAIN)) {
     NewBlockchainInstance(isolate, context, lcsHandler, build_flag);
   }
   

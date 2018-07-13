@@ -213,7 +213,7 @@ func NewV8Engine(ctx *Context) *V8Engine {
 	if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
 		engine.SetTimeOut(ExecutionTimeout)
 	}
-	// engine.SetInnerVer()
+	engine.SetInnerVer()
 	return engine
 }
 

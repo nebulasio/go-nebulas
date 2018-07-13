@@ -103,7 +103,7 @@ V8Engine *CreateEngine() {
   e->allocator = allocator;
   e->isolate = isolate;
   e->timeout = ExecuteTimeOut;
-  e->ver = BUILD_FUNC_MASK; //default load initial com
+  e->ver = BUILD_DEFAULT_VER; //default load initial com
   return e;
 }
 void SetInnerVer(V8Engine *e) {
