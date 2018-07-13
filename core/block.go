@@ -45,9 +45,9 @@ var (
 	BlockHashLength = 32
 
 	// ParallelNum num
-	PackedParallelNum = 2
+	PackedParallelNum = 1
 
-	VerifyParallelNum = 8
+	VerifyParallelNum = 1
 
 	// VerifyExecutionTimeout 0 means unlimited
 	VerifyExecutionTimeout = 0
