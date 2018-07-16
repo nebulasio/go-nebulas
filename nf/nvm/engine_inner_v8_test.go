@@ -2086,3 +2086,215 @@ func TestInnerTxInstructionCounter(t *testing.T) {
 		fmt.Printf("aI:%v\n", aUser)
 	}
 }
+
+func TestMultiLibVersionCall(t *testing.T) {
+	core.NebCompatibility = core.NewCompatibilityLocal()
+	m := core.NebCompatibility.V8JSLibVersionHeightMap().Data
+	m["1.1.0"] = 4
+	m["1.0.5"] = 3
+	defer func() {
+		m["1.1.0"] = 3
+		m["1.0.5"] = 2
+	}()
+
+	tests := []struct {
+		name  string
+		calls []call
+	}{
+		{
+			"call contracts",
+			[]call{
+				call{
+					"testInnerCall",
+					"[\"%s\", \"undefined\"]", // in version before 1.1.0, typeof(Blockchain.Contract)=='undefined'
+					[]string{"\"\"", ""},
+				},
+				call{
+					"testRandom",
+					// before 1.1.0
+					// true -- Blockchain.block.seed is not empty
+					// true -- Math.random.seed exists
+					//
+					// since 1.1.0
+					// false -- Blockchain.block.seed is empty
+					// false -- Math.random.seed not exist
+					"[\"%s\", true, true, false, false]",
+					[]string{"\"\"", ""},
+				},
+			},
+		},
+	}
+	tt := tests[0]
+
+	neb := mockNeb(t)
+	tail := neb.chain.TailBlock()
+	manager, err := account.NewManager(neb)
+	assert.Nil(t, err)
+
+	a, _ := core.AddressParse("n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE")
+	assert.Nil(t, manager.Unlock(a, []byte("passphrase"), keystore.YearUnlockDuration))
+	b, _ := core.AddressParse("n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s")
+	assert.Nil(t, manager.Unlock(b, []byte("passphrase"), keystore.YearUnlockDuration))
+	c, _ := core.AddressParse("n1H4MYms9F55ehcvygwWE71J8tJC4CRr2so")
+	assert.Nil(t, manager.Unlock(c, []byte("passphrase"), keystore.YearUnlockDuration))
+	d, _ := core.AddressParse("n1JAy4X6KKLCNiTd7MWMRsVBjgdVq5WCCpf")
+	assert.Nil(t, manager.Unlock(d, []byte("passphrase"), keystore.YearUnlockDuration))
+	e, _ := core.AddressParse("n1LkDi2gGMqPrjYcczUiweyP4RxTB6Go1qS")
+	assert.Nil(t, manager.Unlock(e, []byte("passphrase"), keystore.YearUnlockDuration))
+
+	elapsedSecond := dpos.BlockIntervalInMs / dpos.SecondInMs
+	consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
+	assert.Nil(t, err)
+	// mock empty block(height=2)
+	block, err := core.MockBlockEx(neb.chain.ChainID(), c, tail, 2)
+	fmt.Printf("mock 2, block.height:%v\n", block.Height())
+	assert.Nil(t, err)
+	/* ----- mock random seed for new block ------*/
+	miner, err := core.AddressParseFromBytes(consensusState.Proposer())
+	assert.Nil(t, err)
+	seed, proof, err := manager.GenerateRandomSeed(miner, neb.chain.GenesisBlock().Hash(), neb.chain.GenesisBlock().Hash()) // NOTE: 3rd arg is genesis's hash for the first block
+	assert.Nil(t, err)
+	block.SetRandomSeed(seed, proof)
+	/* ----- mock random seed for new block END ------*/
+	block.WorldState().SetConsensusState(consensusState)
+	block.SetTimestamp(consensusState.TimeStamp())
+	// packing
+	block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+	assert.Nil(t, block.Seal())
+	assert.Nil(t, manager.SignBlock(b, block))
+	assert.Nil(t, neb.chain.BlockPool().Push(block))
+	fmt.Printf("mock 2, block.tailblock.height: %v\n", neb.chain.TailBlock().Height())
+
+	// ===========new block(height=3), deploy callee.js=========
+	tail = neb.chain.TailBlock()
+	block, err = core.MockBlockEx(neb.chain.ChainID(), c, tail, 3)
+	assert.Nil(t, err)
+	consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
+	assert.Nil(t, err)
+	/* ----- mock random seed for new block ------*/
+	miner, err = core.AddressParseFromBytes(consensusState.Proposer())
+	assert.Nil(t, err)
+	seed, proof, err = manager.GenerateRandomSeed(miner, neb.chain.GenesisBlock().Hash(), seed) // NOTE: 3rd arg is parent's seed
+	assert.Nil(t, err)
+	block.SetRandomSeed(seed, proof)
+	/* ----- mock random seed for new block END ------*/
+	block.WorldState().SetConsensusState(consensusState)
+	block.SetTimestamp(consensusState.TimeStamp())
+
+	contractsAddr := []string{}
+
+	data, err := ioutil.ReadFile("./test/inner_call_tests/callee.js")
+	assert.Nil(t, err, "contract path read error")
+	source := string(data)
+	sourceType := "js"
+	argsDeploy := ""
+	deploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy)
+	payloadDeploy, _ := deploy.ToBytes()
+
+	value, _ := util.NewUint128FromInt(0)
+	gasLimit, _ := util.NewUint128FromInt(200000)
+	txDeploy, err := core.NewTransaction(neb.chain.ChainID(), a, a, value, uint64(1), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+	assert.Nil(t, err)
+	assert.Nil(t, manager.SignTransaction(a, txDeploy))
+	assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+
+	contractAddr, err := txDeploy.GenerateContractAddress()
+	assert.Nil(t, err)
+	contractsAddr = append(contractsAddr, contractAddr.String())
+
+	block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+	assert.Nil(t, block.Seal())
+	assert.Nil(t, manager.SignBlock(c, block))
+	assert.Nil(t, neb.chain.BlockPool().Push(block))
+	// ===========new block(height=3), deploy callee.js END =========
+
+	// ===========new block(height=4), deploy caller.js =========
+	tail = neb.chain.TailBlock()
+	block, err = core.MockBlockEx(neb.chain.ChainID(), c, tail, 4)
+	assert.Nil(t, err)
+	consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
+	assert.Nil(t, err)
+	/* ----- mock random seed for new block ------*/
+	miner, err = core.AddressParseFromBytes(consensusState.Proposer())
+	assert.Nil(t, err)
+	seed, proof, err = manager.GenerateRandomSeed(miner, neb.chain.GenesisBlock().Hash(), seed) // NOTE: 3rd arg is parent's seed
+	assert.Nil(t, err)
+	block.SetRandomSeed(seed, proof)
+	/* ----- mock random seed for new block END ------*/
+	block.WorldState().SetConsensusState(consensusState)
+	block.SetTimestamp(consensusState.TimeStamp())
+
+	data, err = ioutil.ReadFile("./test/inner_call_tests/caller.js")
+	assert.Nil(t, err, "contract path read error")
+	source = string(data)
+	sourceType = "js"
+	argsDeploy = ""
+	deploy, _ = core.NewDeployPayload(source, sourceType, argsDeploy)
+	payloadDeploy, _ = deploy.ToBytes()
+
+	txDeploy, err = core.NewTransaction(neb.chain.ChainID(), a, a, value, uint64(2), core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+	assert.Nil(t, err)
+	assert.Nil(t, manager.SignTransaction(a, txDeploy))
+	assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+
+	contractAddr, err = txDeploy.GenerateContractAddress()
+	assert.Nil(t, err)
+	contractsAddr = append(contractsAddr, contractAddr.String())
+
+	block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+	assert.Nil(t, block.Seal())
+	assert.Nil(t, manager.SignBlock(d, block))
+	assert.Nil(t, neb.chain.BlockPool().Push(block))
+	//  ===========new block(height=4), deploy caller.js END =========
+
+	for _, v := range contractsAddr {
+		contract, err := core.AddressParse(v)
+		assert.Nil(t, err)
+		_, err = neb.chain.TailBlock().CheckContract(contract)
+		assert.Nil(t, err)
+	}
+
+	for _, call := range tt.calls {
+		elapsedSecond = dpos.BlockIntervalInMs / dpos.SecondInMs
+		tail = neb.chain.TailBlock()
+		consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
+		assert.Nil(t, err)
+		block, err = core.NewBlock(neb.chain.ChainID(), c, tail)
+		assert.Nil(t, err)
+		/* ----- mock random seed for new block ------*/
+		miner, err = core.AddressParseFromBytes(consensusState.Proposer())
+		assert.Nil(t, err)
+		seed, proof, err = manager.GenerateRandomSeed(miner, neb.chain.GenesisBlock().Hash(), seed) // NOTE: 3rd arg is parent's seed
+		assert.Nil(t, err)
+		block.SetRandomSeed(seed, proof)
+		/* ----- mock random seed for new block END ------*/
+		block.WorldState().SetConsensusState(consensusState)
+		block.SetTimestamp(consensusState.TimeStamp())
+
+		callPayload, _ := core.NewCallPayload(call.function, fmt.Sprintf(call.args, contractsAddr[0]))
+		payloadCall, _ := callPayload.ToBytes()
+
+		proxyContractAddress, err := core.AddressParse(contractsAddr[1])
+		txCall, err := core.NewTransaction(neb.chain.ChainID(), a, proxyContractAddress, value,
+			uint64(len(contractsAddr)+1), core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
+		assert.Nil(t, err)
+		assert.Nil(t, manager.SignTransaction(a, txCall))
+		assert.Nil(t, neb.chain.TransactionPool().Push(txCall))
+
+		block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+		events, err := block.WorldState().FetchEvents(txCall.Hash())
+		assert.Nil(t, err)
+		for _, event := range events {
+			fmt.Println("==============", event.Data)
+
+			var jEvent SysEvent
+			if event.Topic == core.TopicTransactionExecutionResult {
+				if err = json.Unmarshal([]byte(event.Data), &jEvent); err == nil {
+					assert.Equal(t, call.exceptArgs[0], jEvent.Result)
+					assert.Equal(t, call.exceptArgs[1], jEvent.Err)
+				}
+			}
+		}
+
+	}
+}
