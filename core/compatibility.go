@@ -228,7 +228,7 @@ const (
 	MainNetNewNvmExeTimeoutConsumeGasHeight uint64 = 467500
 
 	//MainNetNvmGasLimitWithoutTimeoutAtHeight
-	MainNetNvmGasLimitWithoutTimeoutAtHeight uint64 = 600000
+	MainNetNvmGasLimitWithoutTimeoutAtHeight uint64 = 624763
 )
 
 // var for MainNet

@@ -17,7 +17,7 @@
 # along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION?=1.0.1
+VERSION?=1.0.7
 
 COMMIT=$(shell git rev-parse HEAD)
 BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
