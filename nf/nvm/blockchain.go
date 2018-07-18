@@ -579,7 +579,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 		return nil
 	}
-	logging.VLog().Infof("inner contract:%v", contract.ContractMeta())
+	logging.VLog().Infof("inner contract:%v", contract.ContractMeta()) //FIXME: ver limit
 
 	payload, err := getPayloadByAddress(ws, C.GoString(address))
 	if err != nil {
