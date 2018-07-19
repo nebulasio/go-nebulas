@@ -70,6 +70,10 @@ BankVaultContractS.prototype = {
         c.value(0).call("saveMem", mem); 
         this.transferEvent(true, 0, mem);
 	},
+	saveValue: function(address, val) {
+        var c = new Blockchain.Contract(address);
+        c.value(val).call("saveValue", val);
+    },
 	saveErr: function(address, flag) {
         if (flag == 1) {
             throw("saveErr in bank_vault_contract_second");
