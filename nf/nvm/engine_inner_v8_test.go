@@ -1161,11 +1161,12 @@ func TestInnerTransactionsMemLimit(t *testing.T) {
 func TestInnerTransactionsErr(t *testing.T) {
 	core.NebCompatibility = core.NewCompatibilityLocal()
 	tests := []struct {
-		name           string
-		contracts      []contract
-		call           call
-		errFlagArr     []uint32
-		expectedErrArr []string
+		name            string
+		contracts       []contract
+		call            call
+		errFlagArr      []uint32
+		expectedErrArr  []string
+		expectedAccount [][]string
 	}{
 		{
 			"deploy TestInnerTransactionsErr.js",
@@ -1191,10 +1192,19 @@ func TestInnerTransactionsErr(t *testing.T) {
 				"[1]",
 				[]string{""},
 			},
-			[]uint32{0, 1, 2},
+			[]uint32{0, 1, 2, 3},
+			// []uint32{0},
 			[]string{"Call: saveErr in test_inner_transaction",
 				"Call: Inner Contract: saveErr in bank_vault_contract_second",
-				"Call: Inner Contract: saveErr in bank_vault_contract"},
+				"Call: Inner Contract: saveErr in bank_vault_contract",
+				"",
+			},
+			[][]string{
+				{"0", "0", "0", "4999999999999903290000000", "5000000000000000000000000", "5000004280820096710000000", "5000000000000000000000000"},
+				{"0", "0", "0", "4999999999999871253000000", "5000000000000000000000000", "5000004280820128747000000", "5000000000000000000000000"},
+				{"0", "0", "0", "4999999999999871253000000", "5000000000000000000000000", "5000004280820128747000000", "5000000000000000000000000"},
+				{"1", "2", "3", "4999999999999871253000000", "5000000000000000000000000", "5000004280820128747000000", "5000000000000000000000000"},
+			},
 		},
 	}
 
@@ -1282,6 +1292,9 @@ func TestInnerTransactionsErr(t *testing.T) {
 			assert.Nil(t, manager.SignBlock(c, block))
 			assert.Nil(t, neb.chain.BlockPool().Push(block))
 
+			bUser, err := tail.GetAccount(b.Bytes())
+			fmt.Printf("bbbb:%v", bUser.Balance().String())
+
 			for _, v := range contractsAddr {
 				contract, err := core.AddressParse(v)
 				assert.Nil(t, err)
@@ -1293,7 +1306,7 @@ func TestInnerTransactionsErr(t *testing.T) {
 			tail = neb.chain.TailBlock()
 			consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
 			assert.Nil(t, err)
-			block, err = core.NewBlock(neb.chain.ChainID(), b, tail)
+			block, err = core.NewBlock(neb.chain.ChainID(), c, tail)
 			assert.Nil(t, err)
 			/* ----- mock random seed for new block ------*/
 			miner, err = core.AddressParseFromBytes(consensusState.Proposer())
@@ -1337,6 +1350,41 @@ func TestInnerTransactionsErr(t *testing.T) {
 				}
 
 			}
+			//chech accout
+			contractAddrA, err := core.AddressParse(contractsAddr[0])
+			accountAAcc, err := tail.GetAccount(contractAddrA.Bytes())
+			assert.Nil(t, err)
+			// fmt.Printf("account :%v\n", accountAAcc)
+			assert.Equal(t, tt.expectedAccount[i][0], accountAAcc.Balance().String())
+
+			contractAddrB, err := core.AddressParse(contractsAddr[1])
+			accountBAcc, err := tail.GetAccount(contractAddrB.Bytes())
+			assert.Nil(t, err)
+			// fmt.Printf("accountB :%v\n", accountBAcc)
+			assert.Equal(t, tt.expectedAccount[i][1], accountBAcc.Balance().String())
+
+			contractAddrC, err := core.AddressParse(contractsAddr[2])
+			accountAccC, err := tail.GetAccount(contractAddrC.Bytes())
+			assert.Nil(t, err)
+			fmt.Printf("accountC :%v\n", accountAccC)
+			assert.Equal(t, tt.expectedAccount[i][2], accountAccC.Balance().String())
+
+			aUser, err := tail.GetAccount(a.Bytes())
+			// assert.Equal(t, tt.expectedAccount[i][3], aUser.Balance().String())
+			fmt.Printf("aI:%v\n", aUser)
+			bUser, err = tail.GetAccount(b.Bytes())
+			assert.Equal(t, tt.expectedAccount[i][4], bUser.Balance().String())
+
+			cUser, err := tail.GetAccount(c.Bytes())
+			fmt.Printf("cI:%v\n", cUser)
+			// assert.Equal(t, tt.expectedAccount[i][5], cUser.Balance().String())
+
+			// fmt.Printf("b:%v\n", bUser)
+			// assert.Equal(t, tt.expectedAccount[i][4], cUser.Balance().String())
+			dUser, err := tail.GetAccount(d.Bytes())
+			assert.Equal(t, tt.expectedAccount[i][6], dUser.Balance().String())
+			// fmt.Printf("d:%v\n", dUser)
+			// assert.Equal(t, tt.expectedAccount[i][4], dUser.Balance().String())
 		}
 	}
 }
@@ -1377,7 +1425,7 @@ func TestInnerTransactionsValue(t *testing.T) {
 			},
 			[]string{"-1", "340282366920938463463374607431768211455", "340282366920938463463374607431768211456",
 				"1.1", "NaN", "undefined", "null", "infinity", "", "\"\""},
-			// []string{"0"}
+			// []string{"0"},
 			[]string{"Call: Inner Call: invalid value",
 				"Call: Inner Contract: inner transfer failed",
 				"Call: Inner Contract: inner transfer failed",
@@ -1562,7 +1610,7 @@ func TestInnerTransactionsValue(t *testing.T) {
 			contractAddrC, err := core.AddressParse(contractsAddr[2])
 			accountAccC, err := tail.GetAccount(contractAddrC.Bytes())
 			assert.Nil(t, err)
-			// fmt.Printf("accountC :%v\n", accountAccC)
+			fmt.Printf("accountC :%v\n", accountAccC)
 			assert.Equal(t, tt.expectedAccount[i][2], accountAccC.Balance().String())
 
 			aUser, err := tail.GetAccount(a.Bytes())

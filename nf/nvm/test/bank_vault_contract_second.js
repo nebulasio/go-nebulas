@@ -80,7 +80,7 @@ BankVaultContractS.prototype = {
             return;
         }
         var c = new Blockchain.Contract(address);
-        c.value(0).call("saveErr", address, flag); 
+        c.value(3).call("saveErr", address, flag); 
         // this.transferEvent(true, address, 0, mem);
 	},
 	saveTimeOut: function(address, flag) {
