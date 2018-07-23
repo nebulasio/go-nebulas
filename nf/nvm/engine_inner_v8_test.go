@@ -1675,7 +1675,7 @@ func TestInnerTransactionsValue(t *testing.T) {
 			// []string{"0"},
 			[]string{"Call: Inner Call: invalid value",
 				"Call: Inner Contract: inner transfer failed",
-				"Call: Inner Contract: inner transfer failed",
+				"Call: Inner Contract: uint128: overflow",
 				"Call: Inner Call: invalid value",
 				"Call: Inner Call: invalid value",
 				"Call: BigNumber Error: new BigNumber() not a number: undefined",
