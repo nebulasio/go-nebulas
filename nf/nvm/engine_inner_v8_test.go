@@ -252,6 +252,7 @@ type call struct {
 	exceptArgs []string //[congractA,B,C, AccountA, B]
 }
 
+//block->a empty coinbase c . block->b deploy and accout is a and coinbase is c . block->c run js
 func TestInnerTransactions(t *testing.T) {
 	core.NebCompatibility = core.NewCompatibilityLocal()
 	tests := []struct {
@@ -467,6 +468,252 @@ func TestInnerTransactions(t *testing.T) {
 		// dUser, err := tail.GetAccount(d.Bytes())
 		// fmt.Printf("d:%v\n", dUser)
 		// assert.Equal(t, txEvent.Status, 1)
+	}
+}
+
+func TestInnerTransactionsInMulitithCoroutine(t *testing.T) {
+	core.NebCompatibility = core.NewCompatibilityLocal()
+	core.PackedParallelNum = 2
+	tests := []struct {
+		name       string
+		contracts  []contract
+		calls      []call
+		paralleNum uint32
+	}{
+		{
+			"deploy test_require_module.js",
+			[]contract{
+				contract{
+					"./test/test_inner_transaction.js",
+					"js",
+					"",
+				},
+				contract{
+					"./test/bank_vault_contract_second.js",
+					"js",
+					"",
+				},
+				contract{
+					"./test/bank_vault_contract.js",
+					"js",
+					"",
+				},
+			},
+			[]call{
+				call{
+					"save",
+					"[1]",
+					[]string{"1", "3", "2", "4999999999999833224999994", "5000004280820166775000000"},
+				},
+			},
+			4,
+		},
+	}
+	tt := tests[0]
+	for _, call := range tt.calls {
+
+		neb := mockNeb(t)
+		tail := neb.chain.TailBlock()
+		manager, err := account.NewManager(neb)
+		assert.Nil(t, err)
+
+		a, _ := core.AddressParse("n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE")
+		assert.Nil(t, manager.Unlock(a, []byte("passphrase"), keystore.YearUnlockDuration))
+		b, _ := core.AddressParse("n1GmkKH6nBMw4rrjt16RrJ9WcgvKUtAZP1s")
+		assert.Nil(t, manager.Unlock(b, []byte("passphrase"), keystore.YearUnlockDuration))
+		c, _ := core.AddressParse("n1H4MYms9F55ehcvygwWE71J8tJC4CRr2so")
+		assert.Nil(t, manager.Unlock(c, []byte("passphrase"), keystore.YearUnlockDuration))
+		d, _ := core.AddressParse("n1JAy4X6KKLCNiTd7MWMRsVBjgdVq5WCCpf")
+		assert.Nil(t, manager.Unlock(d, []byte("passphrase"), keystore.YearUnlockDuration))
+
+		elapsedSecond := dpos.BlockIntervalInMs / dpos.SecondInMs
+		consensusState, err := tail.WorldState().NextConsensusState(elapsedSecond)
+		assert.Nil(t, err)
+		// mock empty block(height=2)
+		block, err := core.MockBlockEx(neb.chain.ChainID(), c, tail, 2)
+		fmt.Printf("mock 2, block.height:%v\n", block.Height())
+		assert.Nil(t, err)
+		/* ----- mock random seed for new block ------*/
+		miner, err := core.AddressParseFromBytes(consensusState.Proposer())
+		assert.Nil(t, err)
+		seed, proof, err := manager.GenerateRandomSeed(miner, neb.chain.GenesisBlock().Hash(), neb.chain.GenesisBlock().Hash()) // NOTE: 3rd arg is genesis's hash for the first block
+		assert.Nil(t, err)
+		block.SetRandomSeed(seed, proof)
+		/* ----- mock random seed for new block END ------*/
+		block.WorldState().SetConsensusState(consensusState)
+		block.SetTimestamp(consensusState.TimeStamp())
+		block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+		assert.Nil(t, block.Seal())
+		assert.Nil(t, manager.SignBlock(b, block))
+		assert.Nil(t, neb.chain.BlockPool().Push(block))
+		fmt.Printf("mock 2, block.tailblock.height: %v\n", neb.chain.TailBlock().Height())
+
+		// inner call block(height=3)
+		tail = neb.chain.TailBlock()
+		block, err = core.MockBlockEx(neb.chain.ChainID(), c, tail, 3)
+		assert.Nil(t, err)
+		consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
+		assert.Nil(t, err)
+		/* ----- mock random seed for new block ------*/
+		miner, err = core.AddressParseFromBytes(consensusState.Proposer())
+		assert.Nil(t, err)
+		seed, proof, err = manager.GenerateRandomSeed(miner, neb.chain.GenesisBlock().Hash(), seed) // NOTE: 3rd arg is parent's seed
+		assert.Nil(t, err)
+		block.SetRandomSeed(seed, proof)
+		/* ----- mock random seed for new block END ------*/
+		block.WorldState().SetConsensusState(consensusState)
+		block.SetTimestamp(consensusState.TimeStamp())
+
+		// contractsAddr := [][]string{}
+		var contractsAddr [][]string
+		// var nonce uint64
+		nonce := uint64(0)
+		// t.Run(tt.name, func(t *testing.T) {
+		for i := uint32(0); i < tt.paralleNum; i++ {
+			// contractsAddr[i] = []
+			var tmp []string
+			for _, v := range tt.contracts {
+				data, err := ioutil.ReadFile(v.contractPath)
+				assert.Nil(t, err, "contract path read error")
+				source := string(data)
+				sourceType := "js"
+				argsDeploy := ""
+				deploy, _ := core.NewDeployPayload(source, sourceType, argsDeploy)
+				payloadDeploy, _ := deploy.ToBytes()
+
+				value, _ := util.NewUint128FromInt(0)
+				gasLimit, _ := util.NewUint128FromInt(200000)
+				// nonce := uint32(k+1)*（i+1） + 1
+				nonce++
+				txDeploy, err := core.NewTransaction(neb.chain.ChainID(), a, a, value, nonce, core.TxPayloadDeployType, payloadDeploy, core.TransactionGasPrice, gasLimit)
+				assert.Nil(t, err)
+				assert.Nil(t, manager.SignTransaction(a, txDeploy))
+				assert.Nil(t, neb.chain.TransactionPool().Push(txDeploy))
+
+				contractAddr, err := txDeploy.GenerateContractAddress()
+				assert.Nil(t, err)
+				fmt.Printf("index;%v", i)
+				// if contractsAddr[i] = nil {
+				// 	contractsAddr[i] = ""
+				// }
+				// contractsAddr[i] = append(contractsAddr[i], contractAddr.String())
+				tmp = append(tmp, contractAddr.String())
+				// contractsAddr[i]
+			}
+			contractsAddr = append(contractsAddr, tmp)
+		}
+		// })
+
+		block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+		assert.Nil(t, block.Seal())
+		assert.Nil(t, manager.SignBlock(c, block))
+		assert.Nil(t, neb.chain.BlockPool().Push(block))
+
+		for i := uint32(0); i < tt.paralleNum; i++ {
+			for _, v := range contractsAddr[i] {
+				contract, err := core.AddressParse(v)
+				assert.Nil(t, err)
+				_, err = neb.chain.TailBlock().CheckContract(contract)
+				assert.Nil(t, err)
+			}
+		}
+
+		elapsedSecond = dpos.BlockIntervalInMs / dpos.SecondInMs
+		tail = neb.chain.TailBlock()
+		consensusState, err = tail.WorldState().NextConsensusState(elapsedSecond)
+		assert.Nil(t, err)
+		block, err = core.NewBlock(neb.chain.ChainID(), c, tail)
+		assert.Nil(t, err)
+		/* ----- mock random seed for new block ------*/
+		miner, err = core.AddressParseFromBytes(consensusState.Proposer())
+		assert.Nil(t, err)
+		seed, proof, err = manager.GenerateRandomSeed(miner, neb.chain.GenesisBlock().Hash(), seed) // NOTE: 3rd arg is parent's seed
+		assert.Nil(t, err)
+		block.SetRandomSeed(seed, proof)
+		/* ----- mock random seed for new block END ------*/
+		block.WorldState().SetConsensusState(consensusState)
+		block.SetTimestamp(consensusState.TimeStamp())
+		//accountA, err := tail.GetAccount(a.Bytes())
+		//accountB, err := tail.GetAccount(b.Bytes())
+		assert.Nil(t, err)
+		txCalls := []*core.Transaction{}
+		for i := uint32(0); i < tt.paralleNum; i++ {
+			calleeContract := contractsAddr[i][1]
+			callToContract := contractsAddr[i][2]
+			callPayload, _ := core.NewCallPayload(call.function, fmt.Sprintf("[\"%s\", \"%s\", 1]", calleeContract, callToContract))
+			payloadCall, _ := callPayload.ToBytes()
+			value, _ := util.NewUint128FromInt(6)
+			gasLimit, _ := util.NewUint128FromInt(200000)
+
+			proxyContractAddress, err := core.AddressParse(contractsAddr[i][0])
+			nonce++
+			txCall, err := core.NewTransaction(neb.chain.ChainID(), a, proxyContractAddress, value,
+				nonce, core.TxPayloadCallType, payloadCall, core.TransactionGasPrice, gasLimit)
+			assert.Nil(t, err)
+			assert.Nil(t, manager.SignTransaction(a, txCall))
+			assert.Nil(t, neb.chain.TransactionPool().Push(txCall))
+			// fmt.Printf("++tx:%v\n", txCall.JSONString())
+			txCalls = append(txCalls, txCall)
+			// txCalls[i] = txCall
+		}
+
+		block.CollectTransactions((time.Now().Unix() + 1) * dpos.SecondInMs)
+		assert.Nil(t, block.Seal())
+		assert.Nil(t, manager.SignBlock(d, block))
+		assert.Nil(t, neb.chain.BlockPool().Push(block))
+
+		// check
+		tail = neb.chain.TailBlock()
+		// event, err := tail.FetchExecutionResultEvent(txCall.Hash())
+		// assert.Nil(t, err)
+		// txEvent := core.TransactionEvent{}
+		// err = json.Unmarshal([]byte(event.Data), &txEvent)
+		// assert.Nil(t, err)
+		// // if txEvent.Status != 1 {
+		// // 	fmt.Println(txEvent)
+		// // }
+		// fmt.Println("=====================", txEvent)
+		for i := uint32(0); i < tt.paralleNum; i++ {
+			fmt.Printf("xxxxxxxxxxxx i:%v", i)
+			events, err := tail.FetchEvents(txCalls[i].Hash())
+			assert.Nil(t, err)
+			for _, event := range events {
+
+				fmt.Println("==============", event.Data)
+			}
+			contractAddrA, err := core.AddressParse(contractsAddr[i][0])
+			accountAAcc, err := tail.GetAccount(contractAddrA.Bytes())
+			assert.Nil(t, err)
+			fmt.Printf("account :%v\n", accountAAcc)
+			assert.Equal(t, call.exceptArgs[0], accountAAcc.Balance().String())
+
+			contractAddrB, err := core.AddressParse(contractsAddr[i][1])
+			accountBAcc, err := tail.GetAccount(contractAddrB.Bytes())
+			assert.Nil(t, err)
+			fmt.Printf("accountB :%v\n", accountBAcc)
+			assert.Equal(t, call.exceptArgs[1], accountBAcc.Balance().String())
+
+			contractAddrC, err := core.AddressParse(contractsAddr[i][2])
+			accountAccC, err := tail.GetAccount(contractAddrC.Bytes())
+			assert.Nil(t, err)
+			fmt.Printf("accountC :%v\n", accountAccC)
+			assert.Equal(t, call.exceptArgs[2], accountAccC.Balance().String())
+
+			aUser, err := tail.GetAccount(a.Bytes())
+			// assert.Equal(t, call.exceptArgs[3], aUser.Balance().String())
+			fmt.Printf("aI:%v\n", aUser)
+			cUser, err := tail.GetAccount(c.Bytes())
+			fmt.Printf("b:%v\n", cUser)
+			// assert.Equal(t, call.exceptArgs[4], cUser.Balance().String())
+
+			// cUser, err := tail.GetAccount(c.Bytes())
+			// fmt.Printf("c:%v\n", cUser)
+
+			// dUser, err := tail.GetAccount(d.Bytes())
+			// fmt.Printf("d:%v\n", dUser)
+			// assert.Equal(t, txEvent.Status, 1)
+		}
+
 	}
 }
 
