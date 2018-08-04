@@ -20,6 +20,7 @@ package dpos
 
 import (
 	"errors"
+	"os"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/rpc"
@@ -346,8 +347,38 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	if elapsedSecondInMs <= 0 || (elapsedSecondInMs%BlockIntervalInMs) != 0 {
 		return ErrInvalidBlockInterval
 	}
-	// check proposer
-	miners, err := tail.WorldState().Dynasty()
+
+	var (
+		miners []byteutils.Hash
+		err    error
+	)
+	if dpos.reachCriticalHeightOfDynastySwitch(tail.Height()) {
+		ela := block.Timestamp() - tail.Timestamp()
+		if ela <= 0 {
+			logging.VLog().WithFields(logrus.Fields{
+				"tailHeight":     tail.Height(),
+				"tailTimestamp":  tail.Timestamp(),
+				"tailHash":       tail.Hash().String(),
+				"blockHeight":    block.Height(),
+				"blockTimestamp": block.Timestamp(),
+				"blockHash":      block.Hash().String(),
+			}).Error("Block of being verified isn't newer than tail.")
+			return ErrInvalidBlockTimestamp
+		}
+		cs, err := tail.WorldState().NextConsensusState(ela)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err":            err,
+				"tail":           tail,
+				"elapasedSecond": ela,
+			}).Error("Failed to generate next consensus state.")
+			return err
+		}
+		miners, err = cs.Dynasty()
+	} else {
+		// check proposer
+		miners, err = tail.WorldState().Dynasty()
+	}
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   err,
@@ -632,6 +663,14 @@ func (dpos *Dpos) mintBlock(now int64) error {
 
 	tail := dpos.chain.TailBlock()
 
+	if dpos.reachCriticalHeightOfDynastySwitch(tail.Height()) {
+		logging.VLog().WithFields(logrus.Fields{
+			"tail":  tail,
+			"miner": dpos.miner,
+		}).Info("Shut down for dynasty switch during minting.")
+		os.Exit(0)
+	}
+
 	deadlineInMs, err := dpos.checkDeadline(tail, nowInMs)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -732,4 +771,12 @@ func (dpos *Dpos) findProposer(now int64) (proposer byteutils.Hash, err error) {
 // NumberOfBlocksInDynasty number of blocks in one dynasty
 func (dpos *Dpos) NumberOfBlocksInDynasty() uint64 {
 	return uint64(DynastyIntervalInMs) / uint64(BlockIntervalInMs)
+}
+
+func (dpos *Dpos) reachCriticalHeightOfDynastySwitch(height uint64) bool {
+	if core.DynastyConf != nil {
+		core.InitDynastyFromConf(dpos.chain)
+		return height == core.DynastyConf.Candidate[0].Serial*dpos.NumberOfBlocksInDynasty()+1
+	}
+	return false
 }

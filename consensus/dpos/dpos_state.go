@@ -256,7 +256,7 @@ func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldS
 		return nil, ErrNotBlockForgTime
 	}
 
-	dynastyTrie, err := ds.switchDynasty()
+	dynastyTrie, err := ds.switchDynastyForNextState()
 	if err != nil {
 		return nil, err
 	}
@@ -281,24 +281,21 @@ func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldS
 	return consensusState, nil
 }
 
-func (ds *State) switchDynasty() (*trie.Trie, error) {
+func (ds *State) switchDynastyForNextState() (*trie.Trie, error) {
 	tailDynasty := ds.dynastyTrie
 	tailHeight := ds.chain.TailBlock().Height()
-	if core.DynastyConf != nil {
-		core.InitDynastyFromConf(ds.chain)
-		if tailHeight >= core.DynastyConf.Candidate[0].Serial*ds.consensus.NumberOfBlocksInDynasty()+1 {
-			if !byteutils.Equal(tailDynasty.RootHash(), core.DynastyTrie.RootHash()) {
-				dynastyTrie, err := core.DynastyTrie.Clone()
-				if err != nil {
-					return nil, err
-				}
-				logging.VLog().WithFields(logrus.Fields{
-					"chainId":    core.DynastyConf.Meta.ChainId,
-					"tailHeight": tailHeight,
-				}).Debug("Switch dynasty done.")
-				return dynastyTrie, nil
-			}
+
+	dpos, _ := ds.consensus.(*Dpos)
+	if dpos.reachCriticalHeightOfDynastySwitch(tailHeight) {
+		dynastyTrie, err := core.DynastyTrie.Clone()
+		if err != nil {
+			return nil, err
 		}
+		logging.VLog().WithFields(logrus.Fields{
+			"chainId":    core.DynastyConf.Meta.ChainId,
+			"tailHeight": tailHeight,
+		}).Debug("Switch dynasty done.")
+		return dynastyTrie, nil
 	}
 	dynastyTrie, err := tailDynasty.Clone()
 	if err != nil {
