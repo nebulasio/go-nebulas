@@ -95,6 +95,10 @@ func New(config *nebletpb.Config) (*Neblet, error) {
 		return nil, err
 	}
 
+	if config.Chain.Dynasty != "" {
+		core.LoadDynastyConf(config.Chain.Dynasty, n.genesis)
+	}
+
 	am, err := account.NewManager(n)
 	if err != nil {
 		return nil, err
