@@ -60,11 +60,6 @@ func LoadGenesisConf(filePath string) (*corepb.Genesis, error) {
 		return nil, err
 	}
 
-	// only for mainnet
-	if genesis.Meta.ChainId == 1 {
-		loadDynastyConf(filePath, genesis)
-	}
-
 	return genesis, nil
 }
 

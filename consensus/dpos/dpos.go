@@ -352,33 +352,17 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 		miners []byteutils.Hash
 		err    error
 	)
-	if dpos.reachCriticalHeightOfDynastySwitch(tail.Height()) {
-		ela := block.Timestamp() - tail.Timestamp()
-		if ela <= 0 {
-			logging.VLog().WithFields(logrus.Fields{
-				"tailHeight":     tail.Height(),
-				"tailTimestamp":  tail.Timestamp(),
-				"tailHash":       tail.Hash().String(),
-				"blockHeight":    block.Height(),
-				"blockTimestamp": block.Timestamp(),
-				"blockHash":      block.Hash().String(),
-			}).Error("Block of being verified isn't newer than tail.")
-			return ErrInvalidBlockTimestamp
-		}
-		cs, err := tail.WorldState().NextConsensusState(ela)
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"err":            err,
-				"tail":           tail,
-				"elapasedSecond": ela,
-			}).Error("Failed to generate next consensus state.")
-			return err
-		}
-		miners, err = cs.Dynasty()
-	} else {
-		// check proposer
-		miners, err = tail.WorldState().Dynasty()
+
+	cs, err := tail.WorldState().NextConsensusState(block.Timestamp() - tail.Timestamp())
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err":   err,
+			"tail":  tail,
+			"block": block,
+		}).Error("Failed to generate next consensus state.")
+		return err
 	}
+	miners, err = cs.Dynasty()
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   err,

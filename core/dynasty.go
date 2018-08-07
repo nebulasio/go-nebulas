@@ -20,8 +20,6 @@ package core
 
 import (
 	"io/ioutil"
-	"os"
-	"path"
 	"sync"
 
 	"github.com/gogo/protobuf/proto"
@@ -34,49 +32,49 @@ import (
 var (
 	// DynastyConf define dynasty addresses
 	DynastyConf *corepb.Dynasty
+	// DynastyTrie ..
 	DynastyTrie *trie.Trie
 	once        sync.Once
 )
 
-func loadDynastyConf(genesisConfPath string, genesis *corepb.Genesis) {
-	dir := path.Dir(genesisConfPath)
-	fp := path.Join(dir, "dynasty.conf")
-	b, err := ioutil.ReadFile(fp)
-	if os.IsNotExist(err) {
-		logging.VLog().WithFields(logrus.Fields{
-			"filepath": fp,
+// LoadDynastyConf ..
+func LoadDynastyConf(filePath string, genesis *corepb.Genesis) {
+	b, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err":      err,
+			"filePath": filePath,
 		}).Fatal("File doesn't exist.")
-		return
 	}
+	content := string(b)
 
 	DynastyConf = new(corepb.Dynasty)
-	if err = proto.Unmarshal(b, DynastyConf); err != nil {
-		logging.VLog().WithFields(logrus.Fields{
+	if err = proto.UnmarshalText(content, DynastyConf); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
 			"err":      err,
-			"filepath": fp,
-		}).Fatal("Failed to parse dynasty file.")
+			"filePath": filePath,
+		}).Fatal("Failed to parse dynasty.conf.")
 	}
 
-	// only 1 candidate allowed
-	if genesis.Meta.ChainId != genesis.Meta.ChainId || len(DynastyConf.Candidate) != 1 {
-		logging.VLog().WithFields(logrus.Fields{
+	if DynastyConf.Meta.ChainId != genesis.Meta.ChainId || len(DynastyConf.Candidate) != 1 {
+		logging.CLog().WithFields(logrus.Fields{
 			"GenesisChainId":      genesis.Meta.ChainId,
 			"DynastyChainId":      DynastyConf.Meta.ChainId,
 			"DynastyCandidateLen": len(DynastyConf.Candidate),
-		}).Fatal("Dynasty conf is invalid.")
+		}).Fatal("ChainId in dynasty.conf differs from that in genesis.conf.")
 	}
 
 	if len(DynastyConf.Candidate[0].Dynasty) != len(genesis.Consensus.Dpos.Dynasty) {
-		logging.VLog().WithFields(logrus.Fields{
+		logging.CLog().WithFields(logrus.Fields{
 			"DynastySize": len(DynastyConf.Candidate[0].Dynasty),
-		}).Fatal("Dynasty conf is invalid.")
+		}).Fatal("Miners count in dynasty.conf differs from that in genesis.conf.")
 	}
 }
 
 // InitDynastyFromConf ...
 func InitDynastyFromConf(chain *BlockChain) {
 	once.Do(func() {
-		DynastyTrie, err := trie.NewTrie(nil, chain.Storage(), false)
+		d, err := trie.NewTrie(nil, chain.Storage(), false)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
@@ -86,24 +84,25 @@ func InitDynastyFromConf(chain *BlockChain) {
 		candidate := DynastyConf.Candidate[0]
 		for i := 0; i < len(candidate.Dynasty); i++ {
 			addr := candidate.Dynasty[i]
-			member, err := AddressParse(addr)
+			miner, err := AddressParse(addr)
 			if err != nil {
 				logging.VLog().WithFields(logrus.Fields{
 					"err": err,
 				}).Fatal("Failed to parse address.")
 			}
-			v := member.Bytes()
-			if _, err = DynastyTrie.Put(v, v); err != nil {
+			v := miner.Bytes()
+			if _, err = d.Put(v, v); err != nil {
 				logging.VLog().WithFields(logrus.Fields{
 					"err": err,
 				}).Fatal("Failed to put value.")
 			}
 		}
 
+		DynastyTrie = d
+
 		logging.VLog().WithFields(logrus.Fields{
 			"chainId": DynastyConf.Meta.ChainId,
 			"serial":  DynastyConf.Candidate[0].Serial,
-		}).Debug("Init dynasty from conf done.")
+		}).Debug("Init dynasty.conf done.")
 	})
-
 }

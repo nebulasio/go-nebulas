@@ -87,6 +87,8 @@ message ChainConfig {
     bool super_node = 30;
 
     string unsupported_keyword = 31;
+
+    string dynasty = 32;
 }
 
 message RPCConfig {
