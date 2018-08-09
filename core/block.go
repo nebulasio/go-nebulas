@@ -538,7 +538,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 			fromBlacklist.Store(tx.to.address.Hex(), true)
 			toBlacklist.Store(tx.from.address.Hex(), true)
 			toBlacklist.Store(tx.to.address.Hex(), true)
-			<-mergeCh // lock
+			<-mergeCh // unlock
 
 			parallelCh <- true // fetch access token
 			go func() {
