@@ -20,7 +20,6 @@ package dpos
 
 import (
 	"errors"
-	"os"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/rpc"
@@ -646,14 +645,6 @@ func (dpos *Dpos) mintBlock(now int64) error {
 	}
 
 	tail := dpos.chain.TailBlock()
-
-	if dpos.reachCriticalHeightOfDynastySwitch(tail.Height()) {
-		logging.VLog().WithFields(logrus.Fields{
-			"tail":  tail,
-			"miner": dpos.miner,
-		}).Info("Shut down for dynasty switch during minting.")
-		os.Exit(0)
-	}
 
 	deadlineInMs, err := dpos.checkDeadline(tail, nowInMs)
 	if err != nil {
