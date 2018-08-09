@@ -271,25 +271,6 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 				keyword = strings.ToLower(keyword)
 				if strings.Contains(data, keyword) {
 					logging.VLog().WithFields(logrus.Fields{
-						"tx.hash":            tx.hash,
-						"unsupportedKeyword": keyword,
-					}).Debug("transaction data has unsupported keyword")
-					unsupportedKeywordError := fmt.Sprintf("transaction data has unsupported keyword(keyword: %s)", keyword)
-					return errors.New(unsupportedKeywordError)
-				}
-			}
-		}
-	}
-
-	//if is super node and tx type is deploy, do unsupported keyword checking.
-	if pool.bc.superNode == true && len(pool.bc.unsupportedKeyword) > 0 && len(tx.Data()) > 0 {
-		if tx.Type() == TxPayloadDeployType {
-			data := string(tx.Data())
-			keywords := strings.Split(pool.bc.unsupportedKeyword, ",")
-			for _, keyword := range keywords {
-				keyword = strings.ToLower(keyword)
-				if strings.Contains(data, keyword) {
-					logging.VLog().WithFields(logrus.Fields{
 						"tx":                 tx,
 						"unsupportedKeyword": keyword,
 					}).Debug("transaction data has unsupported keyword")
