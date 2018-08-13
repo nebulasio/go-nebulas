@@ -646,14 +646,6 @@ func (dpos *Dpos) mintBlock(now int64) error {
 
 	tail := dpos.chain.TailBlock()
 
-	if dpos.reachCriticalHeightOfDynastySwitch(tail.Height()) {
-		logging.VLog().WithFields(logrus.Fields{
-			"tail":  tail,
-			"miner": dpos.miner,
-		}).Debug("Stop minting for dynasty switch.")
-		return nil
-	}
-
 	deadlineInMs, err := dpos.checkDeadline(tail, nowInMs)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
