@@ -147,6 +147,7 @@ func (dpos *Dpos) GenesisConsensusState(chain *core.BlockChain, conf *corepb.Gen
 			return nil, err
 		}
 	}
+	core.GenesisDynastyTrie = dynastyTrie
 	return &State{
 		timestamp: core.GenesisTimestamp,
 		proposer:  nil,
@@ -256,7 +257,13 @@ func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldS
 		return nil, ErrNotBlockForgTime
 	}
 
-	dynastyTrie, err := ds.switchDynastyForNextState()
+	dpos, ok := ds.consensus.(*Dpos)
+	if !ok {
+		logging.VLog().WithFields(logrus.Fields{
+			"timestamp": ds.timestamp,
+		}).Fatal("Type conversion failed, unexpected error.")
+	}
+	dynastyTrie, err := dpos.getNextDynastyTrieOfState(ds)
 	if err != nil {
 		return nil, err
 	}
@@ -279,29 +286,6 @@ func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldS
 		return nil, err
 	}
 	return consensusState, nil
-}
-
-func (ds *State) switchDynastyForNextState() (*trie.Trie, error) {
-	tailDynasty := ds.dynastyTrie
-	tailHeight := ds.chain.TailBlock().Height()
-
-	dpos, _ := ds.consensus.(*Dpos)
-	if dpos.reachCriticalHeightOfDynastySwitch(tailHeight) {
-		dynastyTrie, err := core.DynastyTrie.Clone()
-		if err != nil {
-			return nil, err
-		}
-		logging.VLog().WithFields(logrus.Fields{
-			"chainId":    core.DynastyConf.Meta.ChainId,
-			"tailHeight": tailHeight,
-		}).Debug("Switch dynasty done.")
-		return dynastyTrie, nil
-	}
-	dynastyTrie, err := tailDynasty.Clone()
-	if err != nil {
-		return nil, err
-	}
-	return dynastyTrie, nil
 }
 
 // TraverseDynasty return all members in the dynasty
