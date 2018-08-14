@@ -34,7 +34,13 @@ var (
 	DynastyConf *corepb.Dynasty
 	// DynastyTrie ..
 	DynastyTrie *trie.Trie
-	once        sync.Once
+	// GenesisDynastyTrie dynastyTrie of genesis block
+	GenesisDynastyTrie *trie.Trie
+	// GenesisRealTimestamp ..
+	GenesisRealTimestamp int64
+	// InitialDynastyKeepTime ..
+	InitialDynastyKeepTime int64
+	once                   sync.Once
 )
 
 // LoadDynastyConf ..
@@ -71,8 +77,8 @@ func LoadDynastyConf(filePath string, genesis *corepb.Genesis) {
 	}
 }
 
-// InitDynastyFromConf ...
-func InitDynastyFromConf(chain *BlockChain) {
+// InitDynastyFromConf Fatal when initialization failed
+func InitDynastyFromConf(chain *BlockChain, BlockIntervalInSecond, DynastyIntervalInSecond int64) {
 	once.Do(func() {
 		d, err := trie.NewTrie(nil, chain.Storage(), false)
 		if err != nil {
@@ -100,9 +106,24 @@ func InitDynastyFromConf(chain *BlockChain) {
 
 		DynastyTrie = d
 
+		InitialDynastyKeepTime = int64(candidate.Serial) * DynastyIntervalInSecond
+
 		logging.VLog().WithFields(logrus.Fields{
-			"chainId": DynastyConf.Meta.ChainId,
-			"serial":  DynastyConf.Candidate[0].Serial,
+			"chainId":                DynastyConf.Meta.ChainId,
+			"serial":                 DynastyConf.Candidate[0].Serial,
+			"InitialDynastyKeepTime": InitialDynastyKeepTime,
 		}).Debug("Init dynasty.conf done.")
 	})
+
+	if GenesisRealTimestamp == 0 {
+		b := chain.GetBlockOnCanonicalChainByHeight(2)
+		if b == nil {
+			logging.VLog().Debug("Nil block found at height 2.")
+			return
+		}
+		GenesisRealTimestamp = b.Timestamp() - BlockIntervalInSecond
+		logging.VLog().WithFields(logrus.Fields{
+			"GenesisRealTimestamp": GenesisRealTimestamp,
+		}).Debug("Init GenesisRealTimestamp.")
+	}
 }

@@ -22,6 +22,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/common/trie"
+
 	"github.com/nebulasio/go-nebulas/rpc"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"golang.org/x/net/context"
@@ -352,16 +354,16 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 		err    error
 	)
 
-	cs, err := tail.WorldState().NextConsensusState(block.Timestamp() - tail.Timestamp())
+	cs, err := dpos.getDynastyTrieAtTimestamp(block.Timestamp())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   err,
 			"tail":  tail,
 			"block": block,
-		}).Error("Failed to generate next consensus state.")
+		}).Error("Failed to retrieve dynasty trie.")
 		return err
 	}
-	miners, err = cs.Dynasty()
+	miners, err = TraverseDynasty(cs)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   err,
@@ -646,12 +648,15 @@ func (dpos *Dpos) mintBlock(now int64) error {
 
 	tail := dpos.chain.TailBlock()
 
-	if dpos.reachCriticalHeightOfDynastySwitch(tail.Height()) {
-		logging.VLog().WithFields(logrus.Fields{
-			"tail":  tail,
-			"miner": dpos.miner,
-		}).Debug("Stop minting for dynasty switch.")
-		return nil
+	if core.DynastyConf != nil {
+		core.InitDynastyFromConf(dpos.chain, BlockIntervalInMs/SecondInMs, DynastyIntervalInMs/SecondInMs)
+		if (tail.Timestamp() - core.GenesisRealTimestamp) >= core.InitialDynastyKeepTime {
+			logging.VLog().WithFields(logrus.Fields{
+				"tail":  tail,
+				"miner": dpos.miner,
+			}).Debug("Stop minting for dynasty switch.")
+			return nil
+		}
 	}
 
 	deadlineInMs, err := dpos.checkDeadline(tail, nowInMs)
@@ -756,10 +761,49 @@ func (dpos *Dpos) NumberOfBlocksInDynasty() uint64 {
 	return uint64(DynastyIntervalInMs) / uint64(BlockIntervalInMs)
 }
 
-func (dpos *Dpos) reachCriticalHeightOfDynastySwitch(height uint64) bool {
+func (dpos *Dpos) getNextDynastyTrieOfState(ds *State) (*trie.Trie, error) {
+	var (
+		dt  *trie.Trie
+		err error
+	)
+	dt = core.GenesisDynastyTrie
 	if core.DynastyConf != nil {
-		core.InitDynastyFromConf(dpos.chain)
-		return height == core.DynastyConf.Candidate[0].Serial*dpos.NumberOfBlocksInDynasty()+1
+		core.InitDynastyFromConf(dpos.chain, BlockIntervalInMs/SecondInMs, DynastyIntervalInMs/SecondInMs)
+		if (ds.timestamp - core.GenesisRealTimestamp) >= core.InitialDynastyKeepTime {
+			dt = core.DynastyTrie
+			logging.VLog().WithFields(logrus.Fields{
+				"chainId":               core.DynastyConf.Meta.ChainId,
+				"currentStateTimestamp": ds.timestamp,
+			}).Debug("Select next dynasty by current state.")
+		}
 	}
-	return false
+
+	dynastyTrie, err := dt.Clone()
+	if err != nil {
+		return nil, err
+	}
+	return dynastyTrie, nil
+}
+
+func (dpos *Dpos) getDynastyTrieAtTimestamp(ts int64) (*trie.Trie, error) {
+	var (
+		dt  *trie.Trie
+		err error
+	)
+	dt = core.GenesisDynastyTrie
+	if core.DynastyConf != nil {
+		core.InitDynastyFromConf(dpos.chain, BlockIntervalInMs/SecondInMs, DynastyIntervalInMs/SecondInMs)
+		if (ts - core.GenesisRealTimestamp) > core.InitialDynastyKeepTime {
+			dt = core.DynastyTrie
+			logging.VLog().WithFields(logrus.Fields{
+				"chainId":   core.DynastyConf.Meta.ChainId,
+				"timestamp": ts,
+			}).Debug("Select dynasty by timestamp.")
+		}
+	}
+	dynastyTrie, err := dt.Clone()
+	if err != nil {
+		return nil, err
+	}
+	return dynastyTrie, nil
 }
