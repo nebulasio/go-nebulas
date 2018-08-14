@@ -650,7 +650,7 @@ func (dpos *Dpos) mintBlock(now int64) error {
 
 	if core.DynastyConf != nil {
 		core.InitDynastyFromConf(dpos.chain, BlockIntervalInMs/SecondInMs, DynastyIntervalInMs/SecondInMs)
-		if (tail.Timestamp() - core.GenesisRealTimestamp) >= core.InitialDynastyKeepTime {
+		if core.GenesisRealTimestamp > 0 && (tail.Timestamp()-core.GenesisRealTimestamp) >= core.InitialDynastyKeepTime {
 			logging.VLog().WithFields(logrus.Fields{
 				"tail":  tail,
 				"miner": dpos.miner,
@@ -769,7 +769,7 @@ func (dpos *Dpos) getNextDynastyTrieOfState(ds *State) (*trie.Trie, error) {
 	dt = core.GenesisDynastyTrie
 	if core.DynastyConf != nil {
 		core.InitDynastyFromConf(dpos.chain, BlockIntervalInMs/SecondInMs, DynastyIntervalInMs/SecondInMs)
-		if (ds.timestamp - core.GenesisRealTimestamp) >= core.InitialDynastyKeepTime {
+		if core.GenesisRealTimestamp > 0 && (ds.timestamp-core.GenesisRealTimestamp) >= core.InitialDynastyKeepTime {
 			dt = core.DynastyTrie
 			logging.VLog().WithFields(logrus.Fields{
 				"chainId":               core.DynastyConf.Meta.ChainId,
@@ -793,7 +793,7 @@ func (dpos *Dpos) getDynastyTrieAtTimestamp(ts int64) (*trie.Trie, error) {
 	dt = core.GenesisDynastyTrie
 	if core.DynastyConf != nil {
 		core.InitDynastyFromConf(dpos.chain, BlockIntervalInMs/SecondInMs, DynastyIntervalInMs/SecondInMs)
-		if (ts - core.GenesisRealTimestamp) > core.InitialDynastyKeepTime {
+		if core.GenesisRealTimestamp > 0 && (ts-core.GenesisRealTimestamp) > core.InitialDynastyKeepTime {
 			dt = core.DynastyTrie
 			logging.VLog().WithFields(logrus.Fields{
 				"chainId":   core.DynastyConf.Meta.ChainId,
