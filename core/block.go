@@ -27,6 +27,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
+	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -1291,6 +1292,32 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 	if err := block.WorldState().LoadConsensusRoot(block.ConsensusRoot()); err != nil {
 		return nil, err
 	}
+
+	if GenesisDynastyTrie == nil && hash.Equals(GenesisHash) {
+		miners, err := block.WorldState().Dynasty()
+		if err != nil {
+			return nil, err
+		}
+		dynastyTrie, err := trie.NewTrie(nil, chain.Storage(), false)
+		if err != nil {
+			return nil, err
+		}
+		for _, miner := range miners {
+			addr, err := AddressParseFromBytes(miner)
+			if err != nil {
+				return nil, err
+			}
+			v := addr.Bytes()
+			if _, err = dynastyTrie.Put(v, v); err != nil {
+				return nil, err
+			}
+		}
+		logging.VLog().WithFields(logrus.Fields{
+			"miners": miners,
+		}).Debug("Load genesis block from storage.")
+		GenesisDynastyTrie = dynastyTrie
+	}
+
 	block.sealed = true
 	block.txPool = chain.txPool
 	block.eventEmitter = chain.eventEmitter
