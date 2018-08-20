@@ -1158,48 +1158,48 @@ describe('contract call test', function () {
         prepareSource(done);
     });
 
-    var testCase = testCases[37];
-    it(testCase.name, function (done) {
-        prepareContractCall(testCase, function (err) {
-            if (err instanceof Error) {
-                done(err);
-            } else {
-                if (testCase.testInput.isCall) {
-                    testCall(testCase.testInput, testCase.testExpect, done);
-                } else if (testCase.testInput.isTransfer) {
-                    testTransfer(testCase.testInput, testCase.testExpect, done);
-                } else if (testCase.testInput.isApprove) {
-                    testApprove(testCase.testInput, testCase.testExpect, done);
-                } else if (testCase.testInput.isTransferFrom) {
-                    testTransferFrom(testCase.testInput, testCase.testExpect, done);
-                }
-            }
-        });
-    });
-    //
-    // for (var i = 0; i < testCases.length; i++) {
-    //
-    //     it(testCases[i].name, function (done) {
-    //         var testCase = testCases[caseIndex];
-    //         prepareContractCall(testCase, function (err) {
-    //             if (err instanceof Error) {
-    //                 done(err);
-    //             } else {
-    //                 if (testCase.testInput.isCall) {
-    //                     testCall(testCase.testInput, testCase.testExpect, done);
-    //                 } else if (testCase.testInput.isTransfer) {
-    //                     testTransfer(testCase.testInput, testCase.testExpect, done);
-    //                 } else if (testCase.testInput.isApprove) {
-    //                     testApprove(testCase.testInput, testCase.testExpect, done);
-    //                 } else if (testCase.testInput.isTransferFrom) {
-    //                     testTransferFrom(testCase.testInput, testCase.testExpect, done);
-    //                 }
+    // var testCase = testCases[37];
+    // it(testCase.name, function (done) {
+    //     prepareContractCall(testCase, function (err) {
+    //         if (err instanceof Error) {
+    //             done(err);
+    //         } else {
+    //             if (testCase.testInput.isCall) {
+    //                 testCall(testCase.testInput, testCase.testExpect, done);
+    //             } else if (testCase.testInput.isTransfer) {
+    //                 testTransfer(testCase.testInput, testCase.testExpect, done);
+    //             } else if (testCase.testInput.isApprove) {
+    //                 testApprove(testCase.testInput, testCase.testExpect, done);
+    //             } else if (testCase.testInput.isTransferFrom) {
+    //                 testTransferFrom(testCase.testInput, testCase.testExpect, done);
     //             }
-    //         });
+    //         }
     //     });
-    // }
-    //
-    // afterEach(function () {
-    //     caseIndex++;
     // });
+    
+    for (var i = 0; i < testCases.length; i++) {
+    
+        it(testCases[i].name, function (done) {
+            var testCase = testCases[caseIndex];
+            prepareContractCall(testCase, function (err) {
+                if (err instanceof Error) {
+                    done(err);
+                } else {
+                    if (testCase.testInput.isCall) {
+                        testCall(testCase.testInput, testCase.testExpect, done);
+                    } else if (testCase.testInput.isTransfer) {
+                        testTransfer(testCase.testInput, testCase.testExpect, done);
+                    } else if (testCase.testInput.isApprove) {
+                        testApprove(testCase.testInput, testCase.testExpect, done);
+                    } else if (testCase.testInput.isTransferFrom) {
+                        testTransferFrom(testCase.testInput, testCase.testExpect, done);
+                    }
+                }
+            });
+        });
+    }
+    
+    afterEach(function () {
+        caseIndex++;
+    });
 });
