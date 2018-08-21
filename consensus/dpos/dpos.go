@@ -648,17 +648,6 @@ func (dpos *Dpos) mintBlock(now int64) error {
 
 	tail := dpos.chain.TailBlock()
 
-	if core.DynastyConf != nil {
-		core.InitDynastyFromConf(dpos.chain, BlockIntervalInMs/SecondInMs, DynastyIntervalInMs/SecondInMs)
-		if core.GenesisRealTimestamp > 0 && (tail.Timestamp()-core.GenesisRealTimestamp) >= core.InitialDynastyKeepTime {
-			logging.VLog().WithFields(logrus.Fields{
-				"tail":  tail,
-				"miner": dpos.miner,
-			}).Debug("Stop minting for dynasty switch.")
-			return nil
-		}
-	}
-
 	deadlineInMs, err := dpos.checkDeadline(tail, nowInMs)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
