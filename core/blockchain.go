@@ -414,10 +414,6 @@ func (bc *BlockChain) SetTailBlock(newTail *Block) error {
 	}
 	bc.tailBlock = newTail
 
-	logging.CLog().WithFields(logrus.Fields{
-		"tail": newTail,
-	}).Info("Succeed to update new tail.")
-
 	metricsBlockHeightGauge.Update(int64(newTail.Height()))
 	metricsBlocktailHashGauge.Update(int64(byteutils.HashBytes(newTail.Hash())))
 

@@ -810,16 +810,7 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	random := ""
-	if block.height >= RandomAvailableHeight && block.header.random != nil {
-		if block.header.random.VrfSeed != nil {
-			random += "/vrf_seed/" + byteutils.Hex(block.header.random.VrfSeed)
-		}
-		if block.header.random.VrfProof != nil {
-			random += "/vrf_proof/" + byteutils.Hex(block.header.random.VrfProof)
-		}
-	}
-	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "acc_root": "%s", "timestamp": %d, "tx": %d, "miner": "%s", "random": "%s"}`,
+	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "acc_root": "%s", "timestamp": %d, "tx": %d, "miner": "%s"}`,
 		block.height,
 		block.header.hash,
 		block.header.parentHash,
@@ -827,7 +818,6 @@ func (block *Block) String() string {
 		block.header.timestamp,
 		len(block.transactions),
 		byteutils.Hash(block.header.consensusRoot.Proposer).Base58(),
-		random,
 	)
 }
 
