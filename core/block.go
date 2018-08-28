@@ -38,6 +38,7 @@ import (
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
+	"runtime"
 )
 
 var (
@@ -47,7 +48,7 @@ var (
 	// ParallelNum num
 	PackedParallelNum = 1
 
-	VerifyParallelNum = 1
+	VerifyParallelNum = runtime.NumCPU() * 2
 
 	// VerifyExecutionTimeout 0 means unlimited
 	VerifyExecutionTimeout = 0
