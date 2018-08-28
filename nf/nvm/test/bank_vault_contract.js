@@ -70,6 +70,9 @@ BankVaultContract.prototype = {
         }
         this.transferEvent(true, 0, 3);
 	},
+	saveValue: function(val) {
+		console.log("inner last saveValue:", val);
+    },
 	saveTimeOut: function(address, flag) {
         if (flag == 2) {
             while(1) {

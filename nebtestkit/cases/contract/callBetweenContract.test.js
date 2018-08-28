@@ -13,7 +13,7 @@ var Unit = Wallet.Unit;
 // mocha cases/contract/xxx testneb2 -t 2000000
 var args = process.argv.splice(2);
 var env = args[1];
-env = 'local';
+// env = 'local';
 var testNetConfig = new TestNetConfig(env);
 
 var neb = new Neb();
@@ -385,7 +385,7 @@ describe('test transfer from contract', function () {
         
         var testExpect = {
             txStatus: 0,
-            reward: "55214000000",
+            reward: "57214000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "Call: Inner Contract: inner transfer failed",
@@ -447,6 +447,27 @@ describe('test transfer from contract', function () {
         var testExpect = {
             txStatus: 0,
             reward: "5000000000000",
+            callerBalance: callerBalance.toString(),
+            calleeBalance: calleeBalance.toString(),
+            errInfo: "exceed memory limits", 
+        }
+
+        doTest(testInput, testExpect, done);
+    });
+
+    it ('12# callee contract out of nvm gas limit', function(done) {
+        var testInput = {
+            contract: {
+                "function": "testOom",
+                "args": "[\"" + calleeContractAddress + "\",\"msg4\", \"湖人总冠军\"]"
+            },
+            value: 2,
+            gasLimit: 5000000000,
+        };
+        
+        var testExpect = {
+            txStatus: 0,
+            reward: "10020163000000",
             callerBalance: callerBalance.toString(),
             calleeBalance: calleeBalance.toString(),
             errInfo: "exceed memory limits", 

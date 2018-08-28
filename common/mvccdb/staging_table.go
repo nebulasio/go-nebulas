@@ -149,6 +149,7 @@ func (tbl *StagingTable) GetByKey(key []byte, loadFromStorage bool) (*Versionize
 				}
 			} else {
 				value = NewDefaultVersionizedValueItem(key, nil, tbl.tid, 0)
+				return value, nil
 			}
 		}
 
@@ -173,6 +174,14 @@ func (tbl *StagingTable) Put(key []byte, val []byte) (*VersionizedValueItem, err
 
 	value.dirty = true
 	value.val = val
+	tbl.mutex.Lock()
+	keyStr := byteutils.Hex(key)
+	regetValue := tbl.versionizedValues[keyStr]
+	if regetValue == nil {
+		tbl.versionizedValues[keyStr] = value
+	}
+	tbl.mutex.Unlock()
+
 	return value, nil
 }
 
@@ -185,6 +194,13 @@ func (tbl *StagingTable) Del(key []byte) (*VersionizedValueItem, error) {
 
 	value.deleted = true
 	value.dirty = true
+	tbl.mutex.Lock()
+	keyStr := byteutils.Hex(key)
+	regetValue := tbl.versionizedValues[keyStr]
+	if regetValue == nil {
+		tbl.versionizedValues[keyStr] = value
+	}
+	tbl.mutex.Unlock()
 	return value, nil
 }
 
