@@ -4,7 +4,8 @@ syntax = "proto3";
 //import "google/api/annotations.proto";
 
 import "../../../..//consensus/pb/state.proto";
-import "../../../../core/pb/block.proto";
+//import "../../../../core/pb/block.proto";
+import "./block.proto";
 import "../../../../neblet/pb/config.proto";
 package rpcpb;
 
@@ -107,6 +108,14 @@ service ApiService {
             post: "/v1/user/dynasty"
             body: "*"
 		};
+    }
+
+    // Verify Signature.
+    rpc VerifySignature (VerifySignatureRequest) returns (VerifySignatureResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/verifySignature"
+            body: "*"
+        };
     }
 }
 
@@ -589,4 +598,16 @@ message PprofResponse {
 message GetConfigResponse {
     // Config
     nebletpb.Config config = 1;
+}
+
+message VerifySignatureRequest {
+    string msg = 1;
+    string signature = 2;
+    string address = 3;
+    uint32 alg = 4;
+}
+
+message VerifySignatureResponse {
+    bool result = 1;
+    string address = 2;
 }

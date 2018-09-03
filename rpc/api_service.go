@@ -35,6 +35,8 @@ import (
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"golang.org/x/net/context"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
+	"encoding/hex"
 )
 
 //the max number of block can be dumped once
@@ -623,4 +625,37 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightReq
 		result = append(result, addr.String())
 	}
 	return &rpcpb.GetDynastyResponse{Miners: result}, nil
+}
+
+//verify signature.
+func (s *APIService) VerifySignature(ctx context.Context, req *rpcpb.VerifySignatureRequest) (*rpcpb.VerifySignatureResponse, error) {
+
+	var alg keystore.Algorithm
+	if req.Alg == 0 {
+		alg = keystore.SECP256K1
+	} else {
+		alg = keystore.Algorithm(req.Alg)
+	}
+
+	msg, err := hex.DecodeString(req.Msg)
+	if err != nil {
+		return nil, err
+	}
+
+	signature, err := hex.DecodeString(req.Signature)
+	if err != nil {
+		return nil, err
+	}
+
+	signer, err := core.RecoverSignerFromSignature(alg, msg, signature)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &rpcpb.VerifySignatureResponse{
+		Result: signer.String() == req.Address,
+		Address: signer.String(),
+	}
+
+	return resp, nil
 }
