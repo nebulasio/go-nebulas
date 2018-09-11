@@ -534,6 +534,9 @@ message TransactionResponse {
 
     // contract execute result
     string execute_result = 16;
+
+    // transaction's block height
+    uint64 block_height = 17;
 }
 
 message NewAccountRequest {
