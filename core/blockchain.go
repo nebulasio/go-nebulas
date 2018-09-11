@@ -90,6 +90,9 @@ const (
 
 	// LIB (latest irreversible block) in storage
 	LIB = "blockchain_lib"
+
+	// transaction's block height
+	TxBlockHeight = "height"
 )
 
 // NewBlockChain create new #BlockChain instance.
@@ -337,7 +340,7 @@ func (bc *BlockChain) dropTxsInBlockFromTxPool(block *Block) {
 	}
 }
 
-func (bc *BlockChain) triggerNewTailEvent(blocks []*Block) {
+func (bc *BlockChain) triggerNewTailInfo(blocks []*Block) {
 	for i := len(blocks) - 1; i >= 0; i-- {
 		block := blocks[i]
 		bc.eventEmitter.Trigger(&state.Event{
@@ -346,6 +349,7 @@ func (bc *BlockChain) triggerNewTailEvent(blocks []*Block) {
 		})
 
 		for _, v := range block.transactions {
+			bc.storage.Put(append(v.hash, []byte(TxBlockHeight)...), byteutils.FromUint64(block.height))
 			events, err := block.FetchEvents(v.hash)
 			if err == nil {
 				for _, e := range events {
@@ -370,7 +374,7 @@ func (bc *BlockChain) buildIndexByBlockHeight(from *Block, to *Block) error {
 			return ErrMissingParentBlock
 		}
 	}
-	go bc.triggerNewTailEvent(blocks)
+	go bc.triggerNewTailInfo(blocks)
 	return nil
 }
 
@@ -693,6 +697,16 @@ func (bc *BlockChain) GetTransaction(hash byteutils.Hash) (*Transaction, error) 
 	}
 	return tx, nil
 }
+
+// GetTransactionHeight return transaction's block height
+func (bc *BlockChain) GetTransactionHeight(hash byteutils.Hash) (uint64, error) {
+	bytes, err := bc.storage.Get(append(hash, []byte(TxBlockHeight)...))
+	if err != nil && err != storage.ErrKeyNotFound {
+		return 0, err
+	}
+	return byteutils.Uint64(bytes), nil
+}
+
 
 // GasPrice returns the lowest transaction gas price.
 func (bc *BlockChain) GasPrice() *util.Uint128 {

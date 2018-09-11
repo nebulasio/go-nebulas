@@ -451,6 +451,7 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 		gasUsed        string
 		execute_error  string
 		execute_result string
+		height         uint64
 	)
 	neb := s.server.Neblet()
 	event, err := neb.BlockChain().TailBlock().FetchExecutionResultEvent(tx.Hash())
@@ -485,6 +486,13 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 		status = core.TxExecutionPendding
 	}
 
+	if status != core.TxExecutionPendding {
+		height, err = neb.BlockChain().GetTransactionHeight(tx.Hash())
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	resp := &rpcpb.TransactionResponse{
 		ChainId:       tx.ChainID(),
 		Hash:          tx.Hash().String(),
@@ -501,6 +509,7 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 		GasUsed:       gasUsed,
 		ExecuteError:  execute_error,
 		ExecuteResult: execute_result,
+		BlockHeight:   height,
 	}
 
 	if tx.Type() == core.TxPayloadDeployType {
