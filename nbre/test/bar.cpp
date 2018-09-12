@@ -1,6 +1,3 @@
 #include "bar.h"
 
-void bar()
-{
-    printf("Hi, this is bar!\n");
-}
+void bar() { printf("Hi, this is bar!\n"); }
