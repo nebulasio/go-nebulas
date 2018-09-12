@@ -69,3 +69,6 @@ build_with_make lz4
 
 cd $CUR_DIR/3rd_party/rocksdb
 LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include make install-static INSTALL_PATH=$CUR_DIR/lib -j4
+
+
+
