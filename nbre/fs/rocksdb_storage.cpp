@@ -45,6 +45,11 @@ namespace neb{
 
       rocksdb::Status rocksdb_storage::close_database() {
         rocksdb::Status status;
+
+        if (nullptr != m_db) {
+          status = m_db->Close();
+        }
+        
         return status;
       }
 
