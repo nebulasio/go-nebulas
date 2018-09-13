@@ -20,28 +20,29 @@
 
 #include <cstdio>
 #include <string>
+#include <memory>
 
 #include <rocksdb/db.h>
 #include <rocksdb/slice.h>
 #include <rocksdb/options.h>
 
-
 namespace neb{
   namespace fs{
-    class rocks_storage{
+    class rocksdb_storage{
       public:
-        rocks_storage();
-        ~rocks_storage();
-        rocks_storage(const rocks_storage) delete;
+        rocksdb_storage();
+        ~rocksdb_storage();
+        rocksdb_storage(const rocksdb_storage& rs) = delete;
+        rocksdb_storage& operate=(const rocksdb_storage&) = delete;
 
-        rocksdb::Status open_database(const Options& options);
-        Status close_database();
+        rocksdb::Status open_database(const rocksdb::Options& options, const std::string& db_name);
+        rocksdb::Status close_database();
 
-        Status get_from_database(const Options& options, const Slice& key, std::string& value);
-        Status put_to_database(const Options& options, const Slice& key, const std::string& value);
-        Status del_from_atabase(const Options& options, const Slice& key);
+        rocksdb::Status get_from_database(const rocksdb::Options& options, const rocksdb::Slice& key, std::string& value);
+        rocksdb::Status put_to_database(const rocksdb::Options& options, const rocksdb::Slice& key, const std::string& value);
+        rocksdb::Status del_from_atabase(const rocksdb::Options& options, const rocksdb::Slice& key);
 
-        Status write_batch_to_database(const Options& options, const WriteBatch& batch);
+        rocksdb::Status write_batch_to_database(const rocksdb::Options& options, const rocksdb::WriteBatch& batch);
       private:
         std::unique_ptr<rocksdb::DB> m_db;
 
