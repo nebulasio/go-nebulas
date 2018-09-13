@@ -33,16 +33,23 @@ namespace neb{
         rocksdb_storage();
         ~rocksdb_storage();
         rocksdb_storage(const rocksdb_storage& rs) = delete;
-        rocksdb_storage& operate=(const rocksdb_storage&) = delete;
+        rocksdb_storage &operator=(const rocksdb_storage &) = delete;
 
         rocksdb::Status open_database(const rocksdb::Options& options, const std::string& db_name);
         rocksdb::Status close_database();
 
-        rocksdb::Status get_from_database(const rocksdb::Options& options, const rocksdb::Slice& key, std::string& value);
-        rocksdb::Status put_to_database(const rocksdb::Options& options, const rocksdb::Slice& key, const std::string& value);
-        rocksdb::Status del_from_atabase(const rocksdb::Options& options, const rocksdb::Slice& key);
+        rocksdb::Status get_from_database(const rocksdb::ReadOptions &options,
+                                          const rocksdb::Slice &key,
+                                          std::string &value);
+        rocksdb::Status put_to_database(const rocksdb::WriteOptions &options,
+                                        const rocksdb::Slice &key,
+                                        const std::string &value);
+        rocksdb::Status del_from_atabase(const rocksdb::WriteOptions &options,
+                                         const rocksdb::Slice &key);
+        rocksdb::Status
+        write_batch_to_database(const rocksdb::WriteOptions &options,
+                                rocksdb::WriteBatch *batch);
 
-        rocksdb::Status write_batch_to_database(const rocksdb::Options& options, const rocksdb::WriteBatch& batch);
       private:
         std::unique_ptr<rocksdb::DB> m_db;
 

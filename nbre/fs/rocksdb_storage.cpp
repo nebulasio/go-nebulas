@@ -17,42 +17,69 @@
 //
 
 #include "rocksdb_storage.h"
-#include <memory>
-
 
 namespace neb{
 
   namespace fs{
-  using namespace std;
-  using namespace rocksdb;
 
-  rocksdb_storage::rocksdb_storage() : m_db(nullptr) {}
-
-  rocksdb_storage::~rocksdb_storage() {}
-
-  Status rocksdb_storage::open_database(const Options &options,
-                                        const string &db_name) {
-    return DB::Open(&options, db_name, &m_db);
+    rocksdb_storage::rocksdb_storage()
+      : m_db(nullptr)
+    {
     }
 
-    Status rocksdb_storage::close_database() {
+    rocksdb_storage::~rocksdb_storage(){}
 
+    rocksdb::Status
+    rocksdb_storage::open_database(const rocksdb::Options &options,
+                                   const std::string &db_name) {
+      rocksdb::DB *db = nullptr;
+
+      rocksdb::Status status;
+      if (nullptr == m_db) {
+        status = rocksdb::DB::Open(options, db_name, &db);
+
+        if (status.ok() == true) {
+          m_db = std::unique_ptr<rocksdb::DB>(db);
+
+        } else {
+          if (nullptr != db) {
+            delete db;
+            db = nullptr;
+          }
+        }
+      }
+
+      return status;
+      }
+
+      rocksdb::Status rocksdb_storage::close_database() {
+        rocksdb::Status status;
+        return status;
     }
 
-    Status rocksdb_storage::get_from_database(const Options& options, const Slice& key, string& value) {
-      return m_db->Get(&options, key, &value);
-    }
+    rocksdb::Status
+    rocksdb_storage::get_from_database(const rocksdb::ReadOptions &options,
+                                       const rocksdb::Slice &key,
+                                       std::string &value) {
+      return m_db->Get(options, key, &value);
+      }
 
-    Status rocksdb_storage::put_to_database(const Options& options, const Slice& key, const string& value) {
-      return m_db->Put(&options, key, value);
-    }
+      rocksdb::Status
+      rocksdb_storage::put_to_database(const rocksdb::WriteOptions &options,
+                                       const rocksdb::Slice &key,
+                                       const std::string &value) {
+        return m_db->Put(options, key, value);
+      }
 
-    Status rocksdb_storage::del_from_atabase(const Options& options, const Slice& key) {
-      return m_db->Delete(&options, key);
-    }
+      rocksdb::Status
+      rocksdb_storage::del_from_atabase(const rocksdb::WriteOptions &options,
+                                        const rocksdb::Slice &key) {
+        return m_db->Delete(options, key);
+      }
 
-    Status rocksdb_storage::write_batch_to_database(const Options& options, const WriteBatch& batch) {
-      return m_db->Write(&options, batch);
+      rocksdb::Status rocksdb_storage::write_batch_to_database(
+          const rocksdb::WriteOptions &options, rocksdb::WriteBatch *batch) {
+        return m_db->Write(options, batch);
     }
 
   }
