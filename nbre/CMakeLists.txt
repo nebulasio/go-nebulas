@@ -19,4 +19,21 @@ find_package(LLVM REQUIRED CONFIG)
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
+function(enable_clang_tidy target_name)
+  set_target_properties(
+    ${target_name} PROPERTIES
+    CXX_STANDARD 11
+    CXX_STANDARD_REQUIRED ON
+    COMPILE_FLAGS "${WARNING_FLAGS}"
+  )
+  if(CLANG_TIDY_EXE)
+    set_target_properties(
+      ${target_name} PROPERTIES
+      CXX_CLANG_TIDY "${DO_CLANG_TIDY}"
+  )
+  endif()
+endfunction(enable_clang_tidy)
+
+
+add_subdirectory(fs)
 add_subdirectory(test)

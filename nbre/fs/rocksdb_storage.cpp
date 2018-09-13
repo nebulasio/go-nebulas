@@ -19,22 +19,20 @@
 #include "rocksdb_storage.h"
 #include <memory>
 
-using namespace std;
-using namespace rocksdb;
 
 namespace neb{
 
   namespace fs{
+  using namespace std;
+  using namespace rocksdb;
 
-    rocksdb_storage::rocksdb_storage()
-      : m_db(make_unique<DB>(nullptr))
-    {
-    }
+  rocksdb_storage::rocksdb_storage() : m_db(nullptr) {}
 
-    rocksdb_storage::~rocksdb_storage(){}
+  rocksdb_storage::~rocksdb_storage() {}
 
-    Status rocksdb_storage::open_database(const Options& options, const string& db_name) {
-      return DB::Open(&options, db_name, *m_db);
+  Status rocksdb_storage::open_database(const Options &options,
+                                        const string &db_name) {
+    return DB::Open(&options, db_name, &m_db);
     }
 
     Status rocksdb_storage::close_database() {
