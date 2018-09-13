@@ -24,7 +24,7 @@ namespace neb{
 
   rocksdb_storage::rocksdb_storage() : m_db(nullptr) {}
 
-  rocksdb_storage::~rocksdb_storage() {}
+  rocksdb_storage::~rocksdb_storage() = default;
 
   rocksdb::Status
   rocksdb_storage::open_database(const rocksdb::Options &options,
@@ -35,7 +35,7 @@ namespace neb{
     if (nullptr == m_db) {
       status = rocksdb::DB::Open(options, db_name, &db);
 
-      if (status.ok() == true) {
+      if (status.ok()) {
         m_db = std::unique_ptr<rocksdb::DB>(db);
       }
     }
@@ -96,7 +96,7 @@ namespace neb{
 
         return status;
     }
-  }
-}
+  } // namespace fs
+} // namespace neb
 
 
