@@ -17,91 +17,87 @@
 //
 
 #include "rocksdb_storage.h"
-
 namespace neb{
+namespace fs {
 
-  namespace fs{
+rocksdb_storage::rocksdb_storage() : m_db(nullptr) {}
 
-  rocksdb_storage::rocksdb_storage() : m_db(nullptr) {}
+rocksdb_storage::~rocksdb_storage() = default;
 
-  rocksdb_storage::~rocksdb_storage() = default;
+rocksdb::Status rocksdb_storage::open_database(const rocksdb::Options &options,
+                                               const std::string &db_name) {
+  rocksdb::DB *db = nullptr;
+  rocksdb::Status status;
 
-  rocksdb::Status
-  rocksdb_storage::open_database(const rocksdb::Options &options,
-                                 const std::string &db_name) {
-    rocksdb::DB *db = nullptr;
+  if (nullptr == m_db) {
+    status = rocksdb::DB::Open(options, db_name, &db);
 
-    rocksdb::Status status;
-    if (nullptr == m_db) {
-      status = rocksdb::DB::Open(options, db_name, &db);
-
-      if (status.ok()) {
-        m_db = std::unique_ptr<rocksdb::DB>(db);
-      }
+    if (status.ok()) {
+      m_db = std::unique_ptr<rocksdb::DB>(db);
     }
+  }
 
-    return status;
-    }
+  return status;
+}
 
-      rocksdb::Status rocksdb_storage::close_database() {
-        rocksdb::Status status;
+rocksdb::Status rocksdb_storage::close_database() {
+  rocksdb::Status status;
 
-        if (nullptr != m_db) {
-          status = m_db->Close();
-        }
-        
-        return status;
-      }
+  if (nullptr != m_db) {
+    status = m_db->Close();
+  }
+  return status;
+}
 
-      rocksdb::Status
-      rocksdb_storage::get_from_database(const rocksdb::ReadOptions &options,
-                                         const rocksdb::Slice &key,
-                                         std::string &value) {
-        rocksdb::Status status;
+rocksdb::Status
+rocksdb_storage::get_from_database(const rocksdb::ReadOptions &options,
+                                   const rocksdb::Slice &key,
+                                   std::string &value) {
+  rocksdb::Status status;
 
-        if (nullptr != m_db) {
-          status = m_db->Get(options, key, &value);
-        }
+  if (nullptr != m_db) {
+    status = m_db->Get(options, key, &value);
+  }
 
-        return status;
-      }
+  return status;
+}
 
-      rocksdb::Status
-      rocksdb_storage::put_to_database(const rocksdb::WriteOptions &options,
-                                       const rocksdb::Slice &key,
-                                       const std::string &value) {
-        rocksdb::Status status;
+rocksdb::Status
+rocksdb_storage::put_to_database(const rocksdb::WriteOptions &options,
+                                 const rocksdb::Slice &key,
+                                 const std::string &value) {
+  rocksdb::Status status;
 
-        if (nullptr != m_db) {
-          status = m_db->Put(options, key, value);
-        }
+  if (nullptr != m_db) {
+    status = m_db->Put(options, key, value);
+  }
 
-        return status;
-      }
+  return status;
+}
 
-      rocksdb::Status
-      rocksdb_storage::del_from_atabase(const rocksdb::WriteOptions &options,
-                                        const rocksdb::Slice &key) {
-        rocksdb::Status status;
+rocksdb::Status
+rocksdb_storage::del_from_atabase(const rocksdb::WriteOptions &options,
+                                  const rocksdb::Slice &key) {
+  rocksdb::Status status;
 
-        if (nullptr != m_db) {
-          status = m_db->Delete(options, key);
-        }
+  if (nullptr != m_db) {
+    status = m_db->Delete(options, key);
+  }
 
-        return status;
-      }
+  return status;
+}
 
-      rocksdb::Status rocksdb_storage::write_batch_to_database(
-          const rocksdb::WriteOptions &options, rocksdb::WriteBatch *batch) {
-        rocksdb::Status status;
+rocksdb::Status
+rocksdb_storage::write_batch_to_database(const rocksdb::WriteOptions &options,
+                                         rocksdb::WriteBatch *batch) {
+  rocksdb::Status status;
 
-        if (nullptr != m_db) {
-          status = m_db->Write(options, batch);
-        }
+  if (nullptr != m_db) {
+    status = m_db->Write(options, batch);
+  }
 
-        return status;
-    }
-  } // namespace fs
-} // namespace neb
-
+  return status;
+}
+} // end namespace fs
+} // end namespace neb
 

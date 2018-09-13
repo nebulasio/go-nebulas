@@ -26,34 +26,33 @@
 #include <rocksdb/slice.h>
 #include <rocksdb/options.h>
 
-namespace neb{
-  namespace fs{
-    class rocksdb_storage{
-      public:
-        rocksdb_storage();
-        ~rocksdb_storage();
-        rocksdb_storage(const rocksdb_storage& rs) = delete;
-        rocksdb_storage &operator=(const rocksdb_storage &) = delete;
+namespace neb {
+namespace fs {
+class rocksdb_storage {
+public:
+  rocksdb_storage();
+  ~rocksdb_storage();
+  rocksdb_storage(const rocksdb_storage &rs) = delete;
+  rocksdb_storage &operator=(const rocksdb_storage &) = delete;
 
-        rocksdb::Status open_database(const rocksdb::Options& options, const std::string& db_name);
-        rocksdb::Status close_database();
+  rocksdb::Status open_database(const rocksdb::Options &options,
+                                const std::string &db_name);
+  rocksdb::Status close_database();
 
-        rocksdb::Status get_from_database(const rocksdb::ReadOptions &options,
-                                          const rocksdb::Slice &key,
-                                          std::string &value);
-        rocksdb::Status put_to_database(const rocksdb::WriteOptions &options,
-                                        const rocksdb::Slice &key,
-                                        const std::string &value);
-        rocksdb::Status del_from_atabase(const rocksdb::WriteOptions &options,
-                                         const rocksdb::Slice &key);
-        rocksdb::Status
-        write_batch_to_database(const rocksdb::WriteOptions &options,
-                                rocksdb::WriteBatch *batch);
+  rocksdb::Status get_from_database(const rocksdb::ReadOptions &options,
+                                    const rocksdb::Slice &key,
+                                    std::string &value);
+  rocksdb::Status put_to_database(const rocksdb::WriteOptions &options,
+                                  const rocksdb::Slice &key,
+                                  const std::string &value);
+  rocksdb::Status del_from_atabase(const rocksdb::WriteOptions &options,
+                                   const rocksdb::Slice &key);
+  rocksdb::Status write_batch_to_database(const rocksdb::WriteOptions &options,
+                                          rocksdb::WriteBatch *batch);
 
-      private:
-        std::unique_ptr<rocksdb::DB> m_db;
-
-    };
-  };
-};
+private:
+  std::unique_ptr<rocksdb::DB> m_db;
+}; // end class rocksdb_storage
+} // end namespace fs
+} // end namespace neb
 
