@@ -26,3 +26,11 @@ TEST(test_common_util_byte, from_uint64) {
   EXPECT_TRUE(b3 == neb::util::bytes({255, 255, 255, 255, 255, 255, 255, 255}))
       << "uint64 max failed";
 }
+
+TEST(test_common_util_byte, fix_bytes_default) {
+  neb::util::fix_bytes<> fb;
+
+  std::string base58 = fb.to_base58(); 
+
+  EXPECT_EQ(base58, "0");
+}
