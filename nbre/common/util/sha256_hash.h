@@ -43,7 +43,7 @@ public:
   static sha_hash_impl<ByteLength> from_hex(const std::string &t) {}
 
 protected:
-  uint8_t m_value[ByteLength];
+  byte_t m_value[ByteLength];
 }; // end class sha_hash_impl
 } // end namespace internal
 } // end namespace util

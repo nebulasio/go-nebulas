@@ -26,4 +26,5 @@
 
 namespace neb {
 typedef std::string hex_hash_t;
+typedef uint8_t byte_t;
 }

@@ -26,7 +26,7 @@
 namespace neb {
 namespace util {
 template <typename T>
-auto byte_to_number(uint8_t *bytes, size_t len) ->
+auto byte_to_number(byte_t *bytes, size_t len) ->
     typename std::enable_if<std::is_arithmetic<T>::value, T>::type {
   if (len < sizeof(T))
     return T();
@@ -37,7 +37,7 @@ auto byte_to_number(uint8_t *bytes, size_t len) ->
 }
 
 template <typename T>
-auto number_to_byte(T val, uint8_t *bytes, size_t len) ->
+auto number_to_byte(T val, byte_t *bytes, size_t len) ->
     typename std::enable_if<std::is_arithmetic<T>::value, void>::type {
   if (len < sizeof(T))
     return;
