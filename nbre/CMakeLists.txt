@@ -19,6 +19,10 @@ find_package(LLVM REQUIRED CONFIG)
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
+include_directories(${PROJECT_SOURCE_DIR})
+include_directories(${PROJECT_SOURCE_DIR}/lib/include)
+link_directories(${PROJECT_SOURCE_DIR}/lib/lib)
+
 function(enable_clang_tidy target_name)
   set_target_properties(
     ${target_name} PROPERTIES
@@ -34,6 +38,7 @@ function(enable_clang_tidy target_name)
   endif()
 endfunction(enable_clang_tidy)
 
+enable_testing()
 
 add_subdirectory(fs)
 add_subdirectory(test)

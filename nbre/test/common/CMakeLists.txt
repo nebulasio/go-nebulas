@@ -1,0 +1,7 @@
+add_executable(test_common main.cpp gtest_util.cpp)
+target_link_libraries(test_common gtest pthread)
+
+add_test(NAME test_common
+  COMMAND test_common)
+
+
