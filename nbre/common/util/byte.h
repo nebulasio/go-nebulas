@@ -22,6 +22,7 @@
 #pragma once
 #include "common/common.h"
 #include <boost/endian/conversion.hpp>
+#include <utility>
 
 namespace neb {
 namespace util {
@@ -32,12 +33,26 @@ std::string convert_byte_to_base58(const byte_t *buf, size_t len);
 
 bool convert_hex_to_bytes(const std::string &s, byte_t *buf, size_t &len);
 bool convert_base58_to_bytes(const std::string &s, byte_t *buf, size_t &len);
+
+template <typename T, std::size_t N, std::size_t... Ns>
+std::array<T, N> make_array_impl(std::initializer_list<T> t,
+                                 std::index_sequence<Ns...>) {
+  return std::array<T, N>{*(t.begin() + Ns)...};
+}
+
+template <typename T, std::size_t N>
+std::array<T, N> make_array(std::initializer_list<T> t) {
+  if (N < t.size())
+    throw std::out_of_range("make_array out of range");
+  return make_array_impl<T, N>(t, std::make_index_sequence<N>());
+};
 } // end namespace internal
 
 template <size_t ByteLength = 32> class fix_bytes {
 public:
   fix_bytes() : m_value{0} {};
-  fix_bytes(std::initializer_list<byte_t> l) : m_value(l) {}
+  fix_bytes(std::initializer_list<byte_t> l)
+      : m_value(internal::make_array<byte_t, ByteLength>(l)) {}
   fix_bytes(const fix_bytes<ByteLength> &v) : m_value(v.m_value) {}
   fix_bytes(fix_bytes &&v) : m_value(std::move(v.m_value)) {}
   fix_bytes(const byte_t *buf, size_t buf_len) {
@@ -77,7 +92,9 @@ public:
   }
 
   inline size_t size() const { return ByteLength; }
-  inline const byte_t *value() const { return m_value; }
+
+  inline const byte_t *value() const { return m_value.data(); }
+
   inline byte_t *value() { return m_value; }
 
   static fix_bytes<ByteLength> from_base58(const std::string &t) {
