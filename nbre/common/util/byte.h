@@ -95,7 +95,7 @@ public:
 
   inline const byte_t *value() const { return m_value.data(); }
 
-  inline byte_t *value() { return m_value; }
+  inline byte_t *value() { return m_value.data(); }
 
   static fix_bytes<ByteLength> from_base58(const std::string &t) {
     fix_bytes<ByteLength> ret;
