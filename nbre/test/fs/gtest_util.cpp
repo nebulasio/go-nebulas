@@ -1,18 +1,28 @@
-#include "fs/util.h"
+#include "common/util/byte.h"
 #include <gtest/gtest.h>
-#include <iostream>
 
-TEST(test_fs_util, simple) {
-  std::string cur_path = neb::fs::cur_full_path();
-  std::string cur_dir = neb::fs::cur_dir();
-  std::string tmp_dir = neb::fs::tmp_dir();
+TEST(test_common_util, simple) {
+  int32_t v = 123;
+  neb::byte_t buf[4];
+  neb::util::number_to_byte(v, buf, 4);
 
-  EXPECT_TRUE(cur_path.size() > 0);
-  EXPECT_TRUE(cur_dir.size() > 0);
-  EXPECT_TRUE(tmp_dir.size() > 0);
+  int32_t ret = neb::util::byte_to_number<int32_t>(buf, 4);
 
-  std::string rocksdb_data_path =
-      neb::fs::join_path(cur_dir, "test/data/data.db/CURRENT");
+  EXPECT_EQ(v, ret);
+}
 
-  EXPECT_TRUE(neb::fs::exists(rocksdb_data_path));
+TEST(test_common_util_byte, from_uint64) {
+  uint64_t v1 = 0;
+  neb::util::bytes b1 = neb::util::number_to_byte<neb::util::bytes>(v1);
+  EXPECT_TRUE(b1 == neb::util::bytes({0, 0, 0, 0, 0, 0, 0, 0})) << " 0 failed";
+
+  uint64_t v2 = 1024;
+  neb::util::bytes b2 = neb::util::number_to_byte<neb::util::bytes>(v2);
+  EXPECT_TRUE(b2 == neb::util::bytes({0, 0, 0, 0, 0, 0, 4, 0}))
+      << " 1024 failed";
+
+  uint64_t v3 = 18446744073709551615u;
+  neb::util::bytes b3 = neb::util::number_to_byte<neb::util::bytes>(v3);
+  EXPECT_TRUE(b3 == neb::util::bytes({255, 255, 255, 255, 255, 255, 255, 255}))
+      << "uint64 max failed";
 }
