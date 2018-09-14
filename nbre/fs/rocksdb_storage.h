@@ -49,7 +49,6 @@ public:
                                    const rocksdb::Slice &key);
   rocksdb::Status write_batch_to_database(const rocksdb::WriteOptions &options,
                                           rocksdb::WriteBatch *batch);
-
 private:
   std::unique_ptr<rocksdb::DB> m_db;
 }; // end class rocksdb_storage

@@ -1,4 +1,4 @@
-add_library(nbre_fs rocksdb_storage.cpp)
+add_library(nbre_fs rocksdb_storage.cpp util.cpp)
 
 target_link_libraries(nbre_fs rocksdb)
 

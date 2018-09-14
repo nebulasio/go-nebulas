@@ -15,13 +15,16 @@ else()
 endif()
 
 find_package(LLVM REQUIRED CONFIG)
-
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
+
+find_package(Boost 1.67.0 REQUIRED COMPONENTS filesystem system)
 
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/lib/include)
 link_directories(${PROJECT_SOURCE_DIR}/lib/lib)
+message(STATUS 'lib dir ' ${PROJECT_SOURCE_DIR}/lib/lib)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/)
 
 function(enable_clang_tidy target_name)

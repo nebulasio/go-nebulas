@@ -26,17 +26,22 @@ namespace neb {
 namespace fs {
 class storage {
 public:
-  template <typename T, typename KT> T get(const KT &key) {
-    // TODO this is only for number types
+  template <typename T, typename KT>
+  auto get(const KT &key) -> typename std::enable_if<
+      std::is_arithmetic<T>::value && std::is_arithmetic<KT>::value, T>::type {
     return util::byte_to_number<T>(get_bytes(util::number_to_byte(key)));
   }
 
-  template <typename T, typename KT> void put(const KT &key, const T &val) {
-    //! TODO this is only for number types
+  template <typename T, typename KT>
+  auto put(const KT &key, const T &val) ->
+      typename std::enable_if<std::is_arithmetic<T>::value &&
+                                  std::is_arithmetic<KT>::value,
+                              void>::type {
     put_bytes(util::number_to_byte(key), util::number_to_byte(val));
   }
-  template <typename KT> void del(const KT &key) {
-    //! TODO this is only for number types
+  template <typename KT>
+  auto del(const KT &key) ->
+      typename std::enable_if<std::is_arithmetic<KT>::value, void>::type {
     del_by_bytes(util::number_to_byte(key));
   }
 
