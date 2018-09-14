@@ -34,3 +34,12 @@ TEST(test_common_util_byte, fix_bytes_default) {
 
   EXPECT_EQ(base58, "0");
 }
+
+TEST(test_common_util_byte, fix_bytes_Encode) {
+  neb::util::fix_bytes<> fb({72, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100});
+
+  std::string base58 = fb.to_base58(); 
+
+  EXPECT_EQ(base58, "Hello, world");
+}
+
