@@ -26,10 +26,26 @@
 namespace neb {
 namespace util {
 
+namespace internal {
+std::string convert_byte_to_hex(const byte_t *buf, size_t len);
+std::string convert_byte_to_base58(const byte_t *buf, size_t len);
+
+bool convert_hex_to_bytes(const std::string &s, byte_t *buf, size_t &len);
+bool convert_base58_to_bytes(const std::string &s, byte_t *buf, size_t &len);
+} // end namespace internal
+
 template <size_t ByteLength = 32> class fix_bytes {
 public:
   fix_bytes() : m_value{0} {};
   fix_bytes(const fix_bytes<ByteLength> &v) : m_value(v.m_value) {}
+  fix_bytes(fix_bytes &&v) : m_value(std::move(v.m_value)) {}
+  fix_bytes(const byte_t *buf, size_t buf_len) {
+    if (buf_len >= ByteLength) {
+      memcpy(m_value, buf, ByteLength);
+    } else {
+      LOG(ERROR) << "buf len is: " << buf_len << ", less than " << ByteLength;
+    }
+  }
 
   fix_bytes<ByteLength> &operator=(const fix_bytes<ByteLength> &v) {
     if (&v == this)
@@ -42,6 +58,7 @@ public:
     m_value = std::move(v.m_value);
     return *this;
   }
+
   bool operator==(const fix_bytes<ByteLength> &v) const {
     return m_value == v.m_value;
   }
@@ -50,13 +67,35 @@ public:
     return m_value != v.m_value;
   }
 
-  std::string to_base58() const { return ""; }
+  std::string to_base58() const {
+    return internal::convert_byte_to_base58(value(), size());
+  }
 
-  std::string to_hex() const { return ""; }
-  size_t size() const { return ByteLength; }
+  std::string to_hex() const {
+    return internal::convert_byte_to_hex(value(), size());
+  }
 
-  static fix_bytes<ByteLength> from_base58(const std::string &t) {}
-  static fix_bytes<ByteLength> from_hex(const std::string &t) {}
+  inline size_t size() const { return ByteLength; }
+  inline const byte_t *value() const { return m_value; }
+  inline byte_t *value() { return m_value; }
+
+  static fix_bytes<ByteLength> from_base58(const std::string &t) {
+    fix_bytes<ByteLength> ret;
+    size_t s = ret.size();
+    bool succ = internal::convert_base58_to_bytes(t, ret.value(), s);
+    if (!succ)
+      throw std::invalid_argument("invalid base58 string for from_base58");
+    return ret;
+  }
+
+  static fix_bytes<ByteLength> from_hex(const std::string &t) {
+    fix_bytes<ByteLength> ret;
+    size_t s = ret.size();
+    bool succ = internal::convert_base58_to_bytes(t, ret.value(), s);
+    if (!succ)
+      throw std::invalid_argument("invalid hex string for from_hex");
+    return ret;
+  }
 
 protected:
   std::array<byte_t, ByteLength> m_value;
@@ -70,18 +109,22 @@ public:
   bytes(const bytes &v);
   bytes(bytes &&v);
   bytes(const byte_t *v, size_t len);
+
   bytes &operator=(const bytes &v);
   bytes &operator=(bytes &&v);
+
+  bool operator==(const bytes &v);
+  bool operator!=(const bytes &v);
 
   std::string to_base58() const;
   std::string to_hex() const;
 
-  static bytes from_base58(const std::string &t){};
-  static bytes from_hex(const std::string &t){};
+  static bytes from_base58(const std::string &t);
+  static bytes from_hex(const std::string &t);
 
   inline size_t size() const { return sizeof(m_value.get()); }
-
-  byte_t *value() const { return m_value.get(); }
+  inline const byte_t *value() const { return m_value.get(); }
+  inline byte_t *value() { return m_value.get(); }
 
 private:
   std::unique_ptr<byte_t[]> m_value;

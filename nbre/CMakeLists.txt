@@ -40,5 +40,6 @@ endfunction(enable_clang_tidy)
 
 enable_testing()
 
+add_subdirectory(common)
 add_subdirectory(fs)
 add_subdirectory(test)
