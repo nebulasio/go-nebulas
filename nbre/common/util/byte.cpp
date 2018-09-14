@@ -88,6 +88,12 @@ bytes::bytes(const bytes &v) : bytes(v.size()) {
 
 bytes::bytes(bytes &&v) : m_value(std::move(v.m_value)) {}
 
+bytes::bytes(std::initializer_list<byte_t> l) {
+  if (l.size() > 0) {
+    m_value = std::unique_ptr<byte_t[]>(new byte_t[l.size()]);
+    std::copy(l.begin(), l.end(), m_value.get());
+  }
+}
 bytes::bytes(const byte_t *buf, size_t buf_len) {
   if (buf_len > 0) {
     m_value = std::unique_ptr<byte_t[]>(new byte_t[buf_len]);

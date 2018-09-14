@@ -37,6 +37,7 @@ bool convert_base58_to_bytes(const std::string &s, byte_t *buf, size_t &len);
 template <size_t ByteLength = 32> class fix_bytes {
 public:
   fix_bytes() : m_value{0} {};
+  fix_bytes(std::initializer_list<byte_t> l) : m_value(l) {}
   fix_bytes(const fix_bytes<ByteLength> &v) : m_value(v.m_value) {}
   fix_bytes(fix_bytes &&v) : m_value(std::move(v.m_value)) {}
   fix_bytes(const byte_t *buf, size_t buf_len) {
@@ -101,6 +102,11 @@ protected:
   std::array<byte_t, ByteLength> m_value;
 }; // end class fix_bytes
 
+template <typename T> struct is_fix_bytes { const static bool value = false; };
+template <size_t N> struct is_fix_bytes<fix_bytes<N>> {
+  const static bool value = true;
+};
+
 class bytes {
 public:
   bytes();
@@ -108,6 +114,7 @@ public:
 
   bytes(const bytes &v);
   bytes(bytes &&v);
+  bytes(std::initializer_list<byte_t> l);
   bytes(const byte_t *v, size_t len);
 
   bytes &operator=(const bytes &v);
@@ -164,13 +171,25 @@ auto byte_to_number(const BytesType &v) ->
   return ret;
 }
 
-template <typename T, typename BytesType>
+template <typename BytesType, typename T>
 auto number_to_byte(T val) ->
     typename std::enable_if<std::is_arithmetic<T>::value &&
                                 std::is_same<BytesType, bytes>::value,
                             BytesType>::type {
   T v = boost::endian::native_to_big(val);
-  BytesType b(&v, sizeof(v));
+  BytesType b((byte_t *)&v, sizeof(v));
+  return b;
+}
+
+template <typename BytesType, typename T>
+auto number_to_byte(T val) ->
+    typename std::enable_if<std::is_arithmetic<T>::value &&
+                                is_fix_bytes<BytesType>::value,
+                            BytesType>::type {
+  T v = boost::endian::native_to_big(val);
+  BytesType b;
+  T *rval = (T *)b.value();
+  *rval = v;
   return b;
 }
 }
