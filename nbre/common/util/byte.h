@@ -25,6 +25,68 @@
 
 namespace neb {
 namespace util {
+
+template <size_t ByteLength = 32> class fix_bytes {
+public:
+  fix_bytes() : m_value{0} {};
+  fix_bytes(const fix_bytes<ByteLength> &v) : m_value(v.m_value) {}
+
+  fix_bytes<ByteLength> &operator=(const fix_bytes<ByteLength> &v) {
+    if (&v == this)
+      return *this;
+    m_value = v.m_value;
+    return *this;
+  }
+
+  fix_bytes<ByteLength> &operator=(fix_bytes<ByteLength> &&v) {
+    m_value = std::move(v.m_value);
+    return *this;
+  }
+  bool operator==(const fix_bytes<ByteLength> &v) const {
+    return m_value == v.m_value;
+  }
+
+  bool operator!=(const fix_bytes<ByteLength> &v) const {
+    return m_value != v.m_value;
+  }
+
+  std::string to_base58() const { return ""; }
+
+  std::string to_hex() const { return ""; }
+  size_t size() const { return ByteLength; }
+
+  static fix_bytes<ByteLength> from_base58(const std::string &t) {}
+  static fix_bytes<ByteLength> from_hex(const std::string &t) {}
+
+protected:
+  std::array<byte_t, ByteLength> m_value;
+}; // end class fix_bytes
+
+class bytes {
+public:
+  bytes();
+  bytes(size_t len);
+
+  bytes(const bytes &v);
+  bytes(bytes &&v);
+  bytes(const byte_t *v, size_t len);
+  bytes &operator=(const bytes &v);
+  bytes &operator=(bytes &&v);
+
+  std::string to_base58() const;
+  std::string to_hex() const;
+
+  static bytes from_base58(const std::string &t){};
+  static bytes from_hex(const std::string &t){};
+
+  inline size_t size() const { return sizeof(m_value.get()); }
+
+  byte_t *value() const { return m_value.get(); }
+
+private:
+  std::unique_ptr<byte_t[]> m_value;
+}; // end class bytes
+
 template <typename T>
 auto byte_to_number(byte_t *bytes, size_t len) ->
     typename std::enable_if<std::is_arithmetic<T>::value, T>::type {
@@ -46,6 +108,27 @@ auto number_to_byte(T val, byte_t *bytes, size_t len) ->
   T *p = (T *)bytes;
   *p = v;
   return;
+}
+
+template <typename T, typename BytesType>
+auto byte_to_number(const BytesType &v) ->
+    typename std::enable_if<std::is_arithmetic<T>::value, T>::type {
+  if (v.size() < sizeof(T))
+    return T();
+
+  T *val = (T *)v.value();
+  T ret = boost::endian::big_to_native(*val);
+  return ret;
+}
+
+template <typename T, typename BytesType>
+auto number_to_byte(T val) ->
+    typename std::enable_if<std::is_arithmetic<T>::value &&
+                                std::is_same<BytesType, bytes>::value,
+                            BytesType>::type {
+  T v = boost::endian::native_to_big(val);
+  BytesType b(&v, sizeof(v));
+  return b;
 }
 }
 }
