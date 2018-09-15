@@ -28,6 +28,8 @@ namespace util {
 
 namespace internal {
 std::string convert_byte_to_hex(const byte_t *buf, size_t len) {
+  if (!buf)
+    return "";
   std::stringstream s;
   for (size_t i = 0; i < len; i++) {
     s << std::hex << std::setfill('0') << static_cast<uint8_t>(buf[i]);
@@ -118,6 +120,13 @@ bool bytes::operator==(const bytes &v) const {
 }
 bool bytes::operator!=(const bytes &v) const { return !operator==(v); }
 
+std::string bytes::to_base58() const {
+  return internal::convert_byte_to_base58(value(), size());
+}
+std::string bytes::to_hex() const {
+  return internal::convert_byte_to_hex(value(), size());
+}
+
 bytes bytes::from_base58(const std::string &t) {
   size_t len = 0;
   bool succ = internal::convert_base58_to_bytes(t, nullptr, len);
@@ -127,6 +136,7 @@ bytes bytes::from_base58(const std::string &t) {
   internal::convert_base58_to_bytes(t, ret.value(), len);
   return ret;
 }
+
 bytes bytes::from_hex(const std::string &t) {
   size_t len = 0;
   bool succ = internal::convert_hex_to_bytes(t, nullptr, len);
