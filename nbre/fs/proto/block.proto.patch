@@ -1,0 +1,29 @@
+--- block.proto	2018-09-15 15:22:49.409453873 +0800
++++ block.proto.bak	2018-09-15 15:23:56.157406918 +0800
+@@ -17,8 +17,8 @@
+ //
+ syntax = "proto3";
+ 
+-import "github.com/nebulasio/go-nebulas/common/dag/pb/dag.proto";
+-import "github.com/nebulasio/go-nebulas/consensus/pb/state.proto";
++import "dag.proto";
++import "state.proto";
+ 
+ package corepb;
+ 
+@@ -75,7 +75,7 @@
+ message Block {
+     BlockHeader header = 1;
+     repeated Transaction transactions = 2;
+-    dagpb.Dag dependency = 3;    
++    dagpb.Dag dependency = 3;
+ 
+     uint64 height = 4;
+ }
+@@ -100,4 +100,4 @@
+ message Random {
+     bytes vrf_seed = 1;
+     bytes vrf_proof = 2;
+-}
+\ No newline at end of file
++}

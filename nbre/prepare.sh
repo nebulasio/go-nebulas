@@ -153,3 +153,10 @@ if [ ! -d $CUR_DIR/test/data/data.db ]; then
   cd $CUR_DIR/test/data
   tar -xf data.db.tar.gz
 fi
+
+if [ ! -f $CUR_DIR/3rd_party/protoc-3.2.0-linux-x86_64.zip ]; then
+  curl -OL https://github.com/google/protobuf/releases/download/v3.2.0/protoc-3.2.0-linux-x86_64.zip
+  unzip protoc-3.2.0-linux-x86_64.zip -d protoc3
+  mv $CUR_DIR/3rd_party/protoc3/bin/* $CUR_DIR/lib/bin/
+  mv $CUR_DIR/3rd_party/protoc3/include/* $CUR_DIR/lib/include/
+fi
