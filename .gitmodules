@@ -22,3 +22,6 @@
 [submodule "nbre/3rd_party/lz4"]
 	path = nbre/3rd_party/lz4
 	url = https://github.com/lz4/lz4.git
+[submodule "nbre/3rd_party/protobuf"]
+	path = nbre/3rd_party/protobuf
+	url = https://github.com/protocolbuffers/protobuf.git
