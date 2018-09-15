@@ -1,6 +1,7 @@
 // Copyright (C) 2018 go-nebulas authors
 //
 //
+//
 // This file is part of the go-nebulas library.
 //
 // the go-nebulas library is free software: you can redistribute it and/or
@@ -137,8 +138,8 @@ public:
   bytes &operator=(const bytes &v);
   bytes &operator=(bytes &&v);
 
-  bool operator==(const bytes &v);
-  bool operator!=(const bytes &v);
+  bool operator==(const bytes &v) const;
+  bool operator!=(const bytes &v) const;
 
   std::string to_base58() const;
   std::string to_hex() const;
@@ -153,6 +154,14 @@ public:
 private:
   std::unique_ptr<byte_t[]> m_value;
 }; // end class bytes
+
+inline bytes string_to_byte(const std::string &str) {
+  return bytes((const byte_t *)(str.c_str()), str.size());
+}
+
+inline std::string byte_to_string(const bytes &b) {
+  return std::string((const char *)b.value());
+}
 
 template <typename T>
 auto byte_to_number(byte_t *bytes, size_t len) ->

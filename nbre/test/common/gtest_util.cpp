@@ -41,16 +41,18 @@ TEST(test_common_util_byte, test_default) {
 }
 
 TEST(test_common_util_byte, test_encode) {
-  neb::util::fix_bytes<> result = neb::util::fix_bytes<>::from_base58("Hello, world");
-  neb::util::fix_bytes<> want({72, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100});
+  neb::util::bytes result = neb::util::string_to_byte("Hello, world");
+  neb::util::bytes want(
+      {72, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100});
 
   EXPECT_EQ(result, want);
 }
 
 TEST(test_common_util_byte, test_decode) {
-  neb::util::fix_bytes<> fb({72, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100});
+  neb::util::bytes fb(
+      {72, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100});
 
-  std::string result = fb.to_base58();
+  std::string result = neb::util::byte_to_string(fb);
 
   EXPECT_EQ(result, "Hello, world");
 }

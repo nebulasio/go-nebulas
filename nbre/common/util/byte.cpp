@@ -111,12 +111,12 @@ bytes &bytes::operator=(bytes &&v) {
   return *this;
 }
 
-bool bytes::operator==(const bytes &v) {
+bool bytes::operator==(const bytes &v) const {
   if (v.size() != size())
     return false;
   return memcmp(v.value(), value(), size()) == 0;
 }
-bool bytes::operator!=(const bytes &v) { return !operator==(v); }
+bool bytes::operator!=(const bytes &v) const { return !operator==(v); }
 
 bytes bytes::from_base58(const std::string &t) {
   size_t len = 0;
