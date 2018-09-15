@@ -37,7 +37,7 @@ TEST(test_common_util_byte, test_default) {
 
   std::string base58 = fb.to_base58();
 
-  EXPECT_EQ(base58, "0");
+  EXPECT_EQ(base58, "11111111111111111111111111111111");
 }
 
 TEST(test_common_util_byte, test_encode) {
@@ -64,12 +64,13 @@ TEST(test_common_util_byte, test_hex) {
   neb::util::fix_bytes<> fb2({});
 
   test_source_want_t tsw[3] = {
-      "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
-      fb0,
-      "3550aba97492de38af3066f0157fc532db6791b37d53262ce7688dcc5d461856",
-      fb1,
-      "blank string",
-      fb2};
+      test_source_want(
+          {"a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
+           fb0}),
+      test_source_want(
+          {"3550aba97492de38af3066f0157fc532db6791b37d53262ce7688dcc5d461856",
+           fb1}),
+      test_source_want({"blank string", fb2})};
 
   for (int i = 0; i < 3; i++) {
     std::string hex = tsw[i].source.to_hex();
