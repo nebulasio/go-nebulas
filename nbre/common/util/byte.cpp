@@ -32,7 +32,8 @@ std::string convert_byte_to_hex(const byte_t *buf, size_t len) {
     return "";
   std::stringstream s;
   for (size_t i = 0; i < len; i++) {
-    s << std::hex << std::setfill('0') << static_cast<uint8_t>(buf[i]);
+    s << std::hex << std::setw(2) << std::setfill('0')
+      << static_cast<int>(buf[i]);
   }
   return s.str();
 }
@@ -71,7 +72,7 @@ bool convert_base58_to_bytes(const std::string &s, byte_t *buf, size_t &len) {
   bool rv = ::neb::decode_base58(s, ret);
   if (rv) {
     len = ret.size();
-    if (!buf) {
+    if (buf) {
       memcpy(buf, &ret[0], len);
     }
   }
@@ -79,37 +80,48 @@ bool convert_base58_to_bytes(const std::string &s, byte_t *buf, size_t &len) {
   return rv;
 }
 }
-bytes::bytes() : m_value(nullptr) {}
+bytes::bytes() : m_value(nullptr), m_size(0) {}
 
 bytes::bytes(size_t len)
-    : m_value(std::unique_ptr<byte_t[]>(new byte_t[len])) {}
+    : m_value(std::unique_ptr<byte_t[]>(new byte_t[len])), m_size(len) {}
 
 bytes::bytes(const bytes &v) : bytes(v.size()) {
   memcpy(m_value.get(), v.m_value.get(), v.size());
+  m_size = v.size();
 }
 
-bytes::bytes(bytes &&v) : m_value(std::move(v.m_value)) {}
+bytes::bytes(bytes &&v) : m_value(std::move(v.m_value)), m_size(v.size()) {}
 
 bytes::bytes(std::initializer_list<byte_t> l) {
   if (l.size() > 0) {
     m_value = std::unique_ptr<byte_t[]>(new byte_t[l.size()]);
     std::copy(l.begin(), l.end(), m_value.get());
   }
+  m_size = l.size();
 }
 bytes::bytes(const byte_t *buf, size_t buf_len) {
   if (buf_len > 0) {
     m_value = std::unique_ptr<byte_t[]>(new byte_t[buf_len]);
     memcpy(m_value.get(), buf, buf_len);
+    m_size = buf_len;
+  } else {
+    throw std::invalid_argument("invalid buf_len");
   }
 }
 bytes &bytes::operator=(const bytes &v) {
-  m_value = std::unique_ptr<byte_t[]>(new byte_t[v.size()]);
-  memcpy(m_value.get(), v.m_value.get(), v.size());
+  if (&v == this)
+    return *this;
+  if (v.value()) {
+    m_value = std::unique_ptr<byte_t[]>(new byte_t[v.size()]);
+    memcpy(m_value.get(), v.m_value.get(), v.size());
+  }
+  m_size = v.size();
   return *this;
 }
 
 bytes &bytes::operator=(bytes &&v) {
   m_value = std::move(v.m_value);
+  m_size = v.m_size;
   return *this;
 }
 

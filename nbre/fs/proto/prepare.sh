@@ -28,5 +28,6 @@ cp ../../../common/dag/pb/dag.proto ./
 
 patch < block.proto.patch
 
-curl -OL https://github.com/google/protobuf/releases/download/v3.2.0/protoc-3.2.0-linux-x86_64.zip
+unzip protoc-3.2.0-linux-x86_64.zip -d protoc3
+
 protoc --cpp_out=./ block.proto dag.proto dynasty.proto genesis.proto state.proto

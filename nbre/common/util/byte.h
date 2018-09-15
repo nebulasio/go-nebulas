@@ -110,7 +110,7 @@ public:
   static fix_bytes<ByteLength> from_hex(const std::string &t) {
     fix_bytes<ByteLength> ret;
     size_t s = ret.size();
-    bool succ = internal::convert_base58_to_bytes(t, ret.value(), s);
+    bool succ = internal::convert_hex_to_bytes(t, ret.value(), s);
     if (!succ)
       throw std::invalid_argument("invalid hex string for from_hex");
     return ret;
@@ -147,12 +147,13 @@ public:
   static bytes from_base58(const std::string &t);
   static bytes from_hex(const std::string &t);
 
-  inline size_t size() const { return sizeof(m_value.get()); }
+  inline size_t size() const { return m_size; }
   inline const byte_t *value() const { return m_value.get(); }
   inline byte_t *value() { return m_value.get(); }
 
 private:
   std::unique_ptr<byte_t[]> m_value;
+  size_t m_size;
 }; // end class bytes
 
 inline bytes string_to_byte(const std::string &str) {
