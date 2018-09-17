@@ -704,6 +704,12 @@ func (bc *BlockChain) GetTransactionHeight(hash byteutils.Hash) (uint64, error) 
 	if err != nil && err != storage.ErrKeyNotFound {
 		return 0, err
 	}
+
+	if len(bytes) == 0 {
+		// for empty value (history txs), height = 0
+		return 0, nil
+	}
+
 	return byteutils.Uint64(bytes), nil
 }
 
