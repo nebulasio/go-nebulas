@@ -18,39 +18,38 @@
 
 #pragma once
 
-#include <cstdio>
-#include <string>
-#include <memory>
-
+#include "common/common.h"
+#include "fs/storage.h"
 #include <rocksdb/db.h>
-#include <rocksdb/slice.h>
-#include <rocksdb/options.h>
+#include <rocksdb/write_batch.h>
 
 namespace neb {
 namespace fs {
-class rocksdb_storage {
+
+class rocksdb_storage : public storage {
 public:
   rocksdb_storage();
   ~rocksdb_storage();
   rocksdb_storage(const rocksdb_storage &rs) = delete;
   rocksdb_storage &operator=(const rocksdb_storage &) = delete;
 
-  rocksdb::Status open_database(const rocksdb::Options &options,
-                                const std::string &db_name);
-  rocksdb::Status close_database();
+  void open_database(const std::string &db_name, storage_open_flag flag);
+  void close_database();
 
-  rocksdb::Status get_from_database(const rocksdb::ReadOptions &options,
-                                    const rocksdb::Slice &key,
-                                    std::string &value);
-  rocksdb::Status put_to_database(const rocksdb::WriteOptions &options,
-                                  const rocksdb::Slice &key,
-                                  const std::string &value);
-  rocksdb::Status del_from_atabase(const rocksdb::WriteOptions &options,
-                                   const rocksdb::Slice &key);
-  rocksdb::Status write_batch_to_database(const rocksdb::WriteOptions &options,
-                                          rocksdb::WriteBatch *batch);
+  virtual util::bytes get_bytes(const util::bytes &key);
+  virtual void put_bytes(const util::bytes &key, const util::bytes &val);
+  virtual void del_by_bytes(const util::bytes &key);
+
+  virtual void enable_batch();
+  virtual void disable_batch();
+  virtual void flush();
+
 private:
   std::unique_ptr<rocksdb::DB> m_db;
+  storage_open_flag m_open_flag;
+  bool m_enable_batch;
+  typedef std::function<void(rocksdb::WriteBatch &wb)> batch_operation_t;
+  std::vector<batch_operation_t> m_batched_ops;
 }; // end class rocksdb_storage
 } // end namespace fs
 } // end namespace neb

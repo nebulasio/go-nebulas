@@ -100,12 +100,10 @@ bytes::bytes(std::initializer_list<byte_t> l) {
   m_size = l.size();
 }
 bytes::bytes(const byte_t *buf, size_t buf_len) {
+  m_size = buf_len;
   if (buf_len > 0) {
     m_value = std::unique_ptr<byte_t[]>(new byte_t[buf_len]);
     memcpy(m_value.get(), buf, buf_len);
-    m_size = buf_len;
-  } else {
-    throw std::invalid_argument("invalid buf_len");
   }
 }
 bytes &bytes::operator=(const bytes &v) {

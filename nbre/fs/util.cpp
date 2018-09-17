@@ -25,21 +25,21 @@
 namespace neb {
 namespace fs {
 std::string cur_full_path() {
-  return boost::filesystem::current_path().c_str();
+  return boost::filesystem::current_path().generic_string();
 }
 
 std::string cur_dir() {
   boost::filesystem::path cur_path = boost::filesystem::current_path();
-  return cur_path.parent_path().c_str();
+  return cur_path.parent_path().generic_string();
 }
 
 std::string tmp_dir() {
-  return boost::filesystem::temp_directory_path().c_str();
+  return boost::filesystem::temp_directory_path().generic_string();
 }
 std::string join_path(const std::string &parent, const std::string &fp) {
   boost::filesystem::path cur_path(parent);
   boost::filesystem::path np = cur_path / boost::filesystem::path(fp);
-  return np.c_str();
+  return np.generic_string();
 }
 
 bool exists(const std::string &p) {

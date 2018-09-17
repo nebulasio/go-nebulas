@@ -24,12 +24,32 @@
 
 namespace neb {
 namespace fs {
+enum storage_open_flag {
+  storage_open_for_readwrite,
+  storage_open_for_readonly,
+  storage_open_default = storage_open_for_readwrite,
+};
+
+struct storage_general_failure : public std::exception {
+  inline storage_general_failure(const std::string &msg) : m_msg(msg) {}
+  inline const char *what() const throw() { return m_msg.c_str(); }
+protected:
+  std::string m_msg;
+};
+struct storage_exception_no_such_key : public std::exception {
+  inline const char *what() const throw() { return "no such key in storage"; }
+};
+struct storage_exception_no_init : public std::exception {
+  inline const char *what() const throw() { return "storage no initialized"; }
+};
+
 class storage {
 public:
   template <typename T, typename KT>
   auto get(const KT &key) -> typename std::enable_if<
       std::is_arithmetic<T>::value && std::is_arithmetic<KT>::value, T>::type {
-    return util::byte_to_number<T>(get_bytes(util::number_to_byte(key)));
+    return util::byte_to_number<T>(
+        get_bytes(util::number_to_byte<util::bytes>(key)));
   }
 
   template <typename T, typename KT>
@@ -37,13 +57,22 @@ public:
       typename std::enable_if<std::is_arithmetic<T>::value &&
                                   std::is_arithmetic<KT>::value,
                               void>::type {
-    put_bytes(util::number_to_byte(key), util::number_to_byte(val));
+    put_bytes(util::number_to_byte<util::bytes>(key),
+              util::number_to_byte<util::bytes>(val));
   }
   template <typename KT>
   auto del(const KT &key) ->
       typename std::enable_if<std::is_arithmetic<KT>::value, void>::type {
-    del_by_bytes(util::number_to_byte(key));
+    del_by_bytes(util::number_to_byte<util::bytes>(key));
   }
+
+  util::bytes get(const std::string &key) {
+    return get_bytes(util::string_to_byte(key));
+  }
+  void put(const std::string &key, const util::bytes &value) {
+    return put_bytes(util::string_to_byte(key), value);
+  }
+  void del(const std::string &key) { del_by_bytes(util::string_to_byte(key)); }
 
   virtual util::bytes get_bytes(const util::bytes &key) = 0;
   virtual void put_bytes(const util::bytes &key, const util::bytes &val) = 0;

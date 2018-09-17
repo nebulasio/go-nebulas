@@ -1,6 +1,5 @@
 // Copyright (C) 2018 go-nebulas authors
 //
-//
 // This file is part of the go-nebulas library.
 //
 // the go-nebulas library is free software: you can redistribute it and/or
@@ -25,13 +24,10 @@
 namespace neb {
 namespace fs {
 
-std::string cur_full_path();
-std::string cur_dir();
-std::string tmp_dir();
-std::string join_path(const std::string &parent, const std::string &fp);
-
-bool exists(const std::string &p);
-
+class blockchain {
+public:
+  static constexpr char const *Block_LIB = "blockchain_lib";
+  static constexpr char const *Block_Tail = "blockchain_tail";
+}; // end class blockchain
 } // end namespace fs
 } // end namespace neb
-

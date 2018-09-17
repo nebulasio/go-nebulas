@@ -5,6 +5,6 @@ add_library(nbre_fs rocksdb_storage.cpp util.cpp
   proto/genesis.pb.cc
   proto/state.pb.cc)
 
-target_link_libraries(nbre_fs rocksdb)
+target_link_libraries(nbre_fs rocksdb nbre_common ${protobuf_lib})
 
 enable_clang_tidy(nbre_fs)
