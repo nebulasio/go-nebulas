@@ -380,6 +380,7 @@ func (s *APIService) toBlockResponse(block *core.Block, fullFillTransaction bool
 		} else {
 			tx = &rpcpb.TransactionResponse{Hash: v.Hash().String()}
 		}
+		tx.BlockHeight = block.Height()
 		txs = append(txs, tx)
 	}
 	resp.Transactions = txs
