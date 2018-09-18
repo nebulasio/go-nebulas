@@ -74,7 +74,6 @@ TEST(test_common_util_byte, positive_to_string) {
   EXPECT_EQ(bs, bytes);
 }
 
-
 TEST(test_common_util_byte, test_default) {
   neb::util::fix_bytes<> fb;
 
@@ -118,4 +117,33 @@ TEST(test_common_util_byte, positive_fix_bytes_to_hex) {
   tf("", {});
 }
 
+template <size_t N>
+void test_fixed_bytes(const std::string &hexstring,
+                      const std::string &base58_string) {
+  neb::util::fix_bytes<N> fb = neb::util::fix_bytes<N>::from_hex(hexstring);
+  std::string result = fb.to_base58();
+
+  EXPECT_EQ(result, base58_string);
+}
+
+TEST(test_common_util_byte, positive_base58_encoding_decoding) {
+  test_fixed_bytes<1>("0", "1");
+  test_fixed_bytes<1>("61", "2g");
+  test_fixed_bytes<3>("626262", "a3gV");
+  test_fixed_bytes<3>("636363", "aPEr");
+  test_fixed_bytes<20>("73696d706c792061206c6f6e6720737472696e67",
+                       "2cFupjhnEsSn59qHXstmK2ffpLv2");
+  test_fixed_bytes<25>("00eb15231dfceb60925886b67d065299925915aeb172c06647",
+                       "1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L");
+  test_fixed_bytes<5>("516b6fcd0f", "ABnLTmg");
+  test_fixed_bytes<9>("bf4f89001e670274dd", "3SEo3LWLoPntC");
+  test_fixed_bytes<4>("572e4794", "3EFU7m");
+  test_fixed_bytes<10>("ecac89cad93923c02321", "EJDM8drfXA6uyA");
+  test_fixed_bytes<4>("10c8511e", "Rt5zm");
+  test_fixed_bytes<10>("00000000000000000000", "1111111111");
+  test_fixed_bytes<43>(
+      "000111d38e5fc9071ffcd20b4a763cc9ae4f252bb4e48fd66a835e252ada93ff480d6dd4"
+      "3dc62a641155a5",
+      "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
+}
 
