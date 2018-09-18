@@ -302,6 +302,19 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 		recordTransferEvent(ErrTransferAddressParse, cAddr.String(), "", "", height, wsState, txHash)
 		return ErrTransferAddressParse
 	}
+
+	// in old world state, toAcc accountstate create before amount check
+	if !core.TransferFromContractFailureEventRecordableAtHeight2(height) {
+		_, err := engine.ctx.state.GetOrCreateUserAccount(addr.Bytes())
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"handler": uint64(uintptr(handler)),
+				"address": addr,
+				"err":     err,
+			}).Fatal("GetAccountStateFunc get account state failed.")
+		}
+	}
+
 	transferValueStr := C.GoString(v)
 	amount, err := util.NewUint128FromString(transferValueStr)
 	if err != nil {

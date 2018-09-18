@@ -24,6 +24,8 @@ import (
 	"sync"
 	"time"
 
+	"runtime"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
@@ -39,7 +41,6 @@ import (
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
-	"runtime"
 )
 
 var (
