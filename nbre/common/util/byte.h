@@ -161,7 +161,7 @@ inline bytes string_to_byte(const std::string &str) {
 }
 
 inline std::string byte_to_string(const bytes &b) {
-  return std::string((const char *)b.value());
+  return std::string((const char*)b.value(), b.size());
 }
 
 template <typename T>
