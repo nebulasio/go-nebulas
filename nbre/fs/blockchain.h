@@ -20,6 +20,8 @@
 
 #pragma once
 #include "common/common.h"
+#include "fs/proto/block.pb.h"
+#include "fs/rocksdb_storage.h"
 
 namespace neb {
 namespace fs {
@@ -28,6 +30,22 @@ class blockchain {
 public:
   static constexpr char const *Block_LIB = "blockchain_lib";
   static constexpr char const *Block_Tail = "blockchain_tail";
+
+  blockchain(const std::string &path);
+  blockchain(const blockchain &bc) = delete;
+  blockchain &operator=(const blockchain &bc) = delete;
+
+  std::shared_ptr<corepb::Block> load_tail_block();
+  std::shared_ptr<corepb::Block> load_LIB_block();
+
+  std::shared_ptr<corepb::Block> load_block_with_height(block_height_t height);
+
+private:
+  std::shared_ptr<corepb::Block>
+  load_block_with_tag_string(const std::string &tag);
+
+private:
+  std::unique_ptr<rocksdb_storage> m_storage;
 }; // end class blockchain
 } // end namespace fs
 } // end namespace neb
