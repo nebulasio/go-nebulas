@@ -58,7 +58,7 @@ public:
   fix_bytes(fix_bytes &&v) : m_value(std::move(v.m_value)) {}
   fix_bytes(const byte_t *buf, size_t buf_len) {
     if (buf_len >= ByteLength) {
-      memcpy(m_value, buf, ByteLength);
+      memcpy(m_value.data(), buf, ByteLength);
     } else {
       LOG(ERROR) << "buf len is: " << buf_len << ", less than " << ByteLength;
     }
