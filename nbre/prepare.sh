@@ -19,14 +19,17 @@
 
 #CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" >/dev/null && pwd  )"
 CUR_DIR="$( pwd )"
+LOGICAL_CPU=$(cat /proc/cpuinfo |grep "processor"|wc -l)
+PARALLEL=$LOGICAL_CPU
 
 if [ ! -d $CUR_DIR/3rd_party/cmake-3.12.2 ]; then
+  cd $CUR_DIR/3rd_party/
   tar -xf cmake-3.12.2.tar.gz
 fi
 
 if [ ! -f $CUR_DIR/lib/bin/cmake ]; then
   cd $CUR_DIR/3rd_party/cmake-3.12.2/
-  ./bootstrap --prefix=$CUR_DIR/lib --parallel=4 && make && make install
+  ./bootstrap --prefix=$CUR_DIR/lib --parallel=$PARALLEL && make -j$PARALLEL && make install
 fi
 export PATH=$CUR_DIR/lib/bin:$PATH
 
@@ -58,7 +61,7 @@ if [ ! -d $CUR_DIR/lib/include/llvm ]; then
   mkdir llvm-build
   cd llvm-build
   cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib/ ../llvm-$LLVM_VERSION.src
-  make -j4 && make install
+  make CC=clang -j$PARALLEL && make install
 fi
 
 export CXX=$CUR_DIR/lib/bin/clang++
@@ -83,19 +86,19 @@ build_with_cmake(){
   mkdir build
   cd build
   cmake -DCMAKE_MODULE_PATH=$CUR_DIR/lib/lib/cmake -DCMAKE_LIBRARY_PATH=$CUR_DIR/lib/lib -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib/ ../
-  make && make install && make clean
+  make -j$PARALLEL && make install && make clean
   cd ../ && rm -rf build
 }
 
 build_with_configure(){
   cd $CUR_DIR/3rd_party/$1
   ./configure --prefix=$CUR_DIR/lib/
-  make && make install && make clean
+  make -j$PARALLEL && make install && make clean
 }
 
 build_with_make(){
   cd $CUR_DIR/3rd_party/$1
-  make && make install PREFIX=$CUR_DIR/lib/
+  make -j$PARALLEL && make install PREFIX=$CUR_DIR/lib/
 }
 
 if [ ! -d $CUR_DIR/lib/include/glog/ ]; then
@@ -107,10 +110,12 @@ fi
 
 if [ ! -f $CUR_DIR/lib/include/snappy.h ]; then
   cd $CUR_DIR/3rd_patch/snappy && cp ../snappy.patch ./ && git apply snappy.patch
+  # turn off unittest
   build_with_cmake snappy
 fi
 
 if [ ! -d $CUR_DIR/lib/include/gflags ]; then
+  # src/gflags.cc, snprintf space before PRIdxx
   build_with_configure gflags
 fi
 
@@ -134,7 +139,7 @@ fi
 
 if [ ! -d $CUR_DIR/lib/include/rocksdb ]; then
   cd $CUR_DIR/3rd_party/rocksdb
-  LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include make install-static INSTALL_PATH=$CUR_DIR/lib -j4
+  LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include make install-static INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
 fi
 
 if [ ! -d $CUR_DIR/3rd_party/grpc ]; then
@@ -146,7 +151,7 @@ fi
 
 if [ ! -d $CUR_DIR/lib/include/grpc ]; then
   cd $CUR_DIR/3rd_party/grpc
-  make && make install prefix=$CUR_DIR/lib/
+  make -j$PARALLEL && make install prefix=$CUR_DIR/lib/
 fi
 
 if [ ! -d $CUR_DIR/test/data/data.db ]; then
@@ -158,5 +163,5 @@ if [ ! -f $CUR_DIR/lib/bin/protoc ]; then
   cd $CUR_DIR/3rd_party/protobuf
   ./autogen.sh
   ./configure --prefix=$CUR_DIR/lib/
-  make && make install && make clean
+  make -j$PARALLEL && make install && make clean
 fi
