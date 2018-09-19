@@ -124,10 +124,14 @@ void test_fixed_bytes(const std::string &hexstring,
   std::string result = fb.to_base58();
 
   EXPECT_EQ(result, base58_string);
+
+  neb::util::bytes bytes = neb::util::bytes::from_hex(hexstring);
+  result = bytes.to_base58();
+
+  EXPECT_EQ(result, base58_string);
 }
 
 TEST(test_common_util_byte, positive_base58_encoding_decoding) {
-  test_fixed_bytes<1>("0", "1");
   test_fixed_bytes<1>("61", "2g");
   test_fixed_bytes<3>("626262", "a3gV");
   test_fixed_bytes<3>("636363", "aPEr");
@@ -146,4 +150,54 @@ TEST(test_common_util_byte, positive_base58_encoding_decoding) {
       "3dc62a641155a5",
       "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
 }
+
+template <typename T>
+void test_constructor() {
+  T bytes_default;
+  int result = (int)(*bytes_default.value());
+  int want = 0;
+  EXPECT_EQ(result, want);
+
+  T bytes_array({132, 11, 111, 104});
+  result = bytes_array.size();
+  want = 32;
+  EXPECT_EQ(result, want);
+
+  neb::byte_t buf[32] = {53,  80, 171, 169, 116, 146, 222, 56,  175, 48,  102,
+                         240, 21, 127, 197, 50,  219, 103, 145, 179, 125, 83,
+                         38,  44, 231, 104, 141, 204, 93,  70,  24,  86};
+  T bytes_set_length(buf, 32);
+  result = bytes_set_length.size();
+  want = 32;
+  EXPECT_EQ(result, want);
+
+  T bytes_copy(bytes_array);
+  result = bytes_copy.size();
+  want = 32;
+  EXPECT_EQ(result, want);
+
+  T bytes_right_value(std::move(bytes_set_length));
+  result = bytes_right_value.size();
+  want = 32;
+  EXPECT_EQ(result, want);
+
+  T bytes_assignment = bytes_default;
+  result = (int)(*bytes_assignment.value());
+  want = 0;
+  EXPECT_EQ(result, want);
+
+  T bytes_assignment_right_value = std::move(bytes_set_length);
+  result = bytes_assignment_right_value.size();
+  want = 32;
+  EXPECT_EQ(result, want);
+
+  EXPECT_TRUE(bytes_assignment == bytes_default);
+  EXPECT_TRUE(bytes_assignment_right_value != bytes_default);
+}
+
+TEST(test_common_util_byte, positive_fixed_byte_constructor) {
+  test_constructor<neb::util::fix_bytes<>>();
+  test_constructor<neb::util::bytes>();
+}
+
 
