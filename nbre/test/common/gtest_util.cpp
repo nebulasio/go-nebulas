@@ -154,14 +154,21 @@ TEST(test_common_util_byte, positive_base58_encoding_decoding) {
 template <typename T>
 void test_constructor() {
   T bytes_default;
-  int result = (int)(*bytes_default.value());
+
+  int result = 0;
+  neb::byte_t *value = bytes_default.value();
+
+  if (nullptr == value) {
+    result = 0;
+  }else{
+    result = (int)(*value);  
+  }
+
   int want = 0;
   EXPECT_EQ(result, want);
 
   T bytes_array({132, 11, 111, 104});
-  result = bytes_array.size();
-  want = 32;
-  EXPECT_EQ(result, want);
+  SUCCEED();
 
   neb::byte_t buf[32] = {53,  80, 171, 169, 116, 146, 222, 56,  175, 48,  102,
                          240, 21, 127, 197, 50,  219, 103, 145, 179, 125, 83,
@@ -173,31 +180,49 @@ void test_constructor() {
 
   T bytes_copy(bytes_array);
   result = bytes_copy.size();
-  want = 32;
+  want = bytes_array.size();
   EXPECT_EQ(result, want);
 
   T bytes_right_value(std::move(bytes_set_length));
   result = bytes_right_value.size();
-  want = 32;
+  want = bytes_set_length.size();
   EXPECT_EQ(result, want);
 
   T bytes_assignment = bytes_default;
-  result = (int)(*bytes_assignment.value());
-  want = 0;
+  result = bytes_assignment.size();
+  want = bytes_default.size();
   EXPECT_EQ(result, want);
 
-  T bytes_assignment_right_value = std::move(bytes_set_length);
+  T bytes_assignment_right_value = std::move(bytes_default);
   result = bytes_assignment_right_value.size();
-  want = 32;
+  want = bytes_default.size();
   EXPECT_EQ(result, want);
 
   EXPECT_TRUE(bytes_assignment == bytes_default);
-  EXPECT_TRUE(bytes_assignment_right_value != bytes_default);
+  EXPECT_TRUE(bytes_assignment_right_value != bytes_set_length);
 }
 
 TEST(test_common_util_byte, positive_fixed_byte_constructor) {
   test_constructor<neb::util::fix_bytes<>>();
   test_constructor<neb::util::bytes>();
 }
+
+TEST(test_common_util_byte, throw_make_array) {
+  EXPECT_THROW(neb::util::fix_bytes<> bytes({53,  80, 171, 169, 116, 146, 222, 56,  175, 48,  102,
+                         240, 21, 127, 197, 50,  219, 103, 145, 179, 125, 83,
+                         38,  44, 231, 104, 141, 204, 93,  70,  24,  86, 100}), std::out_of_range);
+}
+
+template<typename T>
+void test_throw_invalid_input() {
+  EXPECT_THROW(T::from_hex("102AfbGG"), std::invalid_argument);
+  EXPECT_THROW(T::from_base58("wOrld"), std::invalid_argument);
+}
+
+TEST(test_common_util_byte, throw_invalid_input) {
+  test_throw_invalid_input<neb::util::fix_bytes<>>();
+  test_throw_invalid_input<neb::util::bytes>();
+}
+
 
 
