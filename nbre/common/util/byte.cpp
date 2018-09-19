@@ -20,6 +20,7 @@
 //
 #include "common/util/byte.h"
 #include "common/util/base58.h"
+#include "common/util/base64.h"
 #include <iomanip>
 #include <sstream>
 
@@ -37,8 +38,16 @@ std::string convert_byte_to_hex(const byte_t *buf, size_t len) {
   }
   return s.str();
 }
+
 std::string convert_byte_to_base58(const byte_t *buf, size_t len) {
   return ::neb::encode_base58(buf, buf + len);
+}
+
+std::string convert_byte_to_base64(byte_t *buf) {
+  std::string input(reinterpret_cast<char*>(buf));
+  std::string output;
+  ::neb::encode_base64(input, output);
+  return output; 
 }
 
 bool convert_hex_to_bytes(const std::string &s, byte_t *buf, size_t &len) {
@@ -74,6 +83,19 @@ bool convert_base58_to_bytes(const std::string &s, byte_t *buf, size_t &len) {
     len = ret.size();
     if (buf) {
       memcpy(buf, &ret[0], len);
+    }
+  }
+
+  return rv;
+}
+
+bool convert_base64_to_bytes(const std::string &s, byte_t *buf, size_t &len) {
+  std::string output;
+  bool rv = ::neb::decode_base64(s, output);
+  if (rv) {
+    len = output.size();
+    if (buf) {
+      memcpy(buf, output.c_str(), len);
     }
   }
 
@@ -133,6 +155,11 @@ bool bytes::operator!=(const bytes &v) const { return !operator==(v); }
 std::string bytes::to_base58() const {
   return internal::convert_byte_to_base58(value(), size());
 }
+
+std::string bytes::to_base64() const {
+  return internal::convert_byte_to_base64(const_cast<neb::byte_t*>(value()));
+}
+
 std::string bytes::to_hex() const {
   return internal::convert_byte_to_hex(value(), size());
 }
@@ -144,6 +171,20 @@ bytes bytes::from_base58(const std::string &t) {
     throw std::invalid_argument("invalid base58 string for from_base58");
   bytes ret(len);
   internal::convert_base58_to_bytes(t, ret.value(), len);
+  return ret;
+}
+
+bytes bytes::from_base64(const std::string &t) {
+  size_t len = 0;
+  bool succ = internal::convert_base64_to_bytes(t, nullptr, len);
+  if (!succ)
+    throw std::invalid_argument("invalid base64 string for from_base64");
+
+  bytes ret(len);
+  bool succ_ret = internal::convert_base64_to_bytes(t, ret.value(), len);
+  if (!succ_ret) {
+    throw std::invalid_argument("invalid base64 string for from_base64");
+  }
   return ret;
 }
 

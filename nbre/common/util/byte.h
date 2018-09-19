@@ -31,6 +31,7 @@ namespace util {
 namespace internal {
 std::string convert_byte_to_hex(const byte_t *buf, size_t len);
 std::string convert_byte_to_base58(const byte_t *buf, size_t len);
+std::string convert_byte_to_base64(byte_t *buf);
 
 bool convert_hex_to_bytes(const std::string &s, byte_t *buf, size_t &len);
 bool convert_base58_to_bytes(const std::string &s, byte_t *buf, size_t &len);
@@ -142,9 +143,11 @@ public:
   bool operator!=(const bytes &v) const;
 
   std::string to_base58() const;
+  std::string to_base64() const;
   std::string to_hex() const;
 
   static bytes from_base58(const std::string &t);
+  static bytes from_base64(const std::string &t);
   static bytes from_hex(const std::string &t);
 
   inline size_t size() const { return m_size; }
