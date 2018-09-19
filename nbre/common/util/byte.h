@@ -148,8 +148,20 @@ public:
   static bytes from_hex(const std::string &t);
 
   inline size_t size() const { return m_size; }
-  inline const byte_t *value() const { return m_value.get(); }
-  inline byte_t *value() { return m_value.get(); }
+  inline const byte_t *value() const { 
+    if(nullptr != m_value){
+      return m_value.get(); 
+    }else{
+      return nullptr;
+    }
+  }
+  inline byte_t *value() { 
+    if(nullptr != m_value){
+      return m_value.get();
+    }else{
+      return nullptr; 
+    }
+  }
 
 private:
   std::unique_ptr<byte_t[]> m_value;
