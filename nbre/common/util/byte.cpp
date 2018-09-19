@@ -153,8 +153,13 @@ bytes bytes::from_hex(const std::string &t) {
   if (!succ) {
     throw std::invalid_argument("invalid hex string for from_hex");
   }
+
   bytes ret(len);
-  internal::convert_hex_to_bytes(t, ret.value(), len);
+  bool succ_ret = internal::convert_hex_to_bytes(t, ret.value(), len);
+  if (!succ_ret) {
+    throw std::invalid_argument("invalid hex string for from_hex");
+  }
+
   return ret;
 }
 }
