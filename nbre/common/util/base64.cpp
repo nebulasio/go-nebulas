@@ -13,9 +13,14 @@ bool encode_base64(const std::string &input, std::string &output) {
 
   std::stringstream result;
 
-  std::copy(Base64EncodeIterator(input.begin()), Base64EncodeIterator(input.end()),
-       std::ostream_iterator<char>(result));
+  std::copy(Base64EncodeIterator(input.begin()),
+            Base64EncodeIterator(input.end()),
+            std::ostream_iterator<char>(result));
 
+  size_t equal_count = (3 - input.length() % 3) % 3;
+  for (size_t i = 0; i < equal_count; i++) {
+    result.put('=');
+  }
   output = result.str();
 
   return output.empty() == false;
