@@ -19,7 +19,7 @@
 
 CUR_DIR="$( pwd )"
 #CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" >/dev/null && pwd  )"
-cd $CUR_DIR/fs/proto
+#cd $CUR_DIR/fs/proto
 cp ../../../core/pb/block.proto ./
 cp ../../../core/pb/dynasty.proto ./
 cp ../../../core/pb/genesis.proto ./
@@ -28,6 +28,6 @@ cp ../../../common/dag/pb/dag.proto ./
 
 patch < block.proto.patch
 
-unzip protoc-3.2.0-linux-x86_64.zip -d protoc3
+#unzip protoc-3.2.0-linux-x86_64.zip -d protoc3
 
-protoc --cpp_out=./ block.proto dag.proto dynasty.proto genesis.proto state.proto
+#protoc --cpp_out=./ block.proto dag.proto dynasty.proto genesis.proto state.proto
