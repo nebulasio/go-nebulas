@@ -50,8 +50,8 @@ LDFLAGS = -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.
 
 all: clean vet fmt lint build test
 
-dep:
-	dep ensure -v
+deploy-dep:
+	curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
 deploy-v8:
 	$(INSTALL) nf/nvm/native-lib/*$(DYLIB) /usr/local/lib/
@@ -61,6 +61,11 @@ deploy-libs:
 	$(INSTALL) nf/nvm/native-lib/*$(DYLIB) /usr/local/lib/
 	$(INSTALL) native-lib/*$(DYLIB) /usr/local/lib/
 	$(LDCONFIG)
+
+dep:
+	dep ensure -v
+
+setup: deploy-dep deploy-v8 deploy-libs dep
 
 build:
 	cd cmd/neb; go build $(LDFLAGS) -o ../../$(BINARY)-$(COMMIT)
