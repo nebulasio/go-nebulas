@@ -44,7 +44,7 @@ TEST(test_common_util, from_int64) {
   test_number_bytes<int64_t>(-1024, {255, 255, 255, 255, 255, 255, 252, 0});
   test_number_bytes<int64_t>(9223372036854775807,
                              {127, 255, 255, 255, 255, 255, 255, 255});
-  test_number_bytes<int64_t>(-9223372036854775808ll,
+  test_number_bytes<int64_t>(-9223372036854775808ull,
                              {128, 0, 0, 0, 0, 0, 0, 0});
 }
 
@@ -86,7 +86,6 @@ TEST(test_common_util_byte, fix_bytes_to_base58) {
   neb::util::fix_bytes<6> fb({32, 119, 111, 114, 108, 100});
 
   std::string result = fb.to_base58();
-  std::cout << result << std::endl;
   neb::util::fix_bytes<6> tb = neb::util::fix_bytes<6>::from_base58(result);
 
   EXPECT_EQ(fb, tb);
