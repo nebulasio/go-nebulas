@@ -42,8 +42,9 @@ blockchain::load_block_with_height(block_height_t height) {
   if (!m_storage)
     return block;
 
-  neb::util::bytes block_bytes =
+  neb::util::bytes height_hash =
       m_storage->get_bytes(neb::util::number_to_byte<neb::util::bytes>(height));
+  neb::util::bytes block_bytes = m_storage->get_bytes(height_hash);
   block->ParseFromArray(block_bytes.value(), block_bytes.size());
   return block;
 }
