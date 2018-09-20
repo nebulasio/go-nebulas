@@ -63,7 +63,7 @@ TEST(test_common_util, from_int16) {
   test_number_bytes<int16_t>(-32768, {128, 0});
 }
 
-TEST(test_common_util_byte, positive_to_string) {
+TEST(test_common_util_byte, to_string) {
   neb::util::bytes bytes(
       {72, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100});
   std::string result = neb::util::byte_to_string(bytes);
@@ -82,7 +82,7 @@ TEST(test_common_util_byte, test_default) {
   EXPECT_EQ(base58, "11111111111111111111111111111111");
 }
 
-TEST(test_common_util_byte, positive_fix_bytes_to_base58) {
+TEST(test_common_util_byte, fix_bytes_to_base58) {
   neb::util::fix_bytes<6> fb({32, 119, 111, 114, 108, 100});
 
   std::string result = fb.to_base58();
@@ -92,7 +92,7 @@ TEST(test_common_util_byte, positive_fix_bytes_to_base58) {
   EXPECT_EQ(fb, tb);
 }
 
-TEST(test_common_util_byte, positive_fix_bytes_to_hex) {
+TEST(test_common_util_byte, fix_bytes_to_hex) {
   neb::util::fix_bytes<6> fb({132, 11, 111, 104, 18, 100});
 
   std::string result = fb.to_hex();
@@ -117,40 +117,6 @@ TEST(test_common_util_byte, positive_fix_bytes_to_hex) {
   tf("", {});
 }
 
-template <size_t N>
-void test_fixed_bytes(const std::string &hexstring,
-                      const std::string &base58_string) {
-  neb::util::fix_bytes<N> fb = neb::util::fix_bytes<N>::from_hex(hexstring);
-  std::string result = fb.to_base58();
-
-  EXPECT_EQ(result, base58_string);
-
-  neb::util::bytes bytes = neb::util::bytes::from_hex(hexstring);
-  result = bytes.to_base58();
-
-  EXPECT_EQ(result, base58_string);
-}
-
-TEST(test_common_util_byte, positive_base58_encoding_decoding) {
-  test_fixed_bytes<1>("61", "2g");
-  test_fixed_bytes<3>("626262", "a3gV");
-  test_fixed_bytes<3>("636363", "aPEr");
-  test_fixed_bytes<20>("73696d706c792061206c6f6e6720737472696e67",
-                       "2cFupjhnEsSn59qHXstmK2ffpLv2");
-  test_fixed_bytes<25>("00eb15231dfceb60925886b67d065299925915aeb172c06647",
-                       "1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L");
-  test_fixed_bytes<5>("516b6fcd0f", "ABnLTmg");
-  test_fixed_bytes<9>("bf4f89001e670274dd", "3SEo3LWLoPntC");
-  test_fixed_bytes<4>("572e4794", "3EFU7m");
-  test_fixed_bytes<10>("ecac89cad93923c02321", "EJDM8drfXA6uyA");
-  test_fixed_bytes<4>("10c8511e", "Rt5zm");
-  test_fixed_bytes<10>("00000000000000000000", "1111111111");
-  test_fixed_bytes<43>(
-      "000111d38e5fc9071ffcd20b4a763cc9ae4f252bb4e48fd66a835e252ada93ff480d6dd4"
-      "3dc62a641155a5",
-      "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
-}
-
 template <typename T>
 void test_constructor() {
   T bytes_default;
@@ -161,7 +127,7 @@ void test_constructor() {
   if (nullptr == value) {
     result = 0;
   }else{
-    result = (int)(*value);  
+    result = (int)(*value);
   }
 
   int want = 0;
@@ -202,15 +168,15 @@ void test_constructor() {
   EXPECT_TRUE(bytes_assignment_right_value != bytes_set_length);
 }
 
-TEST(test_common_util_byte, positive_fixed_byte_constructor) {
+TEST(test_common_util_byte, fix_byte_constructor) {
   test_constructor<neb::util::fix_bytes<>>();
   test_constructor<neb::util::bytes>();
 }
 
 TEST(test_common_util_byte, throw_make_array) {
   EXPECT_THROW(neb::util::fix_bytes<> bytes({53,  80, 171, 169, 116, 146, 222, 56,  175, 48,  102,
-                         240, 21, 127, 197, 50,  219, 103, 145, 179, 125, 83,
-                         38,  44, 231, 104, 141, 204, 93,  70,  24,  86, 100}), std::out_of_range);
+        240, 21, 127, 197, 50,  219, 103, 145, 179, 125, 83,
+        38,  44, 231, 104, 141, 204, 93,  70,  24,  86, 100}), std::out_of_range);
 }
 
 template<typename T>
@@ -223,6 +189,57 @@ TEST(test_common_util_byte, throw_invalid_input) {
   test_throw_invalid_input<neb::util::fix_bytes<>>();
   test_throw_invalid_input<neb::util::bytes>();
 }
+
+template <size_t N>
+void test_fixed_bytes(const std::string &hexstring,
+                      const std::string &base58_string) {
+  neb::util::fix_bytes<N> fb = neb::util::fix_bytes<N>::from_hex(hexstring);
+  std::string result = fb.to_base58();
+
+  EXPECT_EQ(result, base58_string);
+
+  neb::util::bytes bytes = neb::util::bytes::from_hex(hexstring);
+  result = bytes.to_base58();
+
+  EXPECT_EQ(result, base58_string);
+}
+
+TEST(test_common_util_byte, base58_encoding_decoding) {
+  test_fixed_bytes<1>("61", "2g");
+  test_fixed_bytes<3>("626262", "a3gV");
+  test_fixed_bytes<3>("636363", "aPEr");
+  test_fixed_bytes<20>("73696d706c792061206c6f6e6720737472696e67",
+                       "2cFupjhnEsSn59qHXstmK2ffpLv2");
+  test_fixed_bytes<25>("00eb15231dfceb60925886b67d065299925915aeb172c06647",
+                       "1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L");
+  test_fixed_bytes<5>("516b6fcd0f", "ABnLTmg");
+  test_fixed_bytes<9>("bf4f89001e670274dd", "3SEo3LWLoPntC");
+  test_fixed_bytes<4>("572e4794", "3EFU7m");
+  test_fixed_bytes<10>("ecac89cad93923c02321", "EJDM8drfXA6uyA");
+  test_fixed_bytes<4>("10c8511e", "Rt5zm");
+  test_fixed_bytes<10>("00000000000000000000", "1111111111");
+  test_fixed_bytes<43>(
+      "000111d38e5fc9071ffcd20b4a763cc9ae4f252bb4e48fd66a835e252ada93ff480d6dd4"
+      "3dc62a641155a5",
+      "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
+}
+
+template<typename T>
+void test_base64_encoding_decoding(const std::string& input) {
+  T b = T::from_base64(input);
+  std::string result = b.to_base64();
+
+  EXPECT_EQ(result, input);
+}
+
+TEST(test_common_util_byte, base64_encoding_decoding) {
+  std::string input(
+      "TmVidWxhcyBpcyBhIG5leHQgZ2VuZXJhdGlvbiBwdWJsaWMgYmxvY2tjaGFpbiwgYWltaW5n"
+      "IGZvciBhIGNvbnRpbnVvdXNseSBpbXByb3ZpbmcgZWNvc3lzdGVtLg==");
+  test_base64_encoding_decoding<neb::util::fix_bytes<96>>(input);
+  test_base64_encoding_decoding<neb::util::bytes>(input);
+}
+
 
 
 

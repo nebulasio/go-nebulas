@@ -31,9 +31,11 @@ namespace util {
 namespace internal {
 std::string convert_byte_to_hex(const byte_t *buf, size_t len);
 std::string convert_byte_to_base58(const byte_t *buf, size_t len);
+std::string convert_byte_to_base64(const byte_t *buf);
 
 bool convert_hex_to_bytes(const std::string &s, byte_t *buf, size_t &len);
 bool convert_base58_to_bytes(const std::string &s, byte_t *buf, size_t &len);
+bool convert_base64_to_bytes(const std::string &s, byte_t *buf, size_t &len);
 
 template <typename T, std::size_t N, std::size_t... Ns>
 std::array<T, N> make_array_impl(std::initializer_list<T> t,
@@ -88,6 +90,10 @@ public:
     return internal::convert_byte_to_base58(value(), size());
   }
 
+  std::string to_base64() const {
+    return internal::convert_byte_to_base64(value());
+  }
+
   std::string to_hex() const {
     return internal::convert_byte_to_hex(value(), size());
   }
@@ -104,6 +110,15 @@ public:
     bool succ = internal::convert_base58_to_bytes(t, ret.value(), s);
     if (!succ)
       throw std::invalid_argument("invalid base58 string for from_base58");
+    return ret;
+  }
+
+  static fix_bytes<ByteLength> from_base64(const std::string &t) {
+    fix_bytes<ByteLength> ret;
+    size_t s = ret.size();
+    bool succ = internal::convert_base64_to_bytes(t, ret.value(), s);
+    if (!succ)
+      throw std::invalid_argument("invalid base64 string for from_base64");
     return ret;
   }
 
@@ -142,9 +157,11 @@ public:
   bool operator!=(const bytes &v) const;
 
   std::string to_base58() const;
+  std::string to_base64() const;
   std::string to_hex() const;
 
   static bytes from_base58(const std::string &t);
+  static bytes from_base64(const std::string &t);
   static bytes from_hex(const std::string &t);
 
   inline size_t size() const { return m_size; }

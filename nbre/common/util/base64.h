@@ -2,6 +2,6 @@
 #include "common/common.h"
 
 namespace neb {
-
-bool base64_decode(const std::string &input, std::string &output);
-}
+bool encode_base64(const std::string &input, std::string &output);
+bool decode_base64(const std::string &input, std::string &output);
+} // namespace neb
