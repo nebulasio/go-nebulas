@@ -52,7 +52,7 @@ public:
     std::lock_guard<std::mutex> _l(m_mutex);
     m_handlers.push_back(std::make_pair(
         CT::command_type, [func](const std::shared_ptr<base_command> &cmd) {
-          func(std::dynamic_pointer_cast<CT>(cmd));
+          func(std::static_pointer_cast<CT>(cmd));
         }));
   }
 

@@ -19,20 +19,16 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
-
 #include "common/common.h"
-#include "fs/proto/ir.pb.h"
+#include "util/singleton.h"
 
 namespace neb {
-namespace internal {
-class jit_driver_impl;
-}
-class jit_driver {
+class configuration : public util::singleton<configuration> {
 public:
-  jit_driver();
-  void run(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs);
+  configuration();
+  void init_with_args(int argc, char *argv[]);
 
-protected:
-  std::unique_ptr<internal::jit_driver_impl> m_impl;
-}; // end class jit_driver;
-} // end namespace neb
+  const std::string &exec_name() const;
+  const std::string &runtime_library_path() const;
+};
+}
