@@ -198,6 +198,13 @@ func parseTransactionPayload(reqTx *rpcpb.TransactionRequest) (payloadType strin
 					return "", nil, err
 				}
 			}
+		case core.TxPayloadProtocolType:
+			{
+				payloadType = core.TxPayloadProtocolType
+				if payload, err = core.NewProtocolPayload(reqTx.Protocol).ToBytes(); err != nil {
+					return "", nil, err
+				}
+			}
 		default:
 			return "", nil, core.ErrInvalidTxPayloadType
 		}
@@ -228,6 +235,11 @@ func parseTransactionPayload(reqTx *rpcpb.TransactionRequest) (payloadType strin
 				}
 			} else {
 				return "", nil, errors.New("invalid contract")
+			}
+		} else if reqTx.Protocol != nil {
+			payloadType = core.TxPayloadProtocolType
+			if payload, err = core.NewProtocolPayload(reqTx.Protocol).ToBytes(); err != nil {
+				return "", nil, err
 			}
 		} else {
 			payloadType = core.TxPayloadBinaryType

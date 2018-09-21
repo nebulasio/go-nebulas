@@ -393,6 +393,8 @@ func (tx *Transaction) LoadPayload() (TxPayload, error) {
 		payload, err = LoadDeployPayload(tx.data.Payload)
 	case TxPayloadCallType:
 		payload, err = LoadCallPayload(tx.data.Payload)
+	case TxPayloadProtocolType:
+		payload, err = LoadProtocolPayload(tx.data.Payload)
 	default:
 		err = ErrInvalidTxPayloadType
 	}
