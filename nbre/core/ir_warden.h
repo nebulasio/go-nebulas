@@ -1,4 +1,4 @@
-// Copyright (C) 2018 go-nebulas authors
+// Copyright (C) 2017 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -19,17 +19,33 @@
 //
 
 #pragma once
-#include <array>
-#include <cstdint>
-#include <glog/logging.h>
-#include <memory>
-#include <mutex>
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include "common/common.h"
+#include "common/util/singleton.h"
+#include "fs/proto/ir.pb.h"
+#include "fs/storage.h"
+#include <boost/asio.hpp>
+#include <thread>
 
 namespace neb {
-typedef std::string hex_hash_t;
-typedef uint8_t byte_t;
-typedef uint64_t block_height_t;
+namespace core {
+class ir_warden : public util::singleton<ir_warden> {
+public:
+  virtual ~ir_warden();
+  std::vector<std::shared_ptr<nbre::NBREIR>>
+  get_ir_from_height(const std::string &name, block_height_t height);
+
+  bool is_sync_already() const;
+
+  void wait_until_sync();
+
+private:
+  ir_warden();
+  void timer_callback();
+
+private:
+  std::unique_ptr<std::thread> m_thread;
+  boost::asio::io_service m_io_service;
+  std::mutex m_mutex;
+};
+}
 }

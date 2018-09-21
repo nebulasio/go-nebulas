@@ -1,4 +1,4 @@
-// Copyright (C) 2018 go-nebulas authors
+// Copyright (C) 2017 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -19,17 +19,29 @@
 //
 
 #pragma once
-#include <array>
-#include <cstdint>
-#include <glog/logging.h>
-#include <memory>
-#include <mutex>
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include "common/common.h"
+#include <boost/noncopyable.hpp>
 
 namespace neb {
-typedef std::string hex_hash_t;
-typedef uint8_t byte_t;
-typedef uint64_t block_height_t;
+namespace util {
+
+template <typename T> class singleton : boost::noncopyable {
+public:
+  static T &instance() {
+    std::call_once(s_oOnce, std::bind(singleton<T>::init));
+    return *s_pInstance;
+  }
+protected:
+  singleton() {}
+
+private:
+  static void init() { s_pInstance = std::shared_ptr<T>(new T()); }
+
+protected:
+  static std::shared_ptr<T> s_pInstance;
+  static std::once_flag s_oOnce;
+};
+template <typename T> std::shared_ptr<T> singleton<T>::s_pInstance;
+template <typename T> std::once_flag singleton<T>::s_oOnce;
+}
 }
