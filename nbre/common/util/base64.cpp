@@ -2,48 +2,21 @@
 #include <boost/archive/iterators/base64_from_binary.hpp>
 #include <boost/archive/iterators/binary_from_base64.hpp>
 #include <boost/archive/iterators/transform_width.hpp>
+#include <boost/beast/core/detail/base64.hpp>
 
 namespace neb {
 
-bool encode_base64(const std::string &input, std::string &output) {
-  typedef boost::archive::iterators::base64_from_binary<
-      boost::archive::iterators::transform_width<std::string::const_iterator, 6,
-                                                 8>>
-      Base64EncodeIterator;
+std::string encode_base64(const std::string &input) {
+  return ::boost::beast::detail::base64_encode(input);
+}
 
-  std::stringstream result;
-
-  std::copy(Base64EncodeIterator(input.begin()),
-            Base64EncodeIterator(input.end()),
-            std::ostream_iterator<char>(result));
-
-  size_t equal_count = (3 - input.length() % 3) % 3;
-  for (size_t i = 0; i < equal_count; i++) {
-    result.put('=');
-  }
-  output = result.str();
-
-  return output.empty() == false;
+std::string encode_base64(const unsigned char *pbegin,
+                          const unsigned char *pend) {
+  return ::boost::beast::detail::base64_encode(pbegin, pend - pbegin);
 }
 
 bool decode_base64(const std::string &input, std::string &output) {
-  // using namespace boost::archive::iterators;
-  typedef boost::archive::iterators::transform_width<
-      boost::archive::iterators::binary_from_base64<
-          std::string::const_iterator>,
-      8, 6>
-      Base64DecodeIterator;
-  std::stringstream result;
-
-  try {
-    copy(Base64DecodeIterator(input.begin()), Base64DecodeIterator(input.end()),
-         std::ostream_iterator<char>(result));
-  } catch (...) {
-    return false;
-  }
-
-  output = result.str();
-
+  output = ::boost::beast::detail::base64_decode(input);
   return output.empty() == false;
 }
 } // namespace neb
