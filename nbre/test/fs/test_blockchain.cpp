@@ -61,6 +61,23 @@ int main(int argc, char *argv[]) {
 
   std::string payload = data.payload();
   neb::util::bytes payload_b = neb::util::string_to_byte(payload);
+  std::string payload_base64 = payload_b.to_base64();
+  LOG(INFO) << payload_base64;
+
+  // std::string s_raw = "xx";
+  // std::string s_encode = neb::encode_base64(s_raw);
+  // std::string s_decode;
+  // neb::decode_base64(s_encode, s_decode);
+  // LOG(INFO) << s_raw << ',' << s_decode << ',' << s_encode;
+
+  neb::util::bytes b_decode = neb::util::bytes::from_base64("eHg=");
+  LOG(INFO) << b_decode.to_hex();
+  for (size_t i = 0; i < 10; i++) {
+    std::string b_encode = b_decode.to_base64();
+    b_decode = neb::util::bytes::from_base64(b_encode);
+    LOG(INFO) << b_encode;
+  }
+  // LOG(INFO) << b_decode;
 
   return 0;
 }
