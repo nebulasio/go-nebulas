@@ -19,11 +19,19 @@
 //
 
 #include "core/ir_warden.h"
+#include "core/command.h"
+#include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace neb {
 namespace core {
-ir_warden::~ir_warden() {}
+
+const command_type_t exit_command::command_type;
+ir_warden::~ir_warden() {
+  if (m_thread) {
+    m_thread->join();
+  }
+}
 
 std::vector<std::shared_ptr<nbre::NBREIR>>
 ir_warden::get_ir_from_height(const std::string &name, block_height_t height) {
@@ -41,15 +49,34 @@ void ir_warden::wait_until_sync() {
   throw std::invalid_argument("no impl");
 }
 
-void ir_warden::timer_callback() {
-  boost::asio::deadline_timer pt(m_io_service, boost::posix_time::seconds(15));
-  pt.async_wait(std::bind(&ir_warden::timer_callback, this,
-                          boost::asio::placeholders::error));
-  m_io_service.run();
+void ir_warden::on_timer() { LOG(INFO) << "time up"; }
+
+void ir_warden::timer_callback(const boost::system::error_code &ec) {
+  if (!m_exit_flag) {
+    m_timer->expires_at(m_timer->expires_at() + boost::posix_time::seconds(15));
+    m_timer->async_wait(boost::bind(&ir_warden::timer_callback, this,
+                                    boost::asio::placeholders::error));
+  }
+  on_timer();
 }
-ir_warden::ir_warden() {
-  m_thread = std::unique_ptr<std::thread>(
-      new std::thread([this]() { timer_callback(); }));
+
+void ir_warden::async_run() {
+  if (m_thread)
+    return;
+  m_timer = std::unique_ptr<boost::asio::deadline_timer>(
+      new boost::asio::deadline_timer(m_io_service,
+                                      boost::posix_time::seconds(15)));
+
+  command_queue::instance().listen_command<exit_command>(
+      [this](const std::shared_ptr<exit_command> &) { m_exit_flag = 1; });
+
+  m_thread = std::unique_ptr<std::thread>(new std::thread([this]() {
+    m_timer->async_wait(boost::bind(&ir_warden::timer_callback, this,
+                                    boost::asio::placeholders::error));
+    m_io_service.run();
+
+  }));
 }
+ir_warden::ir_warden() : m_exit_flag(0) {}
 }
 }

@@ -51,6 +51,7 @@ set(protobuf_lib ${PROJECT_SOURCE_DIR}/lib/lib/libprotobuf.so)
 add_subdirectory(common)
 add_subdirectory(fs)
 add_subdirectory(test)
+add_subdirectory(core)
 
 if(EXISTS "${PROJECT_SOURCE_DIR}/cmd/CMakeLists.txt")
   add_subdirectory(cmd)
