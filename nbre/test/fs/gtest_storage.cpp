@@ -83,11 +83,9 @@ TEST(test_fs, storage_batch_op) {
   // rs.put(static_cast<int64_t>(125), static_cast<int64_t>(267));
   // rs.del(static_cast<int64_t>(124));
   // rs.flush();
-  auto bytes = rs.get_bytes(neb::util::string_to_byte("123"));
-  std::cout << " bytes is " << bytes.size() << std::endl;
-  // EXPECT_EQ(rs.get<int64_t>("123"), 234);
 
-  EXPECT_THROW(rs.del(static_cast<int64_t>(124)),
-               neb::fs::storage_general_failure);
+  auto bytes = rs.get("123");
+  int64_t value = neb::util::byte_to_number<int64_t>(bytes);
+  EXPECT_EQ(value, 234);
 }
 
