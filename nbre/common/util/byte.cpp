@@ -43,12 +43,8 @@ std::string convert_byte_to_base58(const byte_t *buf, size_t len) {
   return ::neb::encode_base58(buf, buf + len);
 }
 
-std::string convert_byte_to_base64(const byte_t *buf) {
-  unsigned char* b = (unsigned char*)buf;
-  std::string input(reinterpret_cast<char*>(b));
-  std::string output;
-  ::neb::encode_base64(input, output);
-  return output; 
+std::string convert_byte_to_base64(const byte_t *buf, size_t len) {
+  return ::neb::encode_base64(buf, buf + len);
 }
 
 bool convert_hex_to_bytes(const std::string &s, byte_t *buf, size_t &len) {
@@ -77,10 +73,11 @@ bool convert_hex_to_bytes(const std::string &s, byte_t *buf, size_t &len) {
   return true;
 }
 
-void convert_string_to_byte(unsigned char *s, byte_t *buf, size_t size) {
-    if (buf) {
-      memcpy(buf, s, size);
-    }
+template <typename CHAR>
+void convert_string_to_byte(const CHAR *s, byte_t *buf, size_t size) {
+  if (buf) {
+    memcpy(buf, s, size);
+  }
 }
 
 bool convert_base58_to_bytes(const std::string &s, byte_t *buf, size_t &len) {
@@ -100,9 +97,8 @@ bool convert_base64_to_bytes(const std::string &s, byte_t *buf, size_t &len){
 
   if (rv) {
     len = output_string.size();
-    if(nullptr != buf) {
-      char* char_string = const_cast<char*>(output_string.c_str());
-      convert_string_to_byte((unsigned char*)char_string, buf, len);
+    if (nullptr != buf) {
+      convert_string_to_byte(output_string.c_str(), buf, len);
     }
   } else {
     throw std::invalid_argument("Invalid decode_base64.");
@@ -110,7 +106,7 @@ bool convert_base64_to_bytes(const std::string &s, byte_t *buf, size_t &len){
 
   return rv;
 }
-} 
+}
 bytes::bytes() : m_value(nullptr), m_size(0) {}
 
 bytes::bytes(size_t len)
@@ -166,7 +162,7 @@ std::string bytes::to_base58() const {
 }
 
 std::string bytes::to_base64() const {
-  return internal::convert_byte_to_base64(const_cast<neb::byte_t*>(value()));
+  return internal::convert_byte_to_base64(value(), size());
 }
 
 std::string bytes::to_hex() const {

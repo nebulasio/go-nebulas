@@ -31,7 +31,7 @@ namespace util {
 namespace internal {
 std::string convert_byte_to_hex(const byte_t *buf, size_t len);
 std::string convert_byte_to_base58(const byte_t *buf, size_t len);
-std::string convert_byte_to_base64(const byte_t *buf);
+std::string convert_byte_to_base64(const byte_t *buf, size_t len);
 
 bool convert_hex_to_bytes(const std::string &s, byte_t *buf, size_t &len);
 bool convert_base58_to_bytes(const std::string &s, byte_t *buf, size_t &len);
@@ -91,7 +91,7 @@ public:
   }
 
   std::string to_base64() const {
-    return internal::convert_byte_to_base64(value());
+    return internal::convert_byte_to_base64(value(), size());
   }
 
   std::string to_hex() const {
@@ -165,18 +165,18 @@ public:
   static bytes from_hex(const std::string &t);
 
   inline size_t size() const { return m_size; }
-  inline const byte_t *value() const { 
+  inline const byte_t *value() const {
     if(nullptr != m_value){
-      return m_value.get(); 
+      return m_value.get();
     }else{
       return nullptr;
     }
   }
-  inline byte_t *value() { 
+  inline byte_t *value() {
     if(nullptr != m_value){
       return m_value.get();
     }else{
-      return nullptr; 
+      return nullptr;
     }
   }
 
