@@ -26,10 +26,12 @@ namespace neb {
 namespace core {
 typedef uint64_t command_type_t;
 
-struct base_command {}; // end class base_command
+struct base_command {
+  virtual ~base_command() = default;
+}; // end class base_command
 
-struct exit_command {
-  const static command_type_t command_type = 1;
+struct exit_command : public base_command {
+  constexpr static command_type_t command_type = 1;
 }; // end class exit_command
 
 class command_queue : public util::singleton<command_queue> {
