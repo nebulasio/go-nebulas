@@ -40,9 +40,10 @@ import (
 
 // Payload Types
 const (
-	TxPayloadBinaryType = "binary"
-	TxPayloadDeployType = "deploy"
-	TxPayloadCallType   = "call"
+	TxPayloadBinaryType   = "binary"
+	TxPayloadDeployType   = "deploy"
+	TxPayloadCallType     = "call"
+	TxPayloadProtocolType = "protocol"
 )
 
 // Const.

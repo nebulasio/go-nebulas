@@ -376,7 +376,10 @@ message TransactionRequest {
     // binary data for transaction
     bytes binary = 10;
 
-    // transaction payload type, enum:binary, deploy, call
+    // protocol data for transaction
+    bytes protocol = 11;
+
+    // transaction payload type, enum:binary, deploy, call, protocol
     string type = 20;
 }
 
