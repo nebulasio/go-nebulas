@@ -235,7 +235,7 @@ TEST(test_common_util_byte, base64_encoding_decoding) {
   std::string input(
       "TmVidWxhcyBpcyBhIG5leHQgZ2VuZXJhdGlvbiBwdWJsaWMgYmxvY2tjaGFpbiwgYWltaW5n"
       "IGZvciBhIGNvbnRpbnVvdXNseSBpbXByb3ZpbmcgZWNvc3lzdGVtLg==");
-  test_base64_encoding_decoding<neb::util::fix_bytes<96>>(input);
+  test_base64_encoding_decoding<neb::util::fix_bytes<94>>(input);
   test_base64_encoding_decoding<neb::util::bytes>(input);
 }
 
