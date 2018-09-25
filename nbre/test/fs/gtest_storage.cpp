@@ -27,13 +27,18 @@
 
 typedef std::shared_ptr<corepb::Block> block_shared_ptr;
 
-std::string get_db_path() {
+std::string get_db_path_for_read() {
   std::string cur_path = neb::fs::cur_dir();
   return neb::fs::join_path(cur_path, "test/data/data.db/");
 }
 
+std::string get_db_path_for_write() {
+  std::string cur_path = neb::fs::cur_dir();
+  return neb::fs::join_path(cur_path, "test/data/data_test_write.db/");
+}
+
 TEST(test_fs, positive_storage_read_bc) {
-  std::string db_path = get_db_path(); 
+  std::string db_path = get_db_path_for_read(); 
 
   neb::fs::rocksdb_storage rs;
   EXPECT_THROW(rs.get(neb::fs::blockchain::Block_LIB),
@@ -58,7 +63,7 @@ TEST(test_fs, positive_storage_read_bc) {
 }
 
 TEST(test_fs, storage_read_write) {
-  std::string db_path = get_db_path(); 
+  std::string db_path = get_db_path_for_read(); 
 
   neb::fs::rocksdb_storage rs;
   rs.open_database(db_path, neb::fs::storage_open_for_readonly);
@@ -67,7 +72,7 @@ TEST(test_fs, storage_read_write) {
 }
 
 TEST(test_fs, storage_write_write) {
-  std::string db_path = get_db_path();
+  std::string db_path = get_db_path_for_read();
 
   neb::fs::rocksdb_storage rs;
   rs.open_database(db_path, neb::fs::storage_open_for_readwrite);
@@ -77,8 +82,7 @@ TEST(test_fs, storage_write_write) {
 }
 
 TEST(test_fs, storage_batch_op) {
-  std::string cur_path = neb::fs::cur_dir();
-  std::string db_path = neb::fs::join_path(cur_path, "test_data.db");
+  std::string db_path = get_db_path_for_write();
   neb::fs::rocksdb_storage rs;
   rs.open_database(db_path, neb::fs::storage_open_for_readwrite);
   // rs.enable_batch();
@@ -95,7 +99,7 @@ TEST(test_fs, storage_batch_op) {
 }
 
 TEST(test_fs, read_blockchain_transcations) {
-  std::string db_path = get_db_path();
+  std::string db_path = get_db_path_for_read();
 
   neb::fs::blockchain block_chain(db_path);
   block_shared_ptr block =  block_chain.load_block_with_height(1);
@@ -135,3 +139,32 @@ TEST(test_fs, read_blockchain_transcations) {
   EXPECT_EQ(payload_base64, want_base64);
 }
 
+TEST(test_fs, throw_operation_db) {
+  std::string db_path = get_db_path_for_read(); 
+
+  neb::fs::rocksdb_storage rs;
+  rs.open_database(db_path, neb::fs::storage_open_for_readonly);
+
+  EXPECT_THROW(rs.open_database(db_path, neb::fs::storage_open_for_readonly),
+      std::runtime_error);
+
+  rs.close_database();
+  EXPECT_THROW(rs.open_database("", neb::fs::storage_open_for_readonly),
+      neb::fs::storage_general_failure);
+
+  EXPECT_THROW(rs.get(neb::fs::blockchain::Block_LIB),
+      neb::fs::storage_exception_no_init);
+
+  EXPECT_THROW(
+      rs.put(neb::fs::blockchain::Block_LIB, neb::util::string_to_byte("xxx")),
+      neb::fs::storage_exception_no_init);
+
+  EXPECT_THROW(rs.del(neb::fs::blockchain::Block_LIB),
+      neb::fs::storage_exception_no_init);
+
+  std::string db_path_readwrite = get_db_path_for_write(); 
+  rs.open_database(db_path_readwrite, neb::fs::storage_open_for_readwrite);
+
+  EXPECT_THROW(rs.get("no_exist"),
+      neb::fs::storage_general_failure);
+}
