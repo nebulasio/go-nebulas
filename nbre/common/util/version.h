@@ -32,6 +32,7 @@ public:
     m_data.m_detail.m_minor_version = minor_version;
     m_data.m_detail.m_patch_version = patch_version;
   }
+
   version(const version &) = default;
   version &operator=(const version &) = default;
 
@@ -47,6 +48,8 @@ public:
   inline uint32_t &major_version() { return m_data.m_detail.m_major_version; }
   inline uint16_t &minor_version() { return m_data.m_detail.m_minor_version; }
   inline uint16_t &patch_version() { return m_data.m_detail.m_patch_version; }
+
+  inline uint64_t data() const { return m_data.m_data; }
 
 protected:
   union _version_data {
