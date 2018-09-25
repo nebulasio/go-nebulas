@@ -20,28 +20,24 @@
 
 #pragma once
 #include "common/common.h"
-#include <boost/noncopyable.hpp>
+#include "common/ir_ref.h"
+#include "common/util/version.h"
 
 namespace neb {
-namespace util {
 
-template <typename T> class singleton : boost::noncopyable {
+class ir_conf_reader {
 public:
-  static T &instance() {
-    std::call_once(s_oOnce, std::bind(singleton<T>::init));
-    return *s_pInstance;
-  }
-protected:
-  singleton() {}
+  ir_conf_reader(const std::string &conf_fp);
 
-private:
-  static void init() { s_pInstance = std::shared_ptr<T>(new T()); }
+  inline const std::string &ir_fp() const { return m_ir_fp; }
+  inline const ir_ref &self_ref() const { return m_self_ref; }
+  inline const std::vector<ir_ref> depends() const { return m_depends; }
+  inline block_height_t available_height() const { return m_available_height; }
 
 protected:
-  static std::shared_ptr<T> s_pInstance;
-  static std::once_flag s_oOnce;
+  std::string m_ir_fp;
+  ir_ref m_self_ref;
+  std::vector<ir_ref> m_depends;
+  block_height_t m_available_height;
 };
-template <typename T> std::shared_ptr<T> singleton<T>::s_pInstance;
-template <typename T> std::once_flag singleton<T>::s_oOnce;
-}
 }

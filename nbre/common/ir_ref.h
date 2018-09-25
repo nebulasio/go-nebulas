@@ -20,28 +20,23 @@
 
 #pragma once
 #include "common/common.h"
-#include <boost/noncopyable.hpp>
+#include "util/version.h"
 
 namespace neb {
-namespace util {
-
-template <typename T> class singleton : boost::noncopyable {
+class ir_ref {
 public:
-  static T &instance() {
-    std::call_once(s_oOnce, std::bind(singleton<T>::init));
-    return *s_pInstance;
-  }
-protected:
-  singleton() {}
+  inline ir_ref() {}
+  inline ir_ref(const std::string &name, util::version &v)
+      : m_name(name), m_version(v) {}
 
-private:
-  static void init() { s_pInstance = std::shared_ptr<T>(new T()); }
+  inline const std::string &name() const { return m_name; }
+  inline std::string &name() { return m_name; }
+
+  inline const util::version &version() const { return m_version; }
+  inline util::version &version() { return m_version; }
 
 protected:
-  static std::shared_ptr<T> s_pInstance;
-  static std::once_flag s_oOnce;
+  std::string m_name;
+  util::version m_version;
 };
-template <typename T> std::shared_ptr<T> singleton<T>::s_pInstance;
-template <typename T> std::once_flag singleton<T>::s_oOnce;
-}
 }
