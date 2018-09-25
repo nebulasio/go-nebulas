@@ -27,34 +27,47 @@ namespace fs {
 nbre_storage::nbre_storage(const std::string &path,
                            const std::string &bc_path) {
   m_storage = std::unique_ptr<rocksdb_storage>(new rocksdb_storage());
-  m_storage->open_database(path, storage_open_for_readonly);
+  m_storage->open_database(path, storage_open_for_readwrite);
 
   m_blockchain = std::unique_ptr<blockchain>(new blockchain(bc_path));
 }
 
 std::shared_ptr<nbre::NBREIR>
-nbre_storage::read_nbre_by_height(block_height_t height) {
+nbre_storage::read_nbre_by_name_version(const std::string &name,
+                                        uint64_t version) {
   std::shared_ptr<nbre::NBREIR> nbre_ir = std::make_shared<nbre::NBREIR>();
   if (!m_storage) {
     return nbre_ir;
   }
 
-  neb::util::bytes height_bytes =
-      neb::util::number_to_byte<neb::util::bytes>(height);
-  neb::util::bytes nbre_bytes = m_storage->get_bytes(height_bytes);
+  std::string name_version = name + std::to_string(version);
+  neb::util::bytes nbre_bytes = m_storage->get(name_version);
   nbre_ir->ParseFromArray(nbre_bytes.value(), nbre_bytes.size());
   return nbre_ir;
 }
 
 void nbre_storage::write_nbre_by_height(block_height_t height) {
+  if (!m_storage || !m_blockchain) {
+    return;
+  }
+
   auto block = m_blockchain->load_block_with_height(height);
 
-  for (auto tx : block->transactions()) {
-    auto data = tx.data();
-    std::string type = data.type();
-    if (type.compare(std::string(payload_type)) == 0) {
-      auto payload = data.payload();
+  for (auto &tx : block->transactions()) {
+    auto &data = tx.data();
+    const std::string &type = data.type();
+
+    if (type.compare(m_payload_type) == 0) {
+      const std::string &payload = data.payload();
       neb::util::bytes payload_bytes = neb::util::string_to_byte(payload);
+
+      std::shared_ptr<nbre::NBREIR> nbre_ir = std::make_shared<nbre::NBREIR>();
+      nbre_ir->ParseFromArray(payload_bytes.value(), payload_bytes.size());
+      const std::string &name = nbre_ir->name();
+      const uint64_t version = nbre_ir->version();
+      std::string name_version = name + std::to_string(version);
+
+      m_storage->put(name_version, payload_bytes);
     }
   }
 }

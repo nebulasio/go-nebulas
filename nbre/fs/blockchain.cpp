@@ -39,8 +39,9 @@ std::shared_ptr<corepb::Block> blockchain::load_LIB_block() {
 std::shared_ptr<corepb::Block>
 blockchain::load_block_with_height(block_height_t height) {
   std::shared_ptr<corepb::Block> block = std::make_shared<corepb::Block>();
-  if (!m_storage)
+  if (!m_storage) {
     return block;
+  }
 
   neb::util::bytes height_hash =
       m_storage->get_bytes(neb::util::number_to_byte<neb::util::bytes>(height));

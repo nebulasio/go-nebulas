@@ -23,7 +23,7 @@
 #include "fs/blockchain.h"
 #include "fs/proto/ir.pb.h"
 
-    namespace neb {
+namespace neb {
 namespace fs {
 
 class nbre_storage {
@@ -32,14 +32,15 @@ public:
   nbre_storage(const nbre_storage &ns) = delete;
   nbre_storage &operator=(const nbre_storage &ns) = delete;
 
-  std::shared_ptr<nbre::NBREIR> read_nbre_by_height(block_height_t height);
+  std::shared_ptr<nbre::NBREIR>
+  read_nbre_by_name_version(const std::string &name, uint64_t version);
   void write_nbre_by_height(block_height_t height);
 
 private:
   std::unique_ptr<rocksdb_storage> m_storage;
   std::unique_ptr<blockchain> m_blockchain;
 
-  static constexpr char const *payload_type = "protocol";
+  static constexpr char const *m_payload_type = "protocol";
 };
 } // namespace fs
 } // namespace neb
