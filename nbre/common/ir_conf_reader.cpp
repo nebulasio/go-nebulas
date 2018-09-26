@@ -63,7 +63,7 @@ namespace neb {
   }
 
   void ir_conf_reader::set_ir_ref_by_ptree(ir_ref &ir, const boost::property_tree::ptree &ptree) {
-      ir.name() = ptree.get<std::string>("name"); 
+      ir.name() = ptree.get<std::string>("name");
       ir.version().major_version() = ptree.get<uint32_t>("version_major");
       ir.version().minor_version() = ptree.get<uint16_t>("version_minor");
       ir.version().patch_version() = ptree.get<uint16_t>("version_patch");
@@ -76,13 +76,13 @@ namespace neb {
 
     check_exception(lambda_fun);
   }
-  
+
   void ir_conf_reader::get_depends(const boost::property_tree::ptree &json_root){
     auto lambda_fun = [this, json_root]() {
       boost::property_tree::ptree depends_node = json_root.get_child("depends");
 
       BOOST_FOREACH(boost::property_tree::ptree::value_type &child_node, depends_node) {
-        ir_ref ir;  
+        ir_ref ir;
         set_ir_ref_by_ptree(ir, child_node.second);
 
         m_depends.push_back(ir);

@@ -17,7 +17,6 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
 #pragma once
 #include "common/common.h"
 #include "common/ir_ref.h"
@@ -64,4 +63,4 @@ private:
   void get_depends(const boost::property_tree::ptree &json_root);
   void get_available_height(const boost::property_tree::ptree &json_root);
 };
-} 
+} // namespace neb
