@@ -3,7 +3,7 @@ project(nebulas-blockchain-runtime-environment)
 
 add_definitions(-DGOOGLE_PROTOBUF_NO_RTTI)
 add_definitions(-std=c++14)
-#add_definitions(-fno-rtti)
+add_definitions(-fno-rtti)
 find_program(
   CLANG_TIDY_EXE
   NAMES "clang-tidy"
@@ -55,6 +55,7 @@ add_subdirectory(fs)
 add_subdirectory(test)
 add_subdirectory(core)
 add_subdirectory(jit)
+add_subdirectory(benchmark)
 
 if(EXISTS "${PROJECT_SOURCE_DIR}/cmd/CMakeLists.txt")
   add_subdirectory(cmd)
