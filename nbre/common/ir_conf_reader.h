@@ -23,11 +23,27 @@
 #include "common/ir_ref.h"
 #include "common/util/version.h"
 
+namespace boost{
+namespace property_tree{
+  template <typename T1, typename T2, typename Compare > class basic_ptree;
+  typedef basic_ptree<std::string, std::string, std::less<std::string> > ptree;
+}}
+
 namespace neb {
+
+struct json_general_failure : public std::exception {
+  inline json_general_failure(const std::string &msg) : m_msg(msg) {}
+  inline const char *what() const throw() { return m_msg.c_str(); }
+protected:
+  std::string m_msg;
+};
 
 class ir_conf_reader {
 public:
   ir_conf_reader(const std::string &conf_fp);
+  ~ir_conf_reader();
+  ir_conf_reader(const ir_conf_reader &icr) = delete;
+  ir_conf_reader &operator=(const ir_conf_reader &icr) = delete;
 
   inline const std::string &ir_fp() const { return m_ir_fp; }
   inline const ir_ref &self_ref() const { return m_self_ref; }
@@ -39,5 +55,13 @@ protected:
   ir_ref m_self_ref;
   std::vector<ir_ref> m_depends;
   block_height_t m_available_height;
+
+private:
+  void set_ir_ref_by_ptree(ir_ref &ir, const boost::property_tree::ptree &ptree);
+  void read_json_file(const std::string &conf_fp, boost::property_tree::ptree &json_root);
+  void get_ir_fp(const boost::property_tree::ptree &json_root);
+  void get_self_ref(const boost::property_tree::ptree &json_root);
+  void get_depends(const boost::property_tree::ptree &json_root);
+  void get_available_height(const boost::property_tree::ptree &json_root);
 };
-}
+} 

@@ -3,7 +3,7 @@ project(nebulas-blockchain-runtime-environment)
 
 add_definitions(-DGOOGLE_PROTOBUF_NO_RTTI)
 add_definitions(-std=c++14)
-add_definitions(-fno-rtti)
+#add_definitions(-fno-rtti)
 find_program(
   CLANG_TIDY_EXE
   NAMES "clang-tidy"

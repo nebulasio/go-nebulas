@@ -38,7 +38,7 @@ std::string get_db_path_for_write() {
 }
 
 TEST(test_fs, positive_storage_read_bc) {
-  std::string db_path = get_db_path_for_read(); 
+  std::string db_path = get_db_path_for_read();
 
   neb::fs::rocksdb_storage rs;
   EXPECT_THROW(rs.get(neb::fs::blockchain::Block_LIB),
@@ -63,7 +63,7 @@ TEST(test_fs, positive_storage_read_bc) {
 }
 
 TEST(test_fs, storage_read_write) {
-  std::string db_path = get_db_path_for_read(); 
+  std::string db_path = get_db_path_for_read();
 
   neb::fs::rocksdb_storage rs;
   rs.open_database(db_path, neb::fs::storage_open_for_readonly);
@@ -140,20 +140,20 @@ TEST(test_fs, read_blockchain_transcations) {
 }
 
 TEST(test_fs, throw_operation_db) {
-  std::string db_path = get_db_path_for_read(); 
+  std::string db_path = get_db_path_for_read();
 
   neb::fs::rocksdb_storage rs;
   rs.open_database(db_path, neb::fs::storage_open_for_readonly);
 
   EXPECT_THROW(rs.open_database(db_path, neb::fs::storage_open_for_readonly),
-      std::runtime_error);
+               std::runtime_error);
 
   rs.close_database();
   EXPECT_THROW(rs.open_database("", neb::fs::storage_open_for_readonly),
-      neb::fs::storage_general_failure);
+               neb::fs::storage_general_failure);
 
   EXPECT_THROW(rs.get(neb::fs::blockchain::Block_LIB),
-      neb::fs::storage_exception_no_init);
+               neb::fs::storage_exception_no_init);
 
   EXPECT_THROW(
       rs.put(neb::fs::blockchain::Block_LIB, neb::util::string_to_byte("xxx")),
@@ -162,7 +162,7 @@ TEST(test_fs, throw_operation_db) {
   EXPECT_THROW(rs.del(neb::fs::blockchain::Block_LIB),
       neb::fs::storage_exception_no_init);
 
-  std::string db_path_readwrite = get_db_path_for_write(); 
+  std::string db_path_readwrite = get_db_path_for_write();
   rs.open_database(db_path_readwrite, neb::fs::storage_open_for_readwrite);
 
   EXPECT_THROW(rs.get("no_exist"),

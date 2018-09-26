@@ -51,7 +51,8 @@ int main(int argc, char *argv[]) {
   std::ifstream ifs;
 
   try {
-    neb::ir_conf_reader reader(vm["input"].as<std::string>());
+    std::string ir_fp = vm["input"].as<std::string>();
+    neb::ir_conf_reader reader(ir_fp);
     ifs.open(reader.ir_fp().c_str(), std::ios::in | std::ios::binary);
     if (!ifs.is_open()) {
       throw std::invalid_argument(
