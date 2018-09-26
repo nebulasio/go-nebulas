@@ -125,7 +125,6 @@ void rocksdb_storage::del_by_bytes(const util::bytes &key) {
   }
 }
 
-
 void rocksdb_storage::enable_batch() { m_enable_batch = true; }
 void rocksdb_storage::disable_batch() {
   if (m_enable_batch) {
@@ -148,6 +147,13 @@ void rocksdb_storage::flush() {
     throw storage_general_failure(status.ToString());
   }
 }
+
+void rocksdb_storage::show_all(
+    const std::function<void(rocksdb::Iterator *)> &cb) {
+  rocksdb::Iterator *it = m_db->NewIterator(rocksdb::ReadOptions());
+  cb(it);
+}
+
 } // end namespace fs
 } // end namespace neb
 

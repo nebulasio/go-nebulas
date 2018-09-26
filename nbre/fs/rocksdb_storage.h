@@ -44,6 +44,8 @@ public:
   virtual void disable_batch();
   virtual void flush();
 
+  void show_all(const std::function<void(rocksdb::Iterator *)> &cb);
+
 private:
   std::unique_ptr<rocksdb::DB> m_db;
   storage_open_flag m_open_flag;

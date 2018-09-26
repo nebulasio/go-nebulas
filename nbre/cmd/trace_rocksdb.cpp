@@ -11,7 +11,13 @@ int main(int argc, char *argv[]) {
   std::string db_path = neb::fs::join_path(cur_path, "test_data.db");
   neb::fs::rocksdb_storage rs;
   rs.open_database(db_path, neb::fs::storage_open_for_readonly);
-  rs.show_all_keys();
+
+  auto f = [](rocksdb::Iterator *it) {
+    for (it->SeekToFirst(); it->Valid(); it->Next()) {
+      LOG(INFO) << it->key().ToString();
+    }
+  };
+  rs.show_all(f);
 
   return 0;
 }
