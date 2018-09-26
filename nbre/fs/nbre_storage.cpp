@@ -36,20 +36,17 @@ std::shared_ptr<nbre::NBREIR>
 nbre_storage::read_nbre_by_name_version(const std::string &name,
                                         uint64_t version) {
   std::shared_ptr<nbre::NBREIR> nbre_ir = std::make_shared<nbre::NBREIR>();
-  if (!m_storage) {
-    return nbre_ir;
-  }
-
   std::string name_version = name + std::to_string(version);
   neb::util::bytes nbre_bytes = m_storage->get(name_version);
-  nbre_ir->ParseFromArray(nbre_bytes.value(), nbre_bytes.size());
+
+  bool ret = nbre_ir->ParseFromArray(nbre_bytes.value(), nbre_bytes.size());
+  if (!ret) {
+    throw std::runtime_error("parse nbre failed");
+  }
   return nbre_ir;
 }
 
 void nbre_storage::write_nbre_by_height(block_height_t height) {
-  if (!m_storage || !m_blockchain) {
-    return;
-  }
 
   auto block = m_blockchain->load_block_with_height(height);
 
@@ -62,12 +59,15 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
       neb::util::bytes payload_bytes = neb::util::string_to_byte(payload);
 
       std::shared_ptr<nbre::NBREIR> nbre_ir = std::make_shared<nbre::NBREIR>();
-      nbre_ir->ParseFromArray(payload_bytes.value(), payload_bytes.size());
+      bool ret =
+          nbre_ir->ParseFromArray(payload_bytes.value(), payload_bytes.size());
+      if (!ret) {
+        throw std::runtime_error("parse transaction payload failed");
+      }
       const std::string &name = nbre_ir->name();
       const uint64_t version = nbre_ir->version();
-      std::string name_version = name + std::to_string(version);
 
-      m_storage->put(name_version, payload_bytes);
+      m_storage->put(name + std::to_string(version), payload_bytes);
     }
   }
 }

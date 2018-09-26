@@ -39,28 +39,29 @@ std::shared_ptr<corepb::Block> blockchain::load_LIB_block() {
 std::shared_ptr<corepb::Block>
 blockchain::load_block_with_height(block_height_t height) {
   std::shared_ptr<corepb::Block> block = std::make_shared<corepb::Block>();
-  if (!m_storage) {
-    return block;
-  }
-
   neb::util::bytes height_hash =
       m_storage->get_bytes(neb::util::number_to_byte<neb::util::bytes>(height));
   neb::util::bytes block_bytes = m_storage->get_bytes(height_hash);
-  block->ParseFromArray(block_bytes.value(), block_bytes.size());
+
+  bool ret = block->ParseFromArray(block_bytes.value(), block_bytes.size());
+  if (!ret) {
+    throw std::runtime_error("parse block failed");
+  }
   return block;
 }
 
 std::shared_ptr<corepb::Block>
 blockchain::load_block_with_tag_string(const std::string &tag) {
   std::shared_ptr<corepb::Block> block = std::make_shared<corepb::Block>();
-  if (!m_storage)
-    return block;
   neb::util::bytes tail_hash =
       m_storage->get_bytes(neb::util::string_to_byte(tag));
 
   neb::util::bytes block_bytes = m_storage->get_bytes(tail_hash);
 
-  block->ParseFromArray(block_bytes.value(), block_bytes.size());
+  bool ret = block->ParseFromArray(block_bytes.value(), block_bytes.size());
+  if (!ret) {
+    throw std::runtime_error("parse block failed");
+  }
   return block;
 }
 }
