@@ -46,6 +46,20 @@ nbre_storage::read_nbre_by_name_version(const std::string &name,
   return nbre_ir;
 }
 
+void nbre_storage::write_nbre() {
+  std::shared_ptr<corepb::Block> end_block = m_blockchain->load_LIB_block();
+
+  block_height_t start_height = neb::util::byte_to_number<block_height_t>(
+      m_storage->get(s_nbre_max_height));
+  block_height_t end_height = end_block->height();
+
+  for (block_height_t h = start_height + 1; h <= end_height; h++) {
+    write_nbre_by_height(h);
+    m_storage->put(s_nbre_max_height,
+                   neb::util::number_to_byte<neb::util::bytes>(h));
+  }
+}
+
 void nbre_storage::write_nbre_by_height(block_height_t height) {
 
   auto block = m_blockchain->load_block_with_height(height);
@@ -54,7 +68,7 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
     auto &data = tx.data();
     const std::string &type = data.type();
 
-    if (type.compare(m_payload_type) == 0) {
+    if (type.compare(s_payload_type) == 0) {
       const std::string &payload = data.payload();
       neb::util::bytes payload_bytes = neb::util::string_to_byte(payload);
 

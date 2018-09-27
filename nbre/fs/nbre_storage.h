@@ -34,13 +34,17 @@ public:
 
   std::shared_ptr<nbre::NBREIR>
   read_nbre_by_name_version(const std::string &name, uint64_t version);
+  void write_nbre();
+
+private:
   void write_nbre_by_height(block_height_t height);
 
 private:
   std::unique_ptr<rocksdb_storage> m_storage;
   std::unique_ptr<blockchain> m_blockchain;
 
-  static constexpr char const *m_payload_type = "protocol";
+  static constexpr char const *s_payload_type = "protocol";
+  static constexpr char const *s_nbre_max_height = "nbre_max_height";
 };
 } // namespace fs
 } // namespace neb

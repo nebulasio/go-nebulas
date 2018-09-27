@@ -21,6 +21,7 @@
 #pragma once
 #include "common/common.h"
 #include "common/util/singleton.h"
+#include "fs/nbre_storage.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/storage.h"
 #include <boost/asio.hpp>
@@ -36,8 +37,8 @@ public:
 
   void async_run();
 
-  std::vector<std::shared_ptr<nbre::NBREIR>>
-  get_ir_from_height(const std::string &name, block_height_t height);
+  std::shared_ptr<nbre::NBREIR> get_ir_by_name_version(const std::string &name,
+                                                       uint64_t version);
 
   bool is_sync_already() const;
 
@@ -54,6 +55,7 @@ private:
   std::mutex m_mutex;
   std::atomic_int m_exit_flag;
   std::unique_ptr<boost::asio::deadline_timer> m_timer;
+  std::unique_ptr<fs::nbre_storage> m_nbre_storage;
 };
 }
 }

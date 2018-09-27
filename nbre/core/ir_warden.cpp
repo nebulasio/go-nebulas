@@ -33,10 +33,9 @@ ir_warden::~ir_warden() {
   }
 }
 
-std::vector<std::shared_ptr<nbre::NBREIR>>
-ir_warden::get_ir_from_height(const std::string &name, block_height_t height) {
-  // TODO add impl here
-  return std::vector<std::shared_ptr<nbre::NBREIR>>();
+std::shared_ptr<nbre::NBREIR>
+ir_warden::get_ir_by_name_version(const std::string &name, uint64_t version) {
+  return m_nbre_storage->read_nbre_by_name_version(name, version);
 }
 
 bool ir_warden::is_sync_already() const {
@@ -49,15 +48,15 @@ void ir_warden::wait_until_sync() {
   throw std::invalid_argument("no impl");
 }
 
-void ir_warden::on_timer() { LOG(INFO) << "time up"; }
+void ir_warden::on_timer() { m_nbre_storage->write_nbre(); }
 
 void ir_warden::timer_callback(const boost::system::error_code &ec) {
   if (!m_exit_flag) {
     m_timer->expires_at(m_timer->expires_at() + boost::posix_time::seconds(15));
     m_timer->async_wait(boost::bind(&ir_warden::timer_callback, this,
                                     boost::asio::placeholders::error));
+    on_timer();
   }
-  on_timer();
 }
 
 void ir_warden::async_run() {
@@ -77,6 +76,9 @@ void ir_warden::async_run() {
 
   }));
 }
-ir_warden::ir_warden() : m_exit_flag(0) {}
+ir_warden::ir_warden() : m_exit_flag(0) {
+  m_nbre_storage = std::unique_ptr<fs::nbre_storage>(new fs::nbre_storage(
+      std::getenv("NBRE_DB"), std::getenv("BLOCKCHAIN_DB")));
 }
 }
+} // namespace neb
