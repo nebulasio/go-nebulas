@@ -73,10 +73,11 @@ void get_block_by_rocksdb() {
 
 void get_block_by_blockchain() {
 
-  std::string path = "/home/chmwang/go-nebulas/nbre/test_data.db";
+  std::string cur_path = neb::fs::cur_dir();
+  std::string db_path = neb::fs::join_path(cur_path, "test_data.db");
 
   std::shared_ptr<neb::fs::blockchain> bc_ptr =
-      std::make_shared<neb::fs::blockchain>(path);
+      std::make_shared<neb::fs::blockchain>(db_path);
   std::shared_ptr<corepb::Block> block_ptr =
       bc_ptr->load_block_with_height(456);
   for (auto &tx : block_ptr->transactions()) {
@@ -102,10 +103,11 @@ void get_block_by_blockchain() {
 
 void nbre_storage_rw() {
 
-  std::string path = "/home/chmwang/go-nebulas/nbre/test_data.db";
+  std::string cur_path = neb::fs::cur_dir();
+  std::string db_path = neb::fs::join_path(cur_path, "test_data.db");
 
   std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
-      std::make_shared<neb::fs::nbre_storage>(path, path);
+      std::make_shared<neb::fs::nbre_storage>(db_path, db_path);
   // nbre_ptr->write_nbre_by_height(1000);
   std::shared_ptr<nbre::NBREIR> nbre_ir_ptr =
       nbre_ptr->read_nbre_by_name_version("xxx", 666);

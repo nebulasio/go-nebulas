@@ -21,7 +21,8 @@ void get_tail_block_from_rocksdb() {
 
 int main(int argc, char *argv[]) {
 
-  std::string db_path = "/home/chmwang/data.db";
+  std::string cur_path = neb::fs::cur_dir();
+  std::string db_path = neb::fs::join_path(cur_path, "test/data/data.db/");
 
   std::shared_ptr<neb::fs::blockchain> blockchain_ptr =
       std::make_shared<neb::fs::blockchain>(db_path);
