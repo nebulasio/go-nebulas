@@ -26,7 +26,11 @@ namespace fs {
 
 rocksdb_storage::rocksdb_storage() : m_db(nullptr) {}
 
-rocksdb_storage::~rocksdb_storage() = default;
+rocksdb_storage::~rocksdb_storage() {
+  if (m_db) {
+    close_database();
+  }
+}
 
 void rocksdb_storage::open_database(const std::string &db_name,
                                     storage_open_flag flag) {
