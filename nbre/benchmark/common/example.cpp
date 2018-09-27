@@ -24,3 +24,8 @@ BENCHMARK(sample, benchmark) {
   std::cout << "sample "
             << " benchmark" << std::endl;
 }
+
+BENCHMARK(sample, benchmark2) {
+  std::cout << "sample "
+            << " benchmark2" << std::endl;
+}
