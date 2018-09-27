@@ -78,6 +78,14 @@ if [ ! -d $CUR_DIR/lib/include/boost ]; then
   ./b2 install
 fi
 
+if [ -f $CUR_DIR/lib/include/boost/property_tree/detail/ptree_implementation.hpp ]; then
+  if [ ! -f $CUR_DIR/lib/include/boost/property_tree/detail/boost_ptree_rtti.patch ]; then
+    cp $CUR_DIR/3rd_party/boost_ptree_rtti.patch $CUR_DIR/lib/include/boost/property_tree/detail/.
+    cd $CUR_DIR/lib/include/boost/property_tree/detail/
+    patch -t -p1 < boost_ptree_rtti.patch
+  fi
+fi
+
 build_with_cmake(){
   cd $CUR_DIR/3rd_party/$1
   if [ -d "build" ]; then
