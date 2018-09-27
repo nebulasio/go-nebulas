@@ -1,4 +1,4 @@
-add_executable(test_common main.cpp gtest_util.cpp)
+add_executable(test_common main.cpp gtest_util.cpp gtest_util_json)
 target_link_libraries(test_common gtest pthread nbre_common glog)
 
 add_test(NAME test_common

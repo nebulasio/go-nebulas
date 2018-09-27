@@ -1,4 +1,4 @@
 add_library(nbre_benchmark_common benchmark_instances.cpp)
 
 add_executable(benchmark_example main.cpp example.cpp)
-target_link_libraries(benchmark_example nbre_common nbre_benchmark_common)
+target_link_libraries(benchmark_example nbre_common nbre_benchmark_common boost_program_options boost_system boost_date_time)

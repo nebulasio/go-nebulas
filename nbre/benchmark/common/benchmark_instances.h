@@ -21,6 +21,7 @@
 #pragma once
 #include "common/common.h"
 #include "common/util/singleton.h"
+#include <unordered_set>
 
 namespace neb {
 class benchmark_instance_base {
@@ -43,7 +44,14 @@ public:
   size_t register_benchmark(const benchmark_instance_base_ptr &b);
 
 protected:
+  void show_all_benchmarks();
+  void parse_all_enabled_fixtures(const std::string &fixture_name);
+
+protected:
   std::vector<benchmark_instance_base_ptr> m_all_instances;
+  size_t m_eval_count;
+  std::string m_output_fp;
+  std::unordered_set<std::string> m_enabled_fixtures;
 }; // end class benchmark_instances
 }
 
