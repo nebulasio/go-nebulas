@@ -18,5 +18,5 @@
     }
   ],
   "available_height": 15,
-  "ir_file_path": "ir_file"
+  "ir_file_path": "../runtime/bar.bc"
 }
