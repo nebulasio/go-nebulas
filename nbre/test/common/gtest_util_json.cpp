@@ -18,3 +18,26 @@ TEST(test_common_json_util, read_json) {
   EXPECT_EQ(json_reader.depends()[1].version().minor_version(), 22);
   EXPECT_EQ(json_reader.depends()[1].version().patch_version(), 23);
 }
+
+TEST(test_common_json_util, throw_json) {
+  EXPECT_THROW(neb::ir_conf_reader json_reader("xxx"),
+               neb::json_general_failure);
+
+  neb::ir_conf_reader json_reader("../test/data/test_throw_exceptions.json");
+  EXPECT_THROW(json_reader.self_ref().name(), neb::json_general_failure);
+  EXPECT_THROW(json_reader.self_ref().version().major_version(),
+               neb::json_general_failure);
+  EXPECT_THROW(json_reader.self_ref().version().minor_version(),
+               neb::json_general_failure);
+  EXPECT_THROW(json_reader.self_ref().version().patch_version(),
+               neb::json_general_failure);
+  EXPECT_THROW(json_reader.available_height(), neb::json_general_failure);
+  EXPECT_THROW(json_reader.ir_fp(), neb::json_general_failure);
+  EXPECT_THROW(json_reader.depends()[0].name(), neb::json_general_failure);
+  EXPECT_THROW(json_reader.depends()[0].version().major_version(),
+               neb::json_general_failure);
+  EXPECT_THROW(json_reader.depends()[0].version().minor_version(),
+               neb::json_general_failure);
+  EXPECT_THROW(json_reader.depends()[0].version().patch_version(),
+               neb::json_general_failure);
+}
