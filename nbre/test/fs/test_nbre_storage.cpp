@@ -101,26 +101,4 @@ void get_block_by_blockchain() {
   }
 }
 
-void nbre_storage_rw() {
-
-  std::string cur_path = neb::fs::cur_dir();
-  std::string db_path = neb::fs::join_path(cur_path, "test_data.db");
-
-  std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
-      std::make_shared<neb::fs::nbre_storage>(db_path, db_path);
-  // nbre_ptr->write_nbre_by_height(1000);
-  std::shared_ptr<nbre::NBREIR> nbre_ir_ptr =
-      nbre_ptr->read_nbre_by_name_version("xxx", 666);
-
-  nbre::NBREIR nbre_ir = *nbre_ir_ptr;
-  LOG(INFO) << nbre_ir.name();
-  LOG(INFO) << nbre_ir.version();
-  LOG(INFO) << nbre_ir.height();
-  for (auto &dep : nbre_ir.depends()) {
-    LOG(INFO) << dep.name();
-    LOG(INFO) << dep.version();
-  }
-  LOG(INFO) << nbre_ir.ir();
-}
-
 int main(int argc, char *argv[]) { return 0; }
