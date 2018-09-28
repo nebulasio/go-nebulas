@@ -23,12 +23,28 @@
 #include "util/singleton.h"
 
 namespace neb {
+
+struct configure_general_failure : public std::exception {
+  inline configure_general_failure(const std::string &msg) : m_msg(msg) {}
+  inline const char *what() const throw() { return m_msg.c_str(); }
+protected:
+  std::string m_msg;
+};
+
 class configuration : public util::singleton<configuration> {
 public:
   configuration();
+  configuration(const configuration &cf) = delete;
+  configuration &operator=(const configuration &cf) = delete;
+  configuration(configuration &&cf) = delete;
+  ~configuration();
+
   void init_with_args(int argc, char *argv[]);
 
-  const std::string &exec_name() const;
-  const std::string &runtime_library_path() const;
+  const std::string &exec_name() const { return m_exec_name; } 
+  const std::string &runtime_library_path() const { return m_runtime_library_path; }
+protected:
+  std::string m_exec_name;
+  std::string m_runtime_library_path;
 };
-}
+} // end namespace neb
