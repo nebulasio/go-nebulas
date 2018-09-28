@@ -3,6 +3,7 @@
 
 int main(int argc, char *argv[]) {
 
-  neb::core::ir_warden::instance();
+  auto &instance = neb::core::ir_warden::instance();
+  instance.release();
   return 0;
 }

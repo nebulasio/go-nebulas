@@ -37,11 +37,11 @@ public:
   }
 
 protected:
-  singleton() = delete;
+  singleton() = default;
 
 private:
   static void init() { s_pInstance = std::shared_ptr<T>(new T()); }
-  static void dealloc() { s_pInstance.reset(nullptr); }
+  static void dealloc() { s_pInstance.reset(); }
 
 protected:
   static std::shared_ptr<T> s_pInstance;
