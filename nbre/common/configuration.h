@@ -1,6 +1,5 @@
 // Copyright (C) 2018 go-nebulas authors
 //
-//
 // This file is part of the go-nebulas library.
 //
 // the go-nebulas library is free software: you can redistribute it and/or
@@ -41,10 +40,15 @@ public:
 
   void init_with_args(int argc, char *argv[]);
 
-  const std::string &exec_name() const { return m_exec_name; } 
+  const std::string &exec_name() const { return m_exec_name; }
   const std::string &runtime_library_path() const { return m_runtime_library_path; }
 protected:
   std::string m_exec_name;
   std::string m_runtime_library_path;
+private:
+  std::string m_ini_file_path;
+
+  void parse_arguments(int argc, char *argv[]);
+  void get_value_from_ini();
 };
 } // end namespace neb
