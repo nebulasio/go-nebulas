@@ -38,7 +38,7 @@ public:
   configuration(configuration &&cf) = delete;
   ~configuration();
 
-  void init_with_args(int argc, char *argv[]);
+  void init_with_args(int argc, const char *argv[]);
 
   const std::string &exec_name() const { return m_exec_name; }
   const std::string &runtime_library_path() const { return m_runtime_library_path; }
@@ -48,7 +48,7 @@ protected:
 private:
   std::string m_ini_file_path;
 
-  void parse_arguments(int argc, char *argv[]);
+  void parse_arguments(int argc, const char *argv[]);
   void get_value_from_ini();
 };
 } // end namespace neb

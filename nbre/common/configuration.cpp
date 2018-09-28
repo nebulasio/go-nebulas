@@ -35,7 +35,7 @@ namespace po = boost::program_options;
 configuration::configuration() {}
 configuration::~configuration() = default;
 
-void configuration::parse_arguments(int argc, char *argv[]) {
+void configuration::parse_arguments(int argc, const char *argv[]) {
   try {
     po::options_description desc("Configurations");
     desc.add_options()("ini-file", po::value<std::string>(),
@@ -65,7 +65,7 @@ void configuration::get_value_from_ini() {
   }
 }
 
-void configuration::init_with_args(int argc, char *argv[]) {
+void configuration::init_with_args(int argc, const char *argv[]) {
   parse_arguments(argc, argv);
   get_value_from_ini();
 }
