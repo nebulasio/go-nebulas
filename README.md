@@ -12,6 +12,8 @@ TestNet is released, please check [here](https://github.com/nebulasio/wiki/blob/
 
 Mainnet is released, please check [here](https://github.com/nebulasio/wiki/blob/master/mainnet.md) for more details.
 
+**[Note] Please make sure you're checking out master branch for production
+purpose.**
 ## Building from source
 
 ### Prerequisites
@@ -176,12 +178,12 @@ From the log, we can see the binary execution starts neblet, starts network serv
 
 ## TestNet
 
-We are glad to release Nebulas Testnet here. 
+We are glad to release Nebulas Testnet here.
 You can use and join our [TestNet](https://github.com/nebulasio/wiki/blob/master/testnet.md) right now.
 
 ## MaintNet
 
-We are glad to release Nebulas Mainnet here. 
+We are glad to release Nebulas Mainnet here.
 You can use and join our [MainNet](https://github.com/nebulasio/wiki/blob/master/mainnet.md) right now.
 
 ## Explorer
