@@ -2,8 +2,7 @@
 #include "fs/util.h"
 
 int main(int argc, char *argv[]) {
-
-  auto &instance = neb::core::ir_warden::instance();
-  instance.release();
+  neb::util::singleton_guard<neb::core::ir_warden> _l;
+  neb::core::ir_warden::instance();
   return 0;
 }

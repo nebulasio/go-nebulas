@@ -29,6 +29,9 @@ template <typename T> class singleton : boost::noncopyable {
 public:
   static T &instance() {
     std::call_once(s_init_once, std::bind(singleton<T>::init));
+    if (!s_pInstance) {
+      throw std::runtime_error("already deallocated!");
+    }
     return *s_pInstance;
   }
 
@@ -51,5 +54,11 @@ protected:
 template <typename T> std::shared_ptr<T> singleton<T>::s_pInstance;
 template <typename T> std::once_flag singleton<T>::s_init_once;
 template <typename T> std::once_flag singleton<T>::s_dealloc_once;
+
+template <typename T> class singleton_guard : boost::noncopyable {
+public:
+  singleton_guard() = default;
+  ~singleton_guard() { singleton<T>::instance().release(); }
+}; // end class singleton_guard
 }
 }

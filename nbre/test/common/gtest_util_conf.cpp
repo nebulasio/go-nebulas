@@ -1,15 +1,45 @@
+// Copyright (C) 2018 go-nebulas authors
+//
+// This file is part of the go-nebulas library.
+//
+// the go-nebulas library is free software: you can redistribute it and/or
+// modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// the go-nebulas library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the go-nebulas library.  If not, see
+// <http://www.gnu.org/licenses/>.
+//
 #include "common/configuration.h"
 #include <gtest/gtest.h>
 
 TEST(test_common_configuration, read_config) {
+  EXPECT_EQ(neb::configuration::instance().exec_name(), "");
+  EXPECT_EQ(neb::configuration::instance().runtime_library_path(), "");
+
+  const char *argv[3] = {"", "--ini-file",
+                         "../test/data/test_configuration.ini"};
+
+  neb::configuration::instance().init_with_args(3, argv);
   EXPECT_EQ(neb::configuration::instance().exec_name(), "bar");
   EXPECT_EQ(neb::configuration::instance().runtime_library_path(), "./lib");
 }
-//
-// TEST(test_common_json_util, throw_json) {
-  // EXPECT_THROW(neb::ir_conf_reader json_reader("xxx"),
-               // neb::json_general_failure);
-//
-  // EXPECT_THROW(neb::ir_conf_reader json_reader("../test/data/test_throw_exceptions.json"),
-               // neb::json_general_failure);
-//}
+
+TEST(test_common_configuration, throw_config) {
+  const char *argv1[3] = {"", "--ini-file", "../test/data/test_xxxx.ini"};
+
+  EXPECT_THROW(neb::configuration::instance().init_with_args(3, argv1),
+               neb::configure_general_failure);
+
+  const char *argv2[3] = {"", "--xxxx", "../test/data/test_configuration.ini"};
+
+  EXPECT_THROW(neb::configuration::instance().init_with_args(3, argv2),
+               neb::configure_general_failure);
+}

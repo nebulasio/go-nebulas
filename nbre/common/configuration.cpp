@@ -21,32 +21,53 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
-#include <boost/foreach.hpp>
+#include <boost/format.hpp>
+#include <boost/program_options.hpp>
 #include <string>
 #include <set>
 #include <exception>
 #include <iostream>
 
 namespace neb {
-  namespace pt = boost::property_tree;
-  configuration::configuration() { 
-    try {
-      pt::ptree ini_root;
-      std::string ini_file_path = "jit_configuration.ini";
+namespace pt = boost::property_tree;
+namespace po = boost::program_options;
 
-      pt::ini_parser::read_ini(ini_file_path, ini_root);
-      m_exec_name = ini_root.get<std::string>("jit_config.exec_name"); 
-      m_runtime_library_path = ini_root.get<std::string>("jit_config.runtime_library_path");
-    }
-    catch (const pt::ptree_error &e) {
-      throw configure_general_failure(e.what());
-    }
-  }
+configuration::configuration() {}
+configuration::~configuration() = default;
 
-  configuration::~configuration() = default;
+void configuration::parse_arguments(int argc, const char *argv[]) {
+  try {
+    po::options_description desc("Configurations");
+    desc.add_options()("ini-file", po::value<std::string>(),
+                       "INI configuration file");
 
-  void configuration::init_with_args(int argc, char *argv[]) {
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
 
+    m_ini_file_path = vm["ini-file"].as<std::string>();
+  } catch (const po::error &e) {
+    throw configure_general_failure(e.what());
   }
 }
+
+void configuration::get_value_from_ini() {
+  try {
+    pt::ptree ini_root;
+
+    pt::ini_parser::read_ini(m_ini_file_path, ini_root);
+
+    m_exec_name = ini_root.get<std::string>("jit_config.exec_name");
+    m_runtime_library_path =
+        ini_root.get<std::string>("jit_config.runtime_library_path");
+  } catch (const pt::ptree_error &e) {
+    throw configure_general_failure(e.what());
+  }
+}
+
+void configuration::init_with_args(int argc, const char *argv[]) {
+  parse_arguments(argc, argv);
+  get_value_from_ini();
+}
+} // namespace neb
 

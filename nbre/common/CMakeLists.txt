@@ -5,4 +5,4 @@ add_library(nbre_common
   ir_conf_reader.cpp
   configuration.cpp)
 
-target_link_libraries(nbre_common glog)
+target_link_libraries(nbre_common glog boost_program_options)
