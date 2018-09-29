@@ -1,5 +1,4 @@
 
-add_definitions(-fno-rtti)
 add_library(nbre_jit OrcLazyJIT.cpp jit_driver.cpp
   )
 
