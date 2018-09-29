@@ -51,6 +51,12 @@ public:
 
   inline uint64_t data() const { return m_data.m_data; }
 
+  inline void show_version() {
+    std::cout << m_data.m_detail.m_major_version << ','
+              << m_data.m_detail.m_minor_version << ','
+              << m_data.m_detail.m_patch_version << std::endl;
+  }
+
 protected:
   union _version_data {
     uint64_t m_data;
