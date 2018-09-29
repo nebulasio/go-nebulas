@@ -31,7 +31,8 @@ public:
   static constexpr char const *Block_LIB = "blockchain_lib";
   static constexpr char const *Block_Tail = "blockchain_tail";
 
-  blockchain(const std::string &path);
+  blockchain(const std::string &path,
+             enum storage_open_flag open_flag = storage_open_default);
   blockchain(const blockchain &bc) = delete;
   blockchain &operator=(const blockchain &bc) = delete;
 

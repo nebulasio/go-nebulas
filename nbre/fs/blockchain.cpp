@@ -23,9 +23,10 @@
 
 namespace neb {
 namespace fs {
-blockchain::blockchain(const std::string &path) {
+blockchain::blockchain(const std::string &path,
+                       enum storage_open_flag open_flag) {
   m_storage = std::unique_ptr<rocksdb_storage>(new rocksdb_storage());
-  m_storage->open_database(path, storage_open_for_readonly);
+  m_storage->open_database(path, open_flag);
 }
 
 std::shared_ptr<corepb::Block> blockchain::load_tail_block() {

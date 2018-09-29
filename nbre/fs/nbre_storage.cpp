@@ -32,18 +32,53 @@ nbre_storage::nbre_storage(const std::string &path,
   m_blockchain = std::unique_ptr<blockchain>(new blockchain(bc_path));
 }
 
-std::shared_ptr<nbre::NBREIR>
-nbre_storage::read_nbre_by_name_version(const std::string &name,
-                                        uint64_t version) {
+std::vector<std::shared_ptr<nbre::NBREIR>>
+nbre_storage::read_nbre_by_height(const std::string &name,
+                                  block_height_t height) {
+
+  std::vector<std::shared_ptr<nbre::NBREIR>> ret;
+  std::unordered_set<std::string> dedup_pkgs;
+
+  std::shared_ptr<nbre::NBREIR> nbre_ir = std::make_shared<nbre::NBREIR>();
+  neb::util::bytes bytes_versions = m_storage->get(name);
+
+  size_t gap = sizeof(uint64_t) / sizeof(uint8_t);
+  for (size_t i = bytes_versions.size() - gap; i >= 0; i -= gap) {
+    byte_t *bytes = bytes_versions.value() + i;
+    uint64_t version = neb::util::byte_to_number<uint64_t>(bytes, gap);
+    read_nbre_by_name_version(name, version, height, dedup_pkgs, ret);
+    if (!ret.empty()) {
+      break;
+    }
+  }
+  return ret;
+}
+
+void nbre_storage::read_nbre_by_name_version(
+    const std::string &name, uint64_t version, block_height_t height,
+    std::unordered_set<std::string> &pkg,
+    std::vector<std::shared_ptr<nbre::NBREIR>> &irs) {
+
   std::shared_ptr<nbre::NBREIR> nbre_ir = std::make_shared<nbre::NBREIR>();
   std::string name_version = name + std::to_string(version);
-  neb::util::bytes nbre_bytes = m_storage->get(name_version);
+  if (pkg.find(name_version) != pkg.end()) {
+    return;
+  }
 
+  neb::util::bytes nbre_bytes = m_storage->get(name_version);
   bool ret = nbre_ir->ParseFromArray(nbre_bytes.value(), nbre_bytes.size());
   if (!ret) {
     throw std::runtime_error("parse nbre failed");
   }
-  return nbre_ir;
+
+  if (nbre_ir->height() <= height) {
+    for (auto &dep : nbre_ir->depends()) {
+      read_nbre_by_name_version(dep.name(), dep.version(), height, pkg, irs);
+    }
+    irs.push_back(nbre_ir);
+    pkg.insert(name_version);
+  }
+  return;
 }
 
 void nbre_storage::write_nbre() {
@@ -63,7 +98,6 @@ void nbre_storage::write_nbre() {
 void nbre_storage::write_nbre_by_height(block_height_t height) {
 
   auto block = m_blockchain->load_block_with_height(height);
-
   for (auto &tx : block->transactions()) {
     auto &data = tx.data();
     const std::string &type = data.type();

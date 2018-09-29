@@ -31,8 +31,9 @@ TEST(test_fs, read_nbre_by_name_version) {
   std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
       std::make_shared<neb::fs::nbre_storage>(db_path, db_path);
   // nbre_ptr->write_nbre_by_height(1000);
-  std::shared_ptr<nbre::NBREIR> nbre_ir_ptr =
-      nbre_ptr->read_nbre_by_name_version("xxx", 666);
+  // std::shared_ptr<nbre::NBREIR> nbre_ir_ptr =
+  // nbre_ptr->read_nbre_by_name_version("xxx", 666);
+  std::shared_ptr<nbre::NBREIR> nbre_ir_ptr;
 
   nbre::NBREIR nbre_ir = *nbre_ir_ptr;
   EXPECT_EQ(nbre_ir.name(), "xxx");
