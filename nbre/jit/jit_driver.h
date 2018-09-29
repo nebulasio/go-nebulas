@@ -30,9 +30,10 @@ class jit_driver_impl;
 class jit_driver {
 public:
   jit_driver();
+  ~jit_driver();
   void run(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs);
 
 protected:
-  std::unique_ptr<internal::jit_driver_impl> m_impl;
+  internal::jit_driver_impl *m_impl;
 }; // end class jit_driver;
 } // end namespace neb
