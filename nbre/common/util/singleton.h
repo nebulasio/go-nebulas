@@ -20,6 +20,7 @@
 
 #pragma once
 #include "common/common.h"
+#include <functional>
 #include <boost/noncopyable.hpp>
 
 namespace neb {
