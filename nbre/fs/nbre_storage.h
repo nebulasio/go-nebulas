@@ -34,7 +34,9 @@ public:
 
   std::vector<std::shared_ptr<nbre::NBREIR>>
   read_nbre_by_height(const std::string &name, block_height_t height);
+
   void write_nbre();
+  void write_nbre_by_height(block_height_t height);
 
 private:
   void
@@ -42,7 +44,6 @@ private:
                             block_height_t height,
                             std::unordered_set<std::string> &pkgs,
                             std::vector<std::shared_ptr<nbre::NBREIR>> &irs);
-  void write_nbre_by_height(block_height_t height);
 
 private:
   std::unique_ptr<rocksdb_storage> m_storage;
