@@ -32,11 +32,16 @@ public:
   nbre_storage(const nbre_storage &ns) = delete;
   nbre_storage &operator=(const nbre_storage &ns) = delete;
 
-  std::shared_ptr<nbre::NBREIR>
-  read_nbre_by_name_version(const std::string &name, uint64_t version);
+  std::vector<std::shared_ptr<nbre::NBREIR>>
+  read_nbre_by_height(const std::string &name, block_height_t height);
   void write_nbre();
 
 private:
+  void
+  read_nbre_by_name_version(const std::string &name, uint64_t version,
+                            block_height_t height,
+                            std::unordered_set<std::string> &pkgs,
+                            std::vector<std::shared_ptr<nbre::NBREIR>> &irs);
   void write_nbre_by_height(block_height_t height);
 
 private:
