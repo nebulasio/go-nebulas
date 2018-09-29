@@ -109,8 +109,13 @@ protected:
 } // end namespace internal
 
 jit_driver::jit_driver() {
-  m_impl = std::unique_ptr<internal::jit_driver_impl>(
-      new internal::jit_driver_impl());
+  m_impl = new internal::jit_driver_impl();
+}
+
+jit_driver::~jit_driver() {
+  if (nullptr != m_impl) {
+    delete m_impl;
+  }
 }
 
 void jit_driver::run(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs) {
