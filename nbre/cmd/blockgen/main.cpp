@@ -39,10 +39,10 @@ void ir_block_gen(const neb::util::bytes &bytes) {
   std::shared_ptr<neb::fs::blockchain> blockchain_ptr =
       std::make_shared<neb::fs::blockchain>(db_path);
 
-  std::shared_ptr<corepb::Block> tail_block_ptr =
-      blockchain_ptr->load_tail_block();
-  neb::block_height_t tail_height = tail_block_ptr->height();
-  std::cout << "block height " << tail_height + 1 << std::endl;
+  std::shared_ptr<corepb::Block> lib_block_ptr =
+      blockchain_ptr->load_LIB_block();
+  neb::block_height_t lib_height = lib_block_ptr->height();
+  std::cout << "block height " << lib_height + 1 << std::endl;
 
   corepb::Block block;
   corepb::Transaction *transaction = block.add_transactions();
@@ -61,7 +61,7 @@ void ir_block_gen(const neb::util::bytes &bytes) {
   transaction->set_gas_price("5");
   transaction->set_gas_limit("6");
 
-  block.set_height(tail_height + 1);
+  block.set_height(lib_height + 1);
 
   std::string serial_block;
   bool ret = block.SerializeToString(&serial_block);
@@ -74,9 +74,14 @@ void ir_block_gen(const neb::util::bytes &bytes) {
   // db_path = neb::fs::join_path(cur_path, "test_data.db/");
   neb::fs::rocksdb_storage rs;
   rs.open_database(db_path, neb::fs::storage_open_for_readwrite);
-  rs.put_bytes(neb::util::number_to_byte<neb::util::bytes>(tail_height + 1),
-               neb::util::string_to_byte("block_hash"));
-  rs.put("block_hash", neb::util::string_to_byte(serial_block));
+
+  neb::util::bytes height_bytes =
+      neb::util::number_to_byte<neb::util::bytes>(lib_height + 1);
+  neb::util::bytes block_hash_bytes =
+      neb::util::string_to_byte(height_bytes.to_hex());
+  rs.put_bytes(height_bytes, block_hash_bytes);
+  rs.put_bytes(block_hash_bytes, neb::util::string_to_byte(serial_block));
+  rs.put("blockchain_lib", block_hash_bytes);
 }
 
 int main(int argc, char *argv[]) {
