@@ -26,7 +26,7 @@
 int main(int argc, char *argv[]) {
 
   // naxer --module nr --height 1000
-  std::string name = "nr";
+  std::string name = "nr2";
   neb::block_height_t height = 23083;
 
   // neb::core::ir_warden::instance().async_run();
