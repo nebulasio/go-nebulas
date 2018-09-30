@@ -22,6 +22,7 @@
 #include <array>
 #include <cstdint>
 #include <glog/logging.h>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <string>

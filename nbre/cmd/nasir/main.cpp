@@ -59,6 +59,7 @@ int main(int argc, char *argv[]) {
           boost::str(boost::format("can't open file %1%") % reader.ir_fp()));
     }
 
+    ifs.seekg(0, ifs.end);
     std::ifstream::pos_type size = ifs.tellg();
     if (size > 128 * 1024) {
       throw std::invalid_argument("IR file too large!");
@@ -66,6 +67,7 @@ int main(int argc, char *argv[]) {
 
     neb::util::bytes buf(size);
 
+    ifs.seekg(0, ifs.beg);
     ifs.read((char *)buf.value(), buf.size());
     if (!ifs)
       throw std::invalid_argument(boost::str(

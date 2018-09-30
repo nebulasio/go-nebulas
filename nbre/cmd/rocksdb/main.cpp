@@ -1,4 +1,5 @@
 
+#include "common/util/version.h"
 #include "fs/nbre_storage.h"
 #include "fs/proto/block.pb.h"
 #include "fs/proto/ir.pb.h"
@@ -12,12 +13,12 @@ int main(int argc, char *argv[]) {
   neb::fs::rocksdb_storage rs;
   rs.open_database(db_path, neb::fs::storage_open_for_readonly);
 
-  auto f = [](rocksdb::Iterator *it) {
+  auto f_keys = [](rocksdb::Iterator *it) {
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
       LOG(INFO) << it->key().ToString();
     }
   };
-  rs.show_all(f);
+  rs.show_all(f_keys);
 
   return 0;
 }
