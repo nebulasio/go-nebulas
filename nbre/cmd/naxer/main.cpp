@@ -19,6 +19,7 @@
 //
 
 #include "common/ir_conf_reader.h"
+#include "common/configuration.h"
 #include "core/ir_warden.h"
 #include "jit/jit_driver.h"
 
@@ -26,14 +27,20 @@ int main(int argc, char *argv[]) {
 
   // naxer --module nr --height 1000
   std::string name = "nr";
-  neb::block_height_t height = 1000;
+  neb::block_height_t height = 23083;
 
-  neb::core::ir_warden::instance().async_run();
-
-  neb::core::ir_warden::instance().wait_until_sync();
+  // neb::core::ir_warden::instance().async_run();
+//
+  // neb::core::ir_warden::instance().wait_until_sync();
 
   auto irs =
       neb::core::ir_warden::instance().get_ir_by_name_height(name, height);
+
+
+  const char *argv_jit[3] = {"", "--ini-file",
+                         "../test/data/jit_configuration.ini"};
+
+  neb::configuration::instance().init_with_args(3, argv_jit);
 
   neb::jit_driver jd;
   jd.run(irs);
