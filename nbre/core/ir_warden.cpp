@@ -50,14 +50,15 @@ bool ir_warden::is_sync_already() const {
 
 void ir_warden::wait_until_sync() {
   // TODO add impl here
-  throw std::invalid_argument("no impl");
+  // throw std::invalid_argument("no impl");
+  std::this_thread::sleep_for(std::chrono::seconds(10));
 }
 
 void ir_warden::on_timer() { m_nbre_storage->write_nbre(); }
 
 void ir_warden::timer_callback(const boost::system::error_code &ec) {
   if (!m_exit_flag) {
-    m_timer->expires_at(m_timer->expires_at() + boost::posix_time::seconds(15));
+    m_timer->expires_at(m_timer->expires_at() + boost::posix_time::seconds(1));
     m_timer->async_wait(boost::bind(&ir_warden::timer_callback, this,
                                     boost::asio::placeholders::error));
     on_timer();
@@ -69,7 +70,7 @@ void ir_warden::async_run() {
     return;
   m_timer = std::unique_ptr<boost::asio::deadline_timer>(
       new boost::asio::deadline_timer(m_io_service,
-                                      boost::posix_time::seconds(15)));
+                                      boost::posix_time::seconds(1)));
 
   command_queue::instance().listen_command<exit_command>(
       [this](const std::shared_ptr<exit_command> &) { m_exit_flag = 1; });
