@@ -11,7 +11,8 @@ int main(int argc, char *argv[]) {
   std::string db_path = neb::fs::join_path(cur_path, "test_data.db");
   neb::fs::rocksdb_storage rs;
   rs.open_database(db_path, neb::fs::storage_open_for_readwrite);
-  rs.put("root", neb::util::string_to_byte("root123"));
+  rs.put("nr", neb::util::number_to_byte<neb::util::bytes>(
+                   static_cast<neb::block_height_t>(1)));
 
   auto f = [](rocksdb::Iterator *it) {
     for (it->SeekToFirst(); it->Valid(); it->Next()) {

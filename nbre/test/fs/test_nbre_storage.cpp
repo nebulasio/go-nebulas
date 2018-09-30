@@ -101,4 +101,16 @@ void get_block_by_blockchain() {
   }
 }
 
-int main(int argc, char *argv[]) { return 0; }
+int main(int argc, char *argv[]) {
+
+  std::string cur_path = neb::fs::cur_dir();
+  std::string db_path = neb::fs::join_path(cur_path, "test_data.db");
+  std::string bc_path = neb::fs::join_path(cur_path, "test/data/data.db");
+
+  std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
+      std::make_shared<neb::fs::nbre_storage>(db_path, bc_path);
+  nbre_ptr->write_nbre_by_height(23083);
+  auto ret = nbre_ptr->read_nbre_by_height("nr", 1000);
+  LOG(INFO) << ret.size();
+  return 0;
+}
