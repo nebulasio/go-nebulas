@@ -94,10 +94,10 @@ static PtrTy fromTargetAddress(JITTargetAddress Addr) {
 int llvm::runOrcLazyJIT(std::vector<std::unique_ptr<Module>> Ms,
                         const std::vector<std::string> &Args) {
   // Add the program's symbols into the JIT's search space.
-  // if (sys::DynamicLibrary::LoadLibraryPermanently(nullptr)) {
-    // errs() << "Error loading program symbols.\n";
-    // return 1;
-  // }
+  if (sys::DynamicLibrary::LoadLibraryPermanently(nullptr)) {
+    errs() << "Error loading program symbols.\n";
+    return 1;
+  }
 
   // Grab a target machine and try to build a factory function for the
   // target-specific Orc callback manager.
@@ -131,37 +131,19 @@ int llvm::runOrcLazyJIT(std::vector<std::unique_ptr<Module>> Ms,
 
   // Add the module, look up main and run it.
   for (auto &M : Ms) {
-    outs() << *(M.get());
-    outs().flush();
+    // outs() << *(M.get());
+    // outs().flush();
 
     cantFail(J.addModule(std::shared_ptr<Module>(std::move(M))));
   }
 
-  // auto MainSym = J.findSymbol("main");
-  // typedef int (*MainFnPtr)();
-  // auto Main = fromTargetAddress<MainFnPtr>(cantFail(MainSym.getAddress()));
-  // return Main();
-
-  // if (auto MainSym = J.findSymbol("main")) {
-    // typedef int (*MainFnPtr)(int, const char *[]);
-    // std::vector<const char *> ArgV;
-    // for (auto &Arg : Args)
-      // ArgV.push_back(Arg.c_str());
-    // auto Main = fromTargetAddress<MainFnPtr>(cantFail(MainSym.getAddress()));
-    // return Main(ArgV.size(), (const char **)ArgV.data());
-  // } else if (auto Err = MainSym.takeError()) {
-    // logAllUnhandledErrors(std::move(Err), llvm::errs(), "");
-  // } else {
-    // errs() << "Could not find main function.\n";
-  // }
-  //
   if (auto MainSym = J.findSymbol("main")) {
-    typedef int (*MainFnPtr)();
-    // std::vector<const char *> ArgV;
-    // for (auto &Arg : Args)
-      // ArgV.push_back(Arg.c_str());
+    typedef int (*MainFnPtr)(int, const char *[]);
+    std::vector<const char *> ArgV;
+    for (auto &Arg : Args)
+      ArgV.push_back(Arg.c_str());
     auto Main = fromTargetAddress<MainFnPtr>(cantFail(MainSym.getAddress()));
-    return Main();
+    return Main(ArgV.size(), (const char **)ArgV.data());
   } else if (auto Err = MainSym.takeError()) {
     logAllUnhandledErrors(std::move(Err), llvm::errs(), "");
   } else {

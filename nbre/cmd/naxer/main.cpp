@@ -22,6 +22,7 @@
 #include "common/configuration.h"
 #include "core/ir_warden.h"
 #include "jit/jit_driver.h"
+#include <gflags/gflags.h>
 
 DEFINE_string(module, "nr", "module name");
 DEFINE_int64(height, 24000, "block height");

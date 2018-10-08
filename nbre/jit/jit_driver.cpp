@@ -84,9 +84,6 @@ public:
     // FIXME need remove this library later
     llvm::sys::DynamicLibrary::LoadLibraryPermanently(
         runtime_library_path.c_str());
-    
-    std::cout << runtime_library_path << std::endl;
-
     std::vector<std::unique_ptr<llvm::Module>> modules;
     for (auto it = irs.begin(); it != irs.end(); ++it) {
       auto ir = *it;
