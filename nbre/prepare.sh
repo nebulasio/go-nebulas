@@ -33,6 +33,9 @@ if [ ! -f $CUR_DIR/lib/bin/cmake ]; then
 fi
 export PATH=$CUR_DIR/lib/bin:$PATH
 
+git submodule init
+git submodule update
+
 cd $CUR_DIR/3rd_party
 LLVM_VERSION=6.0.1
 unzip_llvm_tar(){
