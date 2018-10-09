@@ -20,6 +20,7 @@
 
 #include "fs/nbre_storage.h"
 #include "common/util/byte.h"
+#include "common/util/version.h"
 
 namespace neb {
 namespace fs {
@@ -87,8 +88,11 @@ void nbre_storage::write_nbre() {
   block_height_t start_height = neb::util::byte_to_number<block_height_t>(
       m_storage->get(s_nbre_max_height));
   block_height_t end_height = end_block->height();
+  LOG(INFO) << "start height " << start_height << ',' << "end height "
+            << end_height;
 
   for (block_height_t h = start_height + 1; h <= end_height; h++) {
+    LOG(INFO) << h;
     write_nbre_by_height(h);
     m_storage->put(s_nbre_max_height,
                    neb::util::number_to_byte<neb::util::bytes>(h));
@@ -114,8 +118,12 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
       }
       const std::string &name = nbre_ir->name();
       const uint64_t version = nbre_ir->version();
+      LOG(INFO) << name;
+      neb::util::version(version).show_version();
 
       m_storage->put(name + std::to_string(version), payload_bytes);
+      m_storage->put(name,
+                     neb::util::number_to_byte<neb::util::bytes>(version));
     }
   }
 }

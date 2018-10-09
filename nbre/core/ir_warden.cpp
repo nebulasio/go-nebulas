@@ -47,14 +47,15 @@ bool ir_warden::is_sync_already() const {
 
 void ir_warden::wait_until_sync() {
   // TODO add impl here
-  throw std::invalid_argument("no impl");
+  // throw std::invalid_argument("no impl");
+  std::this_thread::sleep_for(std::chrono::seconds(10));
 }
 
 void ir_warden::on_timer() { m_nbre_storage->write_nbre(); }
 
 void ir_warden::timer_callback(const boost::system::error_code &ec) {
   if (!m_exit_flag) {
-    m_timer->expires_at(m_timer->expires_at() + boost::posix_time::seconds(15));
+    m_timer->expires_at(m_timer->expires_at() + boost::posix_time::seconds(1));
     m_timer->async_wait(boost::bind(&ir_warden::timer_callback, this,
                                     boost::asio::placeholders::error));
     on_timer();
@@ -73,6 +74,7 @@ void ir_warden::async_run() {
       new boost::asio::deadline_timer(m_io_service,
                                       boost::posix_time::seconds(15)));
   start();
+
 }
 ir_warden::ir_warden() : quitable_thread() {
   m_nbre_storage = std::unique_ptr<fs::nbre_storage>(new fs::nbre_storage(

@@ -19,66 +19,66 @@ void get_tail_block_from_rocksdb() {
   rs.close_database();
 }
 
-int main(int argc, char *argv[]) {
+void show_loaded_block_info() {
 
   std::string cur_path = neb::fs::cur_dir();
-  std::string db_path = neb::fs::join_path(cur_path, "test/data/data.db/");
+  std::string db_path = neb::fs::join_path(cur_path, "test_data.db/");
 
   std::shared_ptr<neb::fs::blockchain> blockchain_ptr =
       std::make_shared<neb::fs::blockchain>(db_path);
   std::shared_ptr<corepb::Block> block_ptr =
-      blockchain_ptr->load_block_with_height(1);
+      blockchain_ptr->load_block_with_height(23083);
 
   auto header = block_ptr->header();
   LOG(INFO) << "timestamp: " << header.timestamp();
 
   auto txs = block_ptr->transactions();
   auto tx = txs.begin();
-  LOG(INFO) << tx->nonce() << ',' << tx->chain_id();
+  LOG(INFO) << "nonce: " << tx->nonce();
+  LOG(INFO) << "chain_id: " << tx->chain_id();
 
   std::string hash = tx->hash();
   neb::util::bytes hash_b = neb::util::string_to_byte(hash);
   std::string hash_hex = hash_b.to_hex();
-  LOG(INFO) << hash_hex;
+  LOG(INFO) << "hash: " << hash;
+  LOG(INFO) << "hash_hex: " << hash_hex;
 
   std::string from = tx->from();
   neb::util::bytes from_b = neb::util::string_to_byte(from);
   std::string from_base58 = from_b.to_base58();
-  LOG(INFO) << from_base58;
+  LOG(INFO) << "from: " << from;
+  LOG(INFO) << "from_base58: " << from_base58;
+
+  std::string to = tx->to();
+  neb::util::bytes to_b = neb::util::string_to_byte(to);
+  std::string to_base58 = to_b.to_base58();
+  LOG(INFO) << "to: " << to;
+  LOG(INFO) << "to_base58: " << to_base58;
 
   std::string value = tx->value();
   neb::util::bytes value_b = neb::util::string_to_byte(value);
   std::string value_hex = value_b.to_hex();
-  LOG(INFO) << value.size() << ',' << value_hex.size() << ',' << value_hex;
+  LOG(INFO) << "value: " << value;
+  LOG(INFO) << "value_hex: " << value_hex;
 
   std::string price = tx->gas_price();
   neb::util::bytes price_b = neb::util::string_to_byte(price);
   std::string price_hex = price_b.to_hex();
-  LOG(INFO) << price.size() << ',' << price_hex.size() << ',' << price_hex;
+  LOG(INFO) << "price: " << price;
+  LOG(INFO) << "price_hex: " << price_hex;
 
   auto data = tx->data();
   std::string type = data.type();
-  LOG(INFO) << type;
+  LOG(INFO) << "type: " << type;
 
   std::string payload = data.payload();
   neb::util::bytes payload_b = neb::util::string_to_byte(payload);
   std::string payload_base64 = payload_b.to_base64();
   LOG(INFO) << payload_base64;
 
-  // std::string s_raw = "xx";
-  // std::string s_encode = neb::encode_base64(s_raw);
-  // std::string s_decode;
-  // neb::decode_base64(s_encode, s_decode);
-  // LOG(INFO) << s_raw << ',' << s_decode << ',' << s_encode;
+}
 
-  neb::util::bytes b_decode = neb::util::bytes::from_base64("eHg=");
-  LOG(INFO) << b_decode.to_hex();
-  for (size_t i = 0; i < 10; i++) {
-    std::string b_encode = b_decode.to_base64();
-    b_decode = neb::util::bytes::from_base64(b_encode);
-    LOG(INFO) << b_encode;
-  }
-  // LOG(INFO) << b_decode;
-
+int main(int argc, char *argv[]) {
+  show_loaded_block_info();
   return 0;
 }

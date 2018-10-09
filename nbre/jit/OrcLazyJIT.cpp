@@ -19,6 +19,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <system_error>
+#include <iostream>
 
 using namespace llvm;
 
@@ -129,8 +130,12 @@ int llvm::runOrcLazyJIT(std::vector<std::unique_ptr<Module>> Ms,
                std::move(IndirectStubsMgrBuilder), OrcInlineStubs);
 
   // Add the module, look up main and run it.
-  for (auto &M : Ms)
+  for (auto &M : Ms) {
+    // outs() << *(M.get());
+    // outs().flush();
+
     cantFail(J.addModule(std::shared_ptr<Module>(std::move(M))));
+  }
 
   if (auto MainSym = J.findSymbol("main")) {
     typedef int (*MainFnPtr)(int, const char *[]);
@@ -139,10 +144,11 @@ int llvm::runOrcLazyJIT(std::vector<std::unique_ptr<Module>> Ms,
       ArgV.push_back(Arg.c_str());
     auto Main = fromTargetAddress<MainFnPtr>(cantFail(MainSym.getAddress()));
     return Main(ArgV.size(), (const char **)ArgV.data());
-  } else if (auto Err = MainSym.takeError())
+  } else if (auto Err = MainSym.takeError()) {
     logAllUnhandledErrors(std::move(Err), llvm::errs(), "");
-  else
+  } else {
     errs() << "Could not find main function.\n";
+  }
 
   return 1;
 }
