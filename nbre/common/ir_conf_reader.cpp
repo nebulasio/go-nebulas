@@ -38,11 +38,16 @@ namespace neb {
     // TODO
     boost::property_tree::ptree json_root;
     read_json_file(conf_fp, json_root);
-    get_ir_fp(json_root);
     get_self_ref(json_root);
     get_depends(json_root);
     get_available_height(json_root);
-    get_cpp_files(json_root);
+
+    get_root_path(json_root);
+    get_clang_arguments(json_root, "cpp_files", m_cpp_files);
+    get_clang_arguments(json_root, "include_header_files", m_include_header_files);
+    get_clang_arguments(json_root, "link_files", m_link_files);
+    get_clang_arguments(json_root, "link_path", m_link_path);
+    get_clang_arguments(json_root, "flags", m_flags);
   }
 
   ir_conf_reader::~ir_conf_reader() = default;
@@ -50,14 +55,6 @@ namespace neb {
   void ir_conf_reader::read_json_file(const std::string &conf_fp, boost::property_tree::ptree &json_root){
     auto lambda_fun = [&]() {
      boost::property_tree::read_json(conf_fp, json_root);
-    };
-
-    check_exception(lambda_fun);
-  }
-
-  void ir_conf_reader::get_ir_fp(const boost::property_tree::ptree &json_root){
-    auto lambda_fun = [this, json_root]() {
-      m_ir_fp = json_root.get<std::string>("ir_file_path");
     };
 
     check_exception(lambda_fun);
@@ -92,13 +89,16 @@ namespace neb {
 
     check_exception(lambda_fun);
   }
+ 
+  void ir_conf_reader::get_clang_arguments(const boost::property_tree::ptree &json_root, 
+                                           const std::string &key, 
+                                           std::vector<std::string> &container) {
   
-  void ir_conf_reader::get_cpp_files(const boost::property_tree::ptree &json_root){
-    auto lambda_fun = [this, json_root]() {
-      boost::property_tree::ptree cpp_files_node = json_root.get_child("cpp_files");
-      BOOST_FOREACH(boost::property_tree::ptree::value_type &child_node, cpp_files_node) {
-        std::string file_name = child_node.second.get_value<std::string>();
-        m_cpp_files.push_back(file_name);
+    auto lambda_fun = [this, &json_root, &key, &container]() {
+      boost::property_tree::ptree node = json_root.get_child(key);
+      BOOST_FOREACH(boost::property_tree::ptree::value_type &child_node, node) {
+        std::string value = child_node.second.get_value<std::string>();
+        container.push_back(value);
       }
     };
 
@@ -111,5 +111,9 @@ namespace neb {
     };
 
     check_exception(lambda_fun);
+  }
+
+  void ir_conf_reader::get_root_path(const boost::property_tree::ptree &json_root) {
+      m_root_path = json_root.get<std::string>("root_path");
   }
 } // end namespace neb
