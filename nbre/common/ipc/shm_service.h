@@ -20,30 +20,15 @@
 #pragma once
 #include "common/common.h"
 #include "common/ipc/shm_queue.h"
+#include "common/util/enable_func_if.h"
 #include "core/command.h"
-#include <boost/interprocess/allocators/allocator.hpp>
-#include <boost/interprocess/containers/vector.hpp>
-#include <boost/interprocess/managed_shared_memory.hpp>
-#include <boost/interprocess/sync/named_condition.hpp>
-#include <boost/interprocess/sync/named_mutex.hpp>
-#include <boost/interprocess/sync/named_semaphore.hpp>
-#include <boost/interprocess/sync/scoped_lock.hpp>
 #include <mutex>
 #include <thread>
+#include <type_traits>
 #include <unordered_map>
 
 namespace neb {
 namespace ipc {
-struct shm_server {
-  inline static std::string role_name(const std::string &name) {
-    return name + std::string(".server");
-  }
-};
-struct shm_client {
-  inline static std::string role_name(const std::string &name) {
-    return name + std::string(".client");
-  }
-};
 
 struct shm_service_failure : public std::exception {
   inline shm_service_failure(const std::string &msg) : m_msg(msg) {}
@@ -52,12 +37,7 @@ protected:
   std::string m_msg;
 };
 namespace internal {
-template <typename T> struct shm_other_side_role {};
-template <> struct shm_other_side_role<shm_server> { typedef shm_client type; };
-template <> struct shm_other_side_role<shm_client> { typedef shm_server type; };
-
-
-template <size_t S> class shm_service_base {
+template <size_t S, typename Role> class shm_service_base {
 public:
   shm_service_base(const std::string shm_name, const std::string &shm_in_name,
                    const std::string &shm_out_name, size_t shm_in_capacity,
@@ -65,7 +45,13 @@ public:
       : m_shm_name(shm_name), m_shm_in_name(shm_in_name),
         m_shm_out_name(shm_out_name), m_exit_flag(0) {
 
-    boost::interprocess::named_mutex::remove(mutex_name().c_str());
+    neb::util::enable_func_if<std::is_same<Role, shm_server>::value>([this]() {
+      boost::interprocess::named_mutex::remove(mutex_name().c_str());
+    });
+
+    neb::util::enable_func_if<std::is_same<Role, shm_client>::value>([this]() {
+
+    });
     m_mutex = std::unique_ptr<boost::interprocess::named_mutex>(
         new boost::interprocess::named_mutex(
             boost::interprocess::open_or_create, mutex_name().c_str()));
@@ -197,11 +183,11 @@ protected:
 }
 
 template <size_t S, typename Role>
-class shm_service : public internal::shm_service_base<S> {
+class shm_service : public internal::shm_service_base<S, Role> {
 public:
   shm_service(const std::string &name, size_t in_obj_max_count,
               size_t out_obj_max_count)
-      : internal::shm_service_base<S>(
+      : internal::shm_service_base<S, Role>(
             name, internal::shm_other_side_role<Role>::type::role_name(name),
             Role::role_name(name), in_obj_max_count, out_obj_max_count) {}
 };

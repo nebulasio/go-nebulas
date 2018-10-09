@@ -19,6 +19,7 @@
 //
 #pragma once
 #include "common/common.h"
+#include "common/ipc/shm_base.h"
 #include <boost/interprocess/allocators/allocator.hpp>
 #include <boost/interprocess/containers/vector.hpp>
 #include <boost/interprocess/managed_shared_memory.hpp>
@@ -26,9 +27,10 @@
 #include <boost/interprocess/sync/named_mutex.hpp>
 #include <boost/interprocess/sync/named_semaphore.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
+
 namespace neb {
 namespace ipc {
-typedef uint32_t shm_type_id_t;
+namespace internal {
 struct shm_queue_failure : public std::exception {
   inline shm_queue_failure(const std::string &msg) : m_msg(msg) {}
   inline const char *what() const throw() { return m_msg.c_str(); }
@@ -36,7 +38,6 @@ struct shm_queue_failure : public std::exception {
 protected:
   std::string m_msg;
 };
-namespace internal {
 class shm_queue {
 public:
   shm_queue(const std::string &name,

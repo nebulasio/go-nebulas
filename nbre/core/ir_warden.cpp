@@ -28,9 +28,6 @@ namespace core {
 
 const command_type_t exit_command::command_type;
 ir_warden::~ir_warden() {
-  if (m_thread) {
-    m_thread->join();
-  }
 }
 
 std::shared_ptr<nbre::NBREIR>
@@ -64,24 +61,20 @@ void ir_warden::timer_callback(const boost::system::error_code &ec) {
   }
 }
 
+void ir_warden::thread_func() {
+  m_timer->async_wait(boost::bind(&ir_warden::timer_callback, this,
+                                  boost::asio::placeholders::error));
+  m_io_service.run();
+}
 void ir_warden::async_run() {
   if (m_thread)
     return;
   m_timer = std::unique_ptr<boost::asio::deadline_timer>(
       new boost::asio::deadline_timer(m_io_service,
                                       boost::posix_time::seconds(15)));
-
-  command_queue::instance().listen_command<exit_command>(
-      [this](const std::shared_ptr<exit_command> &) { m_exit_flag = 1; });
-
-  m_thread = std::unique_ptr<std::thread>(new std::thread([this]() {
-    m_timer->async_wait(boost::bind(&ir_warden::timer_callback, this,
-                                    boost::asio::placeholders::error));
-    m_io_service.run();
-
-  }));
+  start();
 }
-ir_warden::ir_warden() : m_exit_flag(0) {
+ir_warden::ir_warden() : quitable_thread() {
   m_nbre_storage = std::unique_ptr<fs::nbre_storage>(new fs::nbre_storage(
       std::getenv("NBRE_DB"), std::getenv("BLOCKCHAIN_DB")));
 }

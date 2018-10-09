@@ -20,6 +20,7 @@
 
 #pragma once
 #include "common/common.h"
+#include "common/quitable_thread.h"
 #include "common/util/singleton.h"
 #include "fs/nbre_storage.h"
 #include "fs/proto/ir.pb.h"
@@ -30,7 +31,7 @@
 
 namespace neb {
 namespace core {
-class ir_warden : public util::singleton<ir_warden> {
+class ir_warden : public util::singleton<ir_warden>, public quitable_thread {
 public:
   ir_warden();
   virtual ~ir_warden();
@@ -47,15 +48,14 @@ public:
   void wait_until_sync();
 
 protected:
+  virtual void thread_func();
   void timer_callback(const boost::system::error_code &ec);
 
   void on_timer();
 
 private:
-  std::unique_ptr<std::thread> m_thread;
   boost::asio::io_service m_io_service;
   std::mutex m_mutex;
-  std::atomic_int m_exit_flag;
   std::unique_ptr<boost::asio::deadline_timer> m_timer;
   std::unique_ptr<fs::nbre_storage> m_nbre_storage;
 };

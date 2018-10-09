@@ -3,6 +3,9 @@ add_library(nbre_common
   util/base64.cpp
   util/byte.cpp
   ipc/shm_queue.cpp
+  ipc/shm_bookkeeper.cpp
+  ipc/shm_session.cpp
+  quitable_thread.cpp
   ir_conf_reader.cpp
   configuration.cpp)
 
