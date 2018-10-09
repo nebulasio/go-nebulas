@@ -48,29 +48,38 @@ void merge_clang_arguments(const std::vector<std::string> &flag_value_list,
     std::for_each(flag_value_list.begin(), flag_value_list.end(),
         [&command_string, &flags, &is_add_root_path](const std::string &value) {
         if (is_add_root_path) {
-        command_string = command_string + flags.root_path + value + "";
+        command_string = command_string + neb::fs::join_path(flags.root_path, value) + " ";
         } else {
-        command_string = command_string + value + "";
+        command_string = command_string + value + " ";
         }
         });
   }
 }
 
+int execute_command(const std::string &command_string) {
+  bp::ipstream pipe_stream;
+  bp::child c(command_string, bp::std_out > pipe_stream);
+
+  std::string line;
+  while(pipe_stream && std::getline(pipe_stream, line) && !line.empty()) {
+    std::cerr << line << std::endl;
+  }
+
+  c.wait();
+  return c.exit_code();
+}
+
 void make_ir_bitcode(neb::ir_conf_reader &reader, std::string &ir_bc_file, bool isPayload) {
   int result = -1;
 
-  std::string current_path = neb::fs::cur_dir() + "/";
-  std::string command_string(current_path + "lib/bin/clang -O3 -emit-llvm ");
-
-  std::vector<std::string> flags_list = reader.flags();
-  if (!flags_list.empty()) {
-    std::for_each(flags_list.begin(), flags_list.end(),
-        [&command_string](const std::string &flags) {
-        command_string = command_string + flags + "";
-        });
-  }
+  std::string current_path = neb::fs::cur_dir();
+  std::string command_string(neb::fs::join_path(current_path, "lib/bin/clang") + 
+                             " -O3 -emit-llvm ");
 
   clang_flags flags;
+
+  flags.flag_command = "";
+  merge_clang_arguments(reader.flags(), flags, command_string, false);
 
   flags.root_path = reader.root_path();
   flags.flag_command = " -I";
@@ -87,18 +96,17 @@ void make_ir_bitcode(neb::ir_conf_reader &reader, std::string &ir_bc_file, bool 
 
   if (isPayload) {
     std::string temp_path = neb::fs::tmp_dir();
-    ir_bc_file = temp_path + reader.self_ref().name() + "_ir.bc";
+    ir_bc_file = neb::fs::join_path(temp_path, reader.self_ref().name() + "_ir.bc");
   }
 
   command_string += " -o " + ir_bc_file;
 
-  std::cout << command_string << std::endl;
+  LOG(INFO) << command_string;
 
-  result = bp::system(command_string);
+  result = execute_command(command_string);
   if (result != 0) {
-    std::cout << "error: executed by boost::process::system." << std::endl;
-    std::cout << "result code = ";
-    std::cout << result << std::endl;
+    LOG(INFO) << "error: executed by boost::process::system.";
+    LOG(INFO) << "result code = " << result;
     exit(1);
   }
 }
@@ -115,12 +123,12 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
   po::store(po::parse_command_line(argc, argv, desc), vm);
   po::notify(vm);
   if (vm.count("help")) {
-    std::cout << desc << "\n";
+    LOG(INFO) << desc << "\n";
     exit(1);
   }
 
   if (!vm.count("input")) {
-    std::cout << "You must specify \"input\"!" << std::endl;
+    LOG(INFO) << "You must specify \"input\"!";
     exit(1);
   }
 
@@ -200,12 +208,12 @@ int main(int argc, char *argv[]) {
       ir_bc_file = vm["output"].as<std::string>();
       make_ir_bitcode(reader, ir_bc_file, false);
     } else {
-      std::cout << "Error arguments of model, please show help message." << std::endl; 
+      LOG(INFO) << "Error arguments of model, please show help message.";
       return 1;
     }
   } catch (std::exception &e) {
     ifs.close();
-    std::cout << e.what() << std::endl;
+    LOG(INFO) << e.what() << std::endl;
   }
 
   return 0;
