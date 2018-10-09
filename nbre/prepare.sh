@@ -148,7 +148,7 @@ fi
 
 if [ ! -d $CUR_DIR/lib/include/gflags ]; then
   # src/gflags.cc, snprintf space before PRIdxx
-  build_with_cmake gflags
+  build_with_configure gflags
 fi
 
 if [ ! -f $CUR_DIR/lib/include/zlib.h ]; then
