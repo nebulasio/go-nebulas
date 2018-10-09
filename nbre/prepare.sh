@@ -36,6 +36,19 @@ export PATH=$CUR_DIR/lib/bin:$PATH
 git submodule init
 git submodule update
 
+if ! hash autoreconf 2>/dev/null; then
+  OS=`uname`
+  case $OS in
+    'Linux')
+      sudo apt-get install autoconf
+      ;;
+    'Darwin')
+      brew install autoconf
+      ;;
+    *) ;;
+  esac
+fi
+
 cd $CUR_DIR/3rd_party
 LLVM_VERSION=6.0.1
 unzip_llvm_tar(){
@@ -121,7 +134,7 @@ if [ ! -d $CUR_DIR/lib/include/gtest/ ]; then
 fi
 
 if [ ! -f $CUR_DIR/lib/include/snappy.h ]; then
-  cd $CUR_DIR/3rd_patch/snappy && cp ../snappy.patch ./ && git apply snappy.patch
+  cd $CUR_DIR/3rd_party/snappy && cp ../snappy.patch ./ && git apply snappy.patch
   # turn off unittest
   build_with_cmake snappy
 fi
