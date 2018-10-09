@@ -9,4 +9,6 @@ target_link_libraries(test_common gtest pthread nbre_common glog rt)
 add_test(NAME test_common
   COMMAND test_common)
 
+add_subdirectory(ipc)
+
 
