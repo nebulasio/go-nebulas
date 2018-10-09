@@ -6,8 +6,20 @@
   "depends": [
   ],
   "available_height": 100,
-  "ir_file_path": "../runtime/foo_arg.bc",
+  "root_path":"/home/frank/go-nebulas/nbre/",
   "cpp_files": [
-    "../test/link_example/foo_arg.cpp"
+    "test/link_example/foo_arg.cpp"
+  ],
+  "include_header_files":[
+    "test/link_example"
+  ],
+  "link_path":[
+    "runtime/"
+  ],
+  "link_files":[
+    "bar"
+  ],
+  "flags": [
   ]
+
 }

@@ -28,6 +28,7 @@ TEST(test_fs, read_nbre_by_name_version) {
   std::string cur_path = neb::fs::cur_dir();
   std::string db_path = neb::fs::join_path(cur_path, "test_data.db");
 
+  /*
   std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
       std::make_shared<neb::fs::nbre_storage>(db_path, db_path);
   // nbre_ptr->write_nbre_by_height(1000);
@@ -45,4 +46,5 @@ TEST(test_fs, read_nbre_by_name_version) {
   EXPECT_EQ(dep->version(), 789);
 
   EXPECT_EQ(nbre_ir.ir(), "heh");
+  */
 }
