@@ -18,8 +18,13 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "test/common/ipc/ipc_test.h"
+#include <exception>
 #include <iostream>
 
-IPC_SERVER(test_example) {}
+IPC_SERVER(test_example) {
+  int a = 0, b = 0;
+
+  IPC_CHECK_THROW(a + b, std::exception);
+}
 
 IPC_CLIENT(test_example) { std::cout << "this is client" << std::endl; }

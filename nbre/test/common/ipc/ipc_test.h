@@ -21,12 +21,14 @@
 #include "test/common/ipc/ipc_instance.h"
 
 #define IPC_CHECK_THROW(statement, expected_exception)                         \
-  if (std::string internal_fail_msg = "") {                                    \
+  {                                                                            \
+    std::string internal_fail_msg = "";                                        \
     bool ipc_test_caught_expected = false;                                     \
     try {                                                                      \
       internal_fail_msg =                                                      \
           "Expected: " #statement " throws " #expected_exception               \
-          ".\n Actual: it throws nothing. " statement;                         \
+          ".\n Actual: it throws nothing. ";                                   \
+      statement;                                                               \
     } catch (expected_exception const &) {                                     \
       ipc_test_caught_expected = true;                                         \
     } catch (...) {                                                            \
@@ -40,3 +42,39 @@
       exit(1);                                                                 \
     }                                                                          \
   }
+
+#define IPC_CHECK_NO_THROW(statement)                                          \
+  {                                                                            \
+    std::string internal_fail_msg = "";                                        \
+    bool ipc_test_caught_nothing = true;                                       \
+    try {                                                                      \
+      statement;                                                               \
+    } catch (...) {                                                            \
+      ipc_test_caught_nothing = false;                                         \
+      internal_fail_msg = "Expected: " #statement " throws nothing"            \
+                          ".\n Actual: it throws an exception";                \
+    }                                                                          \
+    if (!ipc_test_caught_nothing) {                                            \
+      std::cerr << internal_fail_msg;                                          \
+      exit(1);                                                                 \
+    }                                                                          \
+  }
+
+#define IPC_CHECK_ANY_THROW(statement)                                         \
+  {                                                                            \
+    std::string internal_fail_msg = "";                                        \
+    bool ipc_test_caught_nothing = true;                                       \
+    try {                                                                      \
+      statement;                                                               \
+    } catch (...) {                                                            \
+      ipc_test_caught_nothing = false;                                         \
+    }                                                                          \
+    if (ipc_test_caught_nothing) {                                             \
+      internal_fail_msg = "Expected: " #statement " throws anything"           \
+                          ".\n Actual: it throws nothing.";                    \
+      std::cerr << internal_fail_msg;                                          \
+      exit(1);                                                                 \
+    }                                                                          \
+  }
+
+//#define IPC_EXPECT(statement) \
