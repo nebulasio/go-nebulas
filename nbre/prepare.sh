@@ -19,7 +19,14 @@
 
 #CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" >/dev/null && pwd  )"
 CUR_DIR="$( pwd )"
-LOGICAL_CPU=$(cat /proc/cpuinfo |grep "processor"|wc -l)
+OS="$(uname -s)"
+
+if [ "$OS" = "Darwin" ]; then
+  LOGICAL_CPU=$(sysctl -n hw.ncpu)
+else
+  LOGICAL_CPU=$(cat /proc/cpuinfo |grep "processor"|wc -l)
+fi
+
 PARALLEL=$LOGICAL_CPU
 
 if [ ! -d $CUR_DIR/3rd_party/cmake-3.12.2 ]; then
@@ -32,6 +39,21 @@ if [ ! -f $CUR_DIR/lib/bin/cmake ]; then
   ./bootstrap --prefix=$CUR_DIR/lib --parallel=$PARALLEL && make -j$PARALLEL && make install
 fi
 export PATH=$CUR_DIR/lib/bin:$PATH
+
+git submodule init
+git submodule update
+
+if ! hash autoreconf 2>/dev/null; then
+  case $OS in
+    'Linux')
+      sudo apt-get install autoconf
+      ;;
+    'Darwin')
+      brew install autoconf
+      ;;
+    *) ;;
+  esac
+fi
 
 cd $CUR_DIR/3rd_party
 LLVM_VERSION=6.0.1
@@ -89,14 +111,15 @@ fi
 
 build_with_cmake(){
   cd $CUR_DIR/3rd_party/$1
-  if [ -d "build" ]; then
-    rm -rf build
+  build="build.tmp"
+  if [ -d $build ]; then
+    rm -rf $build
   fi
-  mkdir build
-  cd build
+  mkdir $build
+  cd $build
   cmake -DCMAKE_MODULE_PATH=$CUR_DIR/lib/lib/cmake -DCMAKE_LIBRARY_PATH=$CUR_DIR/lib/lib -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib/ ../
   make -j$PARALLEL && make install && make clean
-  cd ../ && rm -rf build
+  cd ../ && rm -rf $build
 }
 
 build_with_configure(){
@@ -118,7 +141,7 @@ if [ ! -d $CUR_DIR/lib/include/gtest/ ]; then
 fi
 
 if [ ! -f $CUR_DIR/lib/include/snappy.h ]; then
-  cd $CUR_DIR/3rd_patch/snappy && cp ../snappy.patch ./ && git apply snappy.patch
+  cd $CUR_DIR/3rd_party/snappy && cp ../snappy.patch ./ && git apply snappy.patch
   # turn off unittest
   build_with_cmake snappy
 fi
