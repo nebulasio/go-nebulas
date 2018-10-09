@@ -1,2 +1,2 @@
 add_executable(nasir main.cpp)
-target_link_libraries(nasir nbre_common nbre_fs_proto boost_program_options)
+target_link_libraries(nasir pthread nbre_common nbre_fs_proto boost_program_options boost_system)

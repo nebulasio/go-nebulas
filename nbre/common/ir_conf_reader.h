@@ -48,12 +48,14 @@ public:
   inline const ir_ref &self_ref() const { return m_self_ref; }
   inline const std::vector<ir_ref> depends() const { return m_depends; }
   inline block_height_t available_height() const { return m_available_height; }
+  inline const std::vector<std::string> cpp_files() const { return m_cpp_files; }
 
 protected:
   std::string m_ir_fp;
   ir_ref m_self_ref;
   std::vector<ir_ref> m_depends;
   block_height_t m_available_height;
+  std::vector<std::string> m_cpp_files;
 
 private:
   void set_ir_ref_by_ptree(ir_ref &ir, const boost::property_tree::ptree &ptree);
@@ -62,5 +64,6 @@ private:
   void get_self_ref(const boost::property_tree::ptree &json_root);
   void get_depends(const boost::property_tree::ptree &json_root);
   void get_available_height(const boost::property_tree::ptree &json_root);
+  void get_cpp_files(const boost::property_tree::ptree &json_root);
 };
 } // namespace neb

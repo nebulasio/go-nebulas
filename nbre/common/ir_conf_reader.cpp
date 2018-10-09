@@ -42,6 +42,7 @@ namespace neb {
     get_self_ref(json_root);
     get_depends(json_root);
     get_available_height(json_root);
+    get_cpp_files(json_root);
   }
 
   ir_conf_reader::~ir_conf_reader() = default;
@@ -86,6 +87,18 @@ namespace neb {
         set_ir_ref_by_ptree(ir, child_node.second);
 
         m_depends.push_back(ir);
+      }
+    };
+
+    check_exception(lambda_fun);
+  }
+  
+  void ir_conf_reader::get_cpp_files(const boost::property_tree::ptree &json_root){
+    auto lambda_fun = [this, json_root]() {
+      boost::property_tree::ptree cpp_files_node = json_root.get_child("cpp_files");
+      BOOST_FOREACH(boost::property_tree::ptree::value_type &child_node, cpp_files_node) {
+        std::string file_name = child_node.second.get_value<std::string>();
+        m_cpp_files.push_back(file_name);
       }
     };
 

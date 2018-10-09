@@ -6,5 +6,8 @@
   "depends": [
   ],
   "available_height": 100,
-  "ir_file_path": "../runtime/foo_arg.bc"
+  "ir_file_path": "../runtime/foo_arg.bc",
+  "cpp_files": [
+    "../test/link_example/foo_arg.cpp"
+  ]
 }

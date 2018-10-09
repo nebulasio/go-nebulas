@@ -25,10 +25,38 @@
 #include "fs/proto/ir.pb.h"
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
+#include <boost/process.hpp>
 #include <fstream>
 #include <iostream>
+#include <algorithm>
 
 namespace po = boost::program_options;
+namespace bp = boost::process;
+
+void make_ir_bitcode(neb::ir_conf_reader &reader, std::string &ir_bc_file) {
+  int result = -1;
+  ir_bc_file = reader.self_ref().name() + "_ir.bc";
+
+  std::vector<std::string> cpp_files = reader.cpp_files();
+  std::string command_string("clang -O3 -emit-llvm ");
+
+  std::for_each(cpp_files.begin(), cpp_files.end(),
+      [&command_string](const std::string &file_name) {
+       command_string = command_string + file_name + ""; 
+      });
+
+  command_string += " -c -o " + ir_bc_file;
+
+  std::cout << command_string << std::endl; 
+
+  result = bp::system(command_string);
+  if (result != 0) {
+    std::cout << "error: executed by boost::process::system." << std::endl;
+    std::cout << "result code = ";
+    std::cout << result << std::endl;
+    exit(-1);
+  }
+}
 
 int main(int argc, char *argv[]) {
   po::options_description desc("Generate IR Payload");
@@ -53,10 +81,14 @@ int main(int argc, char *argv[]) {
   try {
     std::string ir_fp = vm["input"].as<std::string>();
     neb::ir_conf_reader reader(ir_fp);
-    ifs.open(reader.ir_fp().c_str(), std::ios::in | std::ios::binary);
+
+    std::string ir_bc_file;
+    make_ir_bitcode(reader, ir_bc_file);
+
+    ifs.open(ir_bc_file.c_str(), std::ios::in | std::ios::binary);
     if (!ifs.is_open()) {
       throw std::invalid_argument(
-          boost::str(boost::format("can't open file %1%") % reader.ir_fp()));
+          boost::str(boost::format("can't open file %1%") % ir_bc_file));
     }
 
     ifs.seekg(0, ifs.end);
