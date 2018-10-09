@@ -22,11 +22,17 @@
 #include <exception>
 #include <iostream>
 
+void func() { throw std::runtime_error("tx"); }
+void foo() { throw std::runtime_error("qx"); }
+
 IPC_SERVER(test_example) {
   int a = 0, b = 0;
 
+  IPC_CHECK_ANY_THROW(foo());
+  IPC_CHECK_THROW(func(), std::runtime_error);
   IPC_CHECK_NO_THROW(a + b);
   IPC_EXPECT(a == b) << "xxx";
+  IPC_EXPECT_EQ(a, b);
 }
 
 IPC_CLIENT(test_example) { std::cout << "this is client" << std::endl; }

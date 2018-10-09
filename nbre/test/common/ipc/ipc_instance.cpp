@@ -122,8 +122,6 @@ int ipc_instances::run_all_ipc_instances() {
       }
     }
   } else {
-    std::cout << "fixture: " << m_enabled_fixture_name
-              << ", instance: " << m_enabled_instance_name << std::endl;
     return run_one_ipc_instance(m_enabled_fixture_name,
                                 m_enabled_instance_name);
   }
