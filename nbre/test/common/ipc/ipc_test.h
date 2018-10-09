@@ -77,4 +77,26 @@
     }                                                                          \
   }
 
-//#define IPC_EXPECT(statement) \
+class IPCCmpExpectHelper {
+public:
+  inline IPCCmpExpectHelper(bool val, const std::string &label)
+      : m_value(val), m_label(label), m_ss() {}
+  ~IPCCmpExpectHelper() {
+    if (!m_value) {
+      std::cerr << m_label << " expected true. " << m_ss.str();
+    }
+  }
+
+  template <typename T1, typename T2>
+  IPCCmpExpectHelper(T1 &&t1, T2 &&t2, const std::string &label)
+      : m_value(t1 == t2), m_label(label) {}
+
+  template <typename T> IPCCmpExpectHelper &operator<<(T &&t) { m_ss << t; }
+
+protected:
+  bool m_value;
+  std::string m_label;
+  std::stringstream m_ss;
+};
+
+#define IPC_EXPECT(statement) IPCCmpExpectHelper(statement, #statement)

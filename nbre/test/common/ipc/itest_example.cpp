@@ -17,6 +17,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
+#include "common/ipc/shm_bookkeeper.h"
 #include "test/common/ipc/ipc_test.h"
 #include <exception>
 #include <iostream>
@@ -24,7 +25,8 @@
 IPC_SERVER(test_example) {
   int a = 0, b = 0;
 
-  IPC_CHECK_THROW(a + b, std::exception);
+  IPC_CHECK_NO_THROW(a + b);
+  IPC_EXPECT(a == b) << "xxx";
 }
 
 IPC_CLIENT(test_example) { std::cout << "this is client" << std::endl; }
