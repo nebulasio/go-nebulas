@@ -148,23 +148,26 @@ fi
 
 if [ ! -d $CUR_DIR/lib/include/gflags ]; then
   # src/gflags.cc, snprintf space before PRIdxx
-  build_with_configure gflags
+  build_with_cmake gflags
 fi
 
 if [ ! -f $CUR_DIR/lib/include/zlib.h ]; then
   build_with_configure zlib
 fi
 
-cd $CUR_DIR/3rd_party
-if [ ! -d "zstd-1.1.3"  ]; then
+if [ ! -d $CUR_DIR/3rd_party/zstd-1.1.3 ]; then
+  cd $CUR_DIR/3rd_party
   tar -zxvf zstd-1.1.3.tar.gz
 fi
+
 if [ ! -f $CUR_DIR/lib/include/zstd.h ]; then
   build_with_make zstd-1.1.3
 fi
+
 if [ ! -f $CUR_DIR/lib/include/bzlib.h ]; then
 build_with_make bzip2-1.0.6
 fi
+
 if [ ! -f $CUR_DIR/lib/include/lz4.h ]; then
   build_with_make lz4
 fi
