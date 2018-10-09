@@ -43,6 +43,10 @@ public:
   acquire_named_semaphore(const std::string &name);
   void release_named_semaphore(const std::string &name);
 
+  std::unique_ptr<boost::interprocess::named_condition>
+  acquire_named_condition(const std::string &name);
+  void release_named_condition(const std::string &name);
+
   void acquire(const std::string &name, const std::function<void()> &action);
   void release(const std::string &name, const std::function<void()> &action);
 

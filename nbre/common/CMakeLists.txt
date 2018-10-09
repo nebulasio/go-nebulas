@@ -6,6 +6,7 @@ add_library(nbre_common
   ipc/shm_bookkeeper.cpp
   ipc/shm_session.cpp
   quitable_thread.cpp
+  exception_queue.cpp
   ir_conf_reader.cpp
   configuration.cpp)
 

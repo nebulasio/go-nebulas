@@ -20,13 +20,7 @@
 #pragma once
 #include "common/common.h"
 #include "common/ipc/shm_base.h"
-#include <boost/interprocess/allocators/allocator.hpp>
-#include <boost/interprocess/containers/vector.hpp>
-#include <boost/interprocess/managed_shared_memory.hpp>
-#include <boost/interprocess/sync/named_condition.hpp>
-#include <boost/interprocess/sync/named_mutex.hpp>
-#include <boost/interprocess/sync/named_semaphore.hpp>
-#include <boost/interprocess/sync/scoped_lock.hpp>
+#include "common/ipc/shm_session.h"
 
 namespace neb {
 namespace ipc {
@@ -40,7 +34,7 @@ protected:
 };
 class shm_queue {
 public:
-  shm_queue(const std::string &name,
+  shm_queue(const std::string &name, shm_session_base *session,
             boost::interprocess::managed_shared_memory *shmem, size_t capacity);
 
   template <typename T> void push_back(T *ptr) {
@@ -95,9 +89,10 @@ protected:
   shm_vector_t *m_buffer;
   size_t m_capacity;
 
-  boost::interprocess::named_mutex *m_mutex;
-  boost::interprocess::named_condition *m_empty_cond;
-  boost::interprocess::named_condition *m_full_cond;
+  std::unique_ptr<boost::interprocess::named_mutex> m_mutex;
+  std::unique_ptr<boost::interprocess::named_condition> m_empty_cond;
+  std::unique_ptr<boost::interprocess::named_condition> m_full_cond;
+  shm_session_base *m_session;
 }; // end class shm_queue
 }
 }

@@ -39,6 +39,11 @@ struct shm_session_timeout : public shm_session_failure {
   inline shm_session_timeout() : shm_session_failure("shm session timeout"){};
 };
 
+struct shm_session_already_start : public shm_session_failure {
+  inline shm_session_already_start()
+      : shm_session_failure("shm session already start"){};
+};
+
 void clean_shm_session_env();
 
 namespace internal {
@@ -49,6 +54,8 @@ public:
   virtual ~shm_session_base();
 
   void start_session();
+
+  shm_bookkeeper *bookkeeper() const { return m_bookkeeper.get(); };
 
 protected:
   inline std::string server_sema_name() { return m_name + ".server_sema"; }

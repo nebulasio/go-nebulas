@@ -109,6 +109,22 @@ void shm_bookkeeper::release_named_semaphore(const std::string &name) {
     boost::interprocess::named_semaphore::remove(name.c_str());
   });
 }
+
+std::unique_ptr<boost::interprocess::named_condition>
+shm_bookkeeper::acquire_named_condition(const std::string &name) {
+  std::unique_ptr<boost::interprocess::named_condition> ret;
+  acquire(name, [&ret, name]() {
+    ret = std::unique_ptr<boost::interprocess::named_condition>(
+        new boost::interprocess::named_condition(
+            boost::interprocess::open_or_create, name.c_str()));
+  });
+  return ret;
+}
+void shm_bookkeeper::release_named_condition(const std::string &name) {
+  release(name, [name]() {
+    boost::interprocess::named_condition::remove(name.c_str());
+  });
 }
 }
 }
+} // namespace neb

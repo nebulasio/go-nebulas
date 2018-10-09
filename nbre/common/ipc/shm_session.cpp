@@ -58,6 +58,29 @@ void shm_session_server::wait_until_client_start() {
 bool shm_session_server::is_client_alive() { return m_client_alive; }
 
 void shm_session_server::thread_func() {
+
+  struct quit_helper {
+    quit_helper(shm_bookkeeper *bk, const std::string &name)
+        : m_bk(bk), m_name(name), m_to_unlock(false) {
+      m_mutex = m_bk->acquire_named_mutex(m_name);
+    };
+    ~quit_helper() {
+      if (m_to_unlock) {
+        m_mutex->unlock();
+      }
+      m_bk->release_named_mutex(m_name);
+    }
+    shm_bookkeeper *m_bk;
+    std::string m_name;
+    std::unique_ptr<boost::interprocess::named_mutex> m_mutex;
+    bool m_to_unlock;
+  } _l(m_bookkeeper.get(), m_name + ".session_server.mutex");
+  if (_l.m_mutex->try_lock()) {
+    _l.m_to_unlock = true;
+  } else {
+    throw shm_session_already_start();
+  }
+
   uint32_t fail_counter = 0;
   while (!m_exit_flag) {
     if (!m_client_started) {
@@ -88,6 +111,29 @@ shm_session_client::shm_session_client(const std::string &name)
     : shm_session_base(name), m_server_alive(false) {}
 
 void shm_session_client::thread_func() {
+
+  struct quit_helper {
+    quit_helper(shm_bookkeeper *bk, const std::string &name)
+        : m_bk(bk), m_name(name), m_to_unlock(false) {
+      m_mutex = m_bk->acquire_named_mutex(m_name);
+    };
+    ~quit_helper() {
+      if (m_to_unlock) {
+        m_mutex->unlock();
+      }
+      m_bk->release_named_mutex(m_name);
+    }
+    shm_bookkeeper *m_bk;
+    std::string m_name;
+    std::unique_ptr<boost::interprocess::named_mutex> m_mutex;
+    bool m_to_unlock;
+  } _l(m_bookkeeper.get(), m_name + ".session_client.mutex");
+  if (_l.m_mutex->try_lock()) {
+    _l.m_to_unlock = true;
+  } else {
+    throw shm_session_already_start();
+  }
+
   uint32_t fail_counter = 0;
   while (!m_exit_flag) {
     bool ret = m_server_sema->try_wait();

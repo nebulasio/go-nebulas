@@ -59,6 +59,8 @@ public:
   }
 
   template <typename CT> void unlisten_command(void *instance) {
+    //! Notice that we may have multiple handlers for the same instance,
+    // and we need remove them all.
     std::lock_guard<std::mutex> _l(m_mutex);
     for (handlers_t::reverse_iterator it = m_handlers.rbegin();
          it != m_handlers.rend(); ++it) {
@@ -68,6 +70,8 @@ public:
     }
   }
   inline void unlisten_command(void *instance) {
+    //! Notice that we may have multiple handlers for the same instance,
+    // and we need remove them all.
     std::lock_guard<std::mutex> _l(m_mutex);
     for (handlers_t::reverse_iterator it = m_handlers.rbegin();
          it != m_handlers.rend(); ++it) {

@@ -23,10 +23,10 @@ namespace neb {
 namespace ipc {
 namespace internal {
 
-shm_queue::shm_queue(const std::string &name,
+shm_queue::shm_queue(const std::string &name, shm_session_base *session,
                      boost::interprocess::managed_shared_memory *shmem,
                      size_t capacity)
-    : m_name(name), m_shmem(shmem), m_capacity(capacity) {
+    : m_name(name), m_shmem(shmem), m_capacity(capacity), m_session(session) {
   if (!m_shmem) {
     throw shm_queue_failure("shmem can't be nullptr");
   }
@@ -37,12 +37,13 @@ shm_queue::shm_queue(const std::string &name,
     throw shm_queue_failure("capacity can't be 0");
   }
   m_allocator = new shmem_allocator_t(m_shmem->get_segment_manager());
-  m_mutex = new boost::interprocess::named_mutex(
-      boost::interprocess::open_or_create, mutex_name().c_str());
-  m_empty_cond = new boost::interprocess::named_condition(
-      boost::interprocess::open_or_create, empty_cond_name().c_str());
-  m_full_cond = new boost::interprocess::named_condition(
-      boost::interprocess::open_or_create, full_cond_name().c_str());
+
+  m_mutex = m_session->bookkeeper()->acquire_named_mutex(mutex_name());
+  m_empty_cond =
+      m_session->bookkeeper()->acquire_named_condition(empty_cond_name());
+  m_full_cond =
+      m_session->bookkeeper()->acquire_named_condition(full_cond_name());
+
   m_buffer =
       m_shmem->find_or_construct<shm_vector_t>(m_name.c_str())(*m_allocator);
   if (!m_mutex) {
@@ -58,6 +59,7 @@ shm_queue::shm_queue(const std::string &name,
     throw shm_queue_failure("alloc vector fail");
   }
 };
+
 std::pair<void *, shm_type_id_t> shm_queue::pop_front() {
   boost::interprocess::scoped_lock<boost::interprocess::named_mutex> _l(
       *m_mutex);
@@ -102,15 +104,9 @@ shm_queue::~shm_queue() {
   if (m_allocator) {
     delete m_allocator;
   }
-  if (m_mutex) {
-    delete m_mutex;
-  }
-  if (m_empty_cond) {
-    delete m_empty_cond;
-  }
-  if (m_full_cond) {
-    delete m_full_cond;
-  }
+  m_session->bookkeeper()->release_named_mutex(mutex_name());
+  m_session->bookkeeper()->release_named_condition(empty_cond_name());
+  m_session->bookkeeper()->release_named_condition(full_cond_name());
 }
 }
 }

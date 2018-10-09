@@ -28,10 +28,7 @@
 namespace neb {
 class exception_queue : public neb::util::singleton<exception_queue> {
 public:
-  inline void push_back(const std::exception_ptr p) {
-    std::lock_guard<std::mutex> _l(m_mutex);
-    m_exceptions.push_back(p);
-  }
+  void push_back(const std::exception_ptr &p);
 
   inline bool empty() const {
     std::lock_guard<std::mutex> _l(m_mutex);
@@ -42,6 +39,8 @@ public:
     return m_exceptions.size();
   }
 
+  std::exception_ptr pop_front();
+
   inline void for_each(const std::function<void(std::exception_ptr p)> &func) {
     std::lock_guard<std::mutex> _l(m_mutex);
     std::for_each(m_exceptions.begin(), m_exceptions.end(), func);
@@ -50,6 +49,7 @@ public:
 protected:
   std::vector<std::exception_ptr> m_exceptions;
   mutable std::mutex m_mutex;
+  std::condition_variable m_cond_var;
 };
 }
 
