@@ -123,12 +123,12 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
   po::store(po::parse_command_line(argc, argv, desc), vm);
   po::notify(vm);
   if (vm.count("help")) {
-    LOG(INFO) << desc << "\n";
+    std::cout << desc << "\n";
     exit(1);
   }
 
   if (!vm.count("input")) {
-    LOG(INFO) << "You must specify \"input\"!";
+    std::cout << "You must specify \"input\"!";
     exit(1);
   }
 
@@ -208,7 +208,7 @@ int main(int argc, char *argv[]) {
       ir_bc_file = vm["output"].as<std::string>();
       make_ir_bitcode(reader, ir_bc_file, false);
     } else {
-      LOG(INFO) << "Error arguments of model, please show help message.";
+      std::cout << "Error arguments of model, please show help message.";
       return 1;
     }
   } catch (std::exception &e) {
