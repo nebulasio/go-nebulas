@@ -40,18 +40,20 @@ typedef struct clang_flags_t {
 }clang_flags;
 
 void merge_clang_arguments(const std::vector<std::string> &flag_value_list,
-    const clang_flags &flags, 
+    const clang_flags &flags,
     std::string &command_string,
     bool is_add_root_path) {
   if (!flag_value_list.empty()) {
     command_string = command_string + flags.flag_command;
-    std::for_each(flag_value_list.begin(), flag_value_list.end(),
-        [&command_string, &flags, &is_add_root_path](const std::string &value) {
-        if (is_add_root_path) {
-        command_string = command_string + neb::fs::join_path(flags.root_path, value) + " ";
-        } else {
-        command_string = command_string + value + " ";
-        }
+    std::for_each(
+        flag_value_list.begin(), flag_value_list.end(),
+        [&command_string, &flags, is_add_root_path](const std::string &value) {
+          if (is_add_root_path) {
+            command_string = command_string +
+                             neb::fs::join_path(flags.root_path, value) + " ";
+          } else {
+            command_string = command_string + value + " ";
+          }
         });
   }
 }
@@ -73,7 +75,7 @@ void make_ir_bitcode(neb::ir_conf_reader &reader, std::string &ir_bc_file, bool 
   int result = -1;
 
   std::string current_path = neb::fs::cur_dir();
-  std::string command_string(neb::fs::join_path(current_path, "lib/bin/clang") + 
+  std::string command_string(neb::fs::join_path(current_path, "lib/bin/clang") +
                              " -O3 -emit-llvm ");
 
   clang_flags flags;
@@ -115,9 +117,10 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
   po::options_description desc("Generate IR Payload");
   desc.add_options()("help", "show help message")(
       "input", po::value<std::string>(), "IR configuration file")(
-      "output", po::value<std::string>(), "output file")(
-      "model", po::value<std::string>()->default_value("payload"), 
-      "Generate ir bitcode or ir payload. - [bitcode | payload], default:payload");
+      "output", po::value<std::string>(),
+      "output file")("mode", po::value<std::string>()->default_value("payload"),
+                     "Generate ir bitcode or ir payload. - [bitcode | "
+                     "payload], default:payload");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -131,11 +134,19 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
     std::cout << "You must specify \"input\"!";
     exit(1);
   }
+  if (vm.count("mode")) {
+    std::string m = vm["mode"].as<std::string>();
+    if (m != "bitcode" && m != "payload") {
+      std::cout << "Wrong mode, should be either bitcode or payload."
+                << std::endl;
+      exit(1);
+    }
+  }
 
   return vm;
 }
 
-void make_ir_payload(std::ifstream &ifs, 
+void make_ir_payload(std::ifstream &ifs,
     const neb::ir_conf_reader &reader,
     const std::string &ir_bc_file,
     const std::string &output_file
@@ -191,6 +202,7 @@ void make_ir_payload(std::ifstream &ifs,
 }
 
 int main(int argc, char *argv[]) {
+  ::google::InitGoogleLogging(argv[0]);
   po::variables_map vm = get_variables_map(argc, argv);
   std::ifstream ifs;
 
@@ -198,7 +210,7 @@ int main(int argc, char *argv[]) {
     std::string ir_fp = vm["input"].as<std::string>();
     neb::ir_conf_reader reader(ir_fp);
 
-    std::string model = vm["model"].as<std::string>();
+    std::string model = vm["mode"].as<std::string>();
     std::string ir_bc_file;
 
     if (model == "payload") {
@@ -208,12 +220,12 @@ int main(int argc, char *argv[]) {
       ir_bc_file = vm["output"].as<std::string>();
       make_ir_bitcode(reader, ir_bc_file, false);
     } else {
-      std::cout << "Error arguments of model, please show help message.";
+      throw std::logic_error("unexpected mode ");
       return 1;
     }
   } catch (std::exception &e) {
     ifs.close();
-    LOG(INFO) << e.what() << std::endl;
+    std::cout << e.what() << std::endl;
   }
 
   return 0;
