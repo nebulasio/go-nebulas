@@ -19,3 +19,24 @@
 //
 #pragma once
 #include "test/common/ipc/ipc_instance.h"
+
+#define IPC_CHECK_THROW(statement, expected_exception)                         \
+  if (std::string internal_fail_msg = "") {                                    \
+    bool ipc_test_caught_expected = false;                                     \
+    try {                                                                      \
+      internal_fail_msg =                                                      \
+          "Expected: " #statement " throws " #expected_exception               \
+          ".\n Actual: it throws nothing. " statement;                         \
+    } catch (expected_exception const &) {                                     \
+      ipc_test_caught_expected = true;                                         \
+    } catch (...) {                                                            \
+      ipc_test_caught_expected = false;                                        \
+      internal_fail_msg =                                                      \
+          "Expected: " #statement " throws " #expected_exception               \
+          ".\n Actual: it throws a different type";                            \
+    }                                                                          \
+    if (!ipc_test_caught_expected) {                                           \
+      std::cerr << internal_fail_msg;                                          \
+      exit(1);                                                                 \
+    }                                                                          \
+  }

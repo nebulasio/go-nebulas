@@ -20,6 +20,6 @@
 #include "test/common/ipc/ipc_test.h"
 #include <iostream>
 
-IPC_SERVER(test_example) { std::cout << "this is server" << std::endl; }
+IPC_SERVER(test_example) {}
 
 IPC_CLIENT(test_example) { std::cout << "this is client" << std::endl; }

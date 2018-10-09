@@ -21,7 +21,8 @@ find_package(LLVM REQUIRED CONFIG)
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-find_package(Boost 1.67.0 REQUIRED COMPONENTS filesystem system)
+#find_package(Boost 1.67.0 REQUIRED COMPONENTS filesystem system)
+set(Boost_LIBRARIES boost_filesystem boost_system)
 
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/lib/include)
