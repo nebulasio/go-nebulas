@@ -11,7 +11,3 @@ gtest_discover_tests(test_fs)
 add_test(NAME test_fs
   COMMAND test_fs)
 
-add_test(NAME test_blockchain COMMAND blockchain)
-add_test(NAME test_nbre_storage COMMAND nbre_storage)
-add_test(NAME test_rocksdb_storage COMMAND rocksdb_storage)
-
