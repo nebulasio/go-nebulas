@@ -40,11 +40,17 @@ public:
 
   void init_with_args(int argc, const char *argv[]);
 
+  const std::string &root_dir() const { return m_root_dir; }
   const std::string &exec_name() const { return m_exec_name; }
-  const std::string &runtime_library_path() const { return m_runtime_library_path; }
+  const std::string &runtime_library_path() const {
+    return m_runtime_library_path;
+  }
+
 protected:
   std::string m_exec_name;
   std::string m_runtime_library_path;
+  std::string m_root_dir;
+
 private:
   std::string m_ini_file_path;
 

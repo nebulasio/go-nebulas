@@ -47,8 +47,8 @@ IPC_SERVER(test_bookkeeper_simple) {
 IPC_CLIENT(test_bookkeeper_simple) {
   neb::ipc::internal::shm_bookkeeper sb("test_bookkeeper_simple");
   auto sema = sb.acquire_named_semaphore("t2");
-  sema->wait();
   auto mutex = sb.acquire_named_mutex("t1");
+  sema->wait();
   bool v = mutex->try_lock();
   IPC_EXPECT(v == false);
   auto sema2 = sb.acquire_named_semaphore("t3");
@@ -100,3 +100,28 @@ IPC_CLIENT(test_bookkeeper_simple_cond) {
   sb.release_named_semaphore("tc3");
   sb.release_named_condition("c1");
 }
+
+IPC_SERVER(test_bookkeeper_release) {
+  boost::interprocess::named_mutex::remove("tr1");
+  boost::interprocess::named_semaphore::remove("tr2");
+  boost::interprocess::named_condition::remove("cr1");
+  boost::interprocess::shared_memory_object::remove(
+      "test_bookkeeper_simple_release");
+
+  neb::ipc::internal::shm_bookkeeper sb("test_bookkeeper_simple_release");
+  auto mutex = sb.acquire_named_mutex("tr1");
+  auto sema = sb.acquire_named_semaphore("tr2");
+  auto cond = sb.acquire_named_condition("cr1");
+  sb.release_named_mutex("tr1");
+  sb.release_named_semaphore("tr2");
+  sb.release_named_condition("cr1");
+
+  IPC_EXPECT(neb::ipc::check_exists<boost::interprocess::named_mutex>("tr1") ==
+             false);
+  IPC_EXPECT(neb::ipc::check_exists<boost::interprocess::named_condition>(
+                 "cr1") == false);
+  IPC_EXPECT(neb::ipc::check_exists<boost::interprocess::named_semaphore>(
+                 "tr2") == false);
+}
+
+IPC_CLIENT(test_bookkeeper_release) {}

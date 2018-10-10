@@ -46,5 +46,19 @@ template <typename T> struct shm_other_side_role {};
 template <> struct shm_other_side_role<shm_server> { typedef shm_client type; };
 template <> struct shm_other_side_role<shm_client> { typedef shm_server type; };
 }
+
+template <typename A>
+auto check_exists(const std::string &v) -> typename std::enable_if<
+    std::is_same<A, boost::interprocess::named_mutex>::value ||
+        std::is_same<A, boost::interprocess::named_semaphore>::value ||
+        std::is_same<A, boost::interprocess::named_condition>::value,
+    bool>::type {
+  try {
+    A _l(boost::interprocess::open_only, v.c_str());
+  } catch (...) {
+    return false;
+  }
+  return true;
+}
 }
 }
