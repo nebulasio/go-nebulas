@@ -26,6 +26,7 @@ import (
 	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	nebnet "github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/nf/nbre"
 	"github.com/nebulasio/go-nebulas/nf/nvm"
 	"github.com/nebulasio/go-nebulas/rpc"
 	"github.com/nebulasio/go-nebulas/storage"
@@ -71,6 +72,8 @@ type Neblet struct {
 	eventEmitter *core.EventEmitter
 
 	nvm core.NVM
+
+	nbre core.Nbre
 
 	running bool
 }
@@ -170,6 +173,9 @@ func (n *Neblet) Setup() {
 
 	// rpc
 	n.rpcServer = rpc.NewServer(n)
+
+	// nbre
+	n.nbre = nbre.NewNbre()
 
 	logging.CLog().Info("Setuped Neblet.")
 }
@@ -389,6 +395,11 @@ func (n *Neblet) IsActiveSyncing() bool {
 // Nvm return nvm engine
 func (n *Neblet) Nvm() core.NVM {
 	return n.nvm
+}
+
+// Nbre return the nbre
+func (n *Neblet) Nbre() core.Nbre {
+	return n.nbre
 }
 
 // TryStartProfiling try start pprof

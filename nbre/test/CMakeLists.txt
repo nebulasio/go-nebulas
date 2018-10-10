@@ -1,3 +1,5 @@
+include(GoogleTest)
+
 set(common_libs ${common_libs} gtest gflags)
 #add_subdirectory(link_example)
 add_subdirectory(common)

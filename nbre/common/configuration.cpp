@@ -32,7 +32,12 @@ namespace neb {
 namespace pt = boost::property_tree;
 namespace po = boost::program_options;
 
-configuration::configuration() {}
+#define KTS(v) #v
+#define Str(v) KTS(v)
+configuration::configuration() { m_root_dir = Str(NBRE_PATH); }
+#undef Str
+#undef KTS
+
 configuration::~configuration() = default;
 
 void configuration::parse_arguments(int argc, const char *argv[]) {

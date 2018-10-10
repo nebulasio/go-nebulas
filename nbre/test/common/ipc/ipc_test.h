@@ -38,7 +38,7 @@
           ".\n Actual: it throws a different type";                            \
     }                                                                          \
     if (!ipc_test_caught_expected) {                                           \
-      std::cerr << internal_fail_msg;                                          \
+      std::cerr << internal_fail_msg << std::endl;                             \
       exit(1);                                                                 \
     }                                                                          \
   }
@@ -55,7 +55,7 @@
                           ".\n Actual: it throws an exception";                \
     }                                                                          \
     if (!ipc_test_caught_nothing) {                                            \
-      std::cerr << internal_fail_msg;                                          \
+      std::cerr << internal_fail_msg << std::endl;                             \
       exit(1);                                                                 \
     }                                                                          \
   }
@@ -72,7 +72,7 @@
     if (ipc_test_caught_nothing) {                                             \
       internal_fail_msg = "Expected: " #statement " throws anything"           \
                           ".\n Actual: it throws nothing.";                    \
-      std::cerr << internal_fail_msg;                                          \
+      std::cerr << internal_fail_msg << std::endl;                             \
       exit(1);                                                                 \
     }                                                                          \
   }
@@ -83,7 +83,9 @@ public:
       : m_value(val), m_label(label), m_ss() {}
   ~IPCCmpExpectHelper() {
     if (!m_value) {
-      std::cerr << m_label << " expected true. " << m_ss.str();
+      std::cerr << m_label << " expected true.\n Actual: it's false. "
+                << m_ss.str() << std::endl;
+      exit(1);
     }
   }
 
@@ -91,7 +93,10 @@ public:
   IPCCmpExpectHelper(T1 &&t1, T2 &&t2, const std::string &label)
       : m_value(t1 == t2), m_label(label) {}
 
-  template <typename T> IPCCmpExpectHelper &operator<<(T &&t) { m_ss << t; }
+  template <typename T> IPCCmpExpectHelper &operator<<(T &&t) {
+    m_ss << t;
+    return *this;
+  }
 
 protected:
   bool m_value;
@@ -100,3 +105,6 @@ protected:
 };
 
 #define IPC_EXPECT(statement) IPCCmpExpectHelper(statement, #statement)
+
+#define IPC_EXPECT_EQ(a, b)                                                    \
+  IPCCmpExpectHelper(a, b, std::string(#a) + " == " + std::string(#b))

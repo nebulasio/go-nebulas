@@ -1,9 +1,14 @@
 cmake_minimum_required(VERSION 3.12)
 project(nebulas-blockchain-runtime-environment)
-
-#add_definitions(-DGOOGLE_PROTOBUF_NO_RTTI)
 add_definitions(-std=c++14)
-#add_definitions(-fno-rtti)
+
+if(Release)
+  message(STATUS "This is a Release version")
+  add_definitions(-DNBRE_PATH=${PROJECT_SOURCE_DIR})
+else(Release)
+  add_definitions(-DNBRE_PATH=${PROJECT_SOURCE_DIR})
+endif(Release)
+
 find_program(
   CLANG_TIDY_EXE
   NAMES "clang-tidy"

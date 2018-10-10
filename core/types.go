@@ -285,6 +285,7 @@ type Neblet interface {
 	IsActiveSyncing() bool
 	AccountManager() AccountManager
 	Nvm() NVM
+	Nbre() Nbre
 	StartPprof(string) error
 }
 
@@ -308,4 +309,10 @@ type WorldState interface {
 	Reset(addr byteutils.Hash) error
 	GetBlockHashByHeight(height uint64) ([]byte, error)
 	GetBlock(txHash byteutils.Hash) ([]byte, error)
+}
+
+// Nbre interface
+type Nbre interface {
+	Start() error
+	Execute(command string, params []byte) ([]byte, error)
 }
