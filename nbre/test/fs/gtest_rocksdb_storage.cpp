@@ -28,12 +28,12 @@
 
 std::string get_db_path_for_read() {
   std::string cur_path = neb::fs::cur_dir();
-  return neb::fs::join_path(cur_path, "test/data/data.test.db/");
+  return neb::fs::join_path(cur_path, "test/data/read-data.db/");
 }
 
 std::string get_db_path_for_write() {
   std::string cur_path = neb::fs::cur_dir();
-  return neb::fs::join_path(cur_path, "test/data/data.test.db/");
+  return neb::fs::join_path(cur_path, "test/data/read-data.db/");
 }
 
 TEST(test_fs, positive_storage_read_bc) {

@@ -12,7 +12,7 @@ TEST(test_fs_util, simple) {
   EXPECT_TRUE(tmp_dir.size() > 0);
 
   std::string rocksdb_data_path =
-      neb::fs::join_path(cur_dir, "test/data/data.db/CURRENT");
+      neb::fs::join_path(cur_dir, "test/data/read-data.db/CURRENT");
 
   EXPECT_TRUE(neb::fs::exists(rocksdb_data_path));
 }
