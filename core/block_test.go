@@ -312,6 +312,10 @@ func (n *mockNeb) Nvm() NVM {
 	return n.nvm
 }
 
+func (n *mockNeb) Nbre() Nbre {
+	return nil
+}
+
 func (n *mockNeb) StartPprof(string) error {
 	return nil
 }
