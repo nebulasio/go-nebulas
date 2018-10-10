@@ -116,14 +116,23 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
       if (!ret) {
         throw std::runtime_error("parse transaction payload failed");
       }
+
       const std::string &name = nbre_ir->name();
       const uint64_t version = nbre_ir->version();
       LOG(INFO) << name;
       neb::util::version(version).show_version();
 
+      try {
+        neb::util::bytes bytes_versions = m_storage->get(name);
+        bytes_versions.append_bytes(
+            neb::util::number_to_byte<neb::util::bytes>(version));
+        m_storage->put(name, bytes_versions);
+      } catch (std::exception &e) {
+        m_storage->put(name,
+                       neb::util::number_to_byte<neb::util::bytes>(version));
+      }
+
       m_storage->put(name + std::to_string(version), payload_bytes);
-      m_storage->put(name,
-                     neb::util::number_to_byte<neb::util::bytes>(version));
     }
   }
 }

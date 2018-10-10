@@ -207,5 +207,22 @@ bytes bytes::from_hex(const std::string &t) {
 
   return ret;
 }
+
+bytes &bytes::append_bytes(const byte_t *buf, size_t buf_len) {
+  if (buf_len <= 0) {
+    return *this;
+  }
+
+  auto new_value = std::unique_ptr<byte_t[]>(new byte_t[m_size + buf_len]);
+  memcpy(new_value.get(), m_value.get(), m_size);
+  memcpy(new_value.get() + m_size, buf, buf_len);
+
+  m_value = std::move(new_value);
+  m_size += buf_len;
+  return *this;
 }
+bytes &bytes::append_bytes(const bytes &v) {
+  return append_bytes(v.value(), v.size());
 }
+} // namespace util
+} // namespace neb

@@ -180,6 +180,9 @@ public:
     }
   }
 
+  bytes &append_bytes(const byte_t *buf, size_t buf_len);
+  bytes &append_bytes(const bytes &v);
+
 private:
   std::unique_ptr<byte_t[]> m_value;
   size_t m_size;
