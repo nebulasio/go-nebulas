@@ -126,8 +126,6 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
 
       const std::string &name = nbre_ir->name();
       const uint64_t version = nbre_ir->version();
-      LOG(INFO) << name;
-      neb::util::version(version).show_version();
 
       try {
         neb::util::bytes bytes_versions = m_storage->get(name);
