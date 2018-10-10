@@ -18,14 +18,20 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "common/configuration.h"
+#include "fs/util.h"
 #include <gtest/gtest.h>
+
+std::string get_configuration_path() {
+  std::string default_path = neb::fs::cur_dir();
+  return neb::fs::join_path(default_path, "test/data/test_configuration.ini");
+}
 
 TEST(test_common_configuration, read_config) {
   EXPECT_EQ(neb::configuration::instance().exec_name(), "");
   EXPECT_EQ(neb::configuration::instance().runtime_library_path(), "");
 
-  const char *argv[3] = {"", "--ini-file",
-                         "../test/data/test_configuration.ini"};
+  std::string conf_file = get_configuration_path();
+  const char *argv[3] = {"", "--ini-file", conf_file.c_str()};
 
   neb::configuration::instance().init_with_args(3, argv);
   EXPECT_EQ(neb::configuration::instance().exec_name(), "bar");
