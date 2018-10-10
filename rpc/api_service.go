@@ -639,3 +639,19 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightReq
 	}
 	return &rpcpb.GetDynastyResponse{Miners: result}, nil
 }
+
+// GetNRByAddress return nr by address hash.
+func (s *APIService) GetNRByAddress(ctx context.Context, req *rpcpb.GetNRByAddressRequest) (*rpcpb.GetNRByAddressResponse, error) {
+	neb := s.server.Neblet()
+
+	addr, err := core.AddressParse(req.Address)
+	if err != nil {
+		return nil, err
+	}
+	data, err := neb.Nbre().Execute("nr", addr.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	return &rpcpb.GetNRByAddressResponse{Data: string(data)}, nil
+}

@@ -133,6 +133,13 @@ service ApiService {
             body: "*"
 		};
     }
+
+    rpc GetNRByAddress (GetNRByAddressRequest) returns (GetNRByAddressResponse) {
+		option (google.api.http) = {
+            post: "/v1/user/nr"
+            body: "*"
+		};
+    }
 }
 
 service AdminService {
@@ -650,4 +657,16 @@ message PprofResponse {
 message GetConfigResponse {
     // Config
     nebletpb.Config config = 1;
+}
+
+message GetNRByAddressRequest {
+    // Hex string of the account addresss.
+    string address = 1;
+
+    // block account state with height. If not specified, use 0 as tail height.
+    uint64 height = 2;
+}
+
+message GetNRByAddressResponse {
+    string data = 1;
 }

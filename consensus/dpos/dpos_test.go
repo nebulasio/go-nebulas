@@ -136,6 +136,10 @@ func (n *Neb) Nvm() core.NVM {
 	return n.nvm
 }
 
+func (n *Neb) Nbre() core.Nbre {
+	return nil
+}
+
 func (n *Neb) StartActiveSync() {}
 
 func (n *Neb) StartPprof(string) error { return nil }
