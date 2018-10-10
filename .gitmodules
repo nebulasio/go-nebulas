@@ -7,9 +7,6 @@
 [submodule "nbre/3rd_party/rocksdb"]
 	path = nbre/3rd_party/rocksdb
 	url = https://github.com/facebook/rocksdb.git
-[submodule "nbre/3rd_party/gflags"]
-	path = nbre/3rd_party/gflags
-	url = https://github.com/gflags/gflags.git
 [submodule "nbre/3rd_party/snappy"]
 	path = nbre/3rd_party/snappy
 	url = https://github.com/google/snappy.git
