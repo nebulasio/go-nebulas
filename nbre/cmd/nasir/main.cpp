@@ -97,7 +97,7 @@ void make_ir_bitcode(neb::ir_conf_reader &reader, std::string &ir_bc_file, bool 
   merge_clang_arguments(reader.cpp_files(), flags, command_string, true);
 
   if (isPayload) {
-    std::string temp_path = neb::fs::tmp_dir();
+    std::string temp_path = "./";
     ir_bc_file = neb::fs::join_path(temp_path, reader.self_ref().name() + "_ir.bc");
   }
 
@@ -210,13 +210,14 @@ int main(int argc, char *argv[]) {
     std::string ir_fp = vm["input"].as<std::string>();
     neb::ir_conf_reader reader(ir_fp);
 
-    std::string model = vm["mode"].as<std::string>();
+    std::string mode = vm["mode"].as<std::string>();
     std::string ir_bc_file;
 
-    if (model == "payload") {
+    if (mode == "payload") {
+      LOG(INFO) << "mode paylaod";
       make_ir_bitcode(reader, ir_bc_file, true);
       make_ir_payload(ifs, reader, ir_bc_file, vm["output"].as<std::string>());
-    } else if (model == "bitcode") {
+    } else if (mode == "bitcode") {
       ir_bc_file = vm["output"].as<std::string>();
       make_ir_bitcode(reader, ir_bc_file, false);
     } else {
