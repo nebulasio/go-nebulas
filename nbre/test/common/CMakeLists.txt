@@ -4,7 +4,7 @@ add_executable(test_common main.cpp
   gtest_util_conf.cpp
   )
 
-target_link_libraries(test_common ${common_libs})
+target_link_libraries(test_common ${common_libs} ${fs_libs})
 
 gtest_discover_tests(test_common)
 
