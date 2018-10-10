@@ -20,6 +20,15 @@
 #include "common/ir_conf_reader.h"
 #include <gtest/gtest.h>
 
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+
+TEST(test_boost_read_json, simple) {
+  std::string fp = "../test/data/test_nasir.json";
+  boost::property_tree::ptree json_root;
+  boost::property_tree::read_json(fp, json_root);
+}
+
 TEST(test_common_json_util, read_json) {
   neb::ir_conf_reader json_reader("../test/data/test_nasir.json");
   EXPECT_EQ(json_reader.self_ref().name(), "nr");

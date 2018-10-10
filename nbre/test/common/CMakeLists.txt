@@ -10,6 +10,10 @@ gtest_discover_tests(test_common)
 
 add_test(NAME test_common
   COMMAND test_common)
+set_tests_properties(
+  test_common PROPERTIES
+  ENVIRONMENT "LD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/lib/lib"
+  )
 
 add_subdirectory(ipc)
 
