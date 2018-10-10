@@ -25,26 +25,24 @@
 
 TEST(test_fs, read_nbre_by_name_version) {
 
-  std::string cur_path = neb::fs::cur_dir();
-  std::string db_path = neb::fs::join_path(cur_path, "test_data.db");
+  // std::string cur_path = neb::fs::cur_dir();
+  // std::string db_path = neb::fs::join_path(cur_path, "");
 
-  /*
-  std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
-      std::make_shared<neb::fs::nbre_storage>(db_path, db_path);
-  // nbre_ptr->write_nbre_by_height(1000);
-  // std::shared_ptr<nbre::NBREIR> nbre_ir_ptr =
-  // nbre_ptr->read_nbre_by_name_version("xxx", 666);
-  std::shared_ptr<nbre::NBREIR> nbre_ir_ptr;
+  // std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
+  // std::make_shared<neb::fs::nbre_storage>(db_path, db_path);
+  //// nbre_ptr->write_nbre_by_height(1000);
+  //// std::shared_ptr<nbre::NBREIR> nbre_ir_ptr =
+  //// nbre_ptr->read_nbre_by_name_version("xxx", 666);
+  // std::shared_ptr<nbre::NBREIR> nbre_ir_ptr;
 
-  nbre::NBREIR nbre_ir = *nbre_ir_ptr;
-  EXPECT_EQ(nbre_ir.name(), "xxx");
-  EXPECT_EQ(nbre_ir.version(), 666);
-  EXPECT_EQ(nbre_ir.height(), 456);
+  // nbre::NBREIR nbre_ir = *nbre_ir_ptr;
+  // EXPECT_EQ(nbre_ir.name(), "xxx");
+  // EXPECT_EQ(nbre_ir.version(), 666);
+  // EXPECT_EQ(nbre_ir.height(), 456);
 
-  auto dep = nbre_ir.depends().begin();
-  EXPECT_EQ(dep->name(), "xix");
-  EXPECT_EQ(dep->version(), 789);
+  // auto dep = nbre_ir.depends().begin();
+  // EXPECT_EQ(dep->name(), "xix");
+  // EXPECT_EQ(dep->version(), 789);
 
-  EXPECT_EQ(nbre_ir.ir(), "heh");
-  */
+  // EXPECT_EQ(nbre_ir.ir(), "heh");
 }
