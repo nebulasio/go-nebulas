@@ -62,17 +62,17 @@ protected:
 #define TMP_VAR_NAME(f, n) _tmp_var_##f##_##n##_
 
 #define _IPC_INSTANCE(fixture, name)                                           \
-  class CLASS_NAME(fixure, name) : public neb::ipc_instance_base {             \
+  class CLASS_NAME(fixture, name) : public neb::ipc_instance_base {            \
   public:                                                                      \
     virtual std::string get_fixture_name() { return #fixture; }                \
     virtual std::string get_instance_name() { return #name; }                  \
     virtual void run() const;                                                  \
   };                                                                           \
-  static int TMP_VAR_NAME(fixure, name) =                                      \
+  static int TMP_VAR_NAME(fixture, name) =                                     \
       neb::ipc_instances::instance().register_ipc_instance(                    \
           std::static_pointer_cast<neb::ipc_instance_base>(                    \
-              std::make_shared<CLASS_NAME(fixure, name)>()));                  \
-  void CLASS_NAME(fixure, name)::run() const
+              std::make_shared<CLASS_NAME(fixture, name)>()));                 \
+  void CLASS_NAME(fixture, name)::run() const
 
 #define IPC_SERVER(fixture) _IPC_INSTANCE(fixture, server)
 #define IPC_CLIENT(fixture) _IPC_INSTANCE(fixture, client)

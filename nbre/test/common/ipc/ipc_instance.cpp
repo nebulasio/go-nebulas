@@ -97,6 +97,7 @@ int ipc_instances::run_all_ipc_instances() {
   std::unordered_set<std::string> done_fixtures;
 
   if (m_enabled_fixture_name == std::string("all")) {
+    int exit_code = 0;
     for (auto it = m_all_instances.begin(); it != m_all_instances.end(); ++it) {
       std::string fixture = (*it)->get_fixture_name();
       if (done_fixtures.find(fixture) != done_fixtures.end())
@@ -114,19 +115,37 @@ int ipc_instances::run_all_ipc_instances() {
       if (!client.valid()) {
         std::cout << "invalid client process for " << fixture << std::endl;
       }
+
+      int tmp_exit_code = 0;
       if (server.valid()) {
         server.join();
+        tmp_exit_code += server.exit_code();
+        if (server.exit_code() == 0) {
+          std::cerr << ::neb::tcolor::green << "Success: " << fixture << "."
+                    << "server" << ::neb::tcolor::reset << std::endl;
+        } else {
+          std::cerr << ::neb::tcolor::red << "Fail: " << fixture << "."
+                    << "server" << ::neb::tcolor::reset << std::endl;
+        }
       }
       if (client.valid()) {
         client.join();
+        tmp_exit_code += server.exit_code();
+        if (client.exit_code() == 0) {
+          std::cerr << ::neb::tcolor::green << "Success: " << fixture << "."
+                    << "client" << ::neb::tcolor::reset << std::endl;
+        } else {
+          std::cerr << ::neb::tcolor::red << "Fail: " << fixture << "."
+                    << "client" << ::neb::tcolor::reset << std::endl;
+        }
       }
+      exit_code += tmp_exit_code;
     }
+    return exit_code;
   } else {
     return run_one_ipc_instance(m_enabled_fixture_name,
                                 m_enabled_instance_name);
   }
-
-  return 0;
 }
 
 int ipc_instances::run_one_ipc_instance(const std::string &fixture,
@@ -138,7 +157,13 @@ int ipc_instances::run_one_ipc_instance(const std::string &fixture,
     std::string cur_instance = (*it)->get_instance_name();
     if (cur_fixture == fixture && cur_instance == instance) {
       found = true;
-      (*it)->run();
+      try {
+        (*it)->run();
+      } catch (const std::exception &e) {
+        std::cerr << ::neb::tcolor::red << "Exception: " << fixture << "."
+                  << instance << " " << e.what() << ::neb::tcolor::reset
+                  << std::endl;
+      }
     }
   }
   if (!found) {
