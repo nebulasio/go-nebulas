@@ -37,5 +37,5 @@ func (s *Nbre) Start() error {
 // Execute execute command
 func (s *Nbre) Execute(command string, params []byte) ([]byte, error) {
 	//TODO(larry): add execute for nbre
-	return nil, nil
+	return []byte(""), nil
 }
