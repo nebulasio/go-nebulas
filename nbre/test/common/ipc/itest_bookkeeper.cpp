@@ -23,13 +23,14 @@
 #include <exception>
 #include <thread>
 
-IPC_SERVER(test_bookkeeper_simple) {
-
-  //! In case test failure, we may need remove this to avoid deadlock.
+IPC_PRELUDE(test_bookkeeper_simple) {
   boost::interprocess::named_mutex::remove("t1");
   boost::interprocess::named_semaphore::remove("t2");
   boost::interprocess::named_semaphore::remove("t3");
   boost::interprocess::shared_memory_object::remove("test_bookkeeper_simple");
+}
+
+IPC_SERVER(test_bookkeeper_simple) {
 
   neb::ipc::internal::shm_bookkeeper sb("test_bookkeeper_simple");
   auto mutex = sb.acquire_named_mutex("t1");
@@ -58,15 +59,14 @@ IPC_CLIENT(test_bookkeeper_simple) {
   sb.release_named_semaphore("t3");
 }
 
-IPC_SERVER(test_bookkeeper_simple_cond) {
-
-  //! In case test failure, we may need remove this to avoid deadlock.
+IPC_PRELUDE(test_bookkeeper_simple_cond) {
   boost::interprocess::named_mutex::remove("tc1");
   boost::interprocess::named_semaphore::remove("tc2");
   boost::interprocess::named_semaphore::remove("tc3");
   boost::interprocess::shared_memory_object::remove(
       "test_bookkeeper_simple_cond");
-
+}
+IPC_SERVER(test_bookkeeper_simple_cond) {
   neb::ipc::internal::shm_bookkeeper sb("test_bookkeeper_simple_cond");
   auto mutex = sb.acquire_named_mutex("tc1");
   bool v = mutex->try_lock();
@@ -101,12 +101,15 @@ IPC_CLIENT(test_bookkeeper_simple_cond) {
   sb.release_named_condition("c1");
 }
 
-IPC_SERVER(test_bookkeeper_release) {
+IPC_PRELUDE(test_bookkeeper_release) {
   boost::interprocess::named_mutex::remove("tr1");
   boost::interprocess::named_semaphore::remove("tr2");
   boost::interprocess::named_condition::remove("cr1");
   boost::interprocess::shared_memory_object::remove(
       "test_bookkeeper_simple_release");
+}
+
+IPC_SERVER(test_bookkeeper_release) {
 
   neb::ipc::internal::shm_bookkeeper sb("test_bookkeeper_simple_release");
   auto mutex = sb.acquire_named_mutex("tr1");

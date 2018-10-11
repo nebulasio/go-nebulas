@@ -50,14 +50,18 @@ namespace internal {
 
 class shm_session_base : public quitable_thread {
 public:
-  shm_session_base(const std::string &name);
+  shm_session_base(const std::string &name, bool need_reset);
   virtual ~shm_session_base();
 
-  void start_session();
+  virtual void start_session();
 
   shm_bookkeeper *bookkeeper() const { return m_bookkeeper.get(); };
 
+  void reset();
+
 protected:
+  virtual void thread_func() = 0;
+
   inline std::string server_sema_name() { return m_name + ".server_sema"; }
   inline std::string client_sema_name() { return m_name + ".client_sema"; }
 
@@ -66,21 +70,29 @@ protected:
   std::unique_ptr<shm_bookkeeper> m_bookkeeper;
   std::unique_ptr<boost::interprocess::named_semaphore> m_server_sema;
   std::unique_ptr<boost::interprocess::named_semaphore> m_client_sema;
-  };
+};
+class shm_session_util : public shm_session_base {
+public:
+  shm_session_util(const std::string &name);
 
-  class shm_session_server : public shm_session_base {
-  public:
-    shm_session_server(const std::string &name);
+protected:
+  virtual void thread_func();
+};
+class shm_session_server : public shm_session_base {
+public:
+  shm_session_server(const std::string &name);
 
-    void wait_until_client_start();
-    bool is_client_alive();
+  void wait_until_client_start();
+  bool is_client_alive();
 
-  protected:
-    virtual void thread_func();
+  virtual void start_session();
 
-  protected:
-    std::atomic_bool m_client_started;
-    std::atomic_bool m_client_alive;
+protected:
+  virtual void thread_func();
+
+protected:
+  std::atomic_bool m_client_started;
+  std::atomic_bool m_client_alive;
   };
 
   class shm_session_client : public shm_session_base {

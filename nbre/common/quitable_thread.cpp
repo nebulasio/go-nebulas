@@ -32,6 +32,7 @@ quitable_thread::~quitable_thread() {
 }
 
 void quitable_thread::start() {
+  LOG(INFO) << "quitable_thread start enter";
   neb::core::command_queue::instance().listen_command<neb::core::exit_command>(
       this, [this](const std::shared_ptr<neb::core::exit_command> &) {
         m_exit_flag = true;
@@ -40,9 +41,11 @@ void quitable_thread::start() {
   m_thread = std::unique_ptr<std::thread>(new std::thread([this]() {
     try {
       this->thread_func();
-    } catch (const std::exception &) {
+    } catch (const std::exception &e) {
+      LOG(INFO) << "got exception :" << e.what();
       exception_queue::instance().push_back(std::current_exception());
     }
   }));
+  LOG(INFO) << "quitable_thread start done";
 }
 }
