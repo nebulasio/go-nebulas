@@ -35,15 +35,20 @@ public:
   std::vector<std::shared_ptr<nbre::NBREIR>>
   read_nbre_by_height(const std::string &name, block_height_t height);
 
+  std::shared_ptr<nbre::NBREIR>
+  read_nbre_by_name_version(const std::string &name, uint64_t version);
+
   void write_nbre();
-  void write_nbre_by_height(block_height_t height);
+
+  bool is_latest_irreversible_block();
 
 private:
   void
-  read_nbre_by_name_version(const std::string &name, uint64_t version,
-                            block_height_t height,
-                            std::unordered_set<std::string> &pkgs,
-                            std::vector<std::shared_ptr<nbre::NBREIR>> &irs);
+  read_nbre_depends_recursive(const std::string &name, uint64_t version,
+                              block_height_t height,
+                              std::unordered_set<std::string> &pkgs,
+                              std::vector<std::shared_ptr<nbre::NBREIR>> &irs);
+  void write_nbre_by_height(block_height_t height);
 
 private:
   std::unique_ptr<rocksdb_storage> m_storage;
