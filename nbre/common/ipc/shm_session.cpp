@@ -45,11 +45,17 @@ shm_session_base::shm_session_base(const std::string &name, bool need_reset)
 }
 
 shm_session_base::~shm_session_base() {
+  if (m_thread) {
+    m_thread->join();
+    m_thread.reset();
+  }
+  LOG(INFO) << "to release sema";
   m_bookkeeper->release_named_semaphore(server_sema_name());
   m_bookkeeper->release_named_semaphore(client_sema_name());
 }
 
 void shm_session_base::reset() {
+  LOG(INFO) << "to reset all ";
   m_bookkeeper->reset();
   boost::interprocess::named_semaphore::remove(server_sema_name().c_str());
   boost::interprocess::named_semaphore::remove(client_sema_name().c_str());
