@@ -32,7 +32,7 @@ ir_warden::~ir_warden() {
 
 std::shared_ptr<nbre::NBREIR>
 ir_warden::get_ir_by_name_version(const std::string &name, uint64_t version) {
-  return std::shared_ptr<nbre::NBREIR>();
+  return m_nbre_storage->read_nbre_by_name_version(name, version);
 }
 
 std::vector<std::shared_ptr<nbre::NBREIR>>
@@ -41,15 +41,10 @@ ir_warden::get_ir_by_name_height(const std::string &name, uint64_t height) {
 }
 
 bool ir_warden::is_sync_already() const {
-  // TODO add impl here
-  throw std::invalid_argument("no impl");
+  return m_nbre_storage->is_latest_irreversible_block();
 }
 
-void ir_warden::wait_until_sync() {
-  // TODO add impl here
-  // throw std::invalid_argument("no impl");
-  std::this_thread::sleep_for(std::chrono::seconds(10));
-}
+void ir_warden::wait_until_sync() { m_nbre_storage->write_nbre(); }
 
 void ir_warden::on_timer() { m_nbre_storage->write_nbre(); }
 
@@ -72,7 +67,7 @@ void ir_warden::async_run() {
     return;
   m_timer = std::unique_ptr<boost::asio::deadline_timer>(
       new boost::asio::deadline_timer(m_io_service,
-                                      boost::posix_time::seconds(15)));
+                                      boost::posix_time::seconds(1)));
   start();
 
 }
