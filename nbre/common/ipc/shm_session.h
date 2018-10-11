@@ -93,19 +93,19 @@ protected:
 protected:
   std::atomic_bool m_client_started;
   std::atomic_bool m_client_alive;
-  };
+};
 
-  class shm_session_client : public shm_session_base {
-  public:
-    shm_session_client(const std::string &name);
+class shm_session_client : public shm_session_base {
+public:
+  shm_session_client(const std::string &name);
 
-    bool is_server_alive();
+  bool is_server_alive();
 
-  protected:
-    virtual void thread_func();
+protected:
+  virtual void thread_func();
 
-  protected:
-    std::atomic_bool m_server_alive;
+protected:
+  std::atomic_bool m_server_alive;
   };
 }
 }

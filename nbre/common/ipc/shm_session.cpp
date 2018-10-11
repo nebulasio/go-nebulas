@@ -57,10 +57,12 @@ shm_session_base::~shm_session_base() {
 void shm_session_base::reset() {
   LOG(INFO) << "to reset all ";
   m_bookkeeper->reset();
+  LOG(INFO) << "reset bookkeeper done ";
   boost::interprocess::named_semaphore::remove(server_sema_name().c_str());
   boost::interprocess::named_semaphore::remove(client_sema_name().c_str());
   m_server_sema = m_bookkeeper->acquire_named_semaphore(server_sema_name());
   m_client_sema = m_bookkeeper->acquire_named_semaphore(client_sema_name());
+  LOG(INFO) << "reset done ";
 }
 
 void shm_session_base::start_session() { start(); }
@@ -89,7 +91,6 @@ void shm_session_server::start_session() {
   start();
 }
 void shm_session_server::thread_func() {
-
   LOG(INFO) << "server thread_func started ";
   struct quit_helper {
     quit_helper(shm_bookkeeper *bk, const std::string &name)
@@ -149,6 +150,7 @@ shm_session_client::shm_session_client(const std::string &name)
 
 void shm_session_client::thread_func() {
 
+  LOG(INFO) << "client thread_func start";
   struct quit_helper {
     quit_helper(shm_bookkeeper *bk, const std::string &name)
         : m_bk(bk), m_name(name), m_to_unlock(false) {
@@ -165,25 +167,32 @@ void shm_session_client::thread_func() {
     std::unique_ptr<boost::interprocess::named_mutex> m_mutex;
     bool m_to_unlock;
   } _l(m_bookkeeper.get(), m_name + ".session_client.mutex");
+
+  LOG(INFO) << "client quit_helper done";
   if (_l.m_mutex->try_lock()) {
     _l.m_to_unlock = true;
   } else {
     throw shm_session_already_start();
   }
 
+  LOG(INFO) << "client loop";
   uint32_t fail_counter = 0;
   while (!m_exit_flag) {
+    LOG(INFO) << "client loop";
     bool ret = m_server_sema->try_wait();
     if (ret) {
+      LOG(INFO) << "client wait succ";
       fail_counter = 0;
       m_server_alive = true;
-      } else {
-        fail_counter++;
-        if (fail_counter >= max_wait_fail_times) {
-          m_server_alive = false;
-          throw shm_session_timeout();
-        }
+    } else {
+      LOG(INFO) << "client wait fail";
+      fail_counter++;
+      if (fail_counter >= max_wait_fail_times) {
+        m_server_alive = false;
+        LOG(INFO) << "client timeout";
+        throw shm_session_timeout();
       }
+    }
     std::this_thread::sleep_for(std::chrono::seconds(1));
     m_client_sema->post();
   }
