@@ -25,10 +25,13 @@ namespace neb {
 quitable_thread::quitable_thread() : m_exit_flag(false) {}
 
 quitable_thread::~quitable_thread() {
+  LOG(INFO) << "~quitable_thread : " << (void *)m_thread.get();
   if (m_thread) {
     m_thread->join();
+    LOG(INFO) << "thread quit";
   }
   neb::core::command_queue::instance().unlisten_command(this);
+  LOG(INFO) << "~quitable_thread done";
 }
 
 void quitable_thread::start() {
