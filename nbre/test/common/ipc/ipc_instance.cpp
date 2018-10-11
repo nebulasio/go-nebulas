@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "test/common/ipc/ipc_instance.h"
+#include "common/configuration.h"
 #include "fs/util.h"
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -65,7 +66,12 @@ void ipc_instances::init_ipc_instances(int argc, char *argv[]) {
   if (vm.count("instance")) {
     m_enabled_instance_name = vm["instance"].as<std::string>();
   }
+  FLAGS_logtostderr = true;
+  ::google::SetStderrLogging(google::GLOG_INFO);
+  ::google::SetLogDestination(google::GLOG_INFO,
+                              configuration::instance().root_dir().c_str());
   ::google::InitGoogleLogging(argv[0]);
+  LOG(INFO) << argv[0] << " started! ";
   m_exe_name =
       neb::fs::join_path(neb::fs::cur_full_path(), std::string(argv[0]));
 }
@@ -95,14 +101,29 @@ int ipc_instances::run_all_ipc_instances() {
 
   LOG(INFO) << "file path: " << fp;
   std::unordered_set<std::string> done_fixtures;
+  std::unordered_set<std::string> has_prelude_fixtures;
 
   if (m_enabled_fixture_name == std::string("all")) {
     int exit_code = 0;
     for (auto it = m_all_instances.begin(); it != m_all_instances.end(); ++it) {
       std::string fixture = (*it)->get_fixture_name();
+      std::string instance = (*it)->get_instance_name();
+      if (instance == std::string("prelude")) {
+        has_prelude_fixtures.insert(fixture);
+      }
+    }
+
+    for (auto it = m_all_instances.begin(); it != m_all_instances.end(); ++it) {
+      std::string fixture = (*it)->get_fixture_name();
       if (done_fixtures.find(fixture) != done_fixtures.end())
         continue;
       done_fixtures.insert(fixture);
+
+      if (has_prelude_fixtures.find(fixture) != has_prelude_fixtures.end()) {
+        boost::process::child prelude(fp, "--fixture", fixture, "--instance",
+                                      "prelude");
+        prelude.wait();
+      }
 
       boost::process::child server(fp, "--fixture", fixture, "--instance",
                                    "server");

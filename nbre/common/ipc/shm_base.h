@@ -60,5 +60,6 @@ auto check_exists(const std::string &v) -> typename std::enable_if<
   }
   return true;
 }
+
 }
 }

@@ -50,11 +50,46 @@ public:
   void acquire(const std::string &name, const std::function<void()> &action);
   void release(const std::string &name, const std::function<void()> &action);
 
+  void reset();
+
 private:
+  void acquire(const std::string &name, const std::function<void()> &action,
+               uint8_t type);
+
   inline std::string mutex_name() { return m_name + ".mutex"; }
   inline std::string mem_name() { return m_name + ".mem"; }
 
 protected:
+  struct tag_counter_t {
+  public:
+    enum type_tag {
+      boost_mutex = 0,
+      boost_semaphore = 1,
+      boost_condition = 2,
+      other_unknown,
+    };
+
+    inline uint64_t data() { return m_data.m_data; }
+    inline void set_data(uint64_t d) { m_data.m_data = d; }
+    inline uint64_t counter() { return m_data.m_detail.m_counter; }
+    inline type_tag type() {
+      return static_cast<type_tag>(m_data.m_detail.m_type);
+    }
+    inline void set_type(type_tag tt) { m_data.m_detail.m_type = tt; }
+    inline void set_counter(uint64_t c) { m_data.m_detail.m_counter = c; };
+
+  protected:
+    union tag_counter_data {
+      uint64_t m_data;
+      struct {
+        uint8_t m_type : 2;
+        uint64_t m_counter : 62;
+      } m_detail;
+    };
+
+    tag_counter_data m_data;
+  };
+
   typedef boost::interprocess::managed_shared_memory::segment_manager
       segment_manager_t;
   typedef boost::interprocess::allocator<char, segment_manager_t>
@@ -63,12 +98,12 @@ protected:
                                             char_allocator_t>
       char_string_t;
 
-  typedef std::pair<const char_string_t, int32_t> map_value_t;
-  typedef std::pair<char_string_t, int32_t> movable_map_value_t;
+  typedef std::pair<const char_string_t, uint64_t> map_value_t;
+  typedef std::pair<char_string_t, uint64_t> movable_map_value_t;
   typedef boost::interprocess::allocator<map_value_t, segment_manager_t>
       map_allocator_t;
 
-  typedef boost::interprocess::map<char_string_t, int32_t,
+  typedef boost::interprocess::map<char_string_t, uint64_t,
                                    std::less<char_string_t>, map_allocator_t>
       map_t;
 

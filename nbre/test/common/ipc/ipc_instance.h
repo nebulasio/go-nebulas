@@ -74,5 +74,8 @@ protected:
               std::make_shared<CLASS_NAME(fixture, name)>()));                 \
   void CLASS_NAME(fixture, name)::run() const
 
+#define IPC_PRELUDE(fixture) _IPC_INSTANCE(fixture, prelude)
+
 #define IPC_SERVER(fixture) _IPC_INSTANCE(fixture, server)
+
 #define IPC_CLIENT(fixture) _IPC_INSTANCE(fixture, client)
