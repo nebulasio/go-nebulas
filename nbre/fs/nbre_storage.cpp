@@ -85,8 +85,15 @@ void nbre_storage::read_nbre_by_name_version(
 void nbre_storage::write_nbre() {
   std::shared_ptr<corepb::Block> end_block = m_blockchain->load_LIB_block();
 
-  block_height_t start_height = neb::util::byte_to_number<block_height_t>(
-      m_storage->get(s_nbre_max_height));
+  block_height_t start_height = 0;
+  try {
+    start_height = neb::util::byte_to_number<block_height_t>(
+        m_storage->get(s_nbre_max_height));
+  } catch (std::exception &e) {
+    m_storage->put(s_nbre_max_height,
+                   neb::util::number_to_byte<neb::util::bytes>(start_height));
+  }
+
   block_height_t end_height = end_block->height();
   LOG(INFO) << "start height " << start_height << ',' << "end height "
             << end_height;
@@ -116,14 +123,21 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
       if (!ret) {
         throw std::runtime_error("parse transaction payload failed");
       }
+
       const std::string &name = nbre_ir->name();
       const uint64_t version = nbre_ir->version();
-      LOG(INFO) << name;
-      neb::util::version(version).show_version();
+
+      try {
+        neb::util::bytes bytes_versions = m_storage->get(name);
+        bytes_versions.append_bytes(
+            neb::util::number_to_byte<neb::util::bytes>(version));
+        m_storage->put(name, bytes_versions);
+      } catch (std::exception &e) {
+        m_storage->put(name,
+                       neb::util::number_to_byte<neb::util::bytes>(version));
+      }
 
       m_storage->put(name + std::to_string(version), payload_bytes);
-      m_storage->put(name,
-                     neb::util::number_to_byte<neb::util::bytes>(version));
     }
   }
 }

@@ -22,8 +22,8 @@
 #include <gtest/gtest.h>
 
 std::string get_configuration_path() {
-  std::string default_path = neb::fs::cur_dir();
-  return neb::fs::join_path(default_path, "test/data/test_configuration.ini");
+  return neb::fs::join_path(neb::configuration::instance().root_dir(),
+                            "test/data/test_configuration.ini");
 }
 
 TEST(test_common_configuration, read_config) {

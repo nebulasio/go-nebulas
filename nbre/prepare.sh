@@ -146,11 +146,6 @@ if [ ! -f $CUR_DIR/lib/include/snappy.h ]; then
   build_with_cmake snappy
 fi
 
-if [ ! -d $CUR_DIR/lib/include/gflags ]; then
-  # src/gflags.cc, snprintf space before PRIdxx
-  build_with_configure gflags
-fi
-
 if [ ! -f $CUR_DIR/lib/include/zlib.h ]; then
   build_with_configure zlib
 fi

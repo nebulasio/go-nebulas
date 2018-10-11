@@ -1,0 +1,19 @@
+{
+  "hash": "block_hash",
+  "transactions": [
+    {
+      "hash": "transaction_hash",
+      "from": "source",
+      "to": "target",
+      "value": "1",
+      "nonce": 2,
+      "timestamp": 3,
+      "data": {
+        "type": "protocol"
+      },
+      "chain_id": 4,
+      "gas_price": "5",
+      "gas_limit": "6"
+    }
+  ]
+}

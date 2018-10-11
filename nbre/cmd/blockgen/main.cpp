@@ -25,17 +25,44 @@
 #include "fs/blockchain.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/util.h"
+#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <fstream>
 #include <iostream>
 
 namespace po = boost::program_options;
 
-void ir_block_gen(const neb::util::bytes &bytes) {
+void read_block_json_file(const std::string &conf_fp,
+                          boost::property_tree::ptree &json_root) {
+  try {
+    boost::property_tree::read_json(conf_fp, json_root);
+  } catch (const boost::property_tree::ptree_error &e) {
+    throw e.what();
+  }
+}
 
+std::string get_db_path_for_read() {
   std::string cur_path = neb::fs::cur_dir();
-  std::string db_path = neb::fs::join_path(cur_path, "test/data/data.db/");
+  std::string db_path = neb::fs::join_path(cur_path, "test/data/read-data.db/");
+  return db_path;
+}
+
+std::string get_db_path_for_write() {
+  std::string cur_path = neb::fs::cur_dir();
+  std::string db_path =
+      neb::fs::join_path(cur_path, "test/data/write-data.db/");
+  return db_path;
+}
+
+void ir_block_gen(const std::string &conf_fp, const neb::util::bytes &bytes) {
+
+  boost::property_tree::ptree pt;
+  read_block_json_file(conf_fp, pt);
+
+  std::string db_path = get_db_path_for_read();
   std::shared_ptr<neb::fs::blockchain> blockchain_ptr =
       std::make_shared<neb::fs::blockchain>(db_path);
 
@@ -45,21 +72,26 @@ void ir_block_gen(const neb::util::bytes &bytes) {
   std::cout << "block height " << lib_height + 1 << std::endl;
 
   corepb::Block block;
-  corepb::Transaction *transaction = block.add_transactions();
-  transaction->set_hash("transaction_hash");
-  transaction->set_from("source");
-  transaction->set_to("target");
-  transaction->set_value("1");
-  transaction->set_nonce(2);
-  transaction->set_timestamp(3);
+  boost::property_tree::ptree transactions = pt.get_child("transactions");
+  BOOST_FOREACH (boost::property_tree::ptree::value_type &v, transactions) {
+    boost::property_tree::ptree tx = v.second;
 
-  corepb::Data *data = transaction->mutable_data();
-  data->set_type("protocol");
-  data->set_payload(neb::util::byte_to_string(bytes));
+    corepb::Transaction *transaction = block.add_transactions();
+    transaction->set_hash(tx.get<std::string>("hash"));
+    transaction->set_from(tx.get<std::string>("from"));
+    transaction->set_to(tx.get<std::string>("to"));
+    transaction->set_value(tx.get<std::string>("value"));
+    transaction->set_nonce(tx.get<int32_t>("nonce"));
+    transaction->set_timestamp(tx.get<int32_t>("timestamp"));
 
-  transaction->set_chain_id(4);
-  transaction->set_gas_price("5");
-  transaction->set_gas_limit("6");
+    corepb::Data *data = transaction->mutable_data();
+    data->set_type(tx.get_child("data").get<std::string>("type"));
+    data->set_payload(neb::util::byte_to_string(bytes));
+
+    transaction->set_chain_id(tx.get<int32_t>("chain_id"));
+    transaction->set_gas_price(tx.get<std::string>("gas_price"));
+    transaction->set_gas_limit(tx.get<std::string>("gas_limit"));
+  }
 
   block.set_height(lib_height + 1);
 
@@ -71,7 +103,6 @@ void ir_block_gen(const neb::util::bytes &bytes) {
 
   blockchain_ptr.reset();
 
-  // db_path = neb::fs::join_path(cur_path, "test_data.db/");
   neb::fs::rocksdb_storage rs;
   rs.open_database(db_path, neb::fs::storage_open_for_readwrite);
 
@@ -88,8 +119,8 @@ int main(int argc, char *argv[]) {
 
   po::options_description desc("Generate Block");
   desc.add_options()("help", "show help message")(
-      "ir_binary", po::value<std::string>(), "IR binary proto file");
-  //("block_conf", po::value<std::string>(), "Block info configuration file");
+      "ir_binary", po::value<std::string>(), "IR binary proto file")(
+      "block_conf", po::value<std::string>(), "Block info configuration file");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -103,16 +134,15 @@ int main(int argc, char *argv[]) {
     std::cout << "You must specify \"ir_binary\"!" << std::endl;
     return 1;
   }
-  // if (!vm.count("block_conf")) {
-  // std::cout << "You must specify \"block_conf\"!" << std::endl;
-  // return 1;
-  //}
+  if (!vm.count("block_conf")) {
+    std::cout << "You must specify \"block_conf\"!" << std::endl;
+    return 1;
+  }
   std::ifstream ifs;
 
   try {
-    // std::string ir_fp = vm["ir_binary"].as<std::string>();
-    std::string ir_fp;
-    ifs.open("ir_payload", std::ios::in | std::ios::binary);
+    std::string ir_fp = vm["ir_binary"].as<std::string>();
+    ifs.open(ir_fp, std::ios::in | std::ios::binary);
 
     if (!ifs.is_open()) {
       throw std::invalid_argument(
@@ -134,7 +164,8 @@ int main(int argc, char *argv[]) {
           boost::format("Read IR file error: only %1% could be read") %
           ifs.gcount()));
 
-    ir_block_gen(buf);
+    std::string conf_fp = vm["block_conf"].as<std::string>();
+    ir_block_gen(conf_fp, buf);
 
   } catch (std::exception &e) {
     ifs.close();

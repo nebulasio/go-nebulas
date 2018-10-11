@@ -118,8 +118,7 @@ TEST(test_fs, throw_operation_db) {
 
 TEST(test_fs, load_tail_block) {
 
-  std::string cur_path = neb::fs::cur_dir();
-  std::string db_path = neb::fs::join_path(cur_path, "test/data/data.db/");
+  std::string db_path = get_db_path_for_read();
 
   std::shared_ptr<neb::fs::blockchain> blockchain_ptr =
       std::make_shared<neb::fs::blockchain>(db_path);
@@ -138,8 +137,7 @@ TEST(test_fs, load_tail_block) {
 
 TEST(test_fs, load_LIB_block) {
 
-  std::string cur_path = neb::fs::cur_dir();
-  std::string db_path = neb::fs::join_path(cur_path, "test/data/data.db/");
+  std::string db_path = get_db_path_for_read();
 
   std::shared_ptr<neb::fs::blockchain> blockchain_ptr =
       std::make_shared<neb::fs::blockchain>(db_path);

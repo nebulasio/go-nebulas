@@ -5,23 +5,37 @@
 #include "fs/proto/ir.pb.h"
 #include "fs/rocksdb_storage.h"
 #include "fs/util.h"
-#include <gflags/gflags.h>
+#include <boost/program_options.hpp>
 
-DEFINE_string(db_path, "", "rocksdb file path");
-DEFINE_string(func_type, "keys", "call back function type");
-DEFINE_string(key, "nr", "rocksdb key");
-DEFINE_int64(max_height, 0, "nbre max height set");
-DEFINE_int64(height, 0, "nbre height");
+namespace po = boost::program_options;
 
 int main(int argc, char *argv[]) {
-  google::ParseCommandLineFlags(&argc, &argv, true);
-  std::string db_path = FLAGS_db_path;
-  std::string func_type = FLAGS_func_type;
-  neb::block_height_t max_height = FLAGS_max_height;
-  neb::block_height_t height = FLAGS_height;
 
-  // std::string cur_path = neb::fs::cur_dir();
-  // std::string db_path = neb::fs::join_path(cur_path, "test_data.db");
+  po::options_description desc("Rocksdb read and write");
+  desc.add_options()("help", "show help message")(
+      "db_path", po::value<std::string>(),
+      "Database file directory")("max_height", po::value<neb::block_height_t>(),
+                                 "Nbre max height setting");
+
+  po::variables_map vm;
+  po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::notify(vm);
+
+  if (vm.count("help")) {
+    std::cout << desc << "\n";
+    return 1;
+  }
+
+  if (!vm.count("db_path")) {
+    std::cout << "You must specify \"db_path\"!" << std::endl;
+    return 1;
+  }
+  if (!vm.count("max_height")) {
+    std::cout << "You must specify \"max_height\"!" << std::endl;
+    return 1;
+  }
+
+  std::string db_path = vm["db_path"].as<std::string>();
   neb::fs::rocksdb_storage rs;
   rs.open_database(db_path, neb::fs::storage_open_for_readwrite);
 
@@ -33,11 +47,12 @@ int main(int argc, char *argv[]) {
 
   auto f_raw_val = [&](rocksdb::Iterator *it) {};
 
+  neb::block_height_t max_height = vm["max_height"].as<neb::block_height_t>();
   auto f_set_nbre_max_height = [&]() {
     rs.put("nbre_max_height",
            neb::util::number_to_byte<neb::util::bytes>(max_height));
   };
-  f_set_nbre_max_height();
+  // f_set_nbre_max_height();
 
   auto f_lib_height = [&]() {
     auto height_bytes = rs.get("blockchain_lib");
@@ -53,7 +68,7 @@ int main(int argc, char *argv[]) {
   };
   // f_block_hash(height);
 
-  // rs.show_all(f_keys);
+  rs.show_all(f_keys);
 
   return 0;
 }
