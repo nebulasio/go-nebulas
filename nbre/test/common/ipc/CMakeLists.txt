@@ -3,8 +3,9 @@ add_executable(test_ipc main.cpp
   itest_example.cpp
   itest_bookkeeper.cpp
   itest_session.cpp
+  itest_shm_service.cpp
   )
 
-target_link_libraries(test_ipc ${common_libs} ${fs_libs})
+target_link_libraries(test_ipc nbre_core ${common_libs} ${fs_libs})
 
 add_test(NAME test_ipc COMMAND test_ipc)

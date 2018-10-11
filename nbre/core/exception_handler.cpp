@@ -18,9 +18,34 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "core/exception_handler.h"
+#include "common/exception_queue.h"
+#include "core/command.h"
 
 namespace neb {
 namespace core {
-void exception_handler::thread_func() {}
+
+exception_handler::~exception_handler() {
+  if (m_thread) {
+    LOG(INFO) << "to wait exception handler done!";
+    m_thread->join();
+    LOG(INFO) << "exception handler done!";
+  }
+  m_thread.reset();
+}
+
+void exception_handler::kill() {
+  neb::exception_queue::instance().push_back(std::logic_error("to quit"));
+}
+
+void exception_handler::run() {
+  m_thread = std::unique_ptr<std::thread>(new std::thread([]() {
+    neb::exception_queue &eq = neb::exception_queue::instance();
+    auto ep = eq.pop_front();
+    if (ep) {
+      // TODO we just send exit_command for now
+      command_queue::instance().send_command(std::make_shared<exit_command>());
+    }
+  }));
+}
 } // namespace core
 } // namespace neb

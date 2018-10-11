@@ -20,17 +20,17 @@
 #include "common/exception_queue.h"
 
 namespace neb {
-void exception_queue::push_back(const std::exception_ptr &p) {
+void exception_queue::push_back(const std::exception &p) {
   std::unique_lock<std::mutex> _l(m_mutex);
-  // bool was_empty = m_exceptions.empty();
-  // m_exceptions.push_back(p);
-  //_l.unlock();
-  // if (was_empty) {
-  // m_cond_var.notify_one();
-  //}
+  bool was_empty = m_exceptions.empty();
+  m_exceptions.push_back(std::make_shared<neb_exception>(p.what()));
+  _l.unlock();
+  if (was_empty) {
+    m_cond_var.notify_one();
+  }
 }
 
-std::exception_ptr exception_queue::pop_front() {
+neb_exception_ptr exception_queue::pop_front() {
   std::unique_lock<std::mutex> _l(m_mutex);
 
   if (m_exceptions.empty()) {
@@ -39,7 +39,7 @@ std::exception_ptr exception_queue::pop_front() {
   if (m_exceptions.empty()) {
     return nullptr;
   }
-  std::exception_ptr ret = m_exceptions.front();
+  neb_exception_ptr ret = m_exceptions.front();
   m_exceptions.erase(m_exceptions.begin());
   return ret;
 }

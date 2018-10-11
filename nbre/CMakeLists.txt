@@ -26,8 +26,6 @@ find_package(LLVM REQUIRED CONFIG)
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-set(Boost_LIBRARIES boost_filesystem boost_system boost_date_time)
-
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/lib/include)
 link_directories(${PROJECT_SOURCE_DIR}/lib/lib)
@@ -53,12 +51,6 @@ endfunction(enable_clang_tidy)
 
 enable_testing()
 
-set(common_libs nbre_common
-  ${protobuf_lib}
-  ${Boost_LIBRARIES}
-  pthread
-  glog
-  )
 
 llvm_map_components_to_libnames(llvm_libs
   core
@@ -83,11 +75,23 @@ if(UNIX AND NOT APPLE)
   set(common_libs ${common_libs} rt)
   set(protobuf_lib ${PROJECT_SOURCE_DIR}/lib/lib/libprotobuf.so)
   set(cpp_lib ${PROJECT_SOURCE_DIR}/lib/lib/libc++.so)
+  set(Boost_LIBRARIES
+    ${PROJECT_SOURCE_DIR}/lib/lib/libboost_filesystem.so
+    ${PROJECT_SOURCE_DIR}/lib/lib/libboost_system.so
+    ${PROJECT_SOURCE_DIR}/lib/lib/libboost_date_time.so)
+  set(extra_libs
+    ${PROJECT_SOURCE_DIR}/lib/lib/libglog.so)
 elseif(UNIX)
   set(protobuf_lib ${PROJECT_SOURCE_DIR}/lib/lib/libprotobuf.dylib)
   set(cpp_lib ${PROJECT_SOURCE_DIR}/lib/lib/libc++.dylib)
+  set(Boost_LIBRARIES
+    ${PROJECT_SOURCE_DIR}/lib/lib/libboost_filesystem.dylib
+    ${PROJECT_SOURCE_DIR}/lib/lib/libboost_system.dylib
+    ${PROJECT_SOURCE_DIR}/lib/lib/libboost_date_time.dylib)
+  set(extra_libs
+    ${PROJECT_SOURCE_DIR}/lib/lib/libglog.dylib)
 endif()
-set(common_libs ${common_libs} ${protobuf_lib} ${cpp_lib})
+set(common_libs nbre_common pthread ${common_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES})
 
 add_subdirectory(common)
 add_subdirectory(fs)

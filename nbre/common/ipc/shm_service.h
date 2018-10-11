@@ -48,29 +48,38 @@ public:
       : m_shm_name(shm_name), m_shm_in_name(shm_in_name),
         m_shm_out_name(shm_out_name) {
 
+    LOG(INFO) << "enter shm_service_base";
     neb::util::enable_func_if<std::is_same<Role, shm_server>::value>(
         [this, shm_name]() {
           m_session = std::unique_ptr<shm_session_base>(
-              new shm_session_server(shm_name));
+              new shm_session_server(shm_name + ".session"));
         });
 
     neb::util::enable_func_if<std::is_same<Role, shm_client>::value>(
         [this, shm_name]() {
           m_session = std::unique_ptr<shm_session_base>(
-              new shm_session_client(shm_name));
+              new shm_session_client(shm_name + ".session"));
         });
 
+    LOG(INFO) << "shm_service_base 1, session: " << (void *)m_session.get();
     m_session->bookkeeper()->acquire(shm_name, [this, shm_name]() {
       m_shmem = new boost::interprocess::managed_shared_memory(
           boost::interprocess::open_or_create, shm_name.c_str(), S);
+      LOG(INFO) << "shm_service_base create shm_name done";
     });
 
-    m_in_buffer = new shm_queue(shm_in_name.c_str(), m_shmem, shm_in_capacity);
-    m_out_buffer =
-        new shm_queue(shm_out_name.c_str(), m_shmem, shm_out_capacity);
-
+    LOG(INFO) << "shm_service_base 2";
+    m_in_buffer = new shm_queue(shm_in_name.c_str(), m_session.get(), m_shmem,
+                                shm_in_capacity);
+    m_out_buffer = new shm_queue(shm_out_name.c_str(), m_session.get(), m_shmem,
+                                 shm_out_capacity);
+    LOG(INFO) << "shm_service_base cnt done";
   }
   virtual ~shm_service_base() {
+    if (m_thread) {
+      m_thread->join();
+      m_thread.reset();
+    }
     delete m_in_buffer;
     delete m_out_buffer;
 
@@ -121,16 +130,27 @@ public:
     //! We can ignore *unlisten* in ~shm_service_base, since we already have it
     //! in the base class *quitable_thread*
     neb::core::command_queue::instance()
-        .listen_command<neb::core::exit_command>([this]() {
-          m_in_buffer->wake_up_if_empty();
-        });
+        .listen_command<neb::core::exit_command>(
+            this, [this](const std::shared_ptr<neb::core::exit_command> &) {
+              if (m_thread) {
+                m_in_buffer->wake_up_if_empty();
+              }
+            });
+    m_session->start_session();
     start();
+  }
+  void reset() {
+    boost::interprocess::shared_memory_object::remove(m_shm_name.c_str());
+    m_session->reset();
+    m_in_buffer->reset();
+    m_out_buffer->reset();
   }
 
   virtual void thread_func() {
     while (!m_exit_flag) {
       std::pair<void *, shm_type_id_t> r = m_in_buffer->pop_front();
       if (r.first) {
+        LOG(INFO) << "got data !";
         typename decltype(m_all_handlers)::const_iterator fr =
             m_all_handlers.find(r.second);
         if (fr != m_all_handlers.end()) {
@@ -139,15 +159,17 @@ public:
         m_shmem->destroy_ptr(r.first);
       }
     }
+    LOG(INFO) << "service thread done!";
   }
 
   shm_session_base *session() { return m_session.get(); }
 
-  // void wait_till_finish() {
-  // if (!m_thread)
-  // return;
-  // m_thread->join();
-  //}
+  void wait_till_finish() {
+    if (!m_thread)
+      return;
+    m_thread->join();
+    m_thread.reset();
+  }
 
 private:
   std::string semaphore_name() const {
@@ -183,10 +205,8 @@ public:
             shm_server::role_name(name), in_obj_max_count, out_obj_max_count) {}
 
   void wait_until_client_start() {
-    internal::shm_session_server *ss =
-        (internal::shm_session_server *)
-            internal::shm_service_base<S, shm_server>::session()
-                .get();
+    internal::shm_session_server *ss = (internal::shm_session_server *)
+        internal::shm_service_base<S, shm_server>::session();
     ss->wait_until_client_start();
   }
 };

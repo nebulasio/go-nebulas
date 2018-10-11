@@ -37,6 +37,7 @@ shm_queue::shm_queue(const std::string &name, shm_session_base *session,
     throw shm_queue_failure("capacity can't be 0");
   }
   m_allocator = new shmem_allocator_t(m_shmem->get_segment_manager());
+  LOG(INFO) << "allocator is " << (void *)m_allocator;
 
   m_mutex = m_session->bookkeeper()->acquire_named_mutex(mutex_name());
   m_empty_cond =
@@ -44,8 +45,10 @@ shm_queue::shm_queue(const std::string &name, shm_session_base *session,
   m_full_cond =
       m_session->bookkeeper()->acquire_named_condition(full_cond_name());
 
+  LOG(INFO) << "to allocate buffer";
   m_buffer =
       m_shmem->find_or_construct<shm_vector_t>(m_name.c_str())(*m_allocator);
+  LOG(INFO) << "allocate buffer done";
   if (!m_mutex) {
     throw shm_queue_failure("alloc mutex fail");
   }
@@ -66,8 +69,10 @@ std::pair<void *, shm_type_id_t> shm_queue::pop_front() {
   if (m_buffer->empty()) {
     m_empty_cond->wait(_l);
   }
-  if (m_buffer->empty())
+  if (m_buffer->empty()) {
+    LOG(INFO) << "return empty";
     return std::make_pair<void *, shm_type_id_t>(nullptr, 0);
+  }
   vector_elem_t e;
   e = m_buffer->front();
   m_buffer->erase(m_buffer->begin());
@@ -88,6 +93,7 @@ void shm_queue::wake_up_if_empty() {
       *m_mutex);
 
   if (m_buffer->empty()) {
+    LOG(INFO) << "wake up empty shm_queue";
     m_empty_cond->notify_all();
   }
 }

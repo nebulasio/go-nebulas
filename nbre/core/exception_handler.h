@@ -19,16 +19,22 @@
 //
 #pragma once
 #include "common/common.h"
-#include "common/quitable_thread.h"
+#include <thread>
 
 namespace neb {
 namespace core {
 
-// TODO we may not use quitable thread here!
-class exception_handler : public neb::quitable_thread {
+class exception_handler {
 public:
+  exception_handler() = default;
+  ~exception_handler();
+
+  void run();
+
+  void kill();
+
 protected:
-  virtual void thread_func();
+  std::unique_ptr<std::thread> m_thread;
 };
 } // namespace core
 } // namespace neb

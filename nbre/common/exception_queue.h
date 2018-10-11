@@ -26,9 +26,21 @@
 #include <thread>
 
 namespace neb {
+
+class neb_exception {
+public:
+  inline neb_exception(const std::string &msg) : m_msg(msg) {}
+  inline const char *what() const throw() { return m_msg.c_str(); }
+
+protected:
+  std::string m_msg;
+};
+
+typedef std::shared_ptr<neb_exception> neb_exception_ptr;
+
 class exception_queue : public neb::util::singleton<exception_queue> {
 public:
-  void push_back(const std::exception_ptr &p);
+  void push_back(const std::exception &p);
 
   inline bool empty() const {
     std::lock_guard<std::mutex> _l(m_mutex);
@@ -39,15 +51,15 @@ public:
     return m_exceptions.size();
   }
 
-  std::exception_ptr pop_front();
+  neb_exception_ptr pop_front();
 
-  inline void for_each(const std::function<void(std::exception_ptr p)> &func) {
+  inline void for_each(const std::function<void(neb_exception_ptr p)> &func) {
     std::lock_guard<std::mutex> _l(m_mutex);
     std::for_each(m_exceptions.begin(), m_exceptions.end(), func);
   }
 
 protected:
-  std::vector<std::exception_ptr> m_exceptions;
+  std::vector<neb_exception_ptr> m_exceptions;
   mutable std::mutex m_mutex;
   std::condition_variable m_cond_var;
 };
