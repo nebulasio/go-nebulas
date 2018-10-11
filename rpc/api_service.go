@@ -648,6 +648,12 @@ func (s *APIService) GetNRByAddress(ctx context.Context, req *rpcpb.GetNRByAddre
 	if err != nil {
 		return nil, err
 	}
+	if req.Height == 0 {
+		req.Height = neb.BlockChain().TailBlock().Height()
+	}
+	if req.Height == 0 || req.Height > neb.BlockChain().TailBlock().Height() {
+		return nil, errors.New("invalid height")
+	}
 	data, err := neb.Nbre().Execute("nr", addr.Bytes())
 	if err != nil {
 		return nil, err
