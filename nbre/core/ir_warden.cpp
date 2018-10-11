@@ -27,8 +27,7 @@ namespace neb {
 namespace core {
 
 const command_type_t exit_command::command_type;
-ir_warden::~ir_warden() {
-}
+ir_warden::~ir_warden() {}
 
 std::shared_ptr<nbre::NBREIR>
 ir_warden::get_ir_by_name_version(const std::string &name, uint64_t version) {

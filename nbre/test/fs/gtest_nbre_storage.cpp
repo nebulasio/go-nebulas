@@ -154,3 +154,35 @@ TEST(test_fs, read_nbre_by_height) {
   EXPECT_EQ(nbre_ir_ptr->height(), 180);
   EXPECT_EQ(nbre_ir_ptr->depends_size(), 1);
 }
+
+TEST(test_fs, is_latest_irreversible_block) {
+
+  std::string db_read = get_db_path_for_read();
+  std::string db_write = get_db_path_for_write();
+
+  std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
+      std::make_shared<neb::fs::nbre_storage>(db_write, db_read);
+
+  EXPECT_EQ(nbre_ptr->is_latest_irreversible_block(), true);
+}
+
+TEST(test_fs, read_nbre_by_name_version) {
+
+  std::string db_read = get_db_path_for_read();
+  std::string db_write = get_db_path_for_write();
+
+  std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
+      std::make_shared<neb::fs::nbre_storage>(db_write, db_read);
+
+  std::string name = "dip";
+  uint64_t version = 1;
+  auto nbreir_ptr = nbre_ptr->read_nbre_by_name_version(name, version);
+
+  EXPECT_EQ(nbreir_ptr->name(), "dip");
+  EXPECT_EQ(nbreir_ptr->version(), 1);
+  EXPECT_EQ(nbreir_ptr->height(), 180);
+
+  auto it = nbreir_ptr->depends().begin();
+  EXPECT_EQ(it->name(), "nr");
+  EXPECT_EQ(it->version(), 2LL << 48);
+}
