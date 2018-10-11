@@ -42,6 +42,7 @@ void quitable_thread::start() {
       });
 
   m_thread = std::unique_ptr<std::thread>(new std::thread([this]() {
+    LOG(INFO) << "quitable_thread start thread";
     try {
       this->thread_func();
     } catch (const std::exception &e) {

@@ -89,3 +89,58 @@ IPC_CLIENT(test_session_simple) {
   sb.release_named_semaphore(quit_sema_name);
   LOG(INFO) << "client done";
 }
+
+IPC_PRELUDE(test_session_full) {
+  std::string base_name = "test_session_full";
+  std::string bk_name = base_name + ".bookkeeper";
+  std::string sema_name = bk_name + ".test.sema";
+  std::string quit_sema_name = bk_name + ".test.quit.sema";
+
+  neb::ipc::internal::shm_session_util ss(base_name);
+  ss.reset();
+  neb::ipc::internal::shm_bookkeeper sb(bk_name);
+  sb.reset();
+
+  boost::interprocess::named_semaphore::remove(sema_name.c_str());
+  boost::interprocess::named_semaphore::remove(quit_sema_name.c_str());
+  boost::interprocess::shared_memory_object::remove(bk_name.c_str());
+}
+
+IPC_SERVER(test_session_full) {
+  std::string base_name = "test_session_full";
+  std::string bk_name = base_name + ".bookkeeper";
+  std::string sema_name = bk_name + ".test.sema";
+  std::string quit_sema_name = bk_name + ".test.quit.sema";
+
+  std::shared_ptr<neb::ipc::internal::shm_session_server> ss =
+      std::make_shared<neb::ipc::internal::shm_session_server>(base_name);
+  ss->start_session();
+  ss->wait_until_client_start();
+  std::this_thread::sleep_for(std::chrono::seconds(3));
+  bool ret = ss->is_client_alive();
+  IPC_EXPECT(ret);
+  LOG(INFO) << "server done";
+}
+
+IPC_CLIENT(test_session_full) {
+  std::string base_name = "test_session_full";
+  std::string bk_name = base_name + ".bookkeeper";
+  std::string sema_name = bk_name + ".test.sema";
+  std::string quit_sema_name = bk_name + ".test.quit.sema";
+
+  std::shared_ptr<neb::ipc::internal::shm_session_client> ss =
+      std::make_shared<neb::ipc::internal::shm_session_client>(base_name);
+  LOG(INFO) << "sleep to wait server start";
+  std::this_thread::sleep_for(std::chrono::seconds(3));
+  LOG(INFO) << "to start session";
+  ss->start_session();
+  std::this_thread::sleep_for(std::chrono::seconds(3));
+  bool ret = ss->is_server_alive();
+  IPC_EXPECT(ret);
+
+  LOG(INFO) << "sleep to wait server got ";
+  std::this_thread::sleep_for(std::chrono::seconds(3));
+  neb::core::command_queue::instance().send_command(
+      std::make_shared<neb::core::exit_command>());
+  LOG(INFO) << "client done";
+}

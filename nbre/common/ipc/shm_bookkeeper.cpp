@@ -52,19 +52,22 @@ shm_bookkeeper::shm_bookkeeper(const std::string &name) : m_name(name) {
 void shm_bookkeeper::reset() {
   //! We may fail to acquire m_mutex, thus, we just don't.
   m_mutex->try_lock();
-  for (auto it = m_map->begin(); it != m_map->end(); ++it) {
-    auto first = it->first;
-    auto second = it->second;
-    tag_counter_t tt;
-    tt.set_data(second);
-    if (tt.type() == tag_counter_t::boost_mutex) {
-      boost::interprocess::named_mutex::remove(first.c_str());
-    } else if (tt.type() == tag_counter_t::boost_semaphore) {
-      boost::interprocess::named_semaphore::remove(first.c_str());
-    } else if (tt.type() == tag_counter_t::boost_condition) {
-      boost::interprocess::named_condition::remove(first.c_str());
-    }
-  }
+  LOG(INFO) << "to reset all held vars";
+  // for (auto it = m_map->begin(); it != m_map->end(); ++it) {
+  // auto first = it->first;
+  // auto second = it->second;
+  // tag_counter_t tt;
+  // tt.set_data(second);
+  // LOG(INFO) << "to reset held var: " << first.c_str();
+  // if (tt.type() == tag_counter_t::boost_mutex) {
+  // boost::interprocess::named_mutex::remove(first.c_str());
+  //} else if (tt.type() == tag_counter_t::boost_semaphore) {
+  // boost::interprocess::named_semaphore::remove(first.c_str());
+  //} else if (tt.type() == tag_counter_t::boost_condition) {
+  // boost::interprocess::named_condition::remove(first.c_str());
+  //}
+  //}
+  LOG(INFO) << "reset all held vars done";
 
   m_mutex->unlock();
 
@@ -72,9 +75,11 @@ void shm_bookkeeper::reset() {
   m_allocator.reset();
   m_mutex.reset();
 
+  LOG(INFO) << "to reset local vars";
   boost::interprocess::named_mutex::remove(mutex_name().c_str());
   boost::interprocess::shared_memory_object::remove(m_name.c_str());
 
+  LOG(INFO) << "realloc local vars";
   m_segment = std::unique_ptr<boost::interprocess::managed_shared_memory>(
       new boost::interprocess::managed_shared_memory(
           boost::interprocess::open_or_create, m_name.c_str(),
