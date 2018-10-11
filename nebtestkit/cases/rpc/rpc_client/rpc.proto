@@ -1,11 +1,28 @@
+// Copyright (C) 2017 go-nebulas authors
+//
+// This file is part of the go-nebulas library.
+//
+// the go-nebulas library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// the go-nebulas library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
+//
 
 syntax = "proto3";
 
-//import "google/api/annotations.proto";
-
-import "../../../..//consensus/pb/state.proto";
-import "../../../../core/pb/block.proto";
+// import "google/api/annotations.proto";
+import "../../../../consensus/pb/state.proto";
+import "./block.proto";
 import "../../../../neblet/pb/config.proto";
+
 package rpcpb;
 
 // RPC API interface.
@@ -72,6 +89,14 @@ service ApiService {
         };
     }
 
+    // Get transactionReceipt info by tansaction hash.
+    rpc GetTransactionByContract (GetTransactionByContractRequest) returns (TransactionResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/getTransactionByContract"
+            body: "*"
+        };
+    }
+
     // Subscribe message
     rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse) {
         option (google.api.http) = {
@@ -105,6 +130,13 @@ service ApiService {
     rpc GetDynasty (ByBlockHeightRequest) returns (GetDynastyResponse) {
 		option (google.api.http) = {
             post: "/v1/user/dynasty"
+            body: "*"
+		};
+    }
+
+    rpc GetNRByAddress (GetNRByAddressRequest) returns (GetNRByAddressResponse) {
+		option (google.api.http) = {
+            post: "/v1/user/nr"
             body: "*"
 		};
     }
@@ -154,6 +186,13 @@ service AdminService {
     rpc SignHash(SignHashRequest) returns (SignHashResponse) {
         option (google.api.http) = {
             post: "/v1/admin/sign/hash"
+            body: "*"
+        };
+    }
+
+    rpc GenerateRandomSeed(GenerateRandomSeedRequest) returns (GenerateRandomSeedResponse) {
+        option (google.api.http) = {
+            post: "/v1/admin/generateRandomSeed"
             body: "*"
         };
     }
@@ -344,7 +383,10 @@ message TransactionRequest {
     // binary data for transaction
     bytes binary = 10;
 
-    // transaction payload type, enum:binary, deploy, call
+    // protocol data for transaction
+    bytes protocol = 11;
+
+    // transaction payload type, enum:binary, deploy, call, protocol
     string type = 20;
 }
 
@@ -402,6 +444,12 @@ message GetTransactionByHashRequest {
     string hash = 1;
 }
 
+// Request message of GetTransactionByContract rpc.
+message GetTransactionByContractRequest {
+    // string of contract address.
+    string address = 1;
+}
+
 // Response message of Block.
 message BlockResponse {
 
@@ -441,10 +489,10 @@ message BlockResponse {
     // Miner
     string miner = 12;
 
-    //Random seed
+    // Random seed
     string randomSeed = 13;
 
-    //vrf proof
+    // Random proof
     string randomProof = 14;
 
     // is finaliy
@@ -490,6 +538,12 @@ message TransactionResponse {
 
     // transaction gas used
     string gas_used = 14;
+
+    // contract execute error
+    string execute_error = 15;
+
+    // contract execute result
+    string execute_result = 16;
 }
 
 message NewAccountRequest {
@@ -532,6 +586,20 @@ message SignHashRequest {
 
 message SignHashResponse {
     bytes data = 1;
+}
+
+message GenerateRandomSeedRequest {
+    // miner address
+    string address = 1;
+    // parent seed of new block
+    bytes parent_seed = 2;
+    //  hash of new block's ancestor
+    bytes ancestor_hash = 3;
+}
+
+message GenerateRandomSeedResponse {
+    bytes vrf_seed = 1;
+    bytes vrf_proof = 2;
 }
 
 message SignTransactionPassphraseRequest {
@@ -589,4 +657,16 @@ message PprofResponse {
 message GetConfigResponse {
     // Config
     nebletpb.Config config = 1;
+}
+
+message GetNRByAddressRequest {
+    // Hex string of the account addresss.
+    string address = 1;
+
+    // block account state with height. If not specified, use 0 as tail height.
+    uint64 height = 2;
+}
+
+message GetNRByAddressResponse {
+    string data = 1;
 }
