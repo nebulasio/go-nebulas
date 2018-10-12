@@ -49,7 +49,9 @@ void shm_service_base::reset() {
   m_out_buffer->reset();
 }
 
-void shm_service_base::run() {
+void shm_service_base::run() { thread_func(); }
+
+void shm_service_base::init_local_env() {
   if (m_role == role_util)
     return;
   if (m_role == role_server) {
@@ -92,7 +94,6 @@ void shm_service_base::run() {
       new shm_queue_watcher(m_in_buffer, m_op_queue.get()));
   m_queue_watcher->start();
   m_session->start_session();
-  thread_func();
 }
 
 void shm_service_base::thread_func() {

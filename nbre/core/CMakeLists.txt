@@ -1,5 +1,10 @@
 add_library(nbre_core
   ir_warden.cpp
   exception_handler.cpp
+  neb_ipc/ipc_callback_holder.cpp
+  neb_ipc/ipc_client.cpp
+  neb_ipc/ipc_endpoint.cpp
+  neb_ipc/ipc_interface.cpp
+  neb_ipc/ipc_pkg.cpp
 )
 #enable_clang_tidy(nbre_core)

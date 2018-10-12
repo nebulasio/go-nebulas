@@ -62,7 +62,11 @@ public:
     m_recv_handler->add_handler<T>(std::move(f));
   }
 
+  void init_local_env();
+
+  //! this will block the current thread.
   void run();
+
   void reset();
 
   inline shm_session_base *session() { return m_session.get(); }
