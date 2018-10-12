@@ -30,6 +30,7 @@
 namespace neb {
 namespace ipc {
 
+enum shm_role { role_util, role_server, role_client };
 struct shm_server {
   inline static std::string role_name(const std::string &name) {
     return name + std::string(".server");
@@ -61,5 +62,12 @@ auto check_exists(const std::string &v) -> typename std::enable_if<
   return true;
 }
 
+struct shm_service_failure : public std::exception {
+  inline shm_service_failure(const std::string &msg) : m_msg(msg) {}
+  inline const char *what() const throw() { return m_msg.c_str(); }
+
+protected:
+  std::string m_msg;
+};
 }
 }

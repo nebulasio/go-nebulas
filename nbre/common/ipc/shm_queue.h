@@ -34,10 +34,20 @@ protected:
 };
 class shm_queue {
 public:
+  enum element_op_tag {
+    new_object,
+    recycle_object,
+  };
+
   shm_queue(const std::string &name, shm_session_base *session,
             boost::interprocess::managed_shared_memory *shmem, size_t capacity);
 
   template <typename T> void push_back(T *ptr) {
+    push_back(T::pkg_identifier, ptr);
+  }
+  void push_back(shm_type_id_t type_id, void *ptr);
+
+  template <typename T> void recycle(T *ptr) {
     boost::interprocess::scoped_lock<boost::interprocess::named_mutex> _l(
         *m_mutex);
     if (m_buffer->size() == m_capacity) {
@@ -50,13 +60,16 @@ public:
     vector_elem_t e;
     e.m_handle = h;
     e.m_type = T::pkg_identifier;
+    e.m_op_type = recycle_object;
     m_buffer->push_back(e);
     if (m_buffer->size() == 1) {
       m_empty_cond->notify_one();
     }
   }
 
-  std::pair<void *, shm_type_id_t> pop_front();
+  std::tuple<void *, shm_type_id_t, element_op_tag> pop_front();
+
+  std::tuple<void *, shm_type_id_t, element_op_tag> try_pop_front();
 
   size_t size() const;
 
@@ -81,6 +94,7 @@ protected:
   struct vector_elem_t {
     boost::interprocess::managed_shared_memory::handle_t m_handle;
     shm_type_id_t m_type;
+    element_op_tag m_op_type;
   };
   typedef boost::interprocess::allocator<
       vector_elem_t,

@@ -40,10 +40,9 @@ IPC_SERVER(test_service_simple) {
   eh.run();
   shm_server_t s(base_name, 128, 128);
   s.run();
-  s.wait_until_client_start();
+  // s.wait_until_client_start();
   LOG(INFO) << "got client start!";
 
-  s.wait_till_finish();
 }
 IPC_CLIENT(test_service_simple) {
   std::string base_name = "test_session_simple";
@@ -57,7 +56,7 @@ IPC_CLIENT(test_service_simple) {
   neb::core::command_queue::instance().send_command(
       std::make_shared<neb::core::exit_command>());
 
-  c.wait_till_finish();
+  // c.wait_till_finish();
   eh.kill();
 }
 
@@ -92,7 +91,7 @@ IPC_SERVER(test_service_message) {
   s.wait_until_client_start();
   LOG(INFO) << "got client start!";
 
-  s.wait_till_finish();
+  // s.wait_till_finish();
 }
 
 IPC_CLIENT(test_service_message) {
@@ -110,6 +109,6 @@ IPC_CLIENT(test_service_message) {
   neb::core::command_queue::instance().send_command(
       std::make_shared<neb::core::exit_command>());
 
-  c.wait_till_finish();
+  // c.wait_till_finish();
   eh.kill();
 }

@@ -63,7 +63,27 @@ shm_queue::shm_queue(const std::string &name, shm_session_base *session,
   }
 };
 
-std::pair<void *, shm_type_id_t> shm_queue::pop_front() {
+void shm_queue::push_back(shm_type_id_t type_id, void *ptr) {
+  boost::interprocess::scoped_lock<boost::interprocess::named_mutex> _l(
+      *m_mutex);
+  if (m_buffer->size() == m_capacity) {
+    m_full_cond->wait(_l);
+  }
+  if (m_buffer->size() >= m_capacity)
+    return;
+  boost::interprocess::managed_shared_memory::handle_t h =
+      m_shmem->get_handle_from_address(ptr);
+  vector_elem_t e;
+  e.m_handle = h;
+  e.m_type = type_id;
+  e.m_op_type = new_object;
+  m_buffer->push_back(e);
+  if (m_buffer->size() == 1) {
+    m_empty_cond->notify_one();
+  }
+}
+std::tuple<void *, shm_type_id_t, shm_queue::element_op_tag>
+shm_queue::pop_front() {
   boost::interprocess::scoped_lock<boost::interprocess::named_mutex> _l(
       *m_mutex);
   if (m_buffer->empty()) {
@@ -71,7 +91,8 @@ std::pair<void *, shm_type_id_t> shm_queue::pop_front() {
   }
   if (m_buffer->empty()) {
     LOG(INFO) << "return empty";
-    return std::make_pair<void *, shm_type_id_t>(nullptr, 0);
+    return std::make_tuple<void *, shm_type_id_t, element_op_tag>(nullptr, 0,
+                                                                  new_object);
   }
   vector_elem_t e;
   e = m_buffer->front();
@@ -79,7 +100,27 @@ std::pair<void *, shm_type_id_t> shm_queue::pop_front() {
   if (m_buffer->size() == m_capacity - 1) {
     m_full_cond->notify_one();
   }
-  return std::make_pair(m_shmem->get_address_from_handle(e.m_handle), e.m_type);
+  return std::make_tuple(m_shmem->get_address_from_handle(e.m_handle), e.m_type,
+                         e.m_op_type);
+}
+
+std::tuple<void *, shm_type_id_t, shm_queue::element_op_tag>
+shm_queue::try_pop_front() {
+  boost::interprocess::scoped_lock<boost::interprocess::named_mutex> _l(
+      *m_mutex);
+  if (m_buffer->empty()) {
+    LOG(INFO) << "return empty";
+    return std::make_tuple<void *, shm_type_id_t, element_op_tag>(nullptr, 0,
+                                                                  new_object);
+  }
+  vector_elem_t e;
+  e = m_buffer->front();
+  m_buffer->erase(m_buffer->begin());
+  if (m_buffer->size() == m_capacity - 1) {
+    m_full_cond->notify_one();
+  }
+  return std::make_tuple(m_shmem->get_address_from_handle(e.m_handle), e.m_type,
+                         e.m_op_type);
 }
 
 size_t shm_queue::size() const {
