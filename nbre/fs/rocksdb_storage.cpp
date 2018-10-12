@@ -24,7 +24,7 @@
 namespace neb{
 namespace fs {
 
-rocksdb_storage::rocksdb_storage() : m_db(nullptr) {}
+rocksdb_storage::rocksdb_storage() : m_db(nullptr), m_enable_batch(false) {}
 
 rocksdb_storage::~rocksdb_storage() {
   if (m_db) {
@@ -40,7 +40,7 @@ void rocksdb_storage::open_database(const std::string &db_name,
   if (nullptr == m_db) {
     if (flag == storage_open_for_readonly) {
       rocksdb::Options options;
-      status = rocksdb::DB::OpenForReadOnly(options, db_name, &db);
+      status = rocksdb::DB::OpenForReadOnly(options, db_name, &db, false);
       m_enable_batch = true;
     } else {
       rocksdb::Options options;
@@ -61,8 +61,9 @@ void rocksdb_storage::open_database(const std::string &db_name,
 }
 
 void rocksdb_storage::close_database() {
-  if (!m_db)
+  if (!m_db) {
     return;
+  }
   rocksdb::Status status = m_db->Close();
   if (!status.ok()) {
     throw std::runtime_error("close database failed");
@@ -74,7 +75,7 @@ util::bytes rocksdb_storage::get_bytes(const util::bytes &key) {
   if (!m_db) {
     throw storage_exception_no_init();
   }
-  rocksdb::Slice s((const char *)key.value(), key.size());
+  rocksdb::Slice s(reinterpret_cast<const char *>(key.value()), key.size());
   std::string value;
   auto status = m_db->Get(rocksdb::ReadOptions(), s, &value);
   if (!status.ok()) {
@@ -89,9 +90,9 @@ void rocksdb_storage::put_bytes(const util::bytes &key,
     throw storage_exception_no_init();
   }
   if (m_enable_batch) {
-    m_batched_ops.push_back([key, val](rocksdb::WriteBatch &wb) {
+    m_batched_ops.emplace_back([key, val](rocksdb::WriteBatch &wb) {
       std::string str_value = util::byte_to_string(val);
-      rocksdb::Slice s((const char *)key.value(), key.size());
+      rocksdb::Slice s(reinterpret_cast<const char *>(key.value()), key.size());
       auto status = wb.Put(s, str_value);
       if (!status.ok()) {
         throw storage_general_failure(status.ToString());
@@ -100,12 +101,11 @@ void rocksdb_storage::put_bytes(const util::bytes &key,
     return;
   }
   std::string str_value = util::byte_to_string(val);
-  rocksdb::Slice s((const char *)key.value(), key.size());
+  rocksdb::Slice s(reinterpret_cast<const char *>(key.value()), key.size());
   auto status = m_db->Put(rocksdb::WriteOptions(), s, str_value);
   if (!status.ok()) {
     throw storage_general_failure(status.ToString());
   }
-  return;
 }
 
 void rocksdb_storage::del_by_bytes(const util::bytes &key) {
@@ -113,8 +113,8 @@ void rocksdb_storage::del_by_bytes(const util::bytes &key) {
     throw storage_exception_no_init();
   }
   if (m_enable_batch) {
-    m_batched_ops.push_back([key](rocksdb::WriteBatch &wb) {
-      rocksdb::Slice s((const char *)key.value(), key.size());
+    m_batched_ops.emplace_back([key](rocksdb::WriteBatch &wb) {
+      rocksdb::Slice s(reinterpret_cast<const char *>(key.value()), key.size());
       auto status = wb.Delete(s);
       if (!status.ok()) {
         throw storage_general_failure(status.ToString());
@@ -122,7 +122,7 @@ void rocksdb_storage::del_by_bytes(const util::bytes &key) {
     });
     return;
   }
-  rocksdb::Slice s((const char *)key.value(), key.size());
+  rocksdb::Slice s(reinterpret_cast<const char *>(key.value()), key.size());
   auto status = m_db->Delete(rocksdb::WriteOptions(), s);
   if (!status.ok()) {
     throw storage_general_failure(status.ToString());
@@ -143,7 +143,7 @@ void rocksdb_storage::flush() {
   if (!m_db) {
     return;
   }
-  rocksdb::WriteBatch wb;
+  rocksdb::WriteBatch wb(0, 0);
   std::for_each(m_batched_ops.begin(), m_batched_ops.end(),
                 [&wb](const batch_operation_t &f) { f(wb); });
   auto status = m_db->Write(rocksdb::WriteOptions(), &wb);
