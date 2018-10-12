@@ -132,6 +132,17 @@ build_with_make(){
   make -j$PARALLEL && make install PREFIX=$CUR_DIR/lib/
 }
 
+
+if [ "$OS" = "Darwin" ]; then
+  if [ ! -d $CUR_DIR/3rd_party/gflags ]; then
+    cd $CUR_DIR/3rd_party
+    git clone -b v2.2.1 https://github.com/gflags/gflags.git
+  fi
+  if [ ! -d $CUR_DIR/lib/include/gflags/ ]; then
+    build_with_cmake gflags
+  fi  
+fi
+
 if [ ! -d $CUR_DIR/lib/include/glog/ ]; then
   build_with_cmake glog
 fi
@@ -175,11 +186,6 @@ if [ ! -d $CUR_DIR/lib/include/grpc ]; then
   cd $CUR_DIR/3rd_party/grpc
   git submodule update --init
   make -j$PARALLEL && make install prefix=$CUR_DIR/lib/
-fi
-
-if [ ! -d $CUR_DIR/test/data/data.db ]; then
-  cd $CUR_DIR/test/data
-  tar -xf data.db.tar.gz
 fi
 
 if [ ! -f $CUR_DIR/lib/bin/protoc ]; then
