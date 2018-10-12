@@ -188,11 +188,6 @@ if [ ! -d $CUR_DIR/lib/include/grpc ]; then
   make -j$PARALLEL && make install prefix=$CUR_DIR/lib/
 fi
 
-if [ ! -d $CUR_DIR/test/data/data.db ]; then
-  cd $CUR_DIR/test/data
-  tar -xf data.db.tar.gz
-fi
-
 if [ ! -f $CUR_DIR/lib/bin/protoc ]; then
   cd $CUR_DIR/3rd_party/protobuf
   ./autogen.sh
