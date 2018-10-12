@@ -27,10 +27,10 @@ namespace fs {
 
 nbre_storage::nbre_storage(const std::string &path,
                            const std::string &bc_path) {
-  m_storage = std::unique_ptr<rocksdb_storage>(new rocksdb_storage());
+  m_storage = std::make_unique<rocksdb_storage>();
   m_storage->open_database(path, storage_open_for_readwrite);
 
-  m_blockchain = std::unique_ptr<blockchain>(new blockchain(bc_path));
+  m_blockchain = std::make_unique<blockchain>(bc_path);
 }
 
 std::vector<std::shared_ptr<nbre::NBREIR>>
@@ -44,12 +44,17 @@ nbre_storage::read_nbre_by_height(const std::string &name,
   neb::util::bytes bytes_versions = m_storage->get(name);
 
   size_t gap = sizeof(uint64_t) / sizeof(uint8_t);
-  for (size_t i = bytes_versions.size() - gap; i >= 0; i -= gap) {
-    byte_t *bytes = bytes_versions.value() + i;
-    uint64_t version = neb::util::byte_to_number<uint64_t>(bytes, gap);
-    read_nbre_depends_recursive(name, version, height, pkgs, ret);
-    if (!ret.empty()) {
-      break;
+  for (size_t i = 0; i < bytes_versions.size(); i += gap) {
+    byte_t *bytes_version =
+        bytes_versions.value() + (bytes_versions.size() - gap - i);
+
+    if (bytes_version != nullptr) {
+      uint64_t version =
+          neb::util::byte_to_number<uint64_t>(bytes_version, gap);
+      read_nbre_depends_recursive(name, version, height, pkgs, ret);
+      if (!ret.empty()) {
+        break;
+      }
     }
   }
   return ret;
@@ -79,7 +84,6 @@ void nbre_storage::read_nbre_depends_recursive(
     irs.push_back(nbre_ir);
     pkg.insert(name_version);
   }
-  return;
 }
 
 std::shared_ptr<nbre::NBREIR>
@@ -103,9 +107,9 @@ void nbre_storage::write_nbre() {
   block_height_t start_height = 0;
   try {
     start_height = neb::util::byte_to_number<block_height_t>(
-        m_storage->get(s_nbre_max_height));
+        m_storage->get(std::string(s_nbre_max_height, std::allocator<char>())));
   } catch (std::exception &e) {
-    m_storage->put(s_nbre_max_height,
+    m_storage->put(std::string(s_nbre_max_height, std::allocator<char>()),
                    neb::util::number_to_byte<neb::util::bytes>(start_height));
   }
 
@@ -116,7 +120,7 @@ void nbre_storage::write_nbre() {
   for (block_height_t h = start_height + 1; h <= end_height; h++) {
     LOG(INFO) << h;
     write_nbre_by_height(h);
-    m_storage->put(s_nbre_max_height,
+    m_storage->put(std::string(s_nbre_max_height, std::allocator<char>()),
                    neb::util::number_to_byte<neb::util::bytes>(h));
   }
 }
@@ -128,7 +132,7 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
     auto &data = tx.data();
     const std::string &type = data.type();
 
-    if (type.compare(s_payload_type) == 0) {
+    if (type == s_payload_type) {
       const std::string &payload = data.payload();
       neb::util::bytes payload_bytes = neb::util::string_to_byte(payload);
 
@@ -159,7 +163,8 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
 
 bool nbre_storage::is_latest_irreversible_block() {
   auto lib_block = m_blockchain->load_LIB_block();
-  auto max_height_bytes = m_storage->get(s_nbre_max_height);
+  auto max_height_bytes =
+      m_storage->get(std::string(s_nbre_max_height, std::allocator<char>()));
   return lib_block->height() ==
          neb::util::byte_to_number<neb::block_height_t>(max_height_bytes);
 }

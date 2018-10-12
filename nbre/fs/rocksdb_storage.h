@@ -48,7 +48,6 @@ public:
 
 private:
   std::unique_ptr<rocksdb::DB> m_db;
-  storage_open_flag m_open_flag;
   bool m_enable_batch;
   typedef std::function<void(rocksdb::WriteBatch &wb)> batch_operation_t;
   std::vector<batch_operation_t> m_batched_ops;

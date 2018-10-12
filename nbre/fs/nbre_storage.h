@@ -46,7 +46,7 @@ private:
   void
   read_nbre_depends_recursive(const std::string &name, uint64_t version,
                               block_height_t height,
-                              std::unordered_set<std::string> &pkgs,
+                              std::unordered_set<std::string> &pkg,
                               std::vector<std::shared_ptr<nbre::NBREIR>> &irs);
   void write_nbre_by_height(block_height_t height);
 

@@ -34,6 +34,6 @@ public:
   void run(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs);
 
 protected:
-  internal::jit_driver_impl *m_impl;
+  std::unique_ptr<internal::jit_driver_impl> m_impl;
 }; // end class jit_driver;
 } // end namespace neb

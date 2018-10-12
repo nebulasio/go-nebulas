@@ -18,10 +18,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <system_error>
 #include <iostream>
-
-using namespace llvm;
+#include <system_error>
 
 namespace {
 
@@ -34,7 +32,7 @@ enum class DumpKind {
 
 } // end anonymous namespace
 
-OrcLazyJIT::TransformFtor OrcLazyJIT::createDebugDumper() {
+llvm::OrcLazyJIT::TransformFtor llvm::OrcLazyJIT::createDebugDumper() {
   DumpKind OrcDumpKind = DumpKind::NoDump;
   switch (OrcDumpKind) {
   case DumpKind::NoDump:
@@ -42,20 +40,22 @@ OrcLazyJIT::TransformFtor OrcLazyJIT::createDebugDumper() {
 
   case DumpKind::DumpFuncsToStdOut:
     return [](std::shared_ptr<Module> M) {
-      printf("[ ");
+      std::cout << "[ " << std::endl;
 
       for (const auto &F : *M) {
-        if (F.isDeclaration())
+        if (F.isDeclaration()) {
           continue;
+        }
 
         if (F.hasName()) {
           std::string Name(F.getName());
-          printf("%s ", Name.c_str());
-        } else
-          printf("<anon> ");
+          std::cout << Name << std::endl;
+        } else {
+          std::cout << "<anon> " << std::endl;
+        }
       }
 
-      printf("]\n");
+      std::cout << "]\n" << std::endl;
       return M;
     };
 
@@ -87,14 +87,14 @@ OrcLazyJIT::TransformFtor OrcLazyJIT::createDebugDumper() {
 // CodeGenOpt::Level getOptLevel();
 
 template <typename PtrTy>
-static PtrTy fromTargetAddress(JITTargetAddress Addr) {
+static PtrTy fromTargetAddress(llvm::JITTargetAddress Addr) {
   return reinterpret_cast<PtrTy>(static_cast<uintptr_t>(Addr));
 }
 
 int llvm::runOrcLazyJIT(std::vector<std::unique_ptr<Module>> Ms,
                         const std::vector<std::string> &Args) {
   // Add the program's symbols into the JIT's search space.
-  if (sys::DynamicLibrary::LoadLibraryPermanently(nullptr)) {
+  if (sys::DynamicLibrary::LoadLibraryPermanently(nullptr, nullptr)) {
     errs() << "Error loading program symbols.\n";
     return 1;
   }
@@ -134,16 +134,19 @@ int llvm::runOrcLazyJIT(std::vector<std::unique_ptr<Module>> Ms,
     // outs() << *(M.get());
     // outs().flush();
 
-    cantFail(J.addModule(std::shared_ptr<Module>(std::move(M))));
+    cantFail(J.addModule(std::shared_ptr<Module>(std::move(M))), nullptr);
   }
 
-  if (auto MainSym = J.findSymbol("main")) {
-    typedef int (*MainFnPtr)(int, const char *[]);
-    std::vector<const char *> ArgV;
-    for (auto &Arg : Args)
+  if (auto MainSym =
+          J.findSymbol(std::string("main", std::allocator<char>()))) {
+    using MainFnPtr = int (*)(int, const char *[]);
+    std::vector<const char *> ArgV(0, std::allocator<const char *>());
+    for (auto &Arg : Args) {
       ArgV.push_back(Arg.c_str());
-    auto Main = fromTargetAddress<MainFnPtr>(cantFail(MainSym.getAddress()));
-    return Main(ArgV.size(), (const char **)ArgV.data());
+    }
+    auto Main =
+        fromTargetAddress<MainFnPtr>(cantFail(MainSym.getAddress(), nullptr));
+    return Main(ArgV.size(), reinterpret_cast<const char **>(ArgV.data()));
   } else if (auto Err = MainSym.takeError()) {
     logAllUnhandledErrors(std::move(Err), llvm::errs(), "");
   } else {
