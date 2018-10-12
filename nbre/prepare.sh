@@ -40,8 +40,7 @@ if [ ! -f $CUR_DIR/lib/bin/cmake ]; then
 fi
 export PATH=$CUR_DIR/lib/bin:$PATH
 
-git submodule init
-git submodule update
+git submodule update --init
 
 if ! hash autoreconf 2>/dev/null; then
   case $OS in
@@ -174,6 +173,7 @@ fi
 
 if [ ! -d $CUR_DIR/lib/include/grpc ]; then
   cd $CUR_DIR/3rd_party/grpc
+  git submodule update --init
   make -j$PARALLEL && make install prefix=$CUR_DIR/lib/
 fi
 
