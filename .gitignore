@@ -60,8 +60,6 @@ nbre/3rd_party/cfe-6.0.1.src/
 nbre/3rd_party/clang-tools-extra-6.0.1.src/
 nbre/3rd_party/cmake-3.12.2/
 nbre/3rd_party/compiler-rt-6.0.1.src/
-nbre/3rd_party/gflags/
-nbre/3rd_party/grpc/
 nbre/3rd_party/grpc.tar.gz
 nbre/3rd_party/libcxx-6.0.1.src/
 nbre/3rd_party/libcxxabi-6.0.1.src/

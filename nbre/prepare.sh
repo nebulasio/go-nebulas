@@ -172,13 +172,6 @@ if [ ! -d $CUR_DIR/lib/include/rocksdb ]; then
   LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include make install-static INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
 fi
 
-if [ ! -d $CUR_DIR/3rd_party/grpc ]; then
-  cd $CUR_DIR/3rd_party
-  git clone -b $(curl -L https://grpc.io/release) https://github.com/grpc/grpc
-  cd grpc
-  git submodule update --init
-fi
-
 if [ ! -d $CUR_DIR/lib/include/grpc ]; then
   cd $CUR_DIR/3rd_party/grpc
   make -j$PARALLEL && make install prefix=$CUR_DIR/lib/
