@@ -63,13 +63,15 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Instrumentation.h"
 #include <cerrno>
+
 namespace neb {
 namespace internal {
+
 class jit_driver_impl {
 public:
   jit_driver_impl() {
     llvm::sys::PrintStackTraceOnErrorSignal(
-        configuration::instance().exec_name().c_str());
+        configuration::instance().exec_name(), false);
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::sys::Process::PreventCoreFiles();
@@ -77,23 +79,23 @@ public:
   jit_driver_impl(const jit_driver_impl &) = delete;
   jit_driver_impl &operator=(const jit_driver_impl &) = delete;
   jit_driver_impl(jit_driver_impl &&) = delete;
+  jit_driver_impl &&operator=(const jit_driver_impl &&) = delete;
 
   void run(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs) {
     const std::string &runtime_library_path =
         configuration::instance().runtime_library_path();
     // FIXME need remove this library later
     llvm::sys::DynamicLibrary::LoadLibraryPermanently(
-        runtime_library_path.c_str());
+        runtime_library_path.c_str(), nullptr);
     std::vector<std::unique_ptr<llvm::Module>> modules;
-    for (auto it = irs.begin(); it != irs.end(); ++it) {
-      auto ir = *it;
+    for (const auto &ir : irs) {
       std::string ir_str = ir->ir();
       llvm::StringRef sr(ir_str);
       auto mem_buf = llvm::MemoryBuffer::getMemBuffer(sr, "", false);
       llvm::SMDiagnostic err;
 
       modules.push_back(
-          llvm::parseIR(mem_buf->getMemBufferRef(), err, m_context));
+          llvm::parseIR(mem_buf->getMemBufferRef(), err, m_context, true));
     }
     auto ret =
         llvm::runOrcLazyJIT(std::move(modules), std::vector<std::string>());
@@ -109,16 +111,12 @@ protected:
 } // end namespace internal
 
 jit_driver::jit_driver() {
-  m_impl = new internal::jit_driver_impl();
+  m_impl = std::make_unique<internal::jit_driver_impl>();
 }
 
-jit_driver::~jit_driver() {
-  if (nullptr != m_impl) {
-    delete m_impl;
-  }
-}
+jit_driver::~jit_driver() = default;
 
 void jit_driver::run(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs) {
   m_impl->run(irs);
 }
-}
+} // namespace neb
