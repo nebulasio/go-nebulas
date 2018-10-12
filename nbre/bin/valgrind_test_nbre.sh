@@ -78,20 +78,26 @@ check_test_cases() {
 
 execute_test()
 {
-  check_environment $1
+  check_environment
   check_test_cases $1
 
   mkdir -p $VALGRIND_OUTPUT
 
   if [ $1 = "nasir" ]; then
     echo "Valgrind is checking memory leak of "$1
-    valgrind $VALGRIND_ARGUMENTS ./nasir --input ../test/data/test_nasir.json --output nr.bc > $VALGRIND_OUTPUT"/"$1_report 2>&1
+    valgrind $VALGRIND_ARGUMENTS ./nasir \
+      --input ../test/data/test_nasir.json \
+      --output nr.bc > $VALGRIND_OUTPUT"/"$1_report 2>&1
   elif [ $1 = "blockgen" ]; then
     echo "Valgrind is checking memory leak of "$1
-    valgrind $VALGRIND_ARGUMENTS ./blockgen --ir_binary ./nr.bc --block_conf ../test/data/test_blockgen.json > $VALGRIND_OUTPUT"/"$1_report 2>&1
+    valgrind $VALGRIND_ARGUMENTS ./blockgen \
+      --ir_binary ./nr.bc \
+      --block_conf ../test/data/test_blockgen.json > $VALGRIND_OUTPUT"/"$1_report 2>&1
   elif [ $1 = "naxer" ]; then
     echo "Valgrind is checking memory leak of "$1
-    valgrind $VALGRIND_ARGUMENTS ./naxer --module nr --height 1000 > $VALGRIND_OUTPUT"/"$1_report 2>&1
+    valgrind $VALGRIND_ARGUMENTS ./naxer \
+      --module nr \
+      --height 1000 > $VALGRIND_OUTPUT"/"$1_report 2>&1
   else
     echo "nothing"
   fi
