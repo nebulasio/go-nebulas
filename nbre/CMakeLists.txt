@@ -82,6 +82,7 @@ if(UNIX AND NOT APPLE)
   set(extra_libs
     ${PROJECT_SOURCE_DIR}/lib/lib/libglog.so)
 elseif(UNIX)
+  set(common_libs ${common_libs} ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.a)
   set(protobuf_lib ${PROJECT_SOURCE_DIR}/lib/lib/libprotobuf.dylib)
   set(cpp_lib ${PROJECT_SOURCE_DIR}/lib/lib/libc++.dylib)
   set(Boost_LIBRARIES
