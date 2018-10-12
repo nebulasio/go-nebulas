@@ -17,7 +17,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "benchmark/common/benchmark_instances.h"
+#include "benchmark/benchmark_instances.h"
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/program_options.hpp>
@@ -25,6 +25,9 @@
 #include <boost/property_tree/ptree.hpp>
 #include <chrono>
 #include <iostream>
+
+#include <sys/sysinfo.h>
+#include <sys/types.h>
 
 namespace po = boost::program_options;
 
@@ -114,6 +117,50 @@ int benchmark_instances::run_all_benchmarks() {
                         boost::posix_time::second_clock::universal_time()));
   property_tree.put("host", boost::asio::ip::host_name());
 
+  struct sysinfo mem_start, mem_end;
+  auto f_mem = [](boost::property_tree::ptree &pt,
+                  const struct sysinfo &mem_start,
+                  const struct sysinfo &mem_end) {
+    auto mem_unit = mem_start.mem_unit;
+    pt.put("totalram", (mem_end.totalram - mem_start.totalram) * mem_unit);
+    pt.put("freeram", (mem_end.freeram - mem_start.freeram) * mem_unit);
+    pt.put("sharedram", (mem_end.sharedram - mem_start.sharedram) * mem_unit);
+    pt.put("bufferram", (mem_end.bufferram - mem_start.bufferram) * mem_unit);
+    pt.put("totalswap", (mem_end.totalswap - mem_start.totalswap) * mem_unit);
+    pt.put("freeswap", (mem_end.freeswap - mem_start.freeswap) * mem_unit);
+    pt.put("totalhigh", (mem_end.totalhigh - mem_start.totalhigh) * mem_unit);
+    pt.put("freeshigh", (mem_end.freehigh - mem_start.freehigh) * mem_unit);
+  };
+
+  struct proc_stat_t {
+    unsigned long long user;
+    unsigned long long nice;
+    unsigned long long system;
+    unsigned long long idle;
+    unsigned long long iowait;
+  };
+  struct proc_stat_t cpu_start, cpu_end;
+  auto procstat = [](struct proc_stat_t &cpu_info) {
+    FILE *file;
+    file = fopen("/proc/stat", "r");
+    fscanf(file, "cpu %llu %llu %llu %llu %llu", &cpu_info.user, &cpu_info.nice,
+           &cpu_info.system, &cpu_info.idle, &cpu_info.iowait);
+    fclose(file);
+  };
+
+  auto f_cpu = [](boost::property_tree::ptree &pt,
+                  const struct proc_stat_t &cpu_start,
+                  const struct proc_stat_t &cpu_end) {
+    auto delta_idle = cpu_end.idle - cpu_start.idle;
+    auto delta_iowait = cpu_end.iowait - cpu_start.iowait;
+    auto delta_total = cpu_end.user + cpu_end.nice + cpu_end.system +
+                       cpu_end.idle + cpu_end.iowait -
+                       (cpu_start.user + cpu_start.nice + cpu_start.system +
+                        cpu_start.idle + cpu_start.iowait);
+    auto usage = 1 - (delta_idle + delta_iowait) / delta_total;
+    pt.put("cpu_usage", usage);
+  };
+
   for (auto it = m_all_instances.begin(); it != m_all_instances.end(); ++it) {
     std::string fixture = (*it)->get_fixture_name();
     std::string name = (*it)->get_instance_name();
@@ -122,14 +169,20 @@ int benchmark_instances::run_all_benchmarks() {
 
     boost::property_tree::ptree results;
     for (size_t i = 0; i < m_eval_count; ++i) {
+      procstat(cpu_start);
+      sysinfo(&mem_start);
       start = std::chrono::system_clock::now();
       (*it)->run();
       end = std::chrono::system_clock::now();
+      procstat(cpu_end);
+      sysinfo(&mem_end);
       auto elapsed_seconds =
-          std::chrono::duration_cast<std::chrono::microseconds>(end - start)
+          std::chrono::duration_cast<std::chrono::nanoseconds>(end - start)
               .count();
       boost::property_tree::ptree time_result;
-      time_result.put("", elapsed_seconds);
+      time_result.put("nano_seconds", elapsed_seconds);
+      f_cpu(time_result, cpu_start, cpu_end);
+      f_mem(time_result, mem_start, mem_end);
       results.push_back(std::make_pair("", time_result));
     }
     property_tree.add_child(prefix_str(fixture, name), results);
