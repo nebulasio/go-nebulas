@@ -144,3 +144,93 @@ IPC_CLIENT(test_session_full) {
       std::make_shared<neb::core::exit_command>());
   LOG(INFO) << "client done";
 }
+typedef struct session_name_t {
+  std::string base_name;
+  std::string bk_name;
+  std::string sema_name;
+  std::string quit_sema_name;
+} session_name;
+
+session_name get_session_name(const std::string &num) {
+  session_name sn;
+  sn.base_name = "test_multi_session_" + num;
+  sn.bk_name = sn.base_name + ".bookkeeper";
+  sn.sema_name = sn.bk_name + ".test.sema";
+  sn.quit_sema_name = sn.bk_name + ".test.quit.sema";
+  return sn;
+}
+
+void do_ipc_prelude(const session_name &sn) {
+  neb::ipc::internal::shm_session_util ss(sn.base_name);
+  ss.reset();
+  neb::ipc::internal::shm_bookkeeper sb(sn.bk_name);
+  sb.reset();
+
+  boost::interprocess::named_semaphore::remove(sn.sema_name.c_str());
+  boost::interprocess::named_semaphore::remove(sn.quit_sema_name.c_str());
+  boost::interprocess::shared_memory_object::remove(sn.bk_name.c_str());
+}
+
+void build_server_session(const session_name &sn) {
+  std::shared_ptr<neb::ipc::internal::shm_session_server> ss =
+      std::make_shared<neb::ipc::internal::shm_session_server>(sn.base_name);
+  ss->start_session();
+
+  LOG(INFO) << "server session started " << sn.base_name;
+
+  neb::ipc::internal::shm_bookkeeper sb(sn.bk_name);
+  auto sema = sb.acquire_named_semaphore(sn.sema_name);
+  auto quit_sema = sb.acquire_named_semaphore(sn.quit_sema_name);
+  sema->post();
+  LOG(INFO) << "server to wait" << sn.base_name;
+  quit_sema->wait();
+
+  ss.reset();
+  sb.release_named_semaphore(sn.sema_name);
+  sb.release_named_semaphore(sn.quit_sema_name);
+}
+
+void build_client_session(const session_name &sn) {
+  neb::ipc::internal::shm_bookkeeper sb(sn.bk_name);
+  auto sema = sb.acquire_named_semaphore(sn.sema_name);
+  auto quit_sema = sb.acquire_named_semaphore(sn.quit_sema_name);
+  LOG(INFO) << "client to wait";
+  sema->wait();
+  LOG(INFO) << "client session to start";
+  std::shared_ptr<neb::ipc::internal::shm_session_client> ss =
+      std::make_shared<neb::ipc::internal::shm_session_client>(sn.base_name);
+  ss->start_session();
+
+  LOG(INFO) << "client session started";
+  quit_sema->post();
+
+  std::this_thread::sleep_for(std::chrono::seconds(3));
+  neb::core::command_queue::instance().send_command(
+      std::make_shared<neb::core::exit_command>());
+  ss.reset();
+  sb.release_named_semaphore(sn.sema_name);
+  sb.release_named_semaphore(sn.quit_sema_name);
+  LOG(INFO) << "client done";
+}
+
+IPC_PRELUDE(test_multi_session) {
+  session_name sn = get_session_name("1");
+  do_ipc_prelude(sn);
+}
+
+IPC_SERVER(test_multi_session) {
+  session_name sn1 = get_session_name("1");
+  session_name sn2 = get_session_name("2");
+  LOG(INFO) << "server start ";
+
+  build_server_session(sn1);
+  build_server_session(sn2);
+
+  LOG(INFO) << "server done";
+}
+
+IPC_CLIENT(test_multi_session) {
+  session_name sn = get_session_name("1");
+  build_client_session(sn);
+}
+

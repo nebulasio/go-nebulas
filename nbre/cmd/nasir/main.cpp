@@ -217,6 +217,7 @@ int main(int argc, char *argv[]) {
       LOG(INFO) << "mode paylaod";
       make_ir_bitcode(reader, ir_bc_file, true);
       make_ir_payload(ifs, reader, ir_bc_file, vm["output"].as<std::string>());
+      execute_command("rm -f " + ir_bc_file);
     } else if (mode == "bitcode") {
       ir_bc_file = vm["output"].as<std::string>();
       make_ir_bitcode(reader, ir_bc_file, false);
