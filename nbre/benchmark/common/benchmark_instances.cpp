@@ -55,7 +55,7 @@ void benchmark_instances::init_benchmark_instances(int argc, char *argv[]) {
 
   std::string fixture_name = "all";
   if (vm.count("fixture")) {
-    fixture_name = vm["fixure"].as<std::string>();
+    fixture_name = vm["fixture"].as<std::string>();
   }
   parse_all_enabled_fixtures(fixture_name);
 

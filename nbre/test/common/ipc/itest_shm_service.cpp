@@ -60,3 +60,56 @@ IPC_CLIENT(test_service_simple) {
   c.wait_till_finish();
   eh.kill();
 }
+
+IPC_PRELUDE(test_service_message) {
+  std::string base_name = "test_session_message";
+  boost::interprocess::named_mutex::remove(base_name.c_str());
+  shm_server_t s(base_name, 128, 128);
+  LOG(INFO) << "to reset";
+  s.reset();
+  LOG(INFO) << "reset done";
+}
+
+struct SamplePkg {
+  static constexpr neb::ipc::shm_type_id_t pkg_identifier = 12;
+
+  SamplePkg(uint64_t v) : m_value(v) {}
+  uint64_t m_value;
+};
+const neb::ipc::shm_type_id_t SamplePkg::pkg_identifier;
+
+IPC_SERVER(test_service_message) {
+  std::string base_name = "test_session_message";
+  neb::core::exception_handler eh;
+  eh.run();
+  shm_server_t s(base_name, 128, 128);
+  s.add_handler<SamplePkg>([](SamplePkg *p) {
+    LOG(INFO) << "got data from client " << p->m_value;
+    IPC_EXPECT(p->m_value == 2);
+  });
+
+  s.run();
+  s.wait_until_client_start();
+  LOG(INFO) << "got client start!";
+
+  s.wait_till_finish();
+}
+
+IPC_CLIENT(test_service_message) {
+  std::string base_name = "test_session_message";
+  neb::core::exception_handler eh;
+  eh.run();
+
+  shm_client_t c(base_name, 128, 128);
+  c.run();
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  SamplePkg *pkg = c.construct<SamplePkg>(2);
+  c.push_back(pkg);
+
+  std::this_thread::sleep_for(std::chrono::seconds(10));
+  neb::core::command_queue::instance().send_command(
+      std::make_shared<neb::core::exit_command>());
+
+  c.wait_till_finish();
+  eh.kill();
+}

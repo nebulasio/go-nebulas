@@ -93,7 +93,14 @@ public:
     if (!m_shmem) {
       throw shm_service_failure("no shared memory");
     }
-    return m_shmem->construct<boost::interprocess::anonymous_instance>(args...);
+    typedef boost::interprocess::allocator<
+        T, boost::interprocess::managed_shared_memory::segment_manager>
+        t_allocator_t;
+    std::unique_ptr<t_allocator_t> pt = std::unique_ptr<t_allocator_t>(
+        new t_allocator_t(m_shmem->get_segment_manager()));
+
+    return pt->get_segment_manager()->template construct<T>(
+        boost::interprocess::anonymous_instance)(args...);
   }
 
   template <typename T> void destroy(T *ptr) {
@@ -112,10 +119,17 @@ public:
 
   template <typename T, typename Func> void add_handler(Func &&f) {
     std::lock_guard<std::mutex> _l(m_handlers_mutex);
-    m_all_handlers.insert(std::make_pair(T::pkg_identifier, [&f](void *p) {
-      T *r = (T *)p;
-      f(r);
-    }));
+    m_all_handlers.insert(
+        std::make_pair(T::pkg_identifier, [this, &f](void *p) {
+          T *r = (T *)p;
+          f(r);
+          typedef boost::interprocess::allocator<
+              T, boost::interprocess::managed_shared_memory::segment_manager>
+              t_allocator_t;
+          std::unique_ptr<t_allocator_t> pt = std::unique_ptr<t_allocator_t>(
+              new t_allocator_t(m_shmem->get_segment_manager()));
+          m_shmem->destroy_ptr(p);
+        }));
   }
 
   template <typename T, typename Func> void add_def_handler(Func &&f) {
@@ -156,7 +170,7 @@ public:
         if (fr != m_all_handlers.end()) {
           fr->second(r.first);
         }
-        m_shmem->destroy_ptr(r.first);
+        // m_shmem->destroy_ptr(r.first);
       }
     }
     LOG(INFO) << "service thread done!";

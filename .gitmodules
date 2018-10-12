@@ -22,3 +22,6 @@
 [submodule "nbre/3rd_party/protobuf"]
 	path = nbre/3rd_party/protobuf
 	url = https://github.com/protocolbuffers/protobuf.git
+[submodule "nbre/3rd_party/grpc"]
+	path = nbre/3rd_party/grpc
+	url = https://github.com/grpc/grpc.git
