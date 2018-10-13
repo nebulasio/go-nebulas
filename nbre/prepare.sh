@@ -175,6 +175,7 @@ fi
 
 if [ ! -f $CUR_DIR/lib/include/bzlib.h ]; then
   cd $CUR_DIR/3rd_party/bzip2-1.0.6
+  cp -f ../Makefile-libbz2_so ./
   make -j$PARALLEL -f Makefile-libbz2_so && make -f Makefile-libbz2_so install PREFIX=$CUR_DIR/lib/
 fi
 
