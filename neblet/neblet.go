@@ -276,6 +276,12 @@ func (n *Neblet) Start() {
 		}
 	}
 
+	if err := n.nbre.Start(); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to start nbre.")
+	}
+
 	metricsNebstartGauge.Update(1)
 
 	logging.CLog().Info("Started Neblet.")
@@ -325,6 +331,11 @@ func (n *Neblet) Stop() {
 
 	if n.config.Stats.EnableMetrics {
 		metrics.Stop()
+	}
+
+	if n.nbre != nil {
+		n.nbre.Shutdown()
+		n.nbre = nil
 	}
 
 	n.accountManager = nil
