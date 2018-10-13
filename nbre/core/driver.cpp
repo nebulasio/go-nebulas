@@ -58,7 +58,29 @@ void driver::add_handlers() {
 }
 void driver::handle_exception(const std::shared_ptr<neb::neb_exception> &p) {
   switch (p->type()) {
+    LOG(INFO) << p->what();
+    // TODO handle when exception
   case neb_exception::neb_std_exception:
+    break;
+  case neb_exception::neb_shm_queue_failure:
+    break;
+  case neb_exception::neb_shm_service_failure:
+    break;
+  case neb_exception::neb_shm_session_already_start:
+    break;
+  case neb_exception::neb_shm_session_timeout:
+    break;
+  case neb_exception::neb_shm_session_failure:
+    break;
+  case neb_exception::neb_configure_general_failure:
+    break;
+  case neb_exception::neb_json_general_failure:
+    break;
+  case neb_exception::neb_storage_exception_no_such_key:
+    break;
+  case neb_exception::neb_storage_exception_no_init:
+    break;
+  case neb_exception::neb_storage_general_failure:
     break;
   default:
     break;
