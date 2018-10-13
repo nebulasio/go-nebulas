@@ -116,7 +116,7 @@ build_with_cmake(){
   fi
   mkdir $build
   cd $build
-  cmake -DCMAKE_MODULE_PATH=$CUR_DIR/lib/lib/cmake -DCMAKE_LIBRARY_PATH=$CUR_DIR/lib/lib -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib/ ../
+  cmake -DCMAKE_MODULE_PATH=$CUR_DIR/lib/lib/cmake -DCMAKE_LIBRARY_PATH=$CUR_DIR/lib/lib -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib/ -DRelease=1 ../
   make -j$PARALLEL && make install && make clean
   cd ../ && rm -rf $build
 }
@@ -137,6 +137,10 @@ if [ ! -d $CUR_DIR/lib/include/glog/ ]; then
 fi
 if [ ! -d $CUR_DIR/lib/include/gtest/ ]; then
   build_with_cmake googletest
+fi
+
+if [ ! -d $CUR_DIR/lib/include/ff/ ]; then
+  build_with_cmake functionflow
 fi
 
 if [ ! -f $CUR_DIR/lib/include/snappy.h ]; then
