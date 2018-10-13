@@ -106,8 +106,8 @@ func (n *Nbre) Execute(command string, params []byte) ([]byte, error) {
 
 	(func() {
 		nbreLock.Lock()
-		defer nbreLock.Unlock()
 		nbreHandlers[handler.id] = handler
+		nbreLock.Unlock()
 	})()
 
 	go func() {
