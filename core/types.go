@@ -315,4 +315,5 @@ type WorldState interface {
 type Nbre interface {
 	Start() error
 	Execute(command string, params []byte) ([]byte, error)
+	Shutdown() error
 }

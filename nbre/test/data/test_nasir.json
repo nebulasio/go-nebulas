@@ -6,7 +6,7 @@
   "depends": [
   ],
   "available_height": 100,
-  "root_path":"/home/ywang/c/go-nebulas/nbre/",
+  "root_path":"/home/frank/go-nebulas/nbre/",
   "cpp_files": [
     "test/link_example/foo_arg.cpp"
   ],

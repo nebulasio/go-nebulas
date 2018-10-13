@@ -76,17 +76,19 @@ build:
 build-linux:
 	cd cmd/neb; GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o ../../$(BINARY)-linux
 
+LIST := ./account/... ./cmd/... ./common/... ./consensus ./core/... ./crypto/... ./metrics/... ./neblet/... ./net/... ./nf/... ./rpc/... ./storage/... ./sync/... ./util/...
+
 test:
-	env GOCACHE=off go test ./... 2>&1 | tee $(TEST_REPORT); go2xunit -fail -input $(TEST_REPORT) -output $(TEST_XUNIT_REPORT)
+	env GOCACHE=off go test $(LIST) 2>&1 | tee $(TEST_REPORT); go2xunit -fail -input $(TEST_REPORT) -output $(TEST_XUNIT_REPORT)
 
 vet:
-	go vet $$(go list ./...) 2>&1 | tee $(VET_REPORT)
+	go vet $$(go list $(LIST)) 2>&1 | tee $(VET_REPORT)
 
 fmt:
-	goimports -w $$(go list -f "{{.Dir}}" ./... | grep -v /vendor/)
+	goimports -w $$(go list -f "{{.Dir}}" $(LIST) | grep -v /vendor/)
 
 lint:
-	golint $$(go list ./...) | sed "s:^$(BUILD_DIR)/::" | tee $(LINT_REPORT)
+	golint $$(go list $(LIST)) | sed "s:^$(BUILD_DIR)/::" | tee $(LINT_REPORT)
 
 clean:
 	-rm -f $(VET_REPORT)
