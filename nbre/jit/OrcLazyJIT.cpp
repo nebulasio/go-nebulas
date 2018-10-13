@@ -139,7 +139,7 @@ int llvm::runOrcLazyJIT(neb::core::driver *d,
   // Add the module, look up main and run it.
   for (auto &M : Ms) {
     // outs() << *(M.get());
-    // outs().flush();
+    outs().flush();
 
     cantFail(J.addModule(std::shared_ptr<Module>(std::move(M))), nullptr);
   }
@@ -158,7 +158,7 @@ int llvm::runOrcLazyJIT(neb::core::driver *d,
     return Main(d);
   } else if (auto Err = MainSym.takeError()) {
     logAllUnhandledErrors(std::move(Err), llvm::errs(), "");
-    throw neb::jit_internal_failure("Unhandled errors");
+    // throw neb::jit_internal_failure("Unhandled errors");
   } else {
     LOG(ERROR) << "Could not find target function.\n";
     throw neb::jit_internal_failure("Could not find target function");

@@ -140,7 +140,7 @@ if [ "$OS" = "Darwin" ]; then
   fi
   if [ ! -d $CUR_DIR/lib/include/gflags/ ]; then
     build_with_cmake gflags
-  fi  
+  fi
 fi
 
 if [ ! -d $CUR_DIR/lib/include/glog/ ]; then
@@ -174,7 +174,8 @@ if [ ! -f $CUR_DIR/lib/include/zstd.h ]; then
 fi
 
 if [ ! -f $CUR_DIR/lib/include/bzlib.h ]; then
-build_with_make bzip2-1.0.6
+  cd $CUR_DIR/3rd_party/bzip2-1.0.6
+  make -j$PARALLEL -f Makefile-libbz2_so && make -f Makefile-libbz2_so install PREFIX=$CUR_DIR/lib/
 fi
 
 if [ ! -f $CUR_DIR/lib/include/lz4.h ]; then
