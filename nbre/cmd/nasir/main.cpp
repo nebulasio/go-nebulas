@@ -42,11 +42,11 @@ void merge_clang_arguments(const std::vector<std::string> &flag_value_list,
     std::string &command_string,
     bool is_add_root_path) {
   if (!flag_value_list.empty()) {
-    command_string = command_string + flags.flag_command;
     std::for_each(
         flag_value_list.begin(), flag_value_list.end(),
         [&command_string, &flags, is_add_root_path](const std::string &value) {
           if (is_add_root_path) {
+            command_string = command_string + flags.flag_command;
             command_string = command_string +
                              neb::fs::join_path(flags.root_path, value) + " ";
           } else {
@@ -74,7 +74,7 @@ void make_ir_bitcode(neb::ir_conf_reader &reader, std::string &ir_bc_file, bool 
 
   std::string current_path = neb::fs::cur_dir();
   std::string command_string(neb::fs::join_path(current_path, "lib/bin/clang") +
-                             " -O3 -emit-llvm ");
+                             " -O2 -emit-llvm ");
 
   clang_flags flags;
 
@@ -100,7 +100,7 @@ void make_ir_bitcode(neb::ir_conf_reader &reader, std::string &ir_bc_file, bool 
   }
 
   command_string += " -o " + ir_bc_file;
-
+  std::cout << command_string << std::endl;
   LOG(INFO) << command_string;
 
   result = execute_command(command_string);
