@@ -68,5 +68,5 @@ int main(int argc, char *argv[]) {
   neb::configuration::instance().init_with_args(3, argv_jit);
 
   neb::jit_driver jd;
-  jd.run(nullptr, irs, vm.count("func").as<std::string>());
+  jd.run(nullptr, irs, vm["func"].as<std::string>());
 }
