@@ -74,8 +74,9 @@ void ipc_endpoint::add_all_callbacks() {
   });
 }
 
-void ipc_endpoint::send_nbre_version_req() {
+void ipc_endpoint::send_nbre_version_req(uint64_t height) {
   nbre_version_req *req = m_ipc_server->construct<nbre_version_req>();
+  req->m_height = height;
   m_ipc_server->push_back(req);
 }
 bool ipc_endpoint::check_path_exists() {

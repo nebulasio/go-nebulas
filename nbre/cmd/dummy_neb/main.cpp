@@ -37,7 +37,7 @@ void nbre_version_callback(uint32_t major, uint32_t minor, uint32_t patch) {
   std::unique_lock<std::mutex> _l(local_mutex);
   to_quit = true;
   _l.unlock();
-  local_cond_var.notify_one();
+  // local_cond_var.notify_one();
 }
 
 int main(int argc, char *argv[]) {
@@ -53,8 +53,9 @@ int main(int argc, char *argv[]) {
   start_nbre_ipc(root_dir, nbre_path.c_str());
 
   to_quit = false;
+  uint64_t height = 1000;
 
-  ipc_nbre_version();
+  // ipc_nbre_version(height);
 
   std::unique_lock<std::mutex> _l(local_mutex);
   if (to_quit)

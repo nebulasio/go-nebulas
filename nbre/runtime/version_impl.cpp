@@ -24,6 +24,10 @@
 #include "runtime/version.h"
 
 int entry_point_foo_impl(neb::core::driver *d) {
+  if (!d) {
+    LOG(INFO) << "cannot find driver";
+    return 1;
+  }
   auto ipc_conn = d->ipc_conn();
   neb::core::nbre_version_ack *ack =
       ipc_conn->construct<neb::core::nbre_version_ack>();

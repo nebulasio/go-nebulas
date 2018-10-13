@@ -94,12 +94,23 @@ elseif(UNIX)
 endif()
 set(common_libs nbre_common pthread ${common_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES})
 
+
 add_subdirectory(common)
 add_subdirectory(fs)
 add_subdirectory(test)
 add_subdirectory(core)
 add_subdirectory(jit)
 add_subdirectory(benchmark)
+add_subdirectory(runtime)
+message(STATUS "nbre src " ${nbre_src})
+file(GLOB nbre_jit_src jit/*.cpp)
+file(GLOB nbre_rt_src runtime/*.cpp)
+file(GLOB_RECURSE nbre_common_src common/*.cpp)
+file(GLOB_RECURSE nbre_fs_src fs/*.cpp)
+file(GLOB_RECURSE nbre_fs_proto_src fs/*.cc)
+file(GLOB_RECURSE nbre_core_src core/*.cpp)
+
+add_library(nbre_rt SHARED ${nbre_jit_src} ${nbre_rt_src} ${nbre_common_src} ${nbre_fs_src} ${nbre_fs_proto_src} ${nbre_core_src})
 
 if(EXISTS "${PROJECT_SOURCE_DIR}/cmd/CMakeLists.txt")
   add_subdirectory(cmd)

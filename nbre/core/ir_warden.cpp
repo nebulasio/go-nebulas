@@ -45,11 +45,13 @@ bool ir_warden::is_sync_already() const {
 }
 
 void ir_warden::wait_until_sync() {
+  LOG(INFO) << "wait until sync ...";
   std::unique_lock<std::mutex> _l(m_sync_mutex);
   if (m_is_sync_already) {
     return;
   }
   m_sync_cond_var.wait(_l);
+  LOG(INFO) << "wait until sync done";
 }
 
 void ir_warden::on_timer() { m_nbre_storage->write_nbre(); }

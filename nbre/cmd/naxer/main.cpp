@@ -29,7 +29,8 @@ namespace po = boost::program_options;
 int main(int argc, char *argv[]) {
   po::options_description desc("Rocksdb read and write");
   desc.add_options()("help", "show help message")(
-      "module", po::value<std::string>(), "Module name")(
+      "module", po::value<std::string>(),
+      "Module name")("func", po::value<std::string>(), "function name")(
       "height", po::value<neb::block_height_t>(), "block height");
 
   po::variables_map vm;
@@ -67,5 +68,5 @@ int main(int argc, char *argv[]) {
   neb::configuration::instance().init_with_args(3, argv_jit);
 
   neb::jit_driver jd;
-  jd.run(irs);
+  jd.run(nullptr, irs, vm.count("func").as<std::string>());
 }
