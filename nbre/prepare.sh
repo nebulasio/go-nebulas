@@ -175,8 +175,19 @@ fi
 
 if [ ! -f $CUR_DIR/lib/include/bzlib.h ]; then
   cd $CUR_DIR/3rd_party/bzip2-1.0.6
-  cp -f ../Makefile-libbz2_so ./
-  make -j$PARALLEL -f Makefile-libbz2_so && make -f Makefile-libbz2_so install PREFIX=$CUR_DIR/lib/
+  case $OS in
+    'Linux')
+      BZLib="so"
+      ;;
+    'Darwin')
+      BZLib="dylib"
+      ;;
+    *) ;;
+  esac
+  cp -f ../Makefile-libbz2_$BZLib ./
+  make -j$PARALLEL -f Makefile-libbz2_$BZLib && make -f Makefile-libbz2_$BZLib install PREFIX=$CUR_DIR/lib/ && make -f Makefile-libbz2_$BZLib clean
+  rm -rf Makefile-libbz2_$BZLib
+  git checkout .
 fi
 
 if [ ! -f $CUR_DIR/lib/include/lz4.h ]; then
