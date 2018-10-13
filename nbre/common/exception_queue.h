@@ -35,6 +35,12 @@ public:
     neb_shm_service_failure,
     neb_shm_session_already_start,
     neb_shm_session_timeout,
+    neb_shm_session_failure,
+    neb_configure_general_failure,
+    neb_json_general_failure,
+    neb_storage_exception_no_such_key,
+    neb_storage_exception_no_init,
+    neb_storage_general_failure,
   };
 
   inline neb_exception(neb_exception_type type, const std::string &msg)
