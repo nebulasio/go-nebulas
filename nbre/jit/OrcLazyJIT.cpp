@@ -8,6 +8,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "OrcLazyJIT.h"
+#include "common/common.h"
+#include "jit/jit_exception.h"
 #include "llvm/ADT/Triple.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/Support/CodeGen.h"
@@ -91,11 +93,13 @@ static PtrTy fromTargetAddress(llvm::JITTargetAddress Addr) {
   return reinterpret_cast<PtrTy>(static_cast<uintptr_t>(Addr));
 }
 
-int llvm::runOrcLazyJIT(std::vector<std::unique_ptr<Module>> Ms,
-                        const std::vector<std::string> &Args) {
+int llvm::runOrcLazyJIT(neb::core::driver *d,
+                        std::vector<std::unique_ptr<Module>> Ms,
+                        const std::string &func_name) {
   // Add the program's symbols into the JIT's search space.
   if (sys::DynamicLibrary::LoadLibraryPermanently(nullptr, nullptr)) {
-    errs() << "Error loading program symbols.\n";
+    LOG(ERROR) << "Error loading program symbols.\n";
+    throw neb::jit_internal_failure("Error loading program symbols");
     return 1;
   }
 
@@ -110,8 +114,9 @@ int llvm::runOrcLazyJIT(std::vector<std::unique_ptr<Module>> Ms,
   // If we couldn't build the factory function then there must not be a callback
   // manager for this target. Bail out.
   if (!CompileCallbackMgr) {
-    errs() << "No callback manager available for target '"
-           << TM->getTargetTriple().str() << "'.\n";
+    LOG(ERROR) << "No callback manager available for target '"
+               << TM->getTargetTriple().str() << "'.\n";
+    throw neb::jit_internal_failure("No callback manager available for target");
     return 1;
   }
 
@@ -119,8 +124,10 @@ int llvm::runOrcLazyJIT(std::vector<std::unique_ptr<Module>> Ms,
 
   // If we couldn't build a stubs-manager-builder for this target then bail out.
   if (!IndirectStubsMgrBuilder) {
-    errs() << "No indirect stubs manager available for target '"
-           << TM->getTargetTriple().str() << "'.\n";
+    LOG(ERROR) << "No indirect stubs manager available for target '"
+               << TM->getTargetTriple().str() << "'.\n";
+    throw neb::jit_internal_failure(
+        "No indirect stubs manager available for target");
     return 1;
   }
 
@@ -138,19 +145,23 @@ int llvm::runOrcLazyJIT(std::vector<std::unique_ptr<Module>> Ms,
   }
 
   if (auto MainSym =
-          J.findSymbol(std::string("main", std::allocator<char>()))) {
-    using MainFnPtr = int (*)(int, const char *[]);
-    std::vector<const char *> ArgV(0, std::allocator<const char *>());
-    for (auto &Arg : Args) {
-      ArgV.push_back(Arg.c_str());
-    }
+          J.findSymbol(std::string(func_name, std::allocator<char>()))) {
+    // using MainFnPtr = int (*)(int, const char *[]);
+    using MainFnPtr = int (*)(neb::core::driver *);
+    // std::vector<const char *> ArgV(0, std::allocator<const char *>());
+    // for (auto &Arg : Args) {
+    // ArgV.push_back(Arg.c_str());
+    //}
     auto Main =
         fromTargetAddress<MainFnPtr>(cantFail(MainSym.getAddress(), nullptr));
-    return Main(ArgV.size(), reinterpret_cast<const char **>(ArgV.data()));
+    // return Main(ArgV.size(), reinterpret_cast<const char **>(ArgV.data()));
+    return Main(d);
   } else if (auto Err = MainSym.takeError()) {
     logAllUnhandledErrors(std::move(Err), llvm::errs(), "");
+    throw neb::jit_internal_failure("Unhandled errors");
   } else {
-    errs() << "Could not find main function.\n";
+    LOG(ERROR) << "Could not find target function.\n";
+    throw neb::jit_internal_failure("Could not find target function");
   }
 
   return 1;

@@ -38,6 +38,7 @@ enum {
 namespace internal {
 template <ipc_pkg_type_id_t type> struct empty_req_pkg_t {
   const static ipc_pkg_type_id_t pkg_identifier = type;
+  uint64_t m_height;
 };
 template <ipc_pkg_type_id_t type>
 const ipc_pkg_type_id_t empty_req_pkg_t<type>::pkg_identifier;
@@ -50,5 +51,17 @@ struct nbre_version_ack {
   uint32_t m_minor;
   uint32_t m_patch;
 };
+struct module_info {
+  inline module_info(const std::string &module, const std::string &func)
+      : module_name(module), func_name(func) {}
+
+  std::string module_name;
+  std::string func_name;
+};
+
+module_info pkg_identifier_to_module_info(ipc_pkg_type_id_t type);
+template <typename T> module_info pkg_type_to_module_info() {
+  return pkg_identifier_to_module_info(T::pkg_identifier);
+}
 }
 } // namespace neb

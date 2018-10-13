@@ -27,11 +27,16 @@ namespace neb {
 namespace internal {
 class jit_driver_impl;
 }
+namespace core {
+class driver;
+}
 class jit_driver {
 public:
   jit_driver();
   ~jit_driver();
-  void run(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs);
+  void run(core::driver *d,
+           const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
+           const std::string &func_name);
 
 protected:
   std::unique_ptr<internal::jit_driver_impl> m_impl;

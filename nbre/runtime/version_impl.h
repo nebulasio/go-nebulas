@@ -17,31 +17,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "core/neb_ipc/ipc_interface.h"
-#include "core/neb_ipc/ipc_callback_holder.h"
-#include "core/neb_ipc/ipc_endpoint.h"
+#pragma once
+#include "runtime/stdrt.h"
 
-std::shared_ptr<neb::core::ipc_endpoint> _ipc;
-
-int start_nbre_ipc(const char *root_dir, const char *nbre_path) {
-  try {
-    _ipc = std::make_shared<neb::core::ipc_endpoint>(root_dir, nbre_path);
-    _ipc->start();
-    return 0;
-  } catch (const std::exception &e) {
-    return 1;
-  } catch (...) {
-    return 1;
-  }
-}
-
-void nbre_ipc_shutdown() {
-  _ipc->shutdown();
-  _ipc.reset();
-}
-
-void set_recv_nbre_version_callback(nbre_version_callback_t *func) {
-  neb::core::ipc_callback_holder::instance().m_nbre_version_callback = func;
-}
-
-void ipc_nbre_version() { _ipc->send_nbre_version_req(); }
+int entry_point_foo_impl(neb::core::driver *d);

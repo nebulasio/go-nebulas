@@ -19,6 +19,7 @@
 //
 #include "core/driver.h"
 #include "core/ir_warden.h"
+#include "jit/jit_driver.h"
 #include <ff/ff.h>
 
 namespace neb {
@@ -51,8 +52,17 @@ void driver::run() {
   }
 }
 void driver::add_handlers() {
-  m_client->add_handler<nbre_version_req>([this](nbre_version_req *) {
+  m_client->add_handler<nbre_version_req>([this](nbre_version_req *req) {
     ff::para<void> p;
+    p([req, this]() {
+      module_info mi = pkg_type_to_module_info<nbre_version_req>();
+      neb::block_height_t height = req->m_height;
+      auto irs = neb::core::ir_warden::instance().get_ir_by_name_height(
+          mi.module_name, height);
+      jit_driver d;
+      d.run(this, irs, mi.func_name);
+
+    });
 
   });
 }

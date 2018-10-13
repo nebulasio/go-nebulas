@@ -22,5 +22,15 @@
 namespace neb {
 namespace core {
 const ipc_pkg_type_id_t nbre_version_ack::pkg_identifier;
+
+module_info pkg_identifier_to_module_info(ipc_pkg_type_id_t type) {
+  switch (type) {
+  case ipc_pkg_nbre_version_req:
+    return module_info("foo", "entry_point_foo");
+    break;
+  default:
+    throw std::logic_error("unsupported ipc_pkg_type_id_t");
+  }
+}
 }
 }
