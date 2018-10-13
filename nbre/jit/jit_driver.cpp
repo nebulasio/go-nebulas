@@ -23,6 +23,7 @@
 #include "common/configuration.h"
 #include "jit/OrcLazyJIT.h"
 
+#include "jit/jit_exception.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/Triple.h"
 #include "llvm/Bitcode/BitcodeReader.h"
@@ -87,15 +88,6 @@ public:
     const std::string &runtime_library_path =
         configuration::instance().runtime_library_path();
     // FIXME need remove this library later
-    llvm::sys::DynamicLibrary::LoadLibraryPermanently(
-        runtime_library_path.c_str(), nullptr);
-    std::string errMsg;
-    llvm::sys::DynamicLibrary lib_instance =
-        llvm::sys::DynamicLibrary::getPermanentLibrary(
-            runtime_library_path.c_str(), &errMsg);
-    if(!lib_instance.isValid()){
-      LOG(INFO) << "Failed to load library: " << errMsg;
-    }
     std::vector<std::unique_ptr<llvm::Module>> modules;
     for (const auto &ir : irs) {
       std::string ir_str = ir->ir();

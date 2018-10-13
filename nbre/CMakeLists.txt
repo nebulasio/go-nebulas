@@ -112,7 +112,7 @@ file(GLOB_RECURSE nbre_fs_proto_src fs/*.cc)
 file(GLOB_RECURSE nbre_core_src core/*.cpp)
 
 add_library(nbre_rt SHARED ${nbre_jit_src} ${nbre_rt_src} ${nbre_common_src} ${nbre_fs_src} ${nbre_fs_proto_src} ${nbre_core_src})
-target_link_libraries(nbre_rt ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} boost_program_options rocksdb)
+target_link_libraries(nbre_rt ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} boost_program_options rocksdb glog)
 
 if(EXISTS "${PROJECT_SOURCE_DIR}/cmd/CMakeLists.txt")
   add_subdirectory(cmd)
