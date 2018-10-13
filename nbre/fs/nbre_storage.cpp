@@ -117,6 +117,7 @@ void nbre_storage::write_nbre() {
   LOG(INFO) << "start height " << start_height << ',' << "end height "
             << end_height;
 
+  //! TODO: we may consider parallel here!
   for (block_height_t h = start_height + 1; h <= end_height; h++) {
     LOG(INFO) << h;
     write_nbre_by_height(h);

@@ -19,6 +19,7 @@
 //
 
 #include "core/ir_warden.h"
+#include "common/configuration.h"
 #include "core/command.h"
 #include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -43,13 +44,21 @@ bool ir_warden::is_sync_already() const {
   return m_nbre_storage->is_latest_irreversible_block();
 }
 
-void ir_warden::wait_until_sync() { m_nbre_storage->write_nbre(); }
+void ir_warden::wait_until_sync() {
+  std::unique_lock<std::mutex> _l(m_sync_mutex);
+  if (m_is_sync_already)
+    return;
+  m_sync_cond_var.wait(_l);
+}
 
 void ir_warden::on_timer() { m_nbre_storage->write_nbre(); }
 
 void ir_warden::timer_callback(const boost::system::error_code &ec) {
   if (!m_exit_flag) {
-    m_timer->expires_at(m_timer->expires_at() + boost::posix_time::seconds(1));
+    m_timer->expires_at(
+        m_timer->expires_at() +
+        boost::posix_time::seconds(
+            neb::configuration::instance().ir_warden_time_interval()));
     m_timer->async_wait(boost::bind(&ir_warden::timer_callback, this,
                                     boost::asio::placeholders::error));
     on_timer();
@@ -57,20 +66,30 @@ void ir_warden::timer_callback(const boost::system::error_code &ec) {
 }
 
 void ir_warden::thread_func() {
+
+  m_nbre_storage->write_nbre();
+  std::unique_lock<std::mutex> _l(m_sync_mutex);
+  m_is_sync_already = true;
+  _l.unlock();
+  m_sync_cond_var.notify_one();
+
   m_timer->async_wait(boost::bind(&ir_warden::timer_callback, this,
                                   boost::asio::placeholders::error));
   m_io_service.run();
 }
+
 void ir_warden::async_run() {
   if (m_thread)
     return;
   m_timer = std::unique_ptr<boost::asio::deadline_timer>(
-      new boost::asio::deadline_timer(m_io_service,
-                                      boost::posix_time::seconds(1)));
+      new boost::asio::deadline_timer(
+          m_io_service,
+          boost::posix_time::seconds(
+              neb::configuration::instance().ir_warden_time_interval())));
   start();
 
 }
-ir_warden::ir_warden() : quitable_thread() {
+ir_warden::ir_warden() : quitable_thread(), m_is_sync_already(false) {
   m_nbre_storage = std::unique_ptr<fs::nbre_storage>(new fs::nbre_storage(
       std::getenv("NBRE_DB"), std::getenv("BLOCKCHAIN_DB")));
 }

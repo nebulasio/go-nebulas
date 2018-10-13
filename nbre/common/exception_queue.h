@@ -29,17 +29,31 @@ namespace neb {
 
 class neb_exception {
 public:
-  inline neb_exception(const std::string &msg) : m_msg(msg) {}
+  enum neb_exception_type {
+    neb_std_exception,
+    neb_shm_queue_failure,
+    neb_shm_service_failure,
+    neb_shm_session_already_start,
+    neb_shm_session_timeout,
+  };
+
+  inline neb_exception(neb_exception_type type, const std::string &msg)
+      : m_msg(msg), m_type(type) {}
   inline const char *what() const throw() { return m_msg.c_str(); }
+
+  neb_exception_type type() const { return m_type; }
 
 protected:
   std::string m_msg;
+  neb_exception_type m_type;
 };
 
 typedef std::shared_ptr<neb_exception> neb_exception_ptr;
 
 class exception_queue : public neb::util::singleton<exception_queue> {
 public:
+  void push_back(neb_exception::neb_exception_type type, const char *what);
+
   void push_back(const std::exception &p);
 
   inline bool empty() const {
@@ -57,6 +71,8 @@ public:
     std::lock_guard<std::mutex> _l(m_mutex);
     std::for_each(m_exceptions.begin(), m_exceptions.end(), func);
   }
+
+  static void catch_exception(const std::function<void()> &func);
 
 protected:
   std::vector<neb_exception_ptr> m_exceptions;

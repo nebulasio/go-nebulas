@@ -40,11 +40,13 @@ public:
 
   void init_with_args(int argc, const char *argv[]);
 
-  const std::string &root_dir() const { return m_root_dir; }
-  const std::string &exec_name() const { return m_exec_name; }
-  const std::string &runtime_library_path() const {
+  inline const std::string &root_dir() const { return m_root_dir; }
+  inline const std::string &exec_name() const { return m_exec_name; }
+  inline const std::string &runtime_library_path() const {
     return m_runtime_library_path;
   }
+
+  inline int32_t ir_warden_time_interval() const { return 1; }
 
 protected:
   std::string m_exec_name;

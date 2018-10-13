@@ -38,6 +38,8 @@ public:
 
   void shutdown();
 
+  inline ipc_client_t *ipc_connection() { return m_client.get(); }
+
 protected:
   std::vector<std::function<void()>> m_handlers;
   std::unique_ptr<std::thread> m_thread;

@@ -6,8 +6,7 @@
 // modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
+// (at your option) any later version. //
 // the go-nebulas library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -43,18 +42,6 @@ void shm_queue_watcher::thread_func() {
       p->m_pointer = std::get<0>(r);
       p->m_type_id = std::get<1>(r);
       m_op_queue->push_back(p);
-      // if (std::get<2>(r) == shm_queue::new_object) {
-      // LOG(INFO) << "got data !";
-      // typename decltype(m_all_handlers)::const_iterator fr =
-      // m_all_handlers.find(std::get<1>(r));
-      // if (fr != m_all_handlers.end()) {
-      // fr->second(std::get<0>(r));
-      //}
-      //} else {
-      // LOG(INFO) << "to destroy pointer: " << (void *)(std::get<0>(r));
-      // m_shmem->destroy_ptr(std::get<0>(r));
-      //}
-      // m_shmem->destroy_ptr(r.first);
     }
   }
   LOG(INFO) << "service thread done!";

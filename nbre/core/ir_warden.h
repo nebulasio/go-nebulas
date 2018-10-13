@@ -27,6 +27,7 @@
 #include "fs/storage.h"
 #include <boost/asio.hpp>
 #include <boost/asio/deadline_timer.hpp>
+#include <condition_variable>
 #include <thread>
 
 namespace neb {
@@ -58,6 +59,10 @@ private:
   std::mutex m_mutex;
   std::unique_ptr<boost::asio::deadline_timer> m_timer;
   std::unique_ptr<fs::nbre_storage> m_nbre_storage;
+
+  bool m_is_sync_already;
+  std::mutex m_sync_mutex;
+  std::condition_variable m_sync_cond_var;
 };
 }
 }

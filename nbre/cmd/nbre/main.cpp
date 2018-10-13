@@ -33,11 +33,13 @@ int main(int argc, char *argv[]) {
   ::google::InitGoogleLogging(argv[0]);
 
   neb::core::ipc_client ic;
+  neb::core::ipc_client_t *ipc_conn;
 
   ic.add_handler<neb::core::nbre_version_req>(
       [](neb::core::nbre_version_req *req) { LOG(INFO) << "got version req"; });
 
   ic.start();
+  ipc_conn = ic.ipc_connection();
 
   std::this_thread::sleep_for(std::chrono::seconds(15));
   LOG(INFO) << "to quit nbre";

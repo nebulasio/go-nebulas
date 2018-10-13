@@ -18,12 +18,27 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "common/exception_queue.h"
+#include "common/ipc/shm_base.h"
+#include "common/ipc/shm_queue.h"
+#include "common/ipc/shm_service.h"
+#include "common/ipc/shm_session.h"
 
 namespace neb {
+void exception_queue::push_back(neb_exception::neb_exception_type type,
+                                const char *what) {
+  std::unique_lock<std::mutex> _l(m_mutex);
+  bool was_empty = m_exceptions.empty();
+  m_exceptions.push_back(std::make_shared<neb_exception>(type, what));
+  _l.unlock();
+  if (was_empty) {
+    m_cond_var.notify_one();
+  }
+}
 void exception_queue::push_back(const std::exception &p) {
   std::unique_lock<std::mutex> _l(m_mutex);
   bool was_empty = m_exceptions.empty();
-  m_exceptions.push_back(std::make_shared<neb_exception>(p.what()));
+  m_exceptions.push_back(std::make_shared<neb_exception>(
+      neb_exception::neb_std_exception, p.what()));
   _l.unlock();
   if (was_empty) {
     m_cond_var.notify_one();
@@ -44,4 +59,19 @@ neb_exception_ptr exception_queue::pop_front() {
   return ret;
 }
 
+void exception_queue::catch_exception(const std::function<void()> &func) {
+#define EC(a) exception_queue::instance().push_back(neb_exception::a, e.what());
+
+  try {
+    func();
+  } catch (const neb::ipc::internal::shm_queue_failure &e) {
+    EC(neb_shm_queue_failure);
+  } catch (const neb::ipc::shm_session_timeout &e) {
+    EC(neb_shm_session_timeout);
+  } catch (const std::exception &e) {
+    exception_queue::instance().push_back(e);
+  }
+
+#undef EC
+}
 } // namespace neb
