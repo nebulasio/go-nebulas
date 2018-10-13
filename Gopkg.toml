@@ -20,6 +20,27 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
+
+[[constraint]]
+  name = "golang.org/x/net"
+  branch = "master"
+  source = "https://github.com/golang/net.git"
+
+[[constraint]]
+  name = "golang.org/x/text"
+  branch = "master"
+  source = "https://github.com/golang/text.git"
+
+[[constraint]]
+  name = "golang.org/x/crypto"
+  branch = "master"
+  source = "https://github.com/golang/crypto.git"
+
+[[constraint]]
+  name = "golang.org/x/sys"
+  branch = "master"
+  source = "https://github.com/golang/sys.git"
+
 [[constraint]]
   name = "github.com/sirupsen/logrus"
   version = "1.0.3"
@@ -27,11 +48,6 @@
 [[constraint]]
   name = "github.com/urfave/cli"
   version ="1.19.1"
-  
-
-[[constraint]]
-  branch = "master"
-  name = "golang.org/x/text"
 
 
 [[constraint]]
@@ -210,16 +226,6 @@
 
 
 [[constraint]]
-branch = "master"
-name = "golang.org/x/net"
-
-
-[[constraint]]
-branch = "master"
-name = "golang.org/x/crypto"
-
-
-[[constraint]]
   name = "github.com/libp2p/go-libp2p-transport"
   revision = "ae93d86e1214ac0e6b86c27ab6c4853770918914"
 
@@ -232,11 +238,6 @@ name = "golang.org/x/crypto"
 [[constraint]]
   name = "github.com/whyrusleeping/go-notifier"
   revision = "8d81c69ca17629313f595a9f379cf9b10e6a540b"
-
-
-[[constraint]]
-branch = "master"
-name = "golang.org/x/sys"
 
 
 [[constraint]]

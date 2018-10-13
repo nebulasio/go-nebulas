@@ -17,7 +17,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "benchmark/common/benchmark_instances.h"
+#include "benchmark/benchmark_instances.h"
 #include <iostream>
 
 BENCHMARK(sample, benchmark) {
