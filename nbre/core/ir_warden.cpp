@@ -46,8 +46,9 @@ bool ir_warden::is_sync_already() const {
 
 void ir_warden::wait_until_sync() {
   std::unique_lock<std::mutex> _l(m_sync_mutex);
-  if (m_is_sync_already)
+  if (m_is_sync_already) {
     return;
+  }
   m_sync_cond_var.wait(_l);
 }
 
@@ -79,8 +80,9 @@ void ir_warden::thread_func() {
 }
 
 void ir_warden::async_run() {
-  if (m_thread)
+  if (m_thread) {
     return;
+  }
   m_timer = std::unique_ptr<boost::asio::deadline_timer>(
       new boost::asio::deadline_timer(
           m_io_service,
