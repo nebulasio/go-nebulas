@@ -42,6 +42,11 @@
 #include <string>
 #include <vector>
 
+namespace neb {
+namespace core {
+class driver;
+}
+}
 namespace llvm {
 
 class OrcLazyJIT {
@@ -190,8 +195,8 @@ private:
   llvm::Optional<CODLayerT::ModuleHandleT> ModulesHandle;
 };
 
-int runOrcLazyJIT(std::vector<std::unique_ptr<Module>> Ms,
-                  const std::vector<std::string> &Args);
+int runOrcLazyJIT(neb::core::driver *d, std::vector<std::unique_ptr<Module>> Ms,
+                  const std::string &func_name);
 
 } // end namespace llvm
 

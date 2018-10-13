@@ -17,20 +17,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "core/neb_ipc/ipc_pkg.h"
+#pragma once
+#include "runtime/stdrt.h"
 
-namespace neb {
-namespace core {
-const ipc_pkg_type_id_t nbre_version_ack::pkg_identifier;
-
-module_info pkg_identifier_to_module_info(ipc_pkg_type_id_t type) {
-  switch (type) {
-  case ipc_pkg_nbre_version_req:
-    return module_info("foo", "entry_point_foo");
-    break;
-  default:
-    throw std::logic_error("unsupported ipc_pkg_type_id_t");
-  }
-}
-}
-}
+int entry_point_foo_impl(neb::core::driver *d);

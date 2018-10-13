@@ -34,7 +34,7 @@ typedef void(nbre_version_callback_t)(uint32_t major, uint32_t minor,
 
 void set_recv_nbre_version_callback(nbre_version_callback_t *func);
 
-bool start_nbre_ipc(const char *root_dir, const char *nbre_path);
+int start_nbre_ipc(const char *root_dir, const char *nbre_path);
 
 void nbre_ipc_shutdown();
 
