@@ -73,6 +73,7 @@ void benchmark_instances::init_benchmark_instances(int argc, char *argv[]) {
     m_eval_count = vm["eval-count"].as<int>();
   }
 }
+
 void benchmark_instances::parse_all_enabled_fixtures(
     const std::string &fixture_name) {
   std::for_each(m_all_instances.begin(), m_all_instances.end(),
@@ -83,6 +84,7 @@ void benchmark_instances::parse_all_enabled_fixtures(
                   }
                 });
 }
+
 void benchmark_instances::show_all_benchmarks() {
   std::map<std::string, std::vector<std::string>> all;
   for (auto it = m_all_instances.begin(); it != m_all_instances.end(); ++it) {
@@ -102,6 +104,7 @@ void benchmark_instances::show_all_benchmarks() {
     }
   }
 }
+
 int benchmark_instances::run_all_benchmarks() {
   boost::property_tree::ptree property_tree;
 
@@ -133,19 +136,20 @@ int benchmark_instances::run_all_benchmarks() {
   };
 
   struct proc_stat_t {
-    unsigned long long user;
-    unsigned long long nice;
-    unsigned long long system;
-    unsigned long long idle;
-    unsigned long long iowait;
+    uint64_t user;
+    uint64_t nice;
+    uint64_t system;
+    uint64_t idle;
+    uint64_t iowait;
+    uint64_t irq;
+    uint64_t softrq;
   };
   struct proc_stat_t cpu_start, cpu_end;
   auto procstat = [](struct proc_stat_t &cpu_info) {
-    FILE *file;
-    file = fopen("/proc/stat", "r");
-    fscanf(file, "cpu %llu %llu %llu %llu %llu", &cpu_info.user, &cpu_info.nice,
-           &cpu_info.system, &cpu_info.idle, &cpu_info.iowait);
-    fclose(file);
+    std::ifstream file("/proc/stat");
+    std::string ignore;
+    file >> ignore >> cpu_info.user >> cpu_info.nice >> cpu_info.system >>
+        cpu_info.idle >> cpu_info.iowait >> cpu_info.irq >> cpu_info.softrq;
   };
 
   auto f_cpu = [](boost::property_tree::ptree &pt,
@@ -153,11 +157,15 @@ int benchmark_instances::run_all_benchmarks() {
                   const struct proc_stat_t &cpu_end) {
     auto delta_idle = cpu_end.idle - cpu_start.idle;
     auto delta_iowait = cpu_end.iowait - cpu_start.iowait;
-    auto delta_total = cpu_end.user + cpu_end.nice + cpu_end.system +
-                       cpu_end.idle + cpu_end.iowait -
-                       (cpu_start.user + cpu_start.nice + cpu_start.system +
-                        cpu_start.idle + cpu_start.iowait);
-    auto usage = 1 - (delta_idle + delta_iowait) / delta_total;
+    auto delta_total =
+        cpu_end.user + cpu_end.nice + cpu_end.system + cpu_end.idle +
+        cpu_end.iowait + cpu_end.irq + cpu_end.softrq -
+        (cpu_start.user + cpu_start.nice + cpu_start.system + cpu_start.idle +
+         cpu_start.iowait + cpu_start.irq + cpu_start.softrq);
+    decltype(delta_idle) usage = 0;
+    if (delta_total > 0) {
+      usage = 1 - (delta_idle + delta_iowait) / delta_total;
+    }
     pt.put("cpu_usage", usage);
   };
 
@@ -174,8 +182,8 @@ int benchmark_instances::run_all_benchmarks() {
       start = std::chrono::system_clock::now();
       (*it)->run();
       end = std::chrono::system_clock::now();
-      procstat(cpu_end);
       sysinfo(&mem_end);
+      procstat(cpu_end);
       auto elapsed_seconds =
           std::chrono::duration_cast<std::chrono::nanoseconds>(end - start)
               .count();
