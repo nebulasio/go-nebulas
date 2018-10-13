@@ -30,7 +30,8 @@ nbre_storage::nbre_storage(const std::string &path,
   m_storage = std::make_unique<rocksdb_storage>();
   m_storage->open_database(path, storage_open_for_readwrite);
 
-  m_blockchain = std::make_unique<blockchain>(bc_path);
+  m_blockchain =
+      std::make_unique<blockchain>(bc_path, storage_open_for_readonly);
 }
 
 std::vector<std::shared_ptr<nbre::NBREIR>>
