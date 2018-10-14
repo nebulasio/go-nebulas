@@ -27,9 +27,10 @@ void shm_service_op_queue::push_back(const queue_t::value_type &op) {
   std::unique_lock<std::mutex> _l(m_mutex);
   bool was_empty = m_queue.empty();
   m_queue.push(op);
+  LOG(INFO) << "push back ";
+  _l.unlock();
   if (was_empty) {
-    _l.unlock();
-    m_cond_var.notify_one();
+    m_cond_var.notify_all();
   }
 }
 

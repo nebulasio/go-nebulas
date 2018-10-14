@@ -29,11 +29,11 @@ shm_service_construct_helper::shm_service_construct_helper(
 
 void shm_service_construct_helper::handle_construct_op(
     const std::shared_ptr<shm_service_op_base> &op) {
-
   assert(op->op_id() == shm_service_op_base::op_allocate_obj);
   shm_service_op_allocate *alloc_op =
       static_cast<shm_service_op_allocate *>(op.get());
   alloc_op->m_ret = alloc_op->m_func();
+  LOG(INFO) << "handle construct op for c: " << alloc_op->m_counter;
   std::unique_lock<std::mutex> _l(m_mutex);
   m_finished_alloc_ops.push_back(alloc_op->m_counter);
   m_cond_var.notify_all();

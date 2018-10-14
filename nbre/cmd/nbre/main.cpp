@@ -23,6 +23,7 @@
 #include "common/configuration.h"
 #include "core/neb_ipc/ipc_endpoint.h"
 
+#include "core/driver.h"
 #include "core/neb_ipc/ipc_client.h"
 #include "core/neb_ipc/ipc_interface.h"
 #include "core/neb_ipc/ipc_pkg.h"
@@ -30,18 +31,12 @@
 
 int main(int argc, char *argv[]) {
   FLAGS_logtostderr = true;
+  neb::program_name = "nbre";
   ::google::InitGoogleLogging(argv[0]);
 
-  neb::core::ipc_client ic;
-  neb::core::ipc_client_t *ipc_conn;
-
-  ic.add_handler<neb::core::nbre_version_req>(
-      [](neb::core::nbre_version_req *req) { LOG(INFO) << "got version req"; });
-
-  ic.start();
-  ipc_conn = ic.ipc_connection();
-
-  std::this_thread::sleep_for(std::chrono::seconds(15));
+  neb::core::driver d;
+  d.init();
+  d.run();
   LOG(INFO) << "to quit nbre";
 
   return 0;

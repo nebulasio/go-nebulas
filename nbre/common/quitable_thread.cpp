@@ -22,6 +22,7 @@
 #include "core/command.h"
 
 namespace neb {
+std::string program_name;
 quitable_thread::quitable_thread() : m_exit_flag(false) {}
 
 quitable_thread::~quitable_thread() {

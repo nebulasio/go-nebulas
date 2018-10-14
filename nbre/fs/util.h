@@ -29,6 +29,8 @@ std::string cur_full_path();
 std::string cur_dir();
 std::string tmp_dir();
 std::string join_path(const std::string &parent, const std::string &fp);
+std::string parent_dir(const std::string &fp);
+bool is_absolute_path(const std::string &fp);
 
 bool exists(const std::string &p);
 

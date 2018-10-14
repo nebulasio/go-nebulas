@@ -42,6 +42,14 @@ std::string join_path(const std::string &parent, const std::string &fp) {
   return np.generic_string();
 }
 
+std::string parent_dir(const std::string &fp) {
+  boost::filesystem::path cur_path(fp);
+  return cur_path.parent_path().generic_string();
+}
+bool is_absolute_path(const std::string &fp) {
+  boost::filesystem::path cur_path(fp);
+  return cur_path.is_absolute();
+}
 bool exists(const std::string &p) {
   return boost::filesystem::exists(boost::filesystem::path(p));
 }

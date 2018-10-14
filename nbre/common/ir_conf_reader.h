@@ -52,7 +52,6 @@ public:
   inline const std::vector<std::string> link_files() const { return m_link_files; }
   inline const std::vector<std::string> link_path() const { return m_link_path; }
   inline const std::vector<std::string> flags() const { return m_flags; }
-  inline const std::string root_path() const { return m_root_path; }
 
 protected:
   ir_ref m_self_ref;
@@ -63,7 +62,6 @@ protected:
   std::vector<std::string> m_link_files;
   std::vector<std::string> m_link_path;
   std::vector<std::string> m_flags;
-  std::string m_root_path;
 
 private:
   void set_ir_ref_by_ptree(ir_ref &ir, const boost::property_tree::ptree &ptree);
@@ -72,10 +70,9 @@ private:
   void get_self_ref(const boost::property_tree::ptree &json_root);
   void get_depends(const boost::property_tree::ptree &json_root);
   void get_available_height(const boost::property_tree::ptree &json_root);
-  void get_clang_arguments(const boost::property_tree::ptree &json_root, 
-                                           const std::string &key, 
+  void get_clang_arguments(const boost::property_tree::ptree &json_root,
+                                           const std::string &key,
                                            std::vector<std::string> &container);
-  void get_root_path(const boost::property_tree::ptree &json_root);
 
 };
 } // namespace neb

@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
   start_nbre_ipc(root_dir, nbre_path.c_str());
 
   to_quit = false;
-  uint64_t height = 1000;
+  uint64_t height = 100;
 
   ipc_nbre_version(&local_mutex, height);
 

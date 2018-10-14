@@ -140,6 +140,7 @@ int llvm::runOrcLazyJIT(neb::core::driver *d,
     using MainFnPtr = int (*)(neb::core::driver *, void *);
     auto Main =
         fromTargetAddress<MainFnPtr>(cantFail(MainSym.getAddress(), nullptr));
+    LOG(INFO) << "got target function, and to run it! ";
     return Main(d, param);
   } else if (auto Err = MainSym.takeError()) {
     logAllUnhandledErrors(std::move(Err), llvm::errs(), "");

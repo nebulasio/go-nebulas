@@ -85,7 +85,9 @@ public:
   void run(core::driver *d,
            const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
            const std::string &func_name, void *param) {
-    if (!llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr, nullptr)) {
+    std::string errMsg;
+    if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr, &errMsg)) {
+      LOG(ERROR) << errMsg;
       throw jit_internal_failure("failed to load local program");
     }
     std::vector<std::unique_ptr<llvm::Module>> modules;
@@ -98,6 +100,7 @@ public:
       modules.push_back(
           llvm::parseIR(mem_buf->getMemBufferRef(), err, m_context, true));
     }
+    LOG(INFO) << " call llvm::runOrcLazyJIT";
     auto ret = llvm::runOrcLazyJIT(d, std::move(modules), func_name, param);
     LOG(INFO) << "jit return : " << ret;
   }

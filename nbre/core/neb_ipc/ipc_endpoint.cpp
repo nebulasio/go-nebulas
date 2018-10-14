@@ -46,6 +46,8 @@ bool ipc_endpoint::start() {
       this->m_ipc_server = std::unique_ptr<ipc_server_t>(
           new ipc_server_t(shm_service_name, 128, 128));
 
+      this->m_ipc_server->reset();
+
       m_ipc_server->init_local_env();
       add_all_callbacks();
       boost::process::child client(m_nbre_exe_name);
@@ -61,7 +63,9 @@ bool ipc_endpoint::start() {
   }));
 
   std::unique_lock<std::mutex> _l(local_mutex);
-  local_cond_var.wait(_l);
+  if (!init_done) {
+    local_cond_var.wait(_l);
+  }
 
   return true;
 }

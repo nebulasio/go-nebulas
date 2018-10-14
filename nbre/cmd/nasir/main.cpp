@@ -32,21 +32,23 @@
 namespace po = boost::program_options;
 namespace bp = boost::process;
 
+std::string root_path = "";
+
 typedef struct clang_flags_t {
   std::string root_path;
   std::string flag_command;
 }clang_flags;
 
 void merge_clang_arguments(const std::vector<std::string> &flag_value_list,
-    const clang_flags &flags,
-    std::string &command_string,
-    bool is_add_root_path) {
+                           const clang_flags &flags,
+                           std::string &command_string) {
   if (!flag_value_list.empty()) {
     std::for_each(
         flag_value_list.begin(), flag_value_list.end(),
-        [&command_string, &flags, is_add_root_path](const std::string &value) {
+        [&command_string, &flags](const std::string &value) {
+          bool is_add_root_path = !neb::fs::is_absolute_path(value);
+          command_string = command_string + flags.flag_command;
           if (is_add_root_path) {
-            command_string = command_string + flags.flag_command;
             command_string = command_string +
                              neb::fs::join_path(flags.root_path, value) + " ";
           } else {
@@ -79,23 +81,24 @@ void make_ir_bitcode(neb::ir_conf_reader &reader, std::string &ir_bc_file, bool 
   clang_flags flags;
 
   flags.flag_command = "";
-  merge_clang_arguments(reader.flags(), flags, command_string, false);
+  merge_clang_arguments(reader.flags(), flags, command_string);
 
-  flags.root_path = reader.root_path();
+  flags.root_path = root_path;
+  // flags.root_path = reader.root_path();
   flags.flag_command = " -I";
-  merge_clang_arguments(reader.include_header_files(), flags, command_string, true);
+  merge_clang_arguments(reader.include_header_files(), flags, command_string);
 
   flags.flag_command = " -L";
-  merge_clang_arguments(reader.link_path(), flags, command_string, true);
+  merge_clang_arguments(reader.link_path(), flags, command_string);
 
   flags.flag_command = " -l";
-  merge_clang_arguments(reader.link_files(), flags, command_string, false);
+  merge_clang_arguments(reader.link_files(), flags, command_string);
 
   flags.flag_command = " -c ";
-  merge_clang_arguments(reader.cpp_files(), flags, command_string, true);
+  merge_clang_arguments(reader.cpp_files(), flags, command_string);
 
   if (isPayload) {
-    std::string temp_path = "./";
+    std::string temp_path = neb::fs::tmp_dir();
     ir_bc_file = neb::fs::join_path(temp_path, reader.self_ref().name() + "_ir.bc");
   }
 
@@ -139,6 +142,10 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
                 << std::endl;
       exit(1);
     }
+  }
+  if (!vm.count("output")) {
+    std::cout << "You must specify output!";
+    exit(1);
   }
 
   return vm;
@@ -204,9 +211,15 @@ int main(int argc, char *argv[]) {
   po::variables_map vm = get_variables_map(argc, argv);
   std::ifstream ifs;
 
+  std::string root_dir = "";
   try {
     std::string ir_fp = vm["input"].as<std::string>();
     neb::ir_conf_reader reader(ir_fp);
+
+    root_dir = neb::fs::join_path(neb::fs::cur_full_path(), ir_fp);
+    root_dir = neb::fs::parent_dir(root_dir);
+    LOG(INFO) << "root path: " << root_dir;
+    root_path = root_dir;
 
     std::string mode = vm["mode"].as<std::string>();
     std::string ir_bc_file;

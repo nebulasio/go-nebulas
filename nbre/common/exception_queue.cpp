@@ -63,7 +63,9 @@ neb_exception_ptr exception_queue::pop_front() {
 }
 
 void exception_queue::catch_exception(const std::function<void()> &func) {
-#define EC(a) exception_queue::instance().push_back(neb_exception::a, e.what());
+#define EC(a)                                                                  \
+  LOG(ERROR) << "got exception: " << e.what();                                 \
+  exception_queue::instance().push_back(neb_exception::a, e.what());
 
   try {
     func();

@@ -44,9 +44,14 @@ shm_service_base::~shm_service_base() {
 
 void shm_service_base::reset() {
   boost::interprocess::shared_memory_object::remove(m_shm_name.c_str());
-  m_session->reset();
-  m_in_buffer->reset();
-  m_out_buffer->reset();
+  boost::interprocess::named_mutex::remove(
+      (m_shm_name + ".session.session_server.mutex").c_str());
+  boost::interprocess::named_mutex::remove(
+      (m_shm_name + ".session.session_client.mutex").c_str());
+  boost::interprocess::named_semaphore::remove(
+      (m_shm_name + ".session.server_sema").c_str());
+  boost::interprocess::named_semaphore::remove(
+      (m_shm_name + ".session.client_sema").c_str());
 }
 
 void shm_service_base::run() { thread_func(); }
@@ -99,7 +104,9 @@ void shm_service_base::init_local_env() {
 void shm_service_base::thread_func() {
   try {
     while (!m_exit_flag) {
+      LOG(INFO) << program_name << " to get op and handle it";
       auto ret = m_op_queue->pop_front();
+      LOG(INFO) << program_name << " got op to handler";
       if (ret.first) {
         std::shared_ptr<shm_service_op_base> &op = ret.second;
         if (op->op_id() == shm_service_op_base::op_allocate_obj) {

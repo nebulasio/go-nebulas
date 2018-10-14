@@ -27,13 +27,13 @@ shm_queue::shm_queue(const std::string &name, shm_session_base *session,
                      boost::interprocess::managed_shared_memory *shmem,
                      size_t capacity)
     : m_name(name), m_shmem(shmem), m_capacity(capacity), m_session(session) {
+  LOG(INFO) << "shm_queue enter";
   if (!m_shmem) {
+    LOG(INFO) << "shm_queue enter 1";
     throw shm_queue_failure("shmem can't be nullptr");
   }
-  if (!m_allocator) {
-    throw shm_queue_failure("allocator can't be nullptr");
-  }
   if (!m_capacity) {
+    LOG(INFO) << "shm_queue enter 3";
     throw shm_queue_failure("capacity can't be 0");
   }
   m_allocator = new shmem_allocator_t(m_shmem->get_segment_manager());
@@ -61,6 +61,7 @@ shm_queue::shm_queue(const std::string &name, shm_session_base *session,
   if (!m_buffer) {
     throw shm_queue_failure("alloc vector fail");
   }
+  LOG(INFO) << "shm_queue done";
 };
 
 void shm_queue::push_back(shm_type_id_t type_id, void *ptr) {

@@ -40,8 +40,12 @@ void shm_service_recv_handler::handle_recv_op(
     typename decltype(m_all_handlers)::const_iterator fr =
         m_all_handlers.find(type_id);
     if (fr != m_all_handlers.end()) {
+      LOG(INFO) << "call data handler !";
       fr->second(data_pointer);
-      m_shmem->destroy_ptr(data_pointer);
+      //! TODO we should destry this data_pointer
+      // m_shmem->destroy_ptr(data_pointer);
+    } else {
+      LOG(WARNING) << "cannot find data handler";
     }
   }
 }

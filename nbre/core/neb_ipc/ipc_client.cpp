@@ -31,6 +31,10 @@ bool ipc_client::start() {
     return false;
   }
 
+  bool init_done = false;
+  std::mutex local_mutex;
+  std::condition_variable local_cond_var;
+
   m_thread = std::unique_ptr<std::thread>(new std::thread([&, this]() {
     try {
       this->m_client = std::unique_ptr<ipc_client_t>(
@@ -40,11 +44,20 @@ bool ipc_client::start() {
       std::for_each(m_handlers.begin(), m_handlers.end(),
                     [](const std::function<void()> &f) { f(); });
 
+      local_mutex.lock();
+      init_done = true;
+      local_mutex.unlock();
+      local_cond_var.notify_one();
+
       m_client->run();
 
     } catch (const std::exception &e) {
     }
   }));
+  std::unique_lock<std::mutex> _l(local_mutex);
+  if (!init_done) {
+    local_cond_var.wait(_l);
+  }
   return true;
 }
 

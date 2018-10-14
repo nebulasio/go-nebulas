@@ -33,6 +33,7 @@ namespace neb {
 typedef std::string hex_hash_t;
 typedef uint8_t byte_t;
 typedef uint64_t block_height_t;
+extern std::string program_name;
 
 namespace tcolor {
 const static char *red = "\033[1;31m";
