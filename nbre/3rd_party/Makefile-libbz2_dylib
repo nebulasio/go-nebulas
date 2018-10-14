@@ -51,4 +51,5 @@ install:
 	chmod a+r $(PREFIX)/include/bzlib.h
 	cp -f libbz2.1.0.6.dylib $(PREFIX)/lib
 	chmod a+r $(PREFIX)/lib/libbz2.1.0.6.dylib
-	cp -f $(PREFIX)/lib/libbz2.1.0.6.dylib $(PREFIX)/lib/libbz2.dylib
+	ln -s $(PREFIX)/lib/libbz2.1.0.6.dylib $(PREFIX)/lib/libbz2.dylib
+	ln -s $(PREFIX)/lib/libbz2.1.0.6.dylib $(PREFIX)/lib/libbz2.1.dylib
