@@ -51,8 +51,8 @@ ifeq ($(NBRELIB), $(wildcard $(NBRELIB)))
 	CGO_CFLAGS=export CGO_CFLAGS="-I/$(CURRENT_DIR)/nbre/lib/include"
 	CGO_LDFLAGS=export CGO_LDFLAGS="-L$(CURRENT_DIR)/nbre/lib/lib"
 else
-	CGO_CFLAGS=
-	CGO_LDFLAGS=
+	CGO_CFLAGS=export CGO_CFLAGS
+	CGO_LDFLAGS=export CGO_LDFLAGS
 endif
 
 
