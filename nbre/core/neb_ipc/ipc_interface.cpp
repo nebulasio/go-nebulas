@@ -40,7 +40,7 @@ void nbre_ipc_shutdown() {
   _ipc.reset();
 }
 
-void set_recv_nbre_version_callback(nbre_version_callback_t *func) {
+void set_recv_nbre_version_callback(nbre_version_callback_t func) {
   neb::core::ipc_callback_holder::instance().m_nbre_version_callback = func;
 }
 
