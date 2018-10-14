@@ -1,0 +1,23 @@
+{
+  "name": "foo",
+  "version_major": 0,
+  "version_minor": 0,
+  "version_patch": 1,
+  "depends": [
+  ],
+  "available_height": 100,
+  "cpp_files": [
+    "foo.cpp"
+  ],
+  "include_header_files":[
+  "/../../"
+  ],
+  "link_path":[
+  "/../../lib"
+  ],
+  "link_files":[
+  ],
+  "flags": [
+  ]
+
+}
