@@ -96,8 +96,10 @@ elseif(UNIX)
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_date_time.dylib
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_program_options.dylib)
   set(extra_libs
-    ${PROJECT_SOURCE_DIR}/lib/lib/libglog.dylib
-    rocksdb bz2 z zstd snappy lz4) #TODO add rocksdb here
+    ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.a
+    ${PROJECT_SOURCE_DIR}/lib/lib/libglog.a
+    ${PROJECT_SOURCE_DIR}/lib/lib/libbz2.1.dylib
+    rocksdb z zstd snappy lz4) #TODO add rocksdb here
 endif()
 set(common_libs nbre_common pthread ${common_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES})
 
@@ -119,7 +121,7 @@ add_library(nbre_rt SHARED ${nbre_jit_src} ${nbre_rt_src} ${nbre_common_src} ${n
 target_link_libraries(nbre_rt ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} ${extra_libs} ff)
 
 add_subdirectory(test)
-add_subdirectory(benchmark)
+#add_subdirectory(benchmark)
 
 if(EXISTS "${PROJECT_SOURCE_DIR}/cmd/CMakeLists.txt")
   add_subdirectory(cmd)
