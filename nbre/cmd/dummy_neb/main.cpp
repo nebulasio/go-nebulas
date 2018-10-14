@@ -31,7 +31,8 @@ std::mutex local_mutex;
 std::condition_variable local_cond_var;
 bool to_quit = false;
 
-void nbre_version_callback(uint32_t major, uint32_t minor, uint32_t patch) {
+void nbre_version_callback(void *handler, uint32_t major, uint32_t minor,
+                           uint32_t patch) {
   std::cout << "got version: " << major << ", " << minor << ", " << patch
             << std::endl;
   std::unique_lock<std::mutex> _l(local_mutex);
@@ -55,7 +56,7 @@ int main(int argc, char *argv[]) {
   to_quit = false;
   uint64_t height = 1000;
 
-  // ipc_nbre_version(height);
+  ipc_nbre_version(&local_mutex, height);
 
   std::unique_lock<std::mutex> _l(local_mutex);
   if (to_quit)

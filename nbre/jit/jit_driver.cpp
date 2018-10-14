@@ -71,8 +71,8 @@ namespace internal {
 class jit_driver_impl {
 public:
   jit_driver_impl() {
-    llvm::sys::PrintStackTraceOnErrorSignal(
-        configuration::instance().exec_name(), false);
+    // llvm::sys::PrintStackTraceOnErrorSignal(
+    // configuration::instance().exec_name(), false);
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::sys::Process::PreventCoreFiles();
@@ -85,9 +85,9 @@ public:
   void run(core::driver *d,
            const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
            const std::string &func_name, void *param) {
-    const std::string &runtime_library_path =
-        configuration::instance().runtime_library_path();
-    // FIXME need remove this library later
+    if (!llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr, nullptr)) {
+      throw jit_internal_failure("failed to load local program");
+    }
     std::vector<std::unique_ptr<llvm::Module>> modules;
     for (const auto &ir : irs) {
       std::string ir_str = ir->ir();

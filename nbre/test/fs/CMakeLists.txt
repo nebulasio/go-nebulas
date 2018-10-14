@@ -5,7 +5,7 @@ add_executable(test_fs main.cpp
   gtest_nbre_storage.cpp
   )
 
-target_link_libraries(test_fs ${common_libs} ${fs_libs})
+target_link_libraries(test_fs  nbre_rt gtest)
 
 gtest_discover_tests(test_fs)
 add_test(NAME test_fs

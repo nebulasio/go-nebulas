@@ -1,10 +1,10 @@
 add_executable(test_common main.cpp
   gtest_util.cpp
   gtest_util_json.cpp
-  gtest_util_conf.cpp
+  #gtest_util_conf.cpp
   )
 
-target_link_libraries(test_common ${common_libs} ${fs_libs})
+target_link_libraries(test_common nbre_rt gtest)
 
 gtest_discover_tests(test_common)
 

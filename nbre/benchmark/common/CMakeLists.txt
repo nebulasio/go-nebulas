@@ -1,3 +1,3 @@
 
 add_executable(benchmark_example main.cpp example.cpp)
-target_link_libraries(benchmark_example ${common_libs})
+target_link_libraries(benchmark_example nbre_rt nbre_benchmark_instances)

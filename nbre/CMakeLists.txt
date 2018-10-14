@@ -73,15 +73,19 @@ set(jit_libs nbre_jit ${llvm_libs})
 set(fs_libs nbre_fs nbre_fs_proto rocksdb bz2 z zstd snappy lz4)
 
 if(UNIX AND NOT APPLE)
-  set(common_libs ${common_libs} rt)
   set(protobuf_lib ${PROJECT_SOURCE_DIR}/lib/lib/libprotobuf.so)
   set(cpp_lib ${PROJECT_SOURCE_DIR}/lib/lib/libc++.so)
   set(Boost_LIBRARIES
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_filesystem.so
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_system.so
-    ${PROJECT_SOURCE_DIR}/lib/lib/libboost_date_time.so)
+    ${PROJECT_SOURCE_DIR}/lib/lib/libboost_date_time.so
+    ${PROJECT_SOURCE_DIR}/lib/lib/libboost_program_options.so)
   set(extra_libs
-    ${PROJECT_SOURCE_DIR}/lib/lib/libglog.so)
+    ${PROJECT_SOURCE_DIR}/lib/lib/libglog.a
+    ${PROJECT_SOURCE_DIR}/lib/lib/librocksdb.so.5
+    rt
+    bz2 z zstd snappy lz4
+    )
 elseif(UNIX)
   set(common_libs ${common_libs} ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.a)
   set(protobuf_lib ${PROJECT_SOURCE_DIR}/lib/lib/libprotobuf.dylib)
@@ -89,30 +93,33 @@ elseif(UNIX)
   set(Boost_LIBRARIES
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_filesystem.dylib
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_system.dylib
-    ${PROJECT_SOURCE_DIR}/lib/lib/libboost_date_time.dylib)
+    ${PROJECT_SOURCE_DIR}/lib/lib/libboost_date_time.dylib
+    ${PROJECT_SOURCE_DIR}/lib/lib/libboost_program_options.dylib)
   set(extra_libs
-    ${PROJECT_SOURCE_DIR}/lib/lib/libglog.dylib)
+    ${PROJECT_SOURCE_DIR}/lib/lib/libglog.dylib
+    rocksdb bz2 z zstd snappy lz4) #TODO add rocksdb here
 endif()
 set(common_libs nbre_common pthread ${common_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES})
 
 
-add_subdirectory(common)
-add_subdirectory(fs)
-add_subdirectory(test)
-add_subdirectory(core)
-add_subdirectory(jit)
-add_subdirectory(benchmark)
-add_subdirectory(runtime)
+#add_subdirectory(common)
+#add_subdirectory(fs)
+#add_subdirectory(core)
+#add_subdirectory(jit)
+#add_subdirectory(runtime)
 message(STATUS "nbre src " ${nbre_src})
 file(GLOB nbre_jit_src jit/*.cpp)
 file(GLOB nbre_rt_src runtime/*.cpp)
 file(GLOB_RECURSE nbre_common_src common/*.cpp)
 file(GLOB_RECURSE nbre_fs_src fs/*.cpp)
-file(GLOB_RECURSE nbre_fs_proto_src fs/*.cc)
+file(GLOB_RECURSE nbre_fs_proto_src fs/proto/*.pb.cc)
 file(GLOB_RECURSE nbre_core_src core/*.cpp)
 
 add_library(nbre_rt SHARED ${nbre_jit_src} ${nbre_rt_src} ${nbre_common_src} ${nbre_fs_src} ${nbre_fs_proto_src} ${nbre_core_src})
-target_link_libraries(nbre_rt ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} boost_program_options rocksdb glog)
+target_link_libraries(nbre_rt ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} ${extra_libs})
+
+add_subdirectory(test)
+add_subdirectory(benchmark)
 
 if(EXISTS "${PROJECT_SOURCE_DIR}/cmd/CMakeLists.txt")
   add_subdirectory(cmd)
