@@ -95,14 +95,7 @@ static PtrTy fromTargetAddress(llvm::JITTargetAddress Addr) {
 
 int llvm::runOrcLazyJIT(neb::core::driver *d,
                         std::vector<std::unique_ptr<Module>> Ms,
-                        const std::string &func_name) {
-  // Add the program's symbols into the JIT's search space.
-  if (sys::DynamicLibrary::LoadLibraryPermanently(nullptr, nullptr)) {
-    LOG(ERROR) << "Error loading program symbols.\n";
-    throw neb::jit_internal_failure("Error loading program symbols");
-    return 1;
-  }
-
+                        const std::string &func_name, void *param) {
   // Grab a target machine and try to build a factory function for the
   // target-specific Orc callback manager.
   EngineBuilder EB;
@@ -117,7 +110,6 @@ int llvm::runOrcLazyJIT(neb::core::driver *d,
     LOG(ERROR) << "No callback manager available for target '"
                << TM->getTargetTriple().str() << "'.\n";
     throw neb::jit_internal_failure("No callback manager available for target");
-    return 1;
   }
 
   auto IndirectStubsMgrBuilder = orc::createLocalIndirectStubsManagerBuilder(T);
@@ -128,7 +120,6 @@ int llvm::runOrcLazyJIT(neb::core::driver *d,
                << TM->getTargetTriple().str() << "'.\n";
     throw neb::jit_internal_failure(
         "No indirect stubs manager available for target");
-    return 1;
   }
 
   // Everything looks good. Build the JIT.
@@ -146,19 +137,13 @@ int llvm::runOrcLazyJIT(neb::core::driver *d,
 
   if (auto MainSym =
           J.findSymbol(std::string(func_name, std::allocator<char>()))) {
-    // using MainFnPtr = int (*)(int, const char *[]);
-    using MainFnPtr = int (*)(neb::core::driver *);
-    // std::vector<const char *> ArgV(0, std::allocator<const char *>());
-    // for (auto &Arg : Args) {
-    // ArgV.push_back(Arg.c_str());
-    //}
+    using MainFnPtr = int (*)(neb::core::driver *, void *);
     auto Main =
         fromTargetAddress<MainFnPtr>(cantFail(MainSym.getAddress(), nullptr));
-    // return Main(ArgV.size(), reinterpret_cast<const char **>(ArgV.data()));
-    return Main(d);
+    return Main(d, param);
   } else if (auto Err = MainSym.takeError()) {
     logAllUnhandledErrors(std::move(Err), llvm::errs(), "");
-    // throw neb::jit_internal_failure("Unhandled errors");
+    throw neb::jit_internal_failure("Unhandled errors");
   } else {
     LOG(ERROR) << "Could not find target function.\n";
     throw neb::jit_internal_failure("Could not find target function");

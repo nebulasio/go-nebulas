@@ -70,13 +70,14 @@ void ipc_endpoint::add_all_callbacks() {
   LOG(INFO) << "ipc server pointer: " << (void *)m_ipc_server.get();
   m_ipc_server->add_handler<nbre_version_ack>([](nbre_version_ack *msg) {
     ipc_callback_holder::instance().m_nbre_version_callback(
-        msg->m_major, msg->m_minor, msg->m_patch);
+        msg->m_holder, msg->m_major, msg->m_minor, msg->m_patch);
   });
 }
 
-void ipc_endpoint::send_nbre_version_req(uint64_t height) {
+void ipc_endpoint::send_nbre_version_req(void *holder, uint64_t height) {
   nbre_version_req *req = m_ipc_server->construct<nbre_version_req>();
   req->m_height = height;
+  req->m_holder = holder;
   m_ipc_server->push_back(req);
 }
 bool ipc_endpoint::check_path_exists() {

@@ -61,7 +61,7 @@ void driver::add_handlers() {
     auto irs = neb::core::ir_warden::instance().get_ir_by_name_height(
         mi.module_name, height);
     jit_driver d;
-    d.run(this, irs, mi.func_name);
+    d.run(this, irs, mi.func_name, req);
 
     //});
   });

@@ -19,4 +19,6 @@
 //
 #include "runtime/version_impl.h"
 
-int entry_point_foo(neb::core::driver *d) { return entry_point_foo_impl(d); }
+int entry_point_foo(neb::core::driver *d, void *param) {
+  return entry_point_foo_impl(d, param);
+}

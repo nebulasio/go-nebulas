@@ -196,7 +196,7 @@ private:
 };
 
 int runOrcLazyJIT(neb::core::driver *d, std::vector<std::unique_ptr<Module>> Ms,
-                  const std::string &func_name);
+                  const std::string &func_name, void *param);
 
 } // end namespace llvm
 

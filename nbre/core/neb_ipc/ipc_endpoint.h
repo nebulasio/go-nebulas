@@ -32,7 +32,7 @@ public:
 
   bool start();
 
-  void send_nbre_version_req(uint64_t height);
+  void send_nbre_version_req(void *holder, uint64_t height);
 
   void shutdown();
 

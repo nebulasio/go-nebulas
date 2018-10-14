@@ -36,7 +36,7 @@ public:
   ~jit_driver();
   void run(core::driver *d,
            const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
-           const std::string &func_name);
+           const std::string &func_name, void *param);
 
 protected:
   std::unique_ptr<internal::jit_driver_impl> m_impl;

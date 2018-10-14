@@ -23,11 +23,17 @@
 #include "core/neb_ipc/ipc_pkg.h"
 #include "runtime/version.h"
 
-int entry_point_foo_impl(neb::core::driver *d) {
+int entry_point_foo_impl(neb::core::driver *d, void *param) {
   if (!d) {
     LOG(INFO) << "cannot find driver";
     return 1;
   }
+  if (!param) {
+    LOG(INFO) << "invalid param";
+    return 1;
+  }
+
+  neb::core::nbre_version_req *req = (neb::core::nbre_version_req *)param;
   auto ipc_conn = d->ipc_conn();
   neb::core::nbre_version_ack *ack =
       ipc_conn->construct<neb::core::nbre_version_ack>();
@@ -35,6 +41,7 @@ int entry_point_foo_impl(neb::core::driver *d) {
   ack->m_major = v.major_version();
   ack->m_minor = v.minor_version();
   ack->m_patch = v.patch_version();
+  ack->m_holder = req->m_holder;
   ipc_conn->push_back(ack);
   return 0;
 }

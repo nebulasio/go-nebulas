@@ -84,7 +84,7 @@ public:
 
   void run(core::driver *d,
            const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
-           const std::string &func_name) {
+           const std::string &func_name, void *param) {
     const std::string &runtime_library_path =
         configuration::instance().runtime_library_path();
     // FIXME need remove this library later
@@ -98,7 +98,7 @@ public:
       modules.push_back(
           llvm::parseIR(mem_buf->getMemBufferRef(), err, m_context, true));
     }
-    auto ret = llvm::runOrcLazyJIT(d, std::move(modules), func_name);
+    auto ret = llvm::runOrcLazyJIT(d, std::move(modules), func_name, param);
     LOG(INFO) << "jit return : " << ret;
   }
 
@@ -111,14 +111,15 @@ protected:
 } // end namespace internal
 
 jit_driver::jit_driver() {
-  m_impl = std::make_unique<internal::jit_driver_impl>();
+  m_impl = std::unique_ptr<internal::jit_driver_impl>(
+      new internal::jit_driver_impl());
 }
 
 jit_driver::~jit_driver() = default;
 
 void jit_driver::run(core::driver *d,
                      const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
-                     const std::string &func_name) {
-  m_impl->run(d, irs, func_name);
+                     const std::string &func_name, void *param) {
+  m_impl->run(d, irs, func_name, param);
 }
 } // namespace neb

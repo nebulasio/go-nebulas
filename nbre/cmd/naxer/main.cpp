@@ -62,11 +62,7 @@ int main(int argc, char *argv[]) {
   auto irs =
       neb::core::ir_warden::instance().get_ir_by_name_height(module, height);
 
-  const char *argv_jit[3] = {"", "--ini-file",
-                         "../test/data/jit_configuration.ini"};
-
-  neb::configuration::instance().init_with_args(3, argv_jit);
 
   neb::jit_driver jd;
-  jd.run(nullptr, irs, vm["func"].as<std::string>());
+  jd.run(nullptr, irs, vm["func"].as<std::string>(), nullptr);
 }

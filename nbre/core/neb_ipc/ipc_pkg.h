@@ -39,6 +39,7 @@ namespace internal {
 template <ipc_pkg_type_id_t type> struct empty_req_pkg_t {
   const static ipc_pkg_type_id_t pkg_identifier = type;
   uint64_t m_height;
+  void *m_holder; // used by C-Go
 };
 template <ipc_pkg_type_id_t type>
 const ipc_pkg_type_id_t empty_req_pkg_t<type>::pkg_identifier;
@@ -50,6 +51,7 @@ struct nbre_version_ack {
   uint32_t m_major;
   uint32_t m_minor;
   uint32_t m_patch;
+  void *m_holder; // used by C-Go
 };
 struct module_info {
   inline module_info(const std::string &module, const std::string &func)

@@ -40,39 +40,5 @@ configuration::configuration() { m_root_dir = Str(NBRE_PATH); }
 
 configuration::~configuration() = default;
 
-void configuration::parse_arguments(int argc, const char *argv[]) {
-  try {
-    po::options_description desc("Configurations");
-    desc.add_options()("ini-file", po::value<std::string>(),
-                       "INI configuration file");
-
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);
-
-    m_ini_file_path = vm["ini-file"].as<std::string>();
-  } catch (const po::error &e) {
-    throw configure_general_failure(e.what());
-  }
-}
-
-void configuration::get_value_from_ini() {
-  try {
-    pt::ptree ini_root;
-
-    pt::ini_parser::read_ini(m_ini_file_path, ini_root);
-
-    m_exec_name = ini_root.get<std::string>("jit_config.exec_name");
-    m_runtime_library_path =
-        ini_root.get<std::string>("jit_config.runtime_library_path");
-  } catch (const pt::ptree_error &e) {
-    throw configure_general_failure(e.what());
-  }
-}
-
-void configuration::init_with_args(int argc, const char *argv[]) {
-  parse_arguments(argc, argv);
-  get_value_from_ini();
-}
 } // namespace neb
 

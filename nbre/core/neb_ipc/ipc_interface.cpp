@@ -44,4 +44,6 @@ void set_recv_nbre_version_callback(nbre_version_callback_t *func) {
   neb::core::ipc_callback_holder::instance().m_nbre_version_callback = func;
 }
 
-void ipc_nbre_version(uint64_t height) { _ipc->send_nbre_version_req(height); }
+void ipc_nbre_version(void *holder, uint64_t height) {
+  _ipc->send_nbre_version_req(holder, height);
+}

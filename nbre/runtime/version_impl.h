@@ -20,4 +20,4 @@
 #pragma once
 #include "runtime/stdrt.h"
 
-int entry_point_foo_impl(neb::core::driver *d);
+int entry_point_foo_impl(neb::core::driver *d, void *param);
