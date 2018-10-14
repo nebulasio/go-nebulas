@@ -27,11 +27,11 @@ import (
 	"unsafe"
 )
 
-// IpcNbreVersionFunc returns nbre version
-//export IpcNbreVersionFunc
-func IpcNbreVersionFunc(holder unsafe.Pointer, major C.uint32_t, minor C.uint32_t, patch C.uint32_t) {
+// NbreVersionFunc returns nbre version
+//export NbreVersionFunc
+func NbreVersionFunc(holder unsafe.Pointer, major C.uint32_t, minor C.uint32_t, patch C.uint32_t) {
 	// handler.err = core.ErrExecutionFailed
-	handler, _ := getNbreHander(uint64(uintptr(holder)))
+	handler, _ := getNbreHandler(uint64(uintptr(holder)))
 	if handler != nil {
 		version := &Version{
 			Major: uint64(major),
