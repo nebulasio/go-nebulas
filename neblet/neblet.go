@@ -175,7 +175,7 @@ func (n *Neblet) Setup() {
 	n.rpcServer = rpc.NewServer(n)
 
 	// nbre
-	n.nbre = nbre.NewNbre()
+	n.nbre = nbre.NewNbre(n)
 
 	logging.CLog().Info("Setuped Neblet.")
 }

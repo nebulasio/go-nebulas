@@ -19,15 +19,14 @@
 package nbre
 
 /*
+#cgo LDFLAGS: -L${SRCDIR}/native/bin -lnbre_rt
 
 #include <stdlib.h>
 #include <native/ipc_interface.h>
 
-void IpcNbreVersionFunc_cgo(void *holder, uint32_t major, uint32_t minor,uint32_t patch);
+void NbreVersionFunc_cgo(void *holder, uint32_t major, uint32_t minor,uint32_t patch);
 */
 import "C"
-
-//#cgo LDFLAGS: -L${SRCDIR}/native -lnbre
 
 import (
 	"sync"
@@ -35,6 +34,12 @@ import (
 	"unsafe"
 
 	"github.com/nebulasio/go-nebulas/core"
+	"os/exec"
+	"os"
+	"path/filepath"
+	"strings"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -72,17 +77,30 @@ func NewNbre(neb Neblet) core.Nbre {
 	}
 }
 
+func getCurrPath() string {
+    file, _ := exec.LookPath(os.Args[0])
+    path, _ := filepath.Abs(file)
+    index := strings.LastIndex(path, string(os.PathSeparator))
+    ret := path[:index]
+    return ret
+}
+
 // Start launch the nbre
 func (n *Nbre) Start() error {
 	// TODO(larry): add to config
-	root := ""
-	path := ""
+	root := getCurrPath() + "nbre/"
+	path := "bin/nbre"
 	cRoot := C.CString(root)
 	defer C.free(unsafe.Pointer(cRoot))
 	cPath := C.CString(path)
 	defer C.free(unsafe.Pointer(cPath))
 
 	cResult := C.start_nbre_ipc(cRoot, cPath)
+	logging.CLog().WithFields(logrus.Fields{
+		"root": root,
+		"path": path,
+		"ret": int(cResult),
+	}).Info("Started nbre!")
 	if int(cResult) != 0 {
 		return ErrNbreStartFailed
 	}
@@ -91,7 +109,7 @@ func (n *Nbre) Start() error {
 
 // InitializeNbre initialize nbre
 func InitializeNbre() {
-	C.set_recv_nbre_version_callback(C.IpcNbreVersionFunc_cgo)
+	C.set_recv_nbre_version_callback((C.nbre_version_callback_t)(unsafe.Pointer(C.NbreVersionFunc_cgo)))
 }
 
 // Execute execute command
@@ -127,21 +145,33 @@ func (n *Nbre) Execute(command string, params []byte) ([]byte, error) {
 		case <-handler.done:
 		}
 	}
+
+	logging.CLog().WithFields(logrus.Fields{
+		"command": command,
+		"params": string(params),
+		"result": string(handler.result),
+		"error": handler.err,
+	}).Debug("nbre command response")
 	return handler.result, handler.err
 }
 
 func (n *Nbre) handleNbreCommand(handler *handler, command string, params []byte) {
 	height := n.neb.BlockChain().TailBlock().Height()
+
+	logging.CLog().WithFields(logrus.Fields{
+		"command": command,
+		"params": string(params),
+	}).Debug("run nbre command")
 	switch command {
 	case CommandVersion:
-		C.ipc_nbre_version(unsafe.Pointer(&handler.id), C.uint32_t(height))
+		C.ipc_nbre_version(unsafe.Pointer(&handler.id), C.uint64_t(height))
 	default:
 		handler.err = ErrCommandNotFound
 		handler.done <- true
 	}
 }
 
-func getNbreHander(id uint64) (*handler, error) {
+func getNbreHandler(id uint64) (*handler, error) {
 	nbreLock.RLock()
 	handler := nbreHandlers[id]
 	nbreLock.RUnlock()

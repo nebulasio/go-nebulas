@@ -22,10 +22,10 @@ package nbre
 
 #include <stdint.h>
 
-void IpcNbreVersionFunc(void *holder, uint32_t major, uint32_t minor,uint32_t patch);
+void NbreVersionFunc(void *holder, uint32_t major, uint32_t minor,uint32_t patch);
 
-void IpcNbreVersionFunc_cgo(void *holder, uint32_t major, uint32_t minor,uint32_t patch) {
-	IpcNbreVersionFunc(holder, major, minor, patch);
+void NbreVersionFunc_cgo(void *holder, uint32_t major, uint32_t minor,uint32_t patch) {
+	NbreVersionFunc(holder, major, minor, patch);
 };
 
 */
