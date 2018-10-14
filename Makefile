@@ -36,11 +36,28 @@ ifeq ($(OS),Darwin)
 	DYLIB=.dylib
 	INSTALL=install
 	LDCONFIG=
+	NEBBINARY=$(BINARY)
+	BUUILDLOG=
 else
 	DYLIB=.so
 	INSTALL=sudo install
 	LDCONFIG=sudo /sbin/ldconfig
+	NEBBINARY=$(BINARY)-$(COMMIT)
+	BUUILDLOG=-rm -f $(BINARY); ln -s $(BINARY)-$(COMMIT) $(BINARY)
 endif
+
+NBRELIB := nbre/lib/lib
+ifeq ($(NBRELIB), $(wildcard $(NBRELIB)))
+	CGO_CFLAGS=export CGO_CFLAGS="-I/$(CURRENT_DIR)/nbre/lib/include"
+	CGO_LDFLAGS=export CGO_LDFLAGS="-L$(CURRENT_DIR)/nbre/lib/lib"
+else
+	CGO_CFLAGS=
+	CGO_LDFLAGS=
+endif
+
+
+$(warning  $(CGO_CFLAGS))
+$(warning  $(CGO_LDFLAGS))
 
 # Setup the -ldflags option for go build here, interpolate the variable values
 LDFLAGS = -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.branch=${BRANCH} -X main.compileAt=`date +%s`"
@@ -72,10 +89,9 @@ dep:
 setup: deploy-dep deploy-v8 deploy-libs deploy-nbre dep
 
 build:
-	cd cmd/neb; go build $(LDFLAGS) -o ../../$(BINARY)-$(COMMIT)
+	cd cmd/neb; $(CGO_CFLAGS); $(CGO_LDFLAGS); go build $(LDFLAGS) -o ../../$(NEBBINARY)
 	cd cmd/crashreporter; go build $(LDFLAGS) -o ../../neb-crashreporter
-	-rm -f $(BINARY)
-	ln -s $(BINARY)-$(COMMIT) $(BINARY)
+	$(BUUILDLOG)
 
 build-linux:
 	cd cmd/neb; GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o ../../$(BINARY)-linux

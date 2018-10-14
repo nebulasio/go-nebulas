@@ -88,7 +88,7 @@ func getCurrPath() string {
 // Start launch the nbre
 func (n *Nbre) Start() error {
 	// TODO(larry): add to config
-	root := getCurrPath() + "nbre/"
+	root := getCurrPath() + "/nbre/"
 	path := "bin/nbre"
 	cRoot := C.CString(root)
 	defer C.free(unsafe.Pointer(cRoot))
@@ -100,7 +100,7 @@ func (n *Nbre) Start() error {
 		"root": root,
 		"path": path,
 		"ret": int(cResult),
-	}).Info("Started nbre!")
+	}).Info("Started nbre.")
 	if int(cResult) != 0 {
 		return ErrNbreStartFailed
 	}
