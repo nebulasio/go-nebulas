@@ -75,7 +75,7 @@ all: clean vet fmt lint build test
 dep:
 	$(DEPINSTALL) dep ensure -v
 
-deploy-rocksdb:
+deploy-libs:
 	$(INSTALL) nf/nvm/native-lib/*$(DYLIB) /usr/local/lib/
 	$(INSTALL) native-lib/*$(DYLIB) /usr/local/lib/
 	$(LDCONFIG)
@@ -88,7 +88,7 @@ deploy-nbre:
 	$(INSTALL) nf/nbre/native/bin/*$(DYLIB) /usr/local/lib/
 	$(LDCONFIG)
 
-deploy: deploy-rocksdb deploy-v8 deploy-nbre
+deploy: deploy-libs deploy-v8 deploy-nbre
 
 undeploy:
 	-rm -f /usr/local/lib/libnebulas*
