@@ -47,14 +47,19 @@ else
 endif
 
 NBRELIB := nbre/lib/lib
-ifeq ($(NBRELIB), $(wildcard $(NBRELIB)))
-	CGO_CFLAGS=CGO_CFLAGS="-I/$(CURRENT_DIR)/nbre/lib/include"
-	CGO_LDFLAGS=CGO_LDFLAGS="-L$(CURRENT_DIR)/nbre/lib/lib -lrocksdb -lstdc++ -lm -lz -lbz2 -lsnappy -llz4 -lzstd"
+ifeq ($(OS)$(NBRELIB), Darwin$(wildcard $(NBRELIB)))
+	CGO_CFLAGS=CGO_CFLAGS+="-I/$(CURRENT_DIR)/nbre/lib/include -g -O2"
+	CGO_LDFLAGS=CGO_LDFLAGS+="-L$(CURRENT_DIR)/nbre/lib/lib -lrocksdb -lstdc++ -lm -lz -lbz2 -lsnappy -llz4 -lzstd -g -O2"
 else
 	CGO_CFLAGS=
 	CGO_LDFLAGS=
 endif
 
+ifdef $(shell command -v dep 2> /dev/null)
+	DEPINSTALL=curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+else
+	DEPINSTALL=
+endif
 
 # $(warning  $(CGO_CFLAGS))
 # $(warning  $(CGO_LDFLAGS))
@@ -63,12 +68,17 @@ endif
 LDFLAGS = -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.branch=${BRANCH} -X main.compileAt=`date +%s`"
 
 # Build the project
-.PHONY: build build-linux clean dep lint run test vet link-libs
+.PHONY: build build-linux clean dep lint run test vet link-libs all
 
 all: clean vet fmt lint build test
 
-deploy-dep:
-	curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+dep:
+	$(DEPINSTALL) dep ensure -v
+
+deploy-rocksdb:
+	$(INSTALL) nf/nvm/native-lib/*$(DYLIB) /usr/local/lib/
+	$(INSTALL) native-lib/*$(DYLIB) /usr/local/lib/
+	$(LDCONFIG)
 
 deploy-v8:
 	$(INSTALL) nf/nvm/native-lib/*$(DYLIB) /usr/local/lib/
@@ -78,15 +88,11 @@ deploy-nbre:
 	$(INSTALL) nf/nbre/native/bin/*$(DYLIB) /usr/local/lib/
 	$(LDCONFIG)
 
-deploy-libs:
-	$(INSTALL) nf/nvm/native-lib/*$(DYLIB) /usr/local/lib/
-	$(INSTALL) native-lib/*$(DYLIB) /usr/local/lib/
-	$(LDCONFIG)
+deploy: deploy-rocksdb deploy-v8 deploy-nbre
 
-dep:
-	dep ensure -v
-
-setup: deploy-dep deploy-v8 deploy-libs deploy-nbre dep
+undeploy:
+	-rm -f /usr/local/lib/libnebulas*
+	-rm -f /usr/local/lib/libnbre*
 
 build:
 	cd cmd/neb; $(CGO_CFLAGS) $(CGO_LDFLAGS) go build $(LDFLAGS) -o ../../$(NEBBINARY)
