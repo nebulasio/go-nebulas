@@ -48,16 +48,16 @@ endif
 
 NBRELIB := nbre/lib/lib
 ifeq ($(NBRELIB), $(wildcard $(NBRELIB)))
-	CGO_CFLAGS=export CGO_CFLAGS="-I/$(CURRENT_DIR)/nbre/lib/include"
-	CGO_LDFLAGS=export CGO_LDFLAGS="-L$(CURRENT_DIR)/nbre/lib/lib"
+	CGO_CFLAGS=CGO_CFLAGS="-I/$(CURRENT_DIR)/nbre/lib/include"
+	CGO_LDFLAGS=CGO_LDFLAGS="-L$(CURRENT_DIR)/nbre/lib/lib -lrocksdb -lstdc++ -lm -lz -lbz2 -lsnappy -llz4 -lzstd"
 else
-	CGO_CFLAGS=export CGO_CFLAGS
-	CGO_LDFLAGS=export CGO_LDFLAGS
+	CGO_CFLAGS=
+	CGO_LDFLAGS=
 endif
 
 
-$(warning  $(CGO_CFLAGS))
-$(warning  $(CGO_LDFLAGS))
+# $(warning  $(CGO_CFLAGS))
+# $(warning  $(CGO_LDFLAGS))
 
 # Setup the -ldflags option for go build here, interpolate the variable values
 LDFLAGS = -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.branch=${BRANCH} -X main.compileAt=`date +%s`"
@@ -89,7 +89,7 @@ dep:
 setup: deploy-dep deploy-v8 deploy-libs deploy-nbre dep
 
 build:
-	cd cmd/neb; $(CGO_CFLAGS); $(CGO_LDFLAGS); go build $(LDFLAGS) -o ../../$(NEBBINARY)
+	cd cmd/neb; $(CGO_CFLAGS) $(CGO_LDFLAGS) go build $(LDFLAGS) -o ../../$(NEBBINARY)
 	cd cmd/crashreporter; go build $(LDFLAGS) -o ../../neb-crashreporter
 	$(BUUILDLOG)
 
