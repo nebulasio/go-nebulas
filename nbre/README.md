@@ -125,7 +125,7 @@ nbre jit通过llvm的JIT(Just-in-time compilation),编译并执行ir
 * nbre执行时序
 
 
-![nbre_jit_sequence[.jpg](https://github.com/nebulasio/go-nebulas/raw/feature/nbre/nbre/doc/jpg/nbre_jit_sequence.jpg)
+![nbre_jit_sequence.jpg](https://github.com/nebulasio/go-nebulas/raw/feature/nbre/nbre/doc/jpg/nbre_jit_sequence.jpg)
 
   * jit_driver
     jit_driver是jit模块的入口程序
