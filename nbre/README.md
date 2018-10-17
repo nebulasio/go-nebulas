@@ -3,8 +3,7 @@
 
 ## NBRE 结构框架
 
-[nbre_construct.jpg[]](https://github.com/nebulasio/go-nebulas/raw/feature/nbre/nbre/doc/jpg/nbre_construct.jpg)
-
+[nbre_construct.jpg[](https://github.com/nebulasio/go-nebulas/raw/feature/nbre/nbre/doc/jpg/nbre_construct.jpg)
 
 ## NBRE 功能模块
 * common
@@ -117,36 +116,16 @@ ir_warden每15秒钟一次，查询区块，并更新版本号
 
 * 通过以下流程图说明版本控制和ipc的作用
 
-```flow
-st=>start: 开始
-e=>end: 结束
-op0=>operation: neb通过ipc启动nbre
-op1=>operation: 启动ir_warden
-op2=>operation: ir_warden扫描区块
-op3=>operation: ir_warden更新版本号
-cond1=>condition: 是否退出ir_warden？
-st->op0->op1->op2->op3->op2->op3->cond1
-cond1(no)->op2
-cond1(yes)->e
-```
+
+![nbre_ir_warden_flow.jpg](https://github.com/nebulasio/go-nebulas/raw/feature/nbre/nbre/doc/jpg/nbre_ir_warden_flow.jpg)
 
 ## 模块 jit
 nbre jit通过llvm的JIT(Just-in-time compilation),编译并执行ir
 
 * nbre执行时序
 
-```sequence
-ipc->neb:send address
-neb->ipc:executed
-ipc->db:get block
-db->ipc:return block
-ipc->ipc:parse block
-ipc->jit: send ir
-jit->jit:run ir
-jit->ipc:return result
-ipc->neb:return result
-```
 
+![nbre_jit_sequence[.jpg](https://github.com/nebulasio/go-nebulas/raw/feature/nbre/nbre/doc/jpg/nbre_jit_sequence.jpg)
 
   * jit_driver
     jit_driver是jit模块的入口程序
