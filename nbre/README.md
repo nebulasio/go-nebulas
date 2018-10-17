@@ -3,7 +3,7 @@
 
 ## NBRE 结构框架
 
-[nbre_[construct.jpg](https://github.com/nebulasio/go-nebulas/tree/raw/feature/nbre/nbre/doc/jpg/nbre_construct.jpg)
+[nbre_construct.jpg](https://github.com/nebulasio/go-nebulas/tree/blob/feature/nbre/nbre/doc/jpg/nbre_construct.jpg)
 
 
 ## NBRE 功能模块
@@ -97,6 +97,7 @@ export NBRE_DB=go-nebulas/data.db
 * nbre_storage 依赖rocksdb_storage进行读写blockchain
 * blockchain 区块信息类，依赖protocol生成的Block对象
 * protocol buffer
+
 |文件|表述|
 |---|:---|
 |ir.proto| ir 名称、版本、有效高度、依赖等元数据表述 |
@@ -132,6 +133,7 @@ cond1(yes)->e
 nbre jit通过llvm的JIT(Just-in-time compilation),编译并执行ir
 
 * nbre执行时序
+
 ```sequence
 ipc->neb:send address
 neb->ipc:executed
