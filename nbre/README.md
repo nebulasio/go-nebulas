@@ -3,7 +3,7 @@
 
 ## NBRE 结构框架
 
-[nbre_construct.jpg](https://github.com/nebulasio/go-nebulas/raw/feature/nbre/nbre/doc/jpg/nbre_construct.jpg)
+[nbre_construct.jpg[]](https://github.com/nebulasio/go-nebulas/raw/feature/nbre/nbre/doc/jpg/nbre_construct.jpg)
 
 
 ## NBRE 功能模块
@@ -91,7 +91,7 @@ export NBRE_DB=go-nebulas/data.db
 * quitable_thread 能够妥善处理异常后，安全退出线程的基类
 ## 模块 fs
 * fs类之间的关系图
-![53a7c61c-7ee7-4169-9a36-801be2ade553.jpg](NBRE_doc_files/53a7c61c-7ee7-4169-9a36-801be2ade553.jpg)
+![nbre_fs.jpg[](https://github.com/nebulasio/go-nebulas/raw/feature/nbre/nbre/doc/jpg/nbre_fs.jpg)
 
 * rocksdb_storage 负责rocksdb数据库的增删改查操作
 * nbre_storage 依赖rocksdb_storage进行读写blockchain
