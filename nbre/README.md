@@ -3,7 +3,7 @@
 
 ## NBRE 结构框架
 
-[nbre_construct.jpg](https://github.com/nebulasio/go-nebulas/blob/feature/nbre/nbre/doc/jpg/nbre_construct.jpg)
+[nbre_construct.jpg](https://github.com/nebulasio/go-nebulas/raw/feature/nbre/nbre/doc/jpg/nbre_construct.jpg)
 
 
 ## NBRE 功能模块
