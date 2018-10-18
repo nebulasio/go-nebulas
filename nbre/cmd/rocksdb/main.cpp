@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
 
   std::string db_path = vm["db_path"].as<std::string>();
   neb::fs::rocksdb_storage rs;
-  rs.open_database(db_path, neb::fs::storage_open_for_readwrite);
+  rs.open_database(db_path, neb::fs::storage_open_for_readonly);
 
   auto f_keys = [](rocksdb::Iterator *it) {
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
@@ -55,10 +55,14 @@ int main(int argc, char *argv[]) {
   // f_set_nbre_max_height();
 
   auto f_lib_height = [&]() {
-    auto height_bytes = rs.get("blockchain_lib");
-    LOG(INFO) << neb::util::byte_to_number<neb::block_height_t>(height_bytes);
+    auto block_hash_bytes = rs.get("blockchain_lib");
+    auto block_bytes = rs.get_bytes(block_hash_bytes);
+
+    std::shared_ptr<corepb::Block> block = std::make_shared<corepb::Block>();
+    bool ret = block->ParseFromArray(block_bytes.value(), block_bytes.size());
+    LOG(INFO) << "blockchain lib height: " << block->height();
   };
-  // f_lib_height();
+  f_lib_height();
 
   auto f_block_hash = [&](neb::block_height_t height) {
     auto block_hash_bytes =
@@ -68,7 +72,7 @@ int main(int argc, char *argv[]) {
   };
   // f_block_hash(height);
 
-  rs.show_all(f_keys);
+  // rs.show_all(f_keys);
 
   return 0;
 }

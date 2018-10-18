@@ -26,7 +26,7 @@ namespace fs {
 enum storage_open_flag {
   storage_open_for_readwrite,
   storage_open_for_readonly,
-  storage_open_default = storage_open_for_readwrite,
+  storage_open_default = storage_open_for_readonly,
 };
 
 struct storage_general_failure : public std::exception {
