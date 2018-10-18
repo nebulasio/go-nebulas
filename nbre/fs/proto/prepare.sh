@@ -30,4 +30,4 @@ patch < block.proto.patch
 
 #unzip protoc-3.2.0-linux-x86_64.zip -d protoc3
 
-#protoc --cpp_out=./ block.proto dag.proto dynasty.proto genesis.proto state.proto
+protoc --cpp_out=./ block.proto dag.proto dynasty.proto genesis.proto state.proto ir.proto

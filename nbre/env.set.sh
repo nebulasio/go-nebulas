@@ -8,7 +8,7 @@ export PATH=$CUR_DIR/lib/bin:$PATH
 
 case "$(uname -s)" in
 'Linux')
-    export LD_LIBRARY_PATH=$CUR_DIR/lib/lib:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=$CUR_DIR/lib/lib:$CUR_DIR/bin:$LD_LIBRARY_PATH
     ;;
 'Darwin')
     if [ ! -d ~/lib ]; then

@@ -116,7 +116,11 @@ build_with_cmake(){
   fi
   mkdir $build
   cd $build
+  if [ $2 = "-fPIC" ]; then
+  cmake -DCMAKE_MODULE_PATH=$CUR_DIR/lib/lib/cmake -DBUILD_SHARED_LIBS=true -DCMAKE_LIBRARY_PATH=$CUR_DIR/lib/lib -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib/ -DRelease=1 ../
+  else
   cmake -DCMAKE_MODULE_PATH=$CUR_DIR/lib/lib/cmake -DCMAKE_LIBRARY_PATH=$CUR_DIR/lib/lib -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib/ -DRelease=1 ../
+  fi
   make -j$PARALLEL && make install && make clean
   cd ../ && rm -rf $build
 }
@@ -155,9 +159,10 @@ if [ ! -d $CUR_DIR/lib/include/ff/ ]; then
 fi
 
 if [ ! -f $CUR_DIR/lib/include/snappy.h ]; then
-  cd $CUR_DIR/3rd_party/snappy && cp ../snappy.patch ./ && git apply snappy.patch
+  #cd $CUR_DIR/3rd_party/snappy && cp ../snappy.patch ./ && git apply snappy.patch
+  cd $CUR_DIR/3rd_party/snappy
   # turn off unittest
-  build_with_cmake snappy
+  build_with_cmake snappy -fPIC
 fi
 
 if [ ! -f $CUR_DIR/lib/include/zlib.h ]; then
@@ -199,11 +204,11 @@ if [ ! -d $CUR_DIR/lib/include/rocksdb ]; then
   LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
 fi
 
-if [ ! -d $CUR_DIR/lib/include/grpc ]; then
-  cd $CUR_DIR/3rd_party/grpc
-  git submodule update --init
-  make -j$PARALLEL && make install prefix=$CUR_DIR/lib/
-fi
+#if [ ! -d $CUR_DIR/lib/include/grpc ]; then
+  #cd $CUR_DIR/3rd_party/grpc
+  #git submodule update --init
+  #make -j$PARALLEL && make install prefix=$CUR_DIR/lib/
+#fi
 
 if [ ! -f $CUR_DIR/lib/bin/protoc ]; then
   cd $CUR_DIR/3rd_party/protobuf
