@@ -1,4 +1,5 @@
 {
+
   "name": "foo",
   "version_major": 0,
   "version_minor": 0,
@@ -10,10 +11,10 @@
     "foo.cpp"
   ],
   "include_header_files":[
-  "/../../"
+  "../../"
   ],
   "link_path":[
-  "/../../lib"
+  "../../lib"
   ],
   "link_files":[
   ],
