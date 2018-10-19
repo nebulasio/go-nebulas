@@ -89,18 +89,18 @@ func getCurrPath() string {
 func (n *Nbre) Start() error {
 	// TODO(larry): add to config
 	root := getCurrPath() + "/nbre/"
-	path := "bin/nbre"
+	path := root + "bin/nbre"
 	cRoot := C.CString(root)
 	defer C.free(unsafe.Pointer(cRoot))
 	cPath := C.CString(path)
 	defer C.free(unsafe.Pointer(cPath))
 
-	cResult := C.start_nbre_ipc(cRoot, cPath)
 	logging.CLog().WithFields(logrus.Fields{
 		"root": root,
 		"path": path,
-		"ret": int(cResult),
 	}).Info("Started nbre.")
+
+	cResult := C.start_nbre_ipc(cRoot, cPath)
 	if int(cResult) != 0 {
 		return ErrNbreStartFailed
 	}
