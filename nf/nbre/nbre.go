@@ -158,6 +158,7 @@ func (n *Nbre) Execute(command string, params []byte) ([]byte, error) {
 
 func (n *Nbre) handleNbreCommand(handler *handler, command string, params []byte) {
 	height := n.neb.BlockChain().TailBlock().Height()
+	handlerId := handler.id
 
 	logging.CLog().WithFields(logrus.Fields{
 		"command": command,
@@ -165,7 +166,7 @@ func (n *Nbre) handleNbreCommand(handler *handler, command string, params []byte
 	}).Debug("run nbre command")
 	switch command {
 	case CommandVersion:
-		C.ipc_nbre_version(unsafe.Pointer(&handler.id), C.uint64_t(height))
+		C.ipc_nbre_version(unsafe.Pointer(&handlerId), C.uint64_t(height))
 	default:
 		handler.err = ErrCommandNotFound
 		handler.done <- true
@@ -194,5 +195,6 @@ func nbreHandled(handler *handler, result []byte, err error) {
 // Shutdown shutdown nbre
 func (n *Nbre) Shutdown() error {
 	C.nbre_ipc_shutdown()
+	logging.CLog().Info("Stopped Nbre.")
 	return nil
 }

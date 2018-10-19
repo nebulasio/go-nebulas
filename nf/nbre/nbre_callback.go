@@ -25,13 +25,20 @@ import "C"
 import (
 	"encoding/json"
 	"unsafe"
+
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // NbreVersionFunc returns nbre version
 //export NbreVersionFunc
 func NbreVersionFunc(holder unsafe.Pointer, major C.uint32_t, minor C.uint32_t, patch C.uint32_t) {
-	// handler.err = core.ErrExecutionFailed
-	handler, _ := getNbreHandler(uint64(uintptr(holder)))
+	handlerId := uint64(uintptr(holder))
+	handler, _ := getNbreHandler(handlerId)
+	logging.CLog().WithFields(logrus.Fields{
+		"handlerId": handlerId,
+		"handler":   handler,
+	}).Debug("nbre callback")
 	if handler != nil {
 		version := &Version{
 			Major: uint64(major),
