@@ -31,6 +31,7 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/nf/nbre"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -654,7 +655,7 @@ func (s *APIService) GetNRByAddress(ctx context.Context, req *rpcpb.GetNRByAddre
 	if req.Height == 0 || req.Height > neb.BlockChain().TailBlock().Height() {
 		return nil, errors.New("invalid height")
 	}
-	data, err := neb.Nbre().Execute("nr", addr.Bytes())
+	data, err := neb.Nbre().Execute(nbre.CommandVersion, addr.Bytes())
 	if err != nil {
 		return nil, err
 	}

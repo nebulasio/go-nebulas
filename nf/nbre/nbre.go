@@ -33,11 +33,12 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/nebulasio/go-nebulas/core"
-	"os/exec"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -78,11 +79,11 @@ func NewNbre(neb Neblet) core.Nbre {
 }
 
 func getCurrPath() string {
-    file, _ := exec.LookPath(os.Args[0])
-    path, _ := filepath.Abs(file)
-    index := strings.LastIndex(path, string(os.PathSeparator))
-    ret := path[:index]
-    return ret
+	file, _ := exec.LookPath(os.Args[0])
+	path, _ := filepath.Abs(file)
+	index := strings.LastIndex(path, string(os.PathSeparator))
+	ret := path[:index]
+	return ret
 }
 
 // Start launch the nbre
@@ -148,9 +149,9 @@ func (n *Nbre) Execute(command string, params []byte) ([]byte, error) {
 
 	logging.CLog().WithFields(logrus.Fields{
 		"command": command,
-		"params": string(params),
-		"result": string(handler.result),
-		"error": handler.err,
+		"params":  string(params),
+		"result":  string(handler.result),
+		"error":   handler.err,
 	}).Debug("nbre command response")
 	return handler.result, handler.err
 }
@@ -160,7 +161,7 @@ func (n *Nbre) handleNbreCommand(handler *handler, command string, params []byte
 
 	logging.CLog().WithFields(logrus.Fields{
 		"command": command,
-		"params": string(params),
+		"params":  string(params),
 	}).Debug("run nbre command")
 	switch command {
 	case CommandVersion:
