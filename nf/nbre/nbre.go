@@ -142,6 +142,10 @@ func (n *Nbre) Execute(command string, params []byte) ([]byte, error) {
 		nbreLock.Unlock()
 	case <-time.After(ExecutionTimeoutSeconds * time.Second):
 		handler.err = ErrExecutionTimeout
+		logging.CLog().WithFields(logrus.Fields{
+			"command": command,
+			"params":  string(params),
+		}).Debug("nbre response timeout.")
 		select {
 		case <-handler.done:
 		}
