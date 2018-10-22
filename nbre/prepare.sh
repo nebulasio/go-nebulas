@@ -54,6 +54,18 @@ if ! hash autoreconf 2>/dev/null; then
   esac
 fi
 
+if ! hash libtool 2>/dev/null; then
+  case $OS in
+    'Linux')
+      sudo apt-get install libtool
+      ;;
+    'Darwin')
+      brew install libtool
+      ;;
+    *) ;;
+  esac
+fi
+
 cd $CUR_DIR/3rd_party
 LLVM_VERSION=6.0.1
 unzip_llvm_tar(){
