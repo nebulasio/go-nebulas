@@ -62,6 +62,8 @@ type TransactionPool struct {
 
 	eventEmitter *EventEmitter
 	bc           *BlockChain
+
+	access *Access
 }
 
 func nonceCmp(a interface{}, b interface{}) int {
@@ -128,6 +130,10 @@ func (pool *TransactionPool) setBlockChain(bc *BlockChain) {
 
 func (pool *TransactionPool) setEventEmitter(emitter *EventEmitter) {
 	pool.eventEmitter = emitter
+}
+
+func (pool *TransactionPool) setAccess(access *Access) {
+	pool.access = access
 }
 
 // Start start loop.
@@ -262,6 +268,7 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 		}).Debug("Push tx to transaction pool")
 	}
 
+	//// deprecated
 	//if is super node and tx type is deploy, do unsupported keyword checking.
 	if pool.bc.superNode == true && len(pool.bc.unsupportedKeyword) > 0 && len(tx.Data()) > 0 {
 		if tx.Type() == TxPayloadDeployType {
@@ -281,23 +288,18 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 		}
 	}
 
-	//if is super node and tx type is deploy, do unsupported keyword checking.
-	if pool.bc.superNode == true && len(pool.bc.unsupportedKeyword) > 0 && len(tx.Data()) > 0 {
-		if tx.Type() == TxPayloadDeployType {
-			data := string(tx.Data())
-			keywords := strings.Split(pool.bc.unsupportedKeyword, ",")
-			for _, keyword := range keywords {
-				keyword = strings.ToLower(keyword)
-				if strings.Contains(data, keyword) {
-					logging.VLog().WithFields(logrus.Fields{
-						"tx":                 tx,
-						"unsupportedKeyword": keyword,
-					}).Debug("transaction data has unsupported keyword")
-					return ErrUnsupportedKeyword
-				}
-			}
+	// only super node need the access control
+	if pool.bc.superNode == true {
+		if err := pool.access.CheckTransaction(tx); err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"tx.hash":            tx.hash,
+				"error": err,
+			}).Debug("Failed to check transaction in access.")
+
+			return err
 		}
 	}
+
 	// verify non-dup tx
 	if _, ok := pool.all[tx.hash.Hex()]; ok {
 		metricsDuplicateTx.Inc(1)

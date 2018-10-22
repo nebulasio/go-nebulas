@@ -74,6 +74,7 @@ type BlockChain struct {
 
 	superNode bool
 
+	// deprecated
 	unsupportedKeyword string
 }
 
@@ -136,6 +137,11 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		return nil, err
 	}
 	txPool.RegisterInNetwork(neb.NetService())
+	access, err := NewAccess(neb.Config().Chain.Access)
+	if err != nil {
+		return nil, err
+	}
+	txPool.setAccess(access)
 
 	var bc = &BlockChain{
 		chainID:            neb.Config().Chain.ChainId,
