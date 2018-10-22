@@ -1,0 +1,55 @@
+// Copyright (C) 2018 go-nebulas authors
+//
+// This file is part of the go-nebulas library.
+//
+// the go-nebulas library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// the go-nebulas library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
+//
+syntax = "proto3";
+package corepb;
+
+
+message Access {
+    // WhiteList of transactions, some of which are accepted only when conditions permit
+    Whitelist whitelist = 1;
+
+    // Blacklists of transactions, some of which are not accepted on the blacklists
+    Blacklist blacklist = 2;
+}
+
+message Whitelist {
+    // TODO(larry): later may change
+    repeated string nbre_publisher = 1;
+}
+
+message Blacklist {
+    // Hex string of the transaction's from address.
+    repeated string from = 1;
+
+    // Hex string of the transaction's to address.
+    repeated string to = 2;
+
+    // contract access data
+    repeated Contract contracts = 3;
+}
+
+message Contract {
+    // Hex string of the call type transaction's to address.
+    string address = 1;
+
+    // slice of call type transaction's function string.
+    repeated string functions = 2;
+
+    // slice of deploy type transaction's data keyword.
+    repeated string keywords = 3;
+}

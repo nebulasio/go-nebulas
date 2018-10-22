@@ -178,11 +178,13 @@ var (
 	ErrUnexpected      = errors.New("Unexpected sys error")
 	// multi nvm error
 	ErrInnerExecutionFailed = errors.New("multi execution failed")
+	ErrCreateInnerTx        = errors.New("Failed to create inner transaction")
 
-	// unsupported keyword error in smart contract
-	ErrUnsupportedKeyword = errors.New("transaction data has unsupported keyword")
-
-	ErrCreateInnerTx = errors.New("Failed to create inner transaction")
+	// access control
+	ErrUnsupportedKeyword    = errors.New("transaction data has unsupported keyword")
+	ErrUnsupportedFunction   = errors.New("transaction payload has unsupported function")
+	ErrRestrictedFromAddress = errors.New("transaction from address is restricted")
+	ErrRestrictedToAddress   = errors.New("transaction to address is restricted")
 )
 
 // Default gas count

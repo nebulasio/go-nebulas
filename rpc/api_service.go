@@ -27,16 +27,17 @@ import (
 
 	"encoding/json"
 
+	"encoding/hex"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"golang.org/x/net/context"
-	"github.com/nebulasio/go-nebulas/crypto/keystore"
-	"encoding/hex"
 )
 
 //the max number of block can be dumped once
@@ -666,7 +667,7 @@ func (s *APIService) VerifySignature(ctx context.Context, req *rpcpb.VerifySigna
 	}
 
 	resp := &rpcpb.VerifySignatureResponse{
-		Result: signer.String() == req.Address,
+		Result:  signer.String() == req.Address,
 		Address: signer.String(),
 	}
 

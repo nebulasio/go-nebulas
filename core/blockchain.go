@@ -74,6 +74,7 @@ type BlockChain struct {
 
 	superNode bool
 
+	// deprecated
 	unsupportedKeyword string
 }
 
@@ -136,6 +137,11 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		return nil, err
 	}
 	txPool.RegisterInNetwork(neb.NetService())
+	access, err := NewAccess(neb.Config().Chain.Access)
+	if err != nil {
+		return nil, err
+	}
+	txPool.setAccess(access)
 
 	var bc = &BlockChain{
 		chainID:            neb.Config().Chain.ChainId,
@@ -712,7 +718,6 @@ func (bc *BlockChain) GetTransactionHeight(hash byteutils.Hash) (uint64, error) 
 
 	return byteutils.Uint64(bytes), nil
 }
-
 
 // GasPrice returns the lowest transaction gas price.
 func (bc *BlockChain) GasPrice() *util.Uint128 {

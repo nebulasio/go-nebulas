@@ -50,7 +50,6 @@ func request_ApiService_GetAccountState_0(ctx context.Context, marshaler runtime
 	var protoReq GetAccountStateRequest
 	var metadata runtime.ServerMetadata
 
-
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
@@ -63,7 +62,6 @@ func request_ApiService_GetAccountState_0(ctx context.Context, marshaler runtime
 func request_ApiService_Call_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq TransactionRequest
 	var metadata runtime.ServerMetadata
-
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
@@ -91,7 +89,6 @@ func request_ApiService_GetBlockByHash_0(ctx context.Context, marshaler runtime.
 	var protoReq GetBlockByHashRequest
 	var metadata runtime.ServerMetadata
 
-
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
@@ -104,7 +101,6 @@ func request_ApiService_GetBlockByHash_0(ctx context.Context, marshaler runtime.
 func request_ApiService_GetBlockByHeight_0(ctx context.Context, marshaler runtime.Marshaler, client ApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq GetBlockByHeightRequest
 	var metadata runtime.ServerMetadata
-
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
