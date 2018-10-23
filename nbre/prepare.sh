@@ -212,7 +212,7 @@ fi
 
 if [ ! -d $CUR_DIR/lib/include/rocksdb ]; then
   cd $CUR_DIR/3rd_party/rocksdb
-  LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
+  LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include LDFLAGS=-stdlib=libc++ make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
 fi
 
 #if [ ! -d $CUR_DIR/lib/include/grpc ]; then
