@@ -32,8 +32,8 @@ link_directories(${PROJECT_SOURCE_DIR}/lib/lib)
 message(STATUS 'lib dir ' ${PROJECT_SOURCE_DIR}/lib/lib)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/)
-set(LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib/lib/)
+set(LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib/lib/)
 
 function(enable_clang_tidy target_name)
   set_target_properties(
