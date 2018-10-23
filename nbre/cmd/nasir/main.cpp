@@ -202,7 +202,10 @@ void make_ir_payload(std::ifstream &ifs,
   neb::util::bytes out_bytes(bytes_long);
   ir_info.SerializeToArray((void *)out_bytes.value(), out_bytes.size());
 
-  ofs.write((const char *)out_bytes.value(), out_bytes.size());
+  std::string out_base64 = out_bytes.to_base64();
+  LOG(INFO) << out_base64;
+
+  ofs.write(out_base64.c_str(), out_base64.size());
   ofs.close();
 }
 
