@@ -76,3 +76,4 @@ nbre/3rd_party/grpc
 nbre/bin/
 nbre/build/
 nbre/lib/
+nbre/lib_llvm/

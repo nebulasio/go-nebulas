@@ -127,11 +127,11 @@ build_with_cmake(){
   fi
   mkdir $build
   cd $build
-  if [ $2 = "-fPIC" ]; then
-  cmake -DCMAKE_MODULE_PATH=$CUR_DIR/lib/lib/cmake -DBUILD_SHARED_LIBS=true -DCMAKE_LIBRARY_PATH=$CUR_DIR/lib/lib -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib/ -DRelease=1 ../
-  else
-  cmake -DCMAKE_MODULE_PATH=$CUR_DIR/lib/lib/cmake -DCMAKE_LIBRARY_PATH=$CUR_DIR/lib/lib -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib/ -DRelease=1 ../
-  fi
+
+  params=("$@")
+  flags=${params[@]:1}
+  flagsStr=`echo $flags`
+  cmake -DCMAKE_MODULE_PATH=$CUR_DIR/lib/lib/cmake -DCMAKE_LIBRARY_PATH=$CUR_DIR/lib/lib -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib/ -DRelease=1 ../ $flagsStr
   make -j$PARALLEL && make install && make clean
   cd ../ && rm -rf $build
 }
@@ -171,9 +171,9 @@ fi
 
 if [ ! -f $CUR_DIR/lib/include/snappy.h ]; then
   #cd $CUR_DIR/3rd_party/snappy && cp ../snappy.patch ./ && git apply snappy.patch
-  cd $CUR_DIR/3rd_party/snappy
+  # cd $CUR_DIR/3rd_party/snappy
   # turn off unittest
-  build_with_cmake snappy -fPIC
+  build_with_cmake snappy -DBUILD_SHARED_LIBS=true -DSNAPPY_BUILD_TESTS=false
 fi
 
 if [ ! -f $CUR_DIR/lib/include/zlib.h ]; then
