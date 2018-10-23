@@ -82,7 +82,7 @@ unzip_llvm_tar libcxxabi
 unzip_llvm_tar libunwind
 unzip_llvm_tar lld
 
-if [ ! -d $CUR_DIR/lib/include/llvm ]; then
+if [ ! -d $CUR_DIR/lib_llvm/include/llvm ]; then
   ln -s $CUR_DIR/3rd_party/cfe-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/tools/clang
   ln -s $CUR_DIR/3rd_party/lld-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/tools/lld
   ln -s $CUR_DIR/3rd_party/clang-tools-extra-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/tools/clang/tools/extra
@@ -91,15 +91,14 @@ if [ ! -d $CUR_DIR/lib/include/llvm ]; then
   ln -s $CUR_DIR/3rd_party/libcxxabi-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/projects/libcxxabi
 
   cd $CUR_DIR/3rd_party
-  #rm -rf llvm-build
   mkdir llvm-build
   cd llvm-build
-  cmake -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib/ ../llvm-$LLVM_VERSION.src
+  cmake -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib_llvm/ ../llvm-$LLVM_VERSION.src
   make CC=clang -j$PARALLEL && make install
 fi
 
-export CXX=$CUR_DIR/lib/bin/clang++
-export CC=$CUR_DIR/lib/bin/clang
+export CXX=$CUR_DIR/lib_llvm/bin/clang++
+export CC=$CUR_DIR/lib_llvm/bin/clang
 
 cd $CUR_DIR/3rd_party
 if [ ! -d "boost_1_67_0"  ]; then
@@ -227,4 +226,8 @@ if [ ! -f $CUR_DIR/lib/bin/protoc ]; then
   ./autogen.sh
   ./configure --prefix=$CUR_DIR/lib/
   make -j$PARALLEL && make install && make clean
+fi
+
+if [ ! -e $CUR_DIR/lib/lib/libc++.so ]; then
+  cp -f $CUR_DIR/lib_llvm/lib/libc++* $CUR_DIR/lib/lib/
 fi
