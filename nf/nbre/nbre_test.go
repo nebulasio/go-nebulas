@@ -62,7 +62,7 @@ func TestNbre_Execute(t *testing.T) {
 			command: CommandVersion,
 			params:  nil,
 			result:  nil,
-			err:     nil,
+			err:     ErrExecutionTimeout,
 		},
 	}
 
@@ -80,10 +80,13 @@ func TestNbre_Execute(t *testing.T) {
 			result, err := nbre.Execute(tt.command, tt.params)
 			assert.Equal(t, tt.result, result)
 			assert.Equal(t, tt.err, err)
+			// assert.NotZero(t, len(nbreHandlers))
 		})
 	}
 
 	wg.Wait()
+
+	assert.Zero(t, len(nbreHandlers), "handlers not delete")
 
 	err = nbre.Shutdown()
 	assert.NoError(t, err, "nbre shutdown failed")

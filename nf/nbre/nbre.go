@@ -27,16 +27,16 @@ package nbre
 void NbreVersionFunc_cgo(void *holder, uint32_t major, uint32_t minor,uint32_t patch);
 */
 import "C"
-
 import (
 	"sync"
 	"time"
-	"unsafe"
 
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"unsafe"
 
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -123,11 +123,11 @@ func (n *Nbre) Execute(command string, params []byte) ([]byte, error) {
 		result: nil,
 	}
 
-	(func() {
-		nbreLock.Lock()
-		nbreHandlers[handler.id] = handler
-		nbreLock.Unlock()
-	})()
+	//(func() {
+	nbreLock.Lock()
+	nbreHandlers[handler.id] = handler
+	nbreLock.Unlock()
+	//})()
 
 	go func() {
 		// handle nbre command
@@ -136,19 +136,17 @@ func (n *Nbre) Execute(command string, params []byte) ([]byte, error) {
 
 	select {
 	case <-handler.done:
-		// wait for C.RunScriptSource() returns.
-		nbreLock.Lock()
-		delete(nbreHandlers, handler.id)
-		nbreLock.Unlock()
+		// wait for C func returns.
+		deleteHandler(handler)
+
 	case <-time.After(ExecutionTimeoutSeconds * time.Second):
 		handler.err = ErrExecutionTimeout
+		// handler.done <- true
+		deleteHandler(handler)
 		logging.CLog().WithFields(logrus.Fields{
 			"command": command,
 			"params":  string(params),
 		}).Debug("nbre response timeout.")
-		select {
-		case <-handler.done:
-		}
 	}
 
 	logging.CLog().WithFields(logrus.Fields{
@@ -158,6 +156,12 @@ func (n *Nbre) Execute(command string, params []byte) ([]byte, error) {
 		"error":   handler.err,
 	}).Debug("nbre command response")
 	return handler.result, handler.err
+}
+
+func deleteHandler(handler *handler) {
+	nbreLock.Lock()
+	defer nbreLock.Unlock()
+	delete(nbreHandlers, handler.id)
 }
 
 func (n *Nbre) handleNbreCommand(handler *handler, command string, params []byte) {
@@ -170,7 +174,7 @@ func (n *Nbre) handleNbreCommand(handler *handler, command string, params []byte
 	}).Debug("run nbre command")
 	switch command {
 	case CommandVersion:
-		C.ipc_nbre_version(unsafe.Pointer(&handlerId), C.uint64_t(height))
+		C.ipc_nbre_version(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height))
 	default:
 		handler.err = ErrCommandNotFound
 		handler.done <- true
