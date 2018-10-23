@@ -29,6 +29,7 @@ public:
   virtual ~quitable_thread();
 
   virtual void start();
+  virtual void stop();
   virtual void thread_func() = 0;
 
 protected:

@@ -48,4 +48,16 @@ void quitable_thread::start() {
   }));
   LOG(INFO) << "quitable_thread start done";
 }
+
+void quitable_thread::stop() {
+  LOG(INFO) << "quitable_thread stop enter";
+  std::shared_ptr<neb::core::exit_command> exit_command =
+      std::make_shared<neb::core::exit_command>();
+  neb::core::command_queue::instance().send_command<neb::core::exit_command>(
+      exit_command);
+  LOG(INFO) << "quitable_thread stop done";
 }
+
+}
+
+

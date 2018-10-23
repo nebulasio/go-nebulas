@@ -26,6 +26,7 @@
 #include <boost/interprocess/sync/named_mutex.hpp>
 #include <boost/interprocess/sync/named_semaphore.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
+#include <boost/process/child.hpp>
 
 namespace neb {
 namespace ipc {

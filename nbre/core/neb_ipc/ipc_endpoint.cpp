@@ -1,7 +1,6 @@
 // Copyright (C) 2018 go-nebulas authors
 //
-// This file is part of the go-nebulas library.
-//
+// This file is part of the go-nebulas library. //
 // the go-nebulas library is free software: you can redistribute it and/or
 // modify
 // it under the terms of the GNU General Public License as published by
@@ -28,7 +27,7 @@ namespace neb {
 namespace core {
 ipc_endpoint::ipc_endpoint(const std::string &root_dir,
                            const std::string &nbre_exe_path)
-    : m_root_dir(root_dir), m_nbre_exe_name(nbre_exe_path){};
+    : m_root_dir(root_dir), m_nbre_exe_name(nbre_exe_path), m_client(nullptr){};
 
 bool ipc_endpoint::start() {
   if (!check_path_exists()) {
@@ -56,8 +55,10 @@ bool ipc_endpoint::start() {
       init_done = true;
       local_mutex.unlock();
       local_cond_var.notify_one();
+      m_client = &client;
       m_ipc_server->run();
       client.wait();
+      m_client = nullptr;
     } catch (const std::exception &e) {
     }
   }));
@@ -87,7 +88,17 @@ void ipc_endpoint::send_nbre_version_req(void *holder, uint64_t height) {
 bool ipc_endpoint::check_path_exists() {
   return neb::fs::exists(m_nbre_exe_name);
 }
-void ipc_endpoint::shutdown() {}
+void ipc_endpoint::shutdown() {
+  LOG(INFO) << "shutdown session";
+  m_ipc_server->session()->stop();
 
-} // namespace core
+  LOG(INFO) << "shutdown server";
+  m_ipc_server->stop();
+
+  LOG(INFO) << "shutdown client";
+  if(nullptr != m_client){
+    m_client->terminate();
+  }
+}
+}// namespace core
 } // namespace neb

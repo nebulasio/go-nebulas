@@ -47,6 +47,7 @@ protected:
   std::string m_nbre_exe_name;
   std::unique_ptr<std::thread> m_thread;
   std::unique_ptr<ipc_server_t> m_ipc_server;
+  boost::process::child *m_client;
 };
 
 } // namespace core
