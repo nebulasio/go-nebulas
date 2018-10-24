@@ -19,7 +19,7 @@
 package nbre
 
 /*
-#cgo LDFLAGS: -L${SRCDIR}/native/bin -lnbre_rt
+#cgo LDFLAGS: -L${SRCDIR}/native -lnbre_rt
 
 #include <stdlib.h>
 #include <native/ipc_interface.h>

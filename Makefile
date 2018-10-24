@@ -85,7 +85,7 @@ deploy-v8:
 	$(LDCONFIG)
 
 deploy-nbre:
-	$(INSTALL) nf/nbre/native/bin/*$(DYLIB) /usr/local/lib/
+	$(INSTALL) nf/nbre/native/*$(DYLIB) /usr/local/lib/
 	$(LDCONFIG)
 
 deploy: deploy-libs deploy-v8 deploy-nbre
