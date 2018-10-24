@@ -180,13 +180,8 @@ if [ ! -f $CUR_DIR/lib/include/zlib.h ]; then
   build_with_configure zlib
 fi
 
-if [ ! -d $CUR_DIR/3rd_party/zstd-1.1.3 ]; then
-  cd $CUR_DIR/3rd_party
-  tar -zxvf zstd-1.1.3.tar.gz
-fi
-
 if [ ! -f $CUR_DIR/lib/include/zstd.h ]; then
-  build_with_make zstd-1.1.3
+  build_with_make zstd
 fi
 
 if [ ! -f $CUR_DIR/lib/include/bzlib.h ]; then

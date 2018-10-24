@@ -22,3 +22,6 @@
 [submodule "nbre/3rd_party/protobuf"]
 	path = nbre/3rd_party/protobuf
 	url = https://github.com/protocolbuffers/protobuf.git
+[submodule "nbre/3rd_party/zstd"]
+	path = nbre/3rd_party/zstd
+	url = https://github.com/facebook/zstd.git
