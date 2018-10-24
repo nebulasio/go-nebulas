@@ -289,16 +289,16 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 	}
 
 	// only super node need the access control
-	if pool.bc.superNode == true {
-		if err := pool.access.CheckTransaction(tx); err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"tx.hash":            tx.hash,
-				"error": err,
-			}).Debug("Failed to check transaction in access.")
+	//if pool.bc.superNode == true {
+	if err := pool.access.CheckTransaction(tx); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"tx.hash": tx.hash,
+			"error":   err,
+		}).Debug("Failed to check transaction in access.")
 
-			return err
-		}
+		return err
 	}
+	//}
 
 	// verify non-dup tx
 	if _, ok := pool.all[tx.hash.Hex()]; ok {
