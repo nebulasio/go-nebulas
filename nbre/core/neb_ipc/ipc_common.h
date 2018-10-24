@@ -25,6 +25,6 @@ namespace neb {
 namespace core {
 typedef neb::ipc::shm_service_server<32 * 1024 * 1024> ipc_server_t;
 typedef neb::ipc::shm_service_client<32 * 1024 * 1024> ipc_client_t;
-constexpr static const char *shm_service_name = "io.nebulas.neb.ipc.service";
+constexpr static const char *shm_service_name = "nbre.ipc";
 }
 } // namespace neb

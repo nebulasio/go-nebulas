@@ -24,7 +24,7 @@
 
 namespace neb {
 namespace ipc {
-const static char *bookkeeper_mem_name = "io.nebulas.nbre.sessions";
+const static char *bookkeeper_mem_name = "nbre.sessions";
 
 void clean_shm_session_env() { clean_bookkeeper_env(bookkeeper_mem_name); }
 namespace internal {
