@@ -44,21 +44,19 @@ shm_service_base::~shm_service_base() {
 
 void shm_service_base::reset() {
   boost::interprocess::shared_memory_object::remove(m_shm_name.c_str());
-  boost::interprocess::named_mutex::remove(
-      (m_shm_name + ".session.session_server.mutex").c_str());
-  boost::interprocess::named_mutex::remove(
-      (m_shm_name + ".session.session_client.mutex").c_str());
-  boost::interprocess::named_semaphore::remove(
-      (m_shm_name + ".session.server_sema").c_str());
-  boost::interprocess::named_semaphore::remove(
-      (m_shm_name + ".session.client_sema").c_str());
+  init_local_interprocess_var();
+  m_in_buffer->reset();
+  m_out_buffer->reset();
+  m_session->reset();
 }
 
 void shm_service_base::run() { thread_func(); }
 
-void shm_service_base::init_local_env() {
-  if (m_role == role_util)
-    return;
+void shm_service_base::init_local_interprocess_var() {
+  if (m_role == role_util) {
+    m_session = std::unique_ptr<shm_session_base>(
+        new shm_session_util(m_shm_name + ".session"));
+  }
   if (m_role == role_server) {
     m_session = std::unique_ptr<shm_session_base>(
         new shm_session_server(m_shm_name + ".session"));
@@ -83,6 +81,10 @@ void shm_service_base::init_local_env() {
   m_out_buffer = new shm_queue(m_shm_out_name.c_str(), m_session.get(), m_shmem,
                                m_shm_out_capacity);
   LOG(INFO) << "shm_service_base cnt done";
+}
+
+void shm_service_base::init_local_env() {
+  init_local_interprocess_var();
 
   neb::core::command_queue::instance().listen_command<neb::core::exit_command>(
       this, [this](const std::shared_ptr<neb::core::exit_command> &) {

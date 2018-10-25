@@ -72,6 +72,8 @@ public:
   inline shm_session_base *session() { return m_session.get(); }
 
 private:
+  void init_local_interprocess_var();
+
   virtual void thread_func();
 
   inline std::string semaphore_name() const {
@@ -129,6 +131,17 @@ public:
             role_client, name,
             internal::shm_other_side_role<shm_client>::type::role_name(name),
             shm_client::role_name(name), S, in_obj_max_count,
+            out_obj_max_count) {}
+};
+
+template <size_t S> class shm_service_util : public internal::shm_service_base {
+public:
+  shm_service_util(const std::string &name, size_t in_obj_max_count,
+                   size_t out_obj_max_count)
+      : internal::shm_service_base(
+            role_util, name,
+            internal::shm_other_side_role<shm_server>::type::role_name(name),
+            shm_server::role_name(name), S, in_obj_max_count,
             out_obj_max_count) {}
 };
 }

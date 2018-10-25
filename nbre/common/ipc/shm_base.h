@@ -68,7 +68,25 @@ struct shm_service_failure : public std::exception {
   inline const char *what() const throw() { return m_msg.c_str(); }
 
 protected:
-  std::string m_msg;
+  const std::string m_msg;
+};
+
+struct shm_init_failure : public std::exception {
+public:
+  inline shm_init_failure(const std::string &msg) : m_msg(msg) {}
+  inline const char *what() const throw() { return m_msg.c_str(); }
+
+protected:
+  const std::string m_msg;
+};
+
+struct shm_handle_recv_failure : public std::exception {
+public:
+  inline shm_handle_recv_failure(const std::string &msg) : m_msg(msg) {}
+  inline const char *what() const throw() { return m_msg.c_str(); }
+
+protected:
+  const std::string m_msg;
 };
 }
 }

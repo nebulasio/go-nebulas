@@ -41,9 +41,16 @@ void shm_service_recv_handler::handle_recv_op(
         m_all_handlers.find(type_id);
     if (fr != m_all_handlers.end()) {
       LOG(INFO) << "call data handler !";
-      fr->second(data_pointer);
+      try {
+        fr->second(data_pointer);
+      } catch (const std::exception &e) {
+        throw shm_handle_recv_failure(
+            std::string("shm_service_recv_handler, ") +
+            std::string(typeid(e).name()) + " : " + e.what());
+      }
       //! TODO we should destry this data_pointer
-      // m_shmem->destroy_ptr(data_pointer);
+      LOG(INFO) << "destroy data pointer: " << data_pointer;
+      m_shmem->destroy_ptr(data_pointer);
     } else {
       LOG(WARNING) << "cannot find data handler";
     }

@@ -78,12 +78,7 @@ public:
 
   virtual ~shm_queue();
 
-  void reset() {
-    boost::interprocess::named_mutex::remove(mutex_name().c_str());
-    boost::interprocess::named_condition::remove(empty_cond_name().c_str());
-    boost::interprocess::named_condition::remove(full_cond_name().c_str());
-    m_session->reset();
-  }
+  void reset();
 
 private:
   std::string mutex_name() { return m_name + ".mutex"; }

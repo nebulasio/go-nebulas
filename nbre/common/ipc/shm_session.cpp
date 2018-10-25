@@ -30,17 +30,20 @@ void clean_shm_session_env() { clean_bookkeeper_env(bookkeeper_mem_name); }
 namespace internal {
 size_t max_wait_fail_times = 8;
 
-shm_session_base::shm_session_base(const std::string &name, bool need_reset)
+shm_session_base::shm_session_base(const std::string &name)
     : quitable_thread(), m_name(name) {
-  LOG(INFO) << "session base enter";
-  m_bookkeeper =
-      std::unique_ptr<shm_bookkeeper>(new shm_bookkeeper(bookkeeper_mem_name));
-  if (!need_reset) {
-    LOG(INFO) << "session base 1";
-    m_server_sema = m_bookkeeper->acquire_named_semaphore(server_sema_name());
-    LOG(INFO) << "session base 2";
-    m_client_sema = m_bookkeeper->acquire_named_semaphore(client_sema_name());
-    LOG(INFO) << "session base end";
+  try {
+    LOG(INFO) << "session base enter";
+    m_bookkeeper = std::unique_ptr<shm_bookkeeper>(
+        new shm_bookkeeper(bookkeeper_mem_name));
+      LOG(INFO) << "session base 1";
+      m_server_sema = m_bookkeeper->acquire_named_semaphore(server_sema_name());
+      LOG(INFO) << "session base 2";
+      m_client_sema = m_bookkeeper->acquire_named_semaphore(client_sema_name());
+      LOG(INFO) << "session base end";
+  } catch (const std::exception &e) {
+    throw shm_init_failure(std::string("shm_session_base, ") +
+                           std::string(typeid(e).name()) + " : " + e.what());
   }
 }
 
@@ -58,23 +61,20 @@ void shm_session_base::reset() {
   LOG(INFO) << "to reset all ";
   m_bookkeeper->reset();
   LOG(INFO) << "reset bookkeeper done ";
-  boost::interprocess::named_semaphore::remove(server_sema_name().c_str());
-  boost::interprocess::named_semaphore::remove(client_sema_name().c_str());
-  m_server_sema = m_bookkeeper->acquire_named_semaphore(server_sema_name());
-  m_client_sema = m_bookkeeper->acquire_named_semaphore(client_sema_name());
+  //! We need manually remove this
+  boost::interprocess::named_mutex::remove(server_session_mutex_name().c_str());
   LOG(INFO) << "reset done ";
 }
 
 void shm_session_base::start_session() { start(); }
 
 shm_session_util::shm_session_util(const std::string &name)
-    : shm_session_base(name, true) {}
+    : shm_session_base(name) {}
 
 void shm_session_util::thread_func() {}
 
 shm_session_server::shm_session_server(const std::string &name)
-    : shm_session_base(name, false), m_client_started(false),
-      m_client_alive(false) {
+    : shm_session_base(name), m_client_started(false), m_client_alive(false) {
   LOG(INFO) << "shm_session_server cnt done ";
 }
 
@@ -107,7 +107,7 @@ void shm_session_server::thread_func() {
     std::string m_name;
     std::unique_ptr<boost::interprocess::named_mutex> m_mutex;
     bool m_to_unlock;
-  } _l(m_bookkeeper.get(), m_name + ".session_server.mutex");
+  } _l(m_bookkeeper.get(), server_session_mutex_name());
   if (_l.m_mutex->try_lock()) {
     _l.m_to_unlock = true;
   } else {
@@ -117,8 +117,7 @@ void shm_session_server::thread_func() {
 
   uint32_t fail_counter = 0;
   while (!m_exit_flag) {
-    LOG(INFO) << "server loop";
-
+    // LOG(INFO) << "server loop";
     if (!m_client_started) {
       bool ret = m_client_sema->try_wait();
       if (ret) {
@@ -126,7 +125,7 @@ void shm_session_server::thread_func() {
         m_client_alive = true;
       }
     } else {
-      LOG(INFO) << "client started";
+      // LOG(INFO) << "client started";
       bool ret = m_client_sema->try_wait();
       if (ret) {
         fail_counter = 0;
@@ -140,52 +139,51 @@ void shm_session_server::thread_func() {
       }
     }
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    LOG(INFO) << "sema pointer: " << (void *)m_server_sema.get();
+    // LOG(INFO) << "sema pointer: " << (void *)m_server_sema.get();
     m_server_sema->post();
   }
 }
 
 shm_session_client::shm_session_client(const std::string &name)
-    : shm_session_base(name, false), m_server_alive(false) {}
+    : shm_session_base(name), m_server_alive(false) {}
 
 void shm_session_client::thread_func() {
 
-  LOG(INFO) << "client thread_func start";
-  struct quit_helper {
-    quit_helper(shm_bookkeeper *bk, const std::string &name)
-        : m_bk(bk), m_name(name), m_to_unlock(false) {
-      m_mutex = m_bk->acquire_named_mutex(m_name);
-    };
-    ~quit_helper() {
-      if (m_to_unlock) {
-        m_mutex->unlock();
-      }
-      m_bk->release_named_mutex(m_name);
-    }
-    shm_bookkeeper *m_bk;
-    std::string m_name;
-    std::unique_ptr<boost::interprocess::named_mutex> m_mutex;
-    bool m_to_unlock;
-  } _l(m_bookkeeper.get(), m_name + ".session_client.mutex");
+  // LOG(INFO) << "client thread_func start";
+  // struct quit_helper {
+  // quit_helper(shm_bookkeeper *bk, const std::string &name)
+  //: m_bk(bk), m_name(name), m_to_unlock(false) {
+  // m_mutex = m_bk->acquire_named_mutex(m_name);
+  //};
+  //~quit_helper() {
+  // if (m_to_unlock) {
+  // m_mutex->unlock();
+  //}
+  // m_bk->release_named_mutex(m_name);
+  //}
+  // shm_bookkeeper *m_bk;
+  // std::string m_name;
+  // std::unique_ptr<boost::interprocess::named_mutex> m_mutex;
+  // bool m_to_unlock;
+  //} _l(m_bookkeeper.get(), m_name + ".session_client.mutex");
 
-  LOG(INFO) << "client quit_helper done";
-  if (_l.m_mutex->try_lock()) {
-    _l.m_to_unlock = true;
-  } else {
-    throw shm_session_already_start();
-  }
+  // LOG(INFO) << "client quit_helper done";
+  // if (_l.m_mutex->try_lock()) {
+  //_l.m_to_unlock = true;
+  //} else {
+  // throw shm_session_already_start();
+  //}
 
   LOG(INFO) << "client loop";
   uint32_t fail_counter = 0;
   while (!m_exit_flag) {
-    LOG(INFO) << "client loop";
     bool ret = m_server_sema->try_wait();
     if (ret) {
-      LOG(INFO) << "client wait succ";
+      // LOG(INFO) << "client wait succ";
       fail_counter = 0;
       m_server_alive = true;
     } else {
-      LOG(INFO) << "client wait fail";
+      // LOG(INFO) << "client wait fail";
       fail_counter++;
       if (fail_counter >= max_wait_fail_times) {
         m_server_alive = false;

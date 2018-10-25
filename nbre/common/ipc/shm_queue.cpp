@@ -27,43 +27,55 @@ shm_queue::shm_queue(const std::string &name, shm_session_base *session,
                      boost::interprocess::managed_shared_memory *shmem,
                      size_t capacity)
     : m_name(name), m_shmem(shmem), m_capacity(capacity), m_session(session) {
-  LOG(INFO) << "shm_queue enter";
-  if (!m_shmem) {
-    LOG(INFO) << "shm_queue enter 1";
-    throw shm_queue_failure("shmem can't be nullptr");
-  }
-  if (!m_capacity) {
-    LOG(INFO) << "shm_queue enter 3";
-    throw shm_queue_failure("capacity can't be 0");
-  }
-  m_allocator = new shmem_allocator_t(m_shmem->get_segment_manager());
-  LOG(INFO) << "allocator is " << (void *)m_allocator;
+  try {
+    LOG(INFO) << "shm_queue enter";
+    if (!m_shmem) {
+      LOG(INFO) << "shm_queue enter 1";
+      throw shm_queue_failure("shmem can't be nullptr");
+    }
+    if (!m_capacity) {
+      LOG(INFO) << "shm_queue enter 3";
+      throw shm_queue_failure("capacity can't be 0");
+    }
+    m_allocator = new shmem_allocator_t(m_shmem->get_segment_manager());
+    LOG(INFO) << "allocator is " << (void *)m_allocator;
 
-  m_mutex = m_session->bookkeeper()->acquire_named_mutex(mutex_name());
-  m_empty_cond =
-      m_session->bookkeeper()->acquire_named_condition(empty_cond_name());
-  m_full_cond =
-      m_session->bookkeeper()->acquire_named_condition(full_cond_name());
+    m_mutex = m_session->bookkeeper()->acquire_named_mutex(mutex_name());
+    m_empty_cond =
+        m_session->bookkeeper()->acquire_named_condition(empty_cond_name());
+    m_full_cond =
+        m_session->bookkeeper()->acquire_named_condition(full_cond_name());
 
-  LOG(INFO) << "to allocate buffer";
-  m_buffer =
-      m_shmem->find_or_construct<shm_vector_t>(m_name.c_str())(*m_allocator);
-  LOG(INFO) << "allocate buffer done";
-  if (!m_mutex) {
-    throw shm_queue_failure("alloc mutex fail");
+    LOG(INFO) << "to allocate buffer";
+    m_buffer =
+        m_shmem->find_or_construct<shm_vector_t>(m_name.c_str())(*m_allocator);
+    LOG(INFO) << "allocate buffer done";
+    if (!m_mutex) {
+      throw shm_queue_failure("alloc mutex fail");
+    }
+    if (!m_empty_cond) {
+      throw shm_queue_failure("alloc empty cond fail");
+    }
+    if (!m_full_cond) {
+      throw shm_queue_failure("alloc full cond fail");
+    }
+    if (!m_buffer) {
+      throw shm_queue_failure("alloc vector fail");
+    }
+    LOG(INFO) << "shm_queue done";
+  } catch (const std::exception &e) {
+    throw shm_init_failure(std::string("shm_queue, ") +
+                           std::string(typeid(e).name()) + " : " + e.what());
   }
-  if (!m_empty_cond) {
-    throw shm_queue_failure("alloc empty cond fail");
-  }
-  if (!m_full_cond) {
-    throw shm_queue_failure("alloc full cond fail");
-  }
-  if (!m_buffer) {
-    throw shm_queue_failure("alloc vector fail");
-  }
-  LOG(INFO) << "shm_queue done";
 };
 
+void shm_queue::reset() {
+  m_session->bookkeeper()->reset();
+  // boost::interprocess::named_mutex::remove(mutex_name().c_str());
+  // boost::interprocess::named_condition::remove(empty_cond_name().c_str());
+  // boost::interprocess::named_condition::remove(full_cond_name().c_str());
+  // m_session->reset();
+}
 void shm_queue::push_back(shm_type_id_t type_id, void *ptr) {
   boost::interprocess::scoped_lock<boost::interprocess::named_mutex> _l(
       *m_mutex);
@@ -83,6 +95,7 @@ void shm_queue::push_back(shm_type_id_t type_id, void *ptr) {
     m_empty_cond->notify_one();
   }
 }
+
 std::tuple<void *, shm_type_id_t, shm_queue::element_op_tag>
 shm_queue::pop_front() {
   boost::interprocess::scoped_lock<boost::interprocess::named_mutex> _l(
