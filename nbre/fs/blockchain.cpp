@@ -25,7 +25,8 @@ namespace neb {
 namespace fs {
 
 blockchain::blockchain(const std::string &path,
-                       enum storage_open_flag open_flag) {
+                       enum storage_open_flag open_flag)
+    : m_path(path), m_open_flag(open_flag) {
   m_storage = std::make_unique<rocksdb_storage>();
   m_storage->open_database(path, open_flag);
 }
@@ -56,6 +57,11 @@ blockchain::load_block_with_height(block_height_t height) {
 
 std::shared_ptr<corepb::Block>
 blockchain::load_block_with_tag_string(const std::string &tag) {
+  if (m_storage) {
+    m_storage->close_database();
+  }
+  m_storage->open_database(m_path, m_open_flag);
+
   std::shared_ptr<corepb::Block> block = std::make_shared<corepb::Block>();
   neb::util::bytes tail_hash =
       m_storage->get_bytes(neb::util::string_to_byte(tag));
