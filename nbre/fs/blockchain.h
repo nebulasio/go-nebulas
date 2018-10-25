@@ -47,6 +47,8 @@ private:
 
 private:
   std::unique_ptr<rocksdb_storage> m_storage;
+  std::string m_path;
+  enum storage_open_flag m_open_flag;
 }; // end class blockchain
 } // end namespace fs
 } // end namespace neb
