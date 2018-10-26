@@ -55,8 +55,8 @@ else
 	CGO_LDFLAGS=
 endif
 
-ifdef $(shell command -v dep 2> /dev/null)
-	DEPINSTALL=curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+ifeq ($(shell command -v dep 2> /dev/null || echo "uninstalled"),uninstalled)
+	DEPINSTALL=mkdir -p $(GOPATH)/bin && curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 else
 	DEPINSTALL=
 endif
