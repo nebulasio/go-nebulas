@@ -57,7 +57,7 @@ fi
 if ! hash libtool 2>/dev/null; then
   case $OS in
     'Linux')
-      sudo apt-get install libtool
+      sudo apt-get install libtool-bin
       ;;
     'Darwin')
       brew install libtool
