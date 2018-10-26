@@ -34,6 +34,11 @@ public:
         std::make_pair(T::pkg_identifier, [this, &f](void *p) {
           T *r = (T *)p;
           f(r);
+          LOG(INFO) << "destroy data pointer: "
+                    << ", " << std::this_thread::get_id();
+          m_shmem->destroy_ptr(r);
+          LOG(INFO) << "end destroy data pointer: "
+                    << ", " << std::this_thread::get_id();
         }));
   }
 

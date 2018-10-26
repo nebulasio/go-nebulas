@@ -34,6 +34,7 @@ size_t bookkeeper_mem_size = 64 * 1024;
 
 shm_bookkeeper::shm_bookkeeper(const std::string &name) : m_name(name) {
   try {
+    LOG(INFO) << "named seg name: " << m_name;
     m_segment = std::unique_ptr<boost::interprocess::managed_shared_memory>(
         new boost::interprocess::managed_shared_memory(
             boost::interprocess::open_or_create, m_name.c_str(),
@@ -42,6 +43,7 @@ shm_bookkeeper::shm_bookkeeper(const std::string &name) : m_name(name) {
     m_allocator = std::unique_ptr<map_allocator_t>(
         new map_allocator_t(m_segment->get_segment_manager()));
 
+    LOG(INFO) << "named mutex name: " << mutex_name();
     m_mutex = std::unique_ptr<boost::interprocess::named_mutex>(
         new boost::interprocess::named_mutex(
             boost::interprocess::open_or_create, mutex_name().c_str()));
@@ -80,9 +82,9 @@ void shm_bookkeeper::reset() {
 
   m_mutex->unlock();
 
-  m_segment.reset();
-  m_allocator.reset();
-  m_mutex.reset();
+  // m_segment.reset();
+  // m_allocator.reset();
+  // m_mutex.reset();
 
   LOG(INFO) << "to reset local vars";
   boost::interprocess::named_mutex::remove(mutex_name().c_str());

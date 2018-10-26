@@ -18,87 +18,109 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "common/ipc/shm_bookkeeper.h"
+#include "fs/util.h"
 #include "test/common/ipc/ipc_test.h"
 #include <chrono>
 #include <exception>
 #include <thread>
 
+std::string user_name = neb::fs::get_user_name();
+
+auto t1_str = user_name + "t1";
+auto t2_str = user_name + "t2";
+auto t3_str = user_name + "t3";
+auto bk_str = user_name + "test_bookkeeper_simple";
+const char *t1_name = t1_str.c_str();
+const char *t2_name = t2_str.c_str();
+const char *t3_name = t3_str.c_str();
+const char *bk_name = bk_str.c_str();
+
 IPC_PRELUDE(test_bookkeeper_simple) {
-  boost::interprocess::named_mutex::remove("t1");
-  boost::interprocess::named_semaphore::remove("t2");
-  boost::interprocess::named_semaphore::remove("t3");
-  boost::interprocess::shared_memory_object::remove("test_bookkeeper_simple");
+  boost::interprocess::named_mutex::remove(t1_name);
+  boost::interprocess::named_semaphore::remove(t2_name);
+  boost::interprocess::named_semaphore::remove(t3_name);
+  boost::interprocess::shared_memory_object::remove(bk_name);
 }
 
 IPC_SERVER(test_bookkeeper_simple) {
 
-  neb::ipc::internal::shm_bookkeeper sb("test_bookkeeper_simple");
-  auto mutex = sb.acquire_named_mutex("t1");
+  neb::ipc::internal::shm_bookkeeper sb(bk_name);
+  auto mutex = sb.acquire_named_mutex(t1_name);
   bool v = mutex->try_lock();
   IPC_EXPECT(v);
-  auto sema = sb.acquire_named_semaphore("t2");
-  auto sema2 = sb.acquire_named_semaphore("t3");
+  auto sema = sb.acquire_named_semaphore(t2_name);
+  auto sema2 = sb.acquire_named_semaphore(t3_name);
   sema->post();
   sema2->wait();
-  sb.release_named_mutex("t1");
-  sb.release_named_semaphore("t2");
-  sb.release_named_semaphore("t3");
+  sb.release_named_mutex(t1_name);
+  sb.release_named_semaphore(t2_name);
+  sb.release_named_semaphore(t3_name);
 }
 
 IPC_CLIENT(test_bookkeeper_simple) {
-  neb::ipc::internal::shm_bookkeeper sb("test_bookkeeper_simple");
-  auto sema = sb.acquire_named_semaphore("t2");
-  auto mutex = sb.acquire_named_mutex("t1");
+  neb::ipc::internal::shm_bookkeeper sb(bk_name);
+  auto sema = sb.acquire_named_semaphore(t2_name);
+  auto mutex = sb.acquire_named_mutex(t1_name);
   sema->wait();
   bool v = mutex->try_lock();
   IPC_EXPECT(v == false);
-  auto sema2 = sb.acquire_named_semaphore("t3");
+  auto sema2 = sb.acquire_named_semaphore(t3_name);
   sema2->post();
-  sb.release_named_mutex("t1");
-  sb.release_named_semaphore("t2");
-  sb.release_named_semaphore("t3");
+  sb.release_named_mutex(t1_name);
+  sb.release_named_semaphore(t2_name);
+  sb.release_named_semaphore(t3_name);
 }
+auto tc1_str = (user_name + "tc1");
+auto tc2_str = (user_name + "tc2");
+auto tc3_str = (user_name + "tc3");
+auto c1_str = (user_name + "c1");
+auto bkc_str = (user_name + "test_bookkeeper_simple_cond");
+
+const char *tc1_name = tc1_str.c_str();
+const char *tc2_name = tc2_str.c_str();
+const char *tc3_name = tc3_str.c_str();
+const char *c1_name = c1_str.c_str();
+const char *bkc_name = bkc_str.c_str();
 
 IPC_PRELUDE(test_bookkeeper_simple_cond) {
-  boost::interprocess::named_mutex::remove("tc1");
-  boost::interprocess::named_semaphore::remove("tc2");
-  boost::interprocess::named_semaphore::remove("tc3");
-  boost::interprocess::shared_memory_object::remove(
-      "test_bookkeeper_simple_cond");
+  boost::interprocess::named_mutex::remove(tc1_name);
+  boost::interprocess::named_semaphore::remove(tc2_name);
+  boost::interprocess::named_semaphore::remove(tc3_name);
+  boost::interprocess::shared_memory_object::remove(bkc_name);
 }
 IPC_SERVER(test_bookkeeper_simple_cond) {
-  neb::ipc::internal::shm_bookkeeper sb("test_bookkeeper_simple_cond");
-  auto mutex = sb.acquire_named_mutex("tc1");
+  neb::ipc::internal::shm_bookkeeper sb(bkc_name);
+  auto mutex = sb.acquire_named_mutex(tc1_name);
   bool v = mutex->try_lock();
   IPC_EXPECT(v);
   mutex->unlock();
   boost::interprocess::scoped_lock<boost::interprocess::named_mutex> _l(
       *mutex.get());
-  auto sema = sb.acquire_named_semaphore("tc2");
-  auto sema2 = sb.acquire_named_semaphore("tc3");
-  auto cond = sb.acquire_named_condition("c1");
+  auto sema = sb.acquire_named_semaphore(tc2_name);
+  auto sema2 = sb.acquire_named_semaphore(tc3_name);
+  auto cond = sb.acquire_named_condition(c1_name);
   sema->post();
   cond->wait(_l);
   sema2->wait();
-  sb.release_named_mutex("tc1");
-  sb.release_named_semaphore("tc2");
-  sb.release_named_semaphore("tc3");
-  sb.release_named_condition("c1");
+  sb.release_named_mutex(tc1_name);
+  sb.release_named_semaphore(tc2_name);
+  sb.release_named_semaphore(tc3_name);
+  sb.release_named_condition(c1_name);
 }
 
 IPC_CLIENT(test_bookkeeper_simple_cond) {
-  neb::ipc::internal::shm_bookkeeper sb("test_bookkeeper_simple_cond");
-  auto sema = sb.acquire_named_semaphore("tc2");
-  auto cond = sb.acquire_named_condition("c1");
+  neb::ipc::internal::shm_bookkeeper sb(bkc_name);
+  auto sema = sb.acquire_named_semaphore(tc2_name);
+  auto cond = sb.acquire_named_condition(c1_name);
   sema->wait();
-  auto mutex = sb.acquire_named_mutex("tc1");
+  auto mutex = sb.acquire_named_mutex(tc1_name);
   cond->notify_one();
-  auto sema2 = sb.acquire_named_semaphore("tc3");
+  auto sema2 = sb.acquire_named_semaphore(tc3_name);
   sema2->post();
-  sb.release_named_mutex("tc1");
-  sb.release_named_semaphore("tc2");
-  sb.release_named_semaphore("tc3");
-  sb.release_named_condition("c1");
+  sb.release_named_mutex(tc1_name);
+  sb.release_named_semaphore(tc2_name);
+  sb.release_named_semaphore(tc3_name);
+  sb.release_named_condition(c1_name);
 }
 
 IPC_PRELUDE(test_bookkeeper_release) {

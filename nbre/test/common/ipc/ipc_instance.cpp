@@ -39,7 +39,9 @@ void ipc_instances::init_ipc_instances(int argc, char *argv[]) {
                                         "enabled fixure, can be a "
                                         "fixture name shown in \"list\" "
                                         "option [default: all]")(
-      "instance", po::value<std::string>(), "server | client");
+      "instance", po::value<std::string>(),
+      "server | client")("debug", "debug mode without catching exceptions.")(
+      "enable-log", "enable glog to stderr");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -63,13 +65,24 @@ void ipc_instances::init_ipc_instances(int argc, char *argv[]) {
     std::cout << desc << std::endl;
     exit(1);
   }
+  if (vm.count("debug")) {
+    m_debug_mode = true;
+  } else {
+    m_debug_mode = false;
+  }
   if (vm.count("instance")) {
     m_enabled_instance_name = vm["instance"].as<std::string>();
   }
-  FLAGS_logtostderr = true;
-  ::google::SetStderrLogging(google::GLOG_INFO);
-  ::google::SetLogDestination(google::GLOG_INFO,
-                              configuration::instance().root_dir().c_str());
+  if (vm.count("enable-log")) {
+    FLAGS_logtostderr = true;
+    ::google::SetStderrLogging(google::GLOG_INFO);
+    ::google::SetLogDestination(google::GLOG_INFO,
+                                configuration::instance().root_dir().c_str());
+  } else {
+    FLAGS_logtostderr = false;
+    ::google::SetLogDestination(google::GLOG_ERROR,
+                                configuration::instance().root_dir().c_str());
+  }
   ::google::InitGoogleLogging(argv[0]);
   LOG(INFO) << argv[0] << " started! ";
   m_exe_name =
@@ -142,10 +155,12 @@ int ipc_instances::run_all_ipc_instances() {
         server.join();
         tmp_exit_code += server.exit_code();
         if (server.exit_code() == 0) {
-          std::cerr << ::neb::tcolor::green << "Success: " << fixture << "."
+          std::cerr << ::neb::tcolor::green << now() << " Success: " << fixture
+                    << "."
                     << "server" << ::neb::tcolor::reset << std::endl;
         } else {
-          std::cerr << ::neb::tcolor::red << "Fail: " << fixture << "."
+          std::cerr << ::neb::tcolor::red << now() << " Fail: " << fixture
+                    << "."
                     << "server" << ::neb::tcolor::reset << std::endl;
         }
       }
@@ -153,10 +168,12 @@ int ipc_instances::run_all_ipc_instances() {
         client.join();
         tmp_exit_code += server.exit_code();
         if (client.exit_code() == 0) {
-          std::cerr << ::neb::tcolor::green << "Success: " << fixture << "."
+          std::cerr << ::neb::tcolor::green << now() << " Success: " << fixture
+                    << "."
                     << "client" << ::neb::tcolor::reset << std::endl;
         } else {
-          std::cerr << ::neb::tcolor::red << "Fail: " << fixture << "."
+          std::cerr << ::neb::tcolor::red << now() << " Fail: " << fixture
+                    << "."
                     << "client" << ::neb::tcolor::reset << std::endl;
         }
       }
@@ -178,12 +195,19 @@ int ipc_instances::run_one_ipc_instance(const std::string &fixture,
     std::string cur_instance = (*it)->get_instance_name();
     if (cur_fixture == fixture && cur_instance == instance) {
       found = true;
-      try {
+      std::cerr << ::neb::tcolor::reset << now() << " Start " << fixture << "."
+                << instance << ::neb::tcolor::reset << std::endl;
+      if (m_debug_mode) {
         (*it)->run();
-      } catch (const std::exception &e) {
-        std::cerr << ::neb::tcolor::red << "Exception: " << fixture << "."
-                  << instance << " " << e.what() << ::neb::tcolor::reset
-                  << std::endl;
+      } else {
+        try {
+          (*it)->run();
+        } catch (const std::exception &e) {
+          std::cerr << ::neb::tcolor::red << now() << " Exception: " << fixture
+                    << "." << instance << " " << e.what()
+                    << ::neb::tcolor::reset << std::endl;
+          return -1;
+        }
       }
     }
   }

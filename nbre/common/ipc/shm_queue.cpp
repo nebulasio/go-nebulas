@@ -104,7 +104,7 @@ shm_queue::pop_front() {
     m_empty_cond->wait(_l);
   }
   if (m_buffer->empty()) {
-    LOG(INFO) << "return empty";
+    LOG(INFO) << "return empty, " << std::this_thread::get_id();
     return std::make_tuple<void *, shm_type_id_t, element_op_tag>(nullptr, 0,
                                                                   new_object);
   }
@@ -148,7 +148,7 @@ void shm_queue::wake_up_if_empty() {
       *m_mutex);
 
   if (m_buffer->empty()) {
-    LOG(INFO) << "wake up empty shm_queue";
+    LOG(INFO) << "wake up empty shm_queue, " << std::this_thread::get_id();
     m_empty_cond->notify_all();
   }
 }

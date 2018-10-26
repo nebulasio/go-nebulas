@@ -20,13 +20,15 @@
 #include "common/ipc/shm_bookkeeper.h"
 #include "common/ipc/shm_session.h"
 #include "core/command.h"
+#include "fs/util.h"
 #include "test/common/ipc/ipc_test.h"
 
+std::string base_name = neb::fs::get_user_name() + "test_session_simple";
+std::string bk_name = base_name + ".bookkeeper";
+std::string sema_name = bk_name + ".test.sema";
+std::string quit_sema_name = bk_name + ".test.quit.sema";
+
 IPC_PRELUDE(test_session_simple) {
-  std::string base_name = "test_session_simple";
-  std::string bk_name = base_name + ".bookkeeper";
-  std::string sema_name = bk_name + ".test.sema";
-  std::string quit_sema_name = bk_name + ".test.quit.sema";
 
   neb::ipc::internal::shm_session_util ss(base_name);
   ss.reset();
@@ -39,10 +41,6 @@ IPC_PRELUDE(test_session_simple) {
 }
 
 IPC_SERVER(test_session_simple) {
-  std::string base_name = "test_session_simple";
-  std::string bk_name = base_name + ".bookkeeper";
-  std::string sema_name = bk_name + ".test.sema";
-  std::string quit_sema_name = bk_name + ".test.quit.sema";
 
   LOG(INFO) << "server start ";
   std::shared_ptr<neb::ipc::internal::shm_session_server> ss =
@@ -63,10 +61,6 @@ IPC_SERVER(test_session_simple) {
 }
 
 IPC_CLIENT(test_session_simple) {
-  std::string base_name = "test_session_simple";
-  std::string bk_name = base_name + ".bookkeeper";
-  std::string sema_name = bk_name + ".test.sema";
-  std::string quit_sema_name = bk_name + ".test.quit.sema";
 
   neb::ipc::internal::shm_bookkeeper sb(bk_name);
   auto sema = sb.acquire_named_semaphore(sema_name);
@@ -91,26 +85,14 @@ IPC_CLIENT(test_session_simple) {
 }
 
 IPC_PRELUDE(test_session_full) {
-  std::string base_name = "test_session_full";
-  std::string bk_name = base_name + ".bookkeeper";
-  std::string sema_name = bk_name + ".test.sema";
-  std::string quit_sema_name = bk_name + ".test.quit.sema";
 
   neb::ipc::internal::shm_session_util ss(base_name);
   ss.reset();
   neb::ipc::internal::shm_bookkeeper sb(bk_name);
   sb.reset();
-
-  boost::interprocess::named_semaphore::remove(sema_name.c_str());
-  boost::interprocess::named_semaphore::remove(quit_sema_name.c_str());
-  boost::interprocess::shared_memory_object::remove(bk_name.c_str());
 }
 
 IPC_SERVER(test_session_full) {
-  std::string base_name = "test_session_full";
-  std::string bk_name = base_name + ".bookkeeper";
-  std::string sema_name = bk_name + ".test.sema";
-  std::string quit_sema_name = bk_name + ".test.quit.sema";
 
   std::shared_ptr<neb::ipc::internal::shm_session_server> ss =
       std::make_shared<neb::ipc::internal::shm_session_server>(base_name);
@@ -123,11 +105,6 @@ IPC_SERVER(test_session_full) {
 }
 
 IPC_CLIENT(test_session_full) {
-  std::string base_name = "test_session_full";
-  std::string bk_name = base_name + ".bookkeeper";
-  std::string sema_name = bk_name + ".test.sema";
-  std::string quit_sema_name = bk_name + ".test.quit.sema";
-
   std::shared_ptr<neb::ipc::internal::shm_session_client> ss =
       std::make_shared<neb::ipc::internal::shm_session_client>(base_name);
   LOG(INFO) << "sleep to wait server start";
@@ -144,6 +121,8 @@ IPC_CLIENT(test_session_full) {
       std::make_shared<neb::core::exit_command>());
   LOG(INFO) << "client done";
 }
+
+#if 0
 typedef struct session_name_t {
   std::string base_name;
   std::string bk_name;
@@ -153,7 +132,7 @@ typedef struct session_name_t {
 
 session_name get_session_name(const std::string &num) {
   session_name sn;
-  sn.base_name = "test_multi_session_" + num;
+  sn.base_name = neb::fs::get_user_name() + "test_multi_session_" + num;
   sn.bk_name = sn.base_name + ".bookkeeper";
   sn.sema_name = sn.bk_name + ".test.sema";
   sn.quit_sema_name = sn.bk_name + ".test.quit.sema";
@@ -234,3 +213,4 @@ IPC_CLIENT(test_multi_session) {
   build_client_session(sn);
 }
 
+#endif

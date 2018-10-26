@@ -20,11 +20,13 @@
 #include "common/ipc/shm_session.h"
 #include "common/common.h"
 #include "common/exception_queue.h"
+#include "fs/util.h"
 #include <chrono>
 
 namespace neb {
 namespace ipc {
-const static char *bookkeeper_mem_name = "nbre.sessions";
+static std::string bookkeeper_mem_name_str = neb::fs::get_user_name() + ".nbre";
+const static char *bookkeeper_mem_name = bookkeeper_mem_name_str.c_str();
 
 void clean_shm_session_env() { clean_bookkeeper_env(bookkeeper_mem_name); }
 namespace internal {

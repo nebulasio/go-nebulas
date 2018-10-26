@@ -88,8 +88,8 @@ void shm_service_base::init_local_env() {
 
   neb::core::command_queue::instance().listen_command<neb::core::exit_command>(
       this, [this](const std::shared_ptr<neb::core::exit_command> &) {
-          m_exit_flag = false;
-          m_op_queue->wake_up_if_empty();
+        m_exit_flag = true;
+        m_op_queue->wake_up_if_empty();
       });
   m_op_queue =
       std::unique_ptr<shm_service_op_queue>(new shm_service_op_queue());
@@ -99,16 +99,17 @@ void shm_service_base::init_local_env() {
       new shm_service_recv_handler(m_shmem));
   m_queue_watcher = std::unique_ptr<shm_queue_watcher>(
       new shm_queue_watcher(m_in_buffer, m_op_queue.get()));
-  m_queue_watcher->start();
-  m_session->start_session();
 }
 
 void shm_service_base::thread_func() {
+  m_queue_watcher->start();
+  m_session->start_session();
   try {
     while (!m_exit_flag) {
       LOG(INFO) << program_name << " to get op and handle it";
       auto ret = m_op_queue->pop_front();
-      LOG(INFO) << program_name << " got op to handler";
+      LOG(INFO) << program_name << " got op to handler,  "
+                << std::this_thread::get_id();
       if (ret.first) {
         std::shared_ptr<shm_service_op_base> &op = ret.second;
         if (op->op_id() == shm_service_op_base::op_allocate_obj) {
@@ -124,7 +125,7 @@ void shm_service_base::thread_func() {
         }
       }
     }
-    LOG(INFO) << "service thread done!";
+    LOG(INFO) << "service thread done! " << std::this_thread::get_id();
   } catch (const std::exception &e) {
     LOG(INFO) << "shm_service_base got: " << e.what();
   }

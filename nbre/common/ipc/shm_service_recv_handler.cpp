@@ -36,7 +36,7 @@ void shm_service_recv_handler::handle_recv_op(
   void *data_pointer = recv_op->m_pointer;
   shm_type_id_t type_id = recv_op->m_type_id;
   if (data_pointer) {
-    LOG(INFO) << "got data !";
+    LOG(INFO) << "got data !, " << std::this_thread::get_id();
     typename decltype(m_all_handlers)::const_iterator fr =
         m_all_handlers.find(type_id);
     if (fr != m_all_handlers.end()) {
@@ -48,9 +48,6 @@ void shm_service_recv_handler::handle_recv_op(
             std::string("shm_service_recv_handler, ") +
             std::string(typeid(e).name()) + " : " + e.what());
       }
-      //! TODO we should destry this data_pointer
-      LOG(INFO) << "destroy data pointer: " << data_pointer;
-      m_shmem->destroy_ptr(data_pointer);
     } else {
       LOG(WARNING) << "cannot find data handler";
     }
