@@ -25,7 +25,9 @@ namespace internal {
 shm_service_construct_helper::shm_service_construct_helper(
     boost::interprocess::managed_shared_memory *shmem,
     shm_service_op_queue *op_queue)
-    : m_op_queue(op_queue), m_shmem(shmem), m_next_alloc_op_counter(0) {}
+    : m_op_queue(op_queue), m_shmem(shmem), m_next_alloc_op_counter(0) {
+  m_local_thread_id = std::this_thread::get_id();
+}
 
 void shm_service_construct_helper::handle_construct_op(
     const std::shared_ptr<shm_service_op_base> &op) {
@@ -45,7 +47,7 @@ void shm_service_construct_helper::handle_destroy_op(
 
   shm_service_op_destroy *dry_op =
       static_cast<shm_service_op_destroy *>(op.get());
-  m_shmem->destroy_ptr(dry_op->m_pointer);
+  dry_op->m_func();
 }
 } // namespace internal
 } // namespace ipc

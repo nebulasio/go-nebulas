@@ -18,14 +18,15 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "common/ipc/shm_service_recv_handler.h"
+#include <ff/ff.h>
 
 namespace neb {
 namespace ipc {
 namespace internal {
 
 shm_service_recv_handler::shm_service_recv_handler(
-    boost::interprocess::managed_shared_memory *shmem)
-    : m_shmem(shmem) {}
+    boost::interprocess::managed_shared_memory *shmem, shm_service_op_queue *q)
+    : m_shmem(shmem), m_op_queue(q) {}
 
 void shm_service_recv_handler::handle_recv_op(
     const std::shared_ptr<shm_service_op_base> &op) {
@@ -36,18 +37,23 @@ void shm_service_recv_handler::handle_recv_op(
   void *data_pointer = recv_op->m_pointer;
   shm_type_id_t type_id = recv_op->m_type_id;
   if (data_pointer) {
-    LOG(INFO) << "got data !, " << std::this_thread::get_id();
+    LOG(INFO) << "got data, " << std::this_thread::get_id();
     typename decltype(m_all_handlers)::const_iterator fr =
         m_all_handlers.find(type_id);
     if (fr != m_all_handlers.end()) {
       LOG(INFO) << "call data handler !";
-      try {
-        fr->second(data_pointer);
-      } catch (const std::exception &e) {
-        throw shm_handle_recv_failure(
-            std::string("shm_service_recv_handler, ") +
-            std::string(typeid(e).name()) + " : " + e.what());
-      }
+      auto func = fr->second;
+      m_handler_thread.schedule([func, data_pointer]() {
+        try {
+          func(data_pointer);
+        } catch (const std::exception &e) {
+          LOG(WARNING) << "got exception when call handler "
+                       << std::string(typeid(e).name()) << " : " << e.what();
+          // throw shm_handle_recv_failure(
+          // std::string("shm_service_recv_handler, ") +
+          // std::string(typeid(e).name()) + " : " + e.what());
+        }
+      });
     } else {
       LOG(WARNING) << "cannot find data handler";
     }

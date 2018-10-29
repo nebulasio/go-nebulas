@@ -24,6 +24,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
+#include <thread>
 
 namespace neb {
 namespace ipc {
@@ -42,6 +43,12 @@ public:
       LOG(ERROR) << "no shared memory";
       throw shm_service_failure("no shared memory");
     }
+    auto thrd_id = std::this_thread::get_id();
+    if (thrd_id == m_local_thread_id) {
+      return m_shmem->construct<T>(boost::interprocess::anonymous_instance)(
+          args...);
+    }
+
     uint64_t counter = m_next_alloc_op_counter.fetch_add(1);
     std::shared_ptr<shm_service_op_allocate> p =
         std::make_shared<shm_service_op_allocate>(counter, [this, args...]() {
@@ -69,8 +76,7 @@ public:
 
   template <typename T> void destroy(T *ptr) {
     std::shared_ptr<shm_service_op_destroy> p =
-        std::make_shared<shm_service_op_destroy>();
-    p->m_pointer = ptr;
+        std::make_shared<shm_service_op_destroy>(m_shmem, ptr);
     m_op_queue->push_back(p);
   }
 
@@ -92,6 +98,7 @@ protected:
   boost::interprocess::managed_shared_memory *m_shmem;
   std::vector<uint64_t> m_finished_alloc_ops;
   std::atomic_uint_fast64_t m_next_alloc_op_counter;
+  std::thread::id m_local_thread_id;
 };
 } // namespace internal
 } // namespace ipc

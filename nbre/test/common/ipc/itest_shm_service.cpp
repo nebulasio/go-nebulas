@@ -130,6 +130,62 @@ IPC_CLIENT(test_service_message) {
         std::make_shared<neb::core::exit_command>());
   });
   c.run();
+  thrd.join();
+
+  // c.wait_till_finish();
+  eh.kill();
+}
+
+IPC_SERVER(test_service_message_pingpong) {
+  neb::core::exception_handler eh;
+  eh.run();
+  shm_util_t us(base_name, 128, 128);
+  us.reset();
+  shm_server_t s(base_name, 128, 128);
+  s.init_local_env();
+
+  uint64_t v = 0;
+  s.add_handler<SamplePkg>([&s, &v](SamplePkg *p) {
+    LOG(INFO) << "got data from client " << p->m_value;
+    IPC_EXPECT(p->m_value == v);
+
+    v++;
+    SamplePkg *pkg = s.construct<SamplePkg>(v);
+    s.push_back(pkg);
+    // neb::core::command_queue::instance().send_command(
+    // std::make_shared<neb::core::exit_command>());
+  });
+
+  s.run();
+  LOG(INFO) << "got client start!";
+  eh.kill();
+}
+
+IPC_CLIENT(test_service_message_pingpong) {
+  neb::core::exception_handler eh;
+  eh.run();
+
+  shm_client_t c(base_name, 128, 128);
+  c.init_local_env();
+  uint64_t v = 0;
+  std::thread thrd([&c, v]() {
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    SamplePkg *pkg = c.construct<SamplePkg>(v);
+    c.push_back(pkg);
+  });
+
+  c.add_handler<SamplePkg>([&c, &v](SamplePkg *p) {
+    LOG(INFO) << "got data from server, " << p->m_value;
+
+    SamplePkg *pkg = c.construct<SamplePkg>(p->m_value);
+    c.push_back(pkg);
+    if (p->m_value > 100000) {
+      neb::core::command_queue::instance().send_command(
+          std::make_shared<neb::core::exit_command>());
+    }
+  });
+  c.run();
+  thrd.join();
 
   // c.wait_till_finish();
   eh.kill();

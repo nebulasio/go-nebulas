@@ -96,7 +96,7 @@ void shm_service_base::init_local_env() {
   m_constructer = std::unique_ptr<shm_service_construct_helper>(
       new shm_service_construct_helper(m_shmem, m_op_queue.get()));
   m_recv_handler = std::unique_ptr<shm_service_recv_handler>(
-      new shm_service_recv_handler(m_shmem));
+      new shm_service_recv_handler(m_shmem, m_op_queue.get()));
   m_queue_watcher = std::unique_ptr<shm_queue_watcher>(
       new shm_queue_watcher(m_in_buffer, m_op_queue.get()));
 }
@@ -106,10 +106,7 @@ void shm_service_base::thread_func() {
   m_session->start_session();
   try {
     while (!m_exit_flag) {
-      LOG(INFO) << program_name << " to get op and handle it";
       auto ret = m_op_queue->pop_front();
-      LOG(INFO) << program_name << " got op to handler,  "
-                << std::this_thread::get_id();
       if (ret.first) {
         std::shared_ptr<shm_service_op_base> &op = ret.second;
         if (op->op_id() == shm_service_op_base::op_allocate_obj) {

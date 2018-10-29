@@ -20,10 +20,7 @@
 #pragma once
 #include "common/common.h"
 #include "common/ipc/shm_base.h"
-#include <condition_variable>
-#include <mutex>
-#include <queue>
-#include <thread>
+#include "common/wakeable_queue.h"
 
 namespace neb {
 namespace ipc {
@@ -72,32 +69,17 @@ public:
 };
 class shm_service_op_destroy : public shm_service_op_base {
 public:
-  inline shm_service_op_destroy() : shm_service_op_base(op_destroy) {}
-  void *m_pointer;
+  template <typename T>
+  shm_service_op_destroy(boost::interprocess::managed_shared_memory *shmem,
+                         T *pointer)
+      : shm_service_op_base(op_destroy) {
+    m_func = [shmem, pointer]() { shmem->destroy_ptr(pointer); };
+  }
+  std::function<void()> m_func;
 };
 
-class shm_service_op_queue {
-public:
-  typedef std::queue<std::shared_ptr<shm_service_op_base>> queue_t;
-  shm_service_op_queue() = default;
-
-  void push_back(const queue_t::value_type &op);
-
-  std::pair<bool, queue_t::value_type> pop_front();
-
-  std::pair<bool, queue_t::value_type> try_pop_front();
-
-  size_t size() const;
-
-  bool empty() const;
-
-  void wake_up_if_empty();
-
-protected:
-  queue_t m_queue;
-  mutable std::mutex m_mutex;
-  std::condition_variable m_cond_var;
-};
+using shm_service_op_queue =
+    wakeable_queue<std::shared_ptr<shm_service_op_base>>;
 } // namespace internal
 } // namespace ipc
 } // namespace neb

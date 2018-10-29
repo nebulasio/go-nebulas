@@ -90,9 +90,13 @@ void shm_queue::push_back(shm_type_id_t type_id, void *ptr) {
   e.m_handle = h;
   e.m_type = type_id;
   e.m_op_type = new_object;
-  m_buffer->push_back(e);
+  try {
+    m_buffer->push_back(e);
+  } catch (const std::exception &e) {
+    LOG(ERROR) << "got exception " << e.what();
+  }
   if (m_buffer->size() == 1) {
-    m_empty_cond->notify_one();
+    m_empty_cond->notify_all();
   }
 }
 
@@ -112,7 +116,7 @@ shm_queue::pop_front() {
   e = m_buffer->front();
   m_buffer->erase(m_buffer->begin());
   if (m_buffer->size() == m_capacity - 1) {
-    m_full_cond->notify_one();
+    m_full_cond->notify_all();
   }
   return std::make_tuple(m_shmem->get_address_from_handle(e.m_handle), e.m_type,
                          e.m_op_type);
@@ -131,7 +135,7 @@ shm_queue::try_pop_front() {
   e = m_buffer->front();
   m_buffer->erase(m_buffer->begin());
   if (m_buffer->size() == m_capacity - 1) {
-    m_full_cond->notify_one();
+    m_full_cond->notify_all();
   }
   return std::make_tuple(m_shmem->get_address_from_handle(e.m_handle), e.m_type,
                          e.m_op_type);

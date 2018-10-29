@@ -21,12 +21,15 @@
 #include "common/common.h"
 #include "common/ipc/shm_base.h"
 #include "common/ipc/shm_service_op_queue.h"
+#include "common/quitable_thread.h"
+
 namespace neb {
 namespace ipc {
 namespace internal {
 class shm_service_recv_handler {
 public:
-  shm_service_recv_handler(boost::interprocess::managed_shared_memory *shmem);
+  shm_service_recv_handler(boost::interprocess::managed_shared_memory *shmem,
+                           shm_service_op_queue *op_queue);
 
   template <typename T, typename Func> void add_handler(Func &&f) {
     std::lock_guard<std::mutex> _l(m_handlers_mutex);
@@ -34,11 +37,9 @@ public:
         std::make_pair(T::pkg_identifier, [this, &f](void *p) {
           T *r = (T *)p;
           f(r);
-          LOG(INFO) << "destroy data pointer: "
-                    << ", " << std::this_thread::get_id();
-          m_shmem->destroy_ptr(r);
-          LOG(INFO) << "end destroy data pointer: "
-                    << ", " << std::this_thread::get_id();
+          std::shared_ptr<shm_service_op_destroy> tp =
+              std::make_shared<shm_service_op_destroy>(m_shmem, r);
+          m_op_queue->push_back(tp);
         }));
   }
 
@@ -49,6 +50,8 @@ protected:
   boost::interprocess::managed_shared_memory *m_shmem;
   std::mutex m_handlers_mutex;
   std::unordered_map<shm_type_id_t, pkg_handler_t> m_all_handlers;
+  shm_service_op_queue *m_op_queue;
+  wakeable_thread m_handler_thread;
 };
 } // namespace internal
 } // namespace ipc
