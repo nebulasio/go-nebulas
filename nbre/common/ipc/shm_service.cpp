@@ -67,20 +67,16 @@ void shm_service_base::init_local_interprocess_var() {
   }
 
 
-  LOG(INFO) << "shm_service_base 1, session: " << (void *)m_session.get();
 
   m_session->bookkeeper()->acquire(m_shm_name, [this]() {
     m_shmem = new boost::interprocess::managed_shared_memory(
         boost::interprocess::open_or_create, m_shm_name.c_str(), m_mem_size);
-    LOG(INFO) << "shm_service_base create shm_name done";
   });
 
-  LOG(INFO) << "shm_service_base 2";
   m_in_buffer = new shm_queue(m_shm_in_name.c_str(), m_session.get(), m_shmem,
                               m_shm_in_capacity);
   m_out_buffer = new shm_queue(m_shm_out_name.c_str(), m_session.get(), m_shmem,
                                m_shm_out_capacity);
-  LOG(INFO) << "shm_service_base cnt done";
 }
 
 void shm_service_base::init_local_env() {
@@ -122,9 +118,8 @@ void shm_service_base::thread_func() {
         }
       }
     }
-    LOG(INFO) << "service thread done! " << std::this_thread::get_id();
   } catch (const std::exception &e) {
-    LOG(INFO) << "shm_service_base got: " << e.what();
+    LOG(ERROR) << "shm_service_base got: " << e.what();
   }
 }
 } // namespace internal

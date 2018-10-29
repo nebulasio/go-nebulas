@@ -77,14 +77,6 @@ IPC_CLIENT(test_service_simple) {
   eh.kill();
 }
 
-IPC_PRELUDE(test_service_message) {
-  boost::interprocess::named_mutex::remove(base_name.c_str());
-  shm_util_t s(base_name, 128, 128);
-  LOG(INFO) << "to reset";
-  s.reset();
-  LOG(INFO) << "reset done";
-}
-
 struct SamplePkg {
   static constexpr neb::ipc::shm_type_id_t pkg_identifier = 12;
 
@@ -146,13 +138,13 @@ IPC_SERVER(test_service_message_pingpong) {
 
   uint64_t v = 0;
   s.add_handler<SamplePkg>([&s, &v](SamplePkg *p) {
-    std::cout << "got data from client " << p->m_value;
+    // std::cout << "got data from client " << p->m_value;
     IPC_EXPECT(p->m_value == v);
 
     v++;
     SamplePkg *pkg = s.construct<SamplePkg>(v);
     s.push_back(pkg);
-    LOG(INFO) << "push back data " << v;
+    // LOG(INFO) << "push back data " << v;
     // neb::core::command_queue::instance().send_command(
     // std::make_shared<neb::core::exit_command>());
   });
@@ -176,13 +168,11 @@ IPC_CLIENT(test_service_message_pingpong) {
   });
 
   c.add_handler<SamplePkg>([&c, &v](SamplePkg *p) {
-    LOG(INFO) << "got data from server, " << p->m_value;
 
     SamplePkg *pkg = c.construct<SamplePkg>(p->m_value);
     c.push_back(pkg);
-    LOG(INFO) << "push back data " << p->m_value;
 
-    if (p->m_value > 100000) {
+    if (p->m_value > 10000) {
       neb::core::command_queue::instance().send_command(
           std::make_shared<neb::core::exit_command>());
     }

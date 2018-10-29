@@ -35,7 +35,6 @@ void shm_service_construct_helper::handle_construct_op(
   shm_service_op_allocate *alloc_op =
       static_cast<shm_service_op_allocate *>(op.get());
   alloc_op->m_ret = alloc_op->m_func();
-  LOG(INFO) << "handle construct op for c: " << alloc_op->m_counter;
   std::unique_lock<std::mutex> _l(m_mutex);
   m_finished_alloc_ops.push_back(alloc_op->m_counter);
   m_cond_var.notify_all();

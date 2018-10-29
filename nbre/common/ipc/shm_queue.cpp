@@ -28,17 +28,13 @@ shm_queue::shm_queue(const std::string &name, shm_session_base *session,
                      size_t capacity)
     : m_name(name), m_shmem(shmem), m_capacity(capacity), m_session(session) {
   try {
-    LOG(INFO) << "shm_queue enter";
     if (!m_shmem) {
-      LOG(INFO) << "shm_queue enter 1";
       throw shm_queue_failure("shmem can't be nullptr");
     }
     if (!m_capacity) {
-      LOG(INFO) << "shm_queue enter 3";
       throw shm_queue_failure("capacity can't be 0");
     }
     m_allocator = new shmem_allocator_t(m_shmem->get_segment_manager());
-    LOG(INFO) << "allocator is " << (void *)m_allocator;
 
     m_mutex = m_session->bookkeeper()->acquire_named_mutex(mutex_name());
     m_empty_cond =
@@ -46,10 +42,8 @@ shm_queue::shm_queue(const std::string &name, shm_session_base *session,
     m_full_cond =
         m_session->bookkeeper()->acquire_named_condition(full_cond_name());
 
-    LOG(INFO) << "to allocate buffer";
     m_buffer =
         m_shmem->find_or_construct<shm_vector_t>(m_name.c_str())(*m_allocator);
-    LOG(INFO) << "allocate buffer done";
     if (!m_mutex) {
       throw shm_queue_failure("alloc mutex fail");
     }
@@ -62,7 +56,6 @@ shm_queue::shm_queue(const std::string &name, shm_session_base *session,
     if (!m_buffer) {
       throw shm_queue_failure("alloc vector fail");
     }
-    LOG(INFO) << "shm_queue done";
   } catch (const std::exception &e) {
     throw shm_init_failure(std::string("shm_queue, ") +
                            std::string(typeid(e).name()) + " : " + e.what());
@@ -108,7 +101,6 @@ shm_queue::pop_front() {
     m_empty_cond->wait(_l);
   }
   if (m_buffer->empty()) {
-    LOG(INFO) << "return empty, " << std::this_thread::get_id();
     return std::make_tuple<void *, shm_type_id_t, element_op_tag>(nullptr, 0,
                                                                   new_object);
   }
@@ -127,7 +119,6 @@ shm_queue::try_pop_front() {
   boost::interprocess::scoped_lock<boost::interprocess::named_mutex> _l(
       *m_mutex);
   if (m_buffer->empty()) {
-    LOG(INFO) << "return empty";
     return std::make_tuple<void *, shm_type_id_t, element_op_tag>(nullptr, 0,
                                                                   new_object);
   }
@@ -152,7 +143,6 @@ void shm_queue::wake_up_if_empty() {
       *m_mutex);
 
   if (m_buffer->empty()) {
-    LOG(INFO) << "wake up empty shm_queue, " << std::this_thread::get_id();
     m_empty_cond->notify_all();
   }
 }

@@ -44,7 +44,6 @@ void shm_queue_watcher::thread_func() {
       m_op_queue->push_back(p);
     }
   }
-  LOG(INFO) << "service thread done!";
 }
 } // namespace internal
 } // namespace ipc

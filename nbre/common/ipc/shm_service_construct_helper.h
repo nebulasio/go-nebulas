@@ -55,18 +55,14 @@ public:
           return m_shmem->construct<T>(boost::interprocess::anonymous_instance)(
               args...);
         });
-    LOG(INFO) << "to push back construct op";
     m_op_queue->push_back(p);
-    LOG(INFO) << "done push back construct op";
     while (true) {
       std::unique_lock<std::mutex> _l(m_mutex);
       for (auto it = m_finished_alloc_ops.begin();
            it != m_finished_alloc_ops.end(); ++it) {
         auto lp = *it;
-        LOG(INFO) << "check construct result for c: " << lp;
         if (lp == p->m_counter) {
           m_finished_alloc_ops.erase(it);
-          LOG(INFO) << "check construct result succ for c: " << lp;
           return (T *)p->m_ret;
         }
       }
