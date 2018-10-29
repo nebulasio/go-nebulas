@@ -44,21 +44,19 @@ shm_service_base::~shm_service_base() {
 
 void shm_service_base::reset() {
   boost::interprocess::shared_memory_object::remove(m_shm_name.c_str());
-  boost::interprocess::named_mutex::remove(
-      (m_shm_name + ".session.session_server.mutex").c_str());
-  boost::interprocess::named_mutex::remove(
-      (m_shm_name + ".session.session_client.mutex").c_str());
-  boost::interprocess::named_semaphore::remove(
-      (m_shm_name + ".session.server_sema").c_str());
-  boost::interprocess::named_semaphore::remove(
-      (m_shm_name + ".session.client_sema").c_str());
+  init_local_interprocess_var();
+  m_in_buffer->reset();
+  m_out_buffer->reset();
+  m_session->reset();
 }
 
 void shm_service_base::run() { thread_func(); }
 
-void shm_service_base::init_local_env() {
-  if (m_role == role_util)
-    return;
+void shm_service_base::init_local_interprocess_var() {
+  if (m_role == role_util) {
+    m_session = std::unique_ptr<shm_session_base>(
+        new shm_session_util(m_shm_name + ".session"));
+  }
   if (m_role == role_server) {
     m_session = std::unique_ptr<shm_session_base>(
         new shm_session_server(m_shm_name + ".session"));
@@ -69,44 +67,42 @@ void shm_service_base::init_local_env() {
   }
 
 
-  LOG(INFO) << "shm_service_base 1, session: " << (void *)m_session.get();
 
   m_session->bookkeeper()->acquire(m_shm_name, [this]() {
     m_shmem = new boost::interprocess::managed_shared_memory(
         boost::interprocess::open_or_create, m_shm_name.c_str(), m_mem_size);
-    LOG(INFO) << "shm_service_base create shm_name done";
   });
 
-  LOG(INFO) << "shm_service_base 2";
   m_in_buffer = new shm_queue(m_shm_in_name.c_str(), m_session.get(), m_shmem,
                               m_shm_in_capacity);
   m_out_buffer = new shm_queue(m_shm_out_name.c_str(), m_session.get(), m_shmem,
                                m_shm_out_capacity);
-  LOG(INFO) << "shm_service_base cnt done";
+}
+
+void shm_service_base::init_local_env() {
+  init_local_interprocess_var();
 
   neb::core::command_queue::instance().listen_command<neb::core::exit_command>(
       this, [this](const std::shared_ptr<neb::core::exit_command> &) {
-          m_exit_flag = false;
-          m_op_queue->wake_up_if_empty();
+        m_exit_flag = true;
+        m_op_queue->wake_up_if_empty();
       });
   m_op_queue =
       std::unique_ptr<shm_service_op_queue>(new shm_service_op_queue());
   m_constructer = std::unique_ptr<shm_service_construct_helper>(
       new shm_service_construct_helper(m_shmem, m_op_queue.get()));
   m_recv_handler = std::unique_ptr<shm_service_recv_handler>(
-      new shm_service_recv_handler(m_shmem));
+      new shm_service_recv_handler(m_shmem, m_op_queue.get()));
   m_queue_watcher = std::unique_ptr<shm_queue_watcher>(
       new shm_queue_watcher(m_in_buffer, m_op_queue.get()));
-  m_queue_watcher->start();
-  m_session->start_session();
 }
 
 void shm_service_base::thread_func() {
+  m_queue_watcher->start();
+  m_session->start_session();
   try {
     while (!m_exit_flag) {
-      LOG(INFO) << program_name << " to get op and handle it";
       auto ret = m_op_queue->pop_front();
-      LOG(INFO) << program_name << " got op to handler";
       if (ret.first) {
         std::shared_ptr<shm_service_op_base> &op = ret.second;
         if (op->op_id() == shm_service_op_base::op_allocate_obj) {
@@ -122,9 +118,8 @@ void shm_service_base::thread_func() {
         }
       }
     }
-    LOG(INFO) << "service thread done!";
   } catch (const std::exception &e) {
-    LOG(INFO) << "shm_service_base got: " << e.what();
+    LOG(ERROR) << "shm_service_base got: " << e.what();
   }
 }
 } // namespace internal

@@ -21,6 +21,8 @@
 
 #include "fs/util.h"
 #include <boost/filesystem.hpp>
+#include <chrono>
+#include <ctime>
 
 namespace neb {
 namespace fs {
@@ -53,6 +55,19 @@ bool is_absolute_path(const std::string &fp) {
 bool exists(const std::string &p) {
   return boost::filesystem::exists(boost::filesystem::path(p));
 }
+std::string get_user_name() {
+  return std::getenv("USER");
+}
 
 } // end namespace fs
+
+std::string now() {
+  auto nt = std::chrono::system_clock::now();
+  std::time_t tt = std::chrono::system_clock::to_time_t(nt);
+  auto ret = std::string(std::ctime(&tt));
+  ret.erase(std::remove_if(ret.begin(), ret.end(),
+                           [](unsigned char c) { return c == '\n'; }));
+  return ret;
+}
+
 } // end namespace neb

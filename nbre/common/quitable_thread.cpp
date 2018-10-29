@@ -58,6 +58,16 @@ void quitable_thread::stop() {
   LOG(INFO) << "quitable_thread stop done";
 }
 
+wakeable_thread::wakeable_thread()
+    : quitable_thread(), m_queue(), m_started(false) {}
+
+void wakeable_thread::thread_func() {
+  while (!m_exit_flag) {
+    auto t = m_queue.pop_front();
+    if (t.first) {
+      (*t.second)();
+    }
+  }
 }
 
-
+} // namespace neb

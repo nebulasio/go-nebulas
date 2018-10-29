@@ -19,6 +19,8 @@
 //
 #pragma once
 #include "common/common.h"
+#include "common/wakeable_queue.h"
+#include "core/command.h"
 #include <atomic>
 #include <thread>
 
@@ -36,4 +38,28 @@ protected:
   std::unique_ptr<std::thread> m_thread;
   std::atomic_bool m_exit_flag;
 };
-}
+
+class wakeable_thread : public quitable_thread {
+public:
+  wakeable_thread();
+  template <typename Func> void schedule(Func &&f) {
+    m_queue.push_back(std::make_shared<std::function<void()>>(f));
+    if (!m_started) {
+      m_started = true;
+      neb::core::command_queue::instance()
+          .listen_command<neb::core::exit_command>(
+              this, [this](const std::shared_ptr<neb::core::exit_command> &) {
+                m_queue.wake_up_if_empty();
+              });
+      start();
+    }
+  }
+  virtual void thread_func();
+
+protected:
+  typedef std::shared_ptr<std::function<void()>> func_ptr;
+  using queue_t = wakeable_queue<func_ptr>;
+  queue_t m_queue;
+  bool m_started;
+};
+} // namespace neb

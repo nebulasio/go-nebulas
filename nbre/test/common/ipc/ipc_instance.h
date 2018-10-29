@@ -54,6 +54,7 @@ protected:
   std::string m_enabled_instance_name;
   std::string m_enabled_fixture_name;
   std::string m_exe_name;
+  bool m_debug_mode;
 }; // end class ipc_instances
 } // namespace neb
 

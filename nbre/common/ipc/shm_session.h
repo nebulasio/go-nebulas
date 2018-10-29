@@ -50,7 +50,7 @@ namespace internal {
 
 class shm_session_base : public quitable_thread {
 public:
-  shm_session_base(const std::string &name, bool need_reset);
+  shm_session_base(const std::string &name);
   virtual ~shm_session_base();
 
   virtual void start_session();
@@ -58,6 +58,11 @@ public:
   shm_bookkeeper *bookkeeper() const { return m_bookkeeper.get(); };
 
   void reset();
+
+protected:
+  inline std::string server_session_mutex_name() {
+    return m_name + ".session_server.mutex";
+  }
 
 protected:
   virtual void thread_func() = 0;

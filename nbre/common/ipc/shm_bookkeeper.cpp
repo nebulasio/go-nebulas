@@ -33,67 +33,68 @@ namespace internal {
 size_t bookkeeper_mem_size = 64 * 1024;
 
 shm_bookkeeper::shm_bookkeeper(const std::string &name) : m_name(name) {
-  m_segment = std::unique_ptr<boost::interprocess::managed_shared_memory>(
-      new boost::interprocess::managed_shared_memory(
-          boost::interprocess::open_or_create, m_name.c_str(),
-          bookkeeper_mem_size));
+  try {
+    m_segment = std::unique_ptr<boost::interprocess::managed_shared_memory>(
+        new boost::interprocess::managed_shared_memory(
+            boost::interprocess::open_or_create, m_name.c_str(),
+            bookkeeper_mem_size));
 
-  m_allocator = std::unique_ptr<map_allocator_t>(
-      new map_allocator_t(m_segment->get_segment_manager()));
+    m_allocator = std::unique_ptr<map_allocator_t>(
+        new map_allocator_t(m_segment->get_segment_manager()));
 
-  m_mutex = std::unique_ptr<boost::interprocess::named_mutex>(
-      new boost::interprocess::named_mutex(boost::interprocess::open_or_create,
-                                           mutex_name().c_str()));
+    m_mutex = std::unique_ptr<boost::interprocess::named_mutex>(
+        new boost::interprocess::named_mutex(
+            boost::interprocess::open_or_create, mutex_name().c_str()));
 
-  m_map = m_segment->find_or_construct<map_t>(mem_name().c_str())(
-      std::less<char_string_t>(), *m_allocator);
+    m_map = m_segment->find_or_construct<map_t>(mem_name().c_str())(
+        std::less<char_string_t>(), *m_allocator);
+  } catch (const std::exception &e) {
+    m_mutex.reset();
+    m_segment.reset();
+    throw shm_init_failure(std::string("shm_bookkeeper, ") +
+                           std::string(typeid(e).name()) + " : " + e.what());
+  }
 }
-
 void shm_bookkeeper::reset() {
+  if (!m_mutex)
+    return;
   //! We may fail to acquire m_mutex, thus, we just don't.
   m_mutex->try_lock();
-  LOG(INFO) << "to reset all held vars";
-  // for (auto it = m_map->begin(); it != m_map->end(); ++it) {
-  // auto first = it->first;
-  // auto second = it->second;
-  // tag_counter_t tt;
-  // tt.set_data(second);
-  // LOG(INFO) << "to reset held var: " << first.c_str();
-  // if (tt.type() == tag_counter_t::boost_mutex) {
-  // boost::interprocess::named_mutex::remove(first.c_str());
-  //} else if (tt.type() == tag_counter_t::boost_semaphore) {
-  // boost::interprocess::named_semaphore::remove(first.c_str());
-  //} else if (tt.type() == tag_counter_t::boost_condition) {
-  // boost::interprocess::named_condition::remove(first.c_str());
-  //}
-  //}
-  LOG(INFO) << "reset all held vars done";
+
+  for (auto it = m_map->begin(); it != m_map->end(); ++it) {
+    auto first = it->first;
+    auto second = it->second;
+    tag_counter_t tt;
+    tt.set_data(second);
+    if (tt.type() == tag_counter_t::boost_mutex) {
+      boost::interprocess::named_mutex::remove(first.c_str());
+    } else if (tt.type() == tag_counter_t::boost_semaphore) {
+      boost::interprocess::named_semaphore::remove(first.c_str());
+    } else if (tt.type() == tag_counter_t::boost_condition) {
+      boost::interprocess::named_condition::remove(first.c_str());
+    }
+  }
 
   m_mutex->unlock();
 
-  m_segment.reset();
-  m_allocator.reset();
-  m_mutex.reset();
-
-  LOG(INFO) << "to reset local vars";
   boost::interprocess::named_mutex::remove(mutex_name().c_str());
   boost::interprocess::shared_memory_object::remove(m_name.c_str());
 
-  LOG(INFO) << "realloc local vars";
-  m_segment = std::unique_ptr<boost::interprocess::managed_shared_memory>(
-      new boost::interprocess::managed_shared_memory(
-          boost::interprocess::open_or_create, m_name.c_str(),
-          bookkeeper_mem_size));
+  // LOG(INFO) << "realloc local vars";
+  // m_segment = std::unique_ptr<boost::interprocess::managed_shared_memory>(
+  // new boost::interprocess::managed_shared_memory(
+  // boost::interprocess::open_or_create, m_name.c_str(),
+  // bookkeeper_mem_size));
 
-  m_allocator = std::unique_ptr<map_allocator_t>(
-      new map_allocator_t(m_segment->get_segment_manager()));
+  // m_allocator = std::unique_ptr<map_allocator_t>(
+  // new map_allocator_t(m_segment->get_segment_manager()));
 
-  m_mutex = std::unique_ptr<boost::interprocess::named_mutex>(
-      new boost::interprocess::named_mutex(boost::interprocess::open_or_create,
-                                           mutex_name().c_str()));
+  // m_mutex = std::unique_ptr<boost::interprocess::named_mutex>(
+  // new boost::interprocess::named_mutex(boost::interprocess::open_or_create,
+  // mutex_name().c_str()));
 
-  m_map = m_segment->find_or_construct<map_t>(mem_name().c_str())(
-      std::less<char_string_t>(), *m_allocator);
+  // m_map = m_segment->find_or_construct<map_t>(mem_name().c_str())(
+  // std::less<char_string_t>(), *m_allocator);
 }
 
 void shm_bookkeeper::acquire(const std::string &name,
@@ -104,10 +105,8 @@ void shm_bookkeeper::acquire(const std::string &name,
 void shm_bookkeeper::acquire(const std::string &name,
                              const std::function<void()> &action,
                              uint8_t type) {
-  LOG(INFO) << "try acquire lock!";
   boost::interprocess::scoped_lock<boost::interprocess::named_mutex> _l(
       *m_mutex);
-  LOG(INFO) << "acquired lock!";
   action();
   char_string_t cs(name.c_str(), *m_allocator);
   if (m_map->find(cs) == m_map->end()) {
