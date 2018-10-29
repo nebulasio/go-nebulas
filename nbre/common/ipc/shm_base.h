@@ -20,6 +20,7 @@
 #pragma once
 #include "common/common.h"
 #include <boost/interprocess/allocators/allocator.hpp>
+#include <boost/interprocess/containers/string.hpp>
 #include <boost/interprocess/containers/vector.hpp>
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/interprocess/sync/named_condition.hpp>
@@ -88,5 +89,15 @@ public:
 protected:
   const std::string m_msg;
 };
+
+typedef boost::interprocess::managed_shared_memory::segment_manager
+    segment_manager_t;
+typedef boost::interprocess::allocator<void, segment_manager_t>
+    default_allocator_t;
+typedef boost::interprocess::allocator<char, segment_manager_t>
+    char_allocator_t;
+typedef boost::interprocess::basic_string<char, std::char_traits<char>,
+                                          char_allocator_t>
+    char_string_t;
 }
 }

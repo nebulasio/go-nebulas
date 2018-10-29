@@ -183,3 +183,56 @@ IPC_CLIENT(test_service_message_pingpong) {
   // c.wait_till_finish();
   eh.kill();
 }
+
+struct SampleStringPkg {
+  static constexpr neb::ipc::shm_type_id_t pkg_identifier = 13;
+
+  SampleStringPkg(uint64_t v, const char *str,
+                  const neb::ipc::default_allocator_t &alloc)
+      : m_value(v), m_string_val(str, alloc) {}
+  uint64_t m_value;
+  neb::ipc::char_string_t m_string_val;
+};
+
+const neb::ipc::shm_type_id_t SampleStringPkg::pkg_identifier;
+
+IPC_SERVER(test_service_string_message) {
+  neb::core::exception_handler eh;
+  eh.run();
+  shm_util_t us(base_name, 128, 128);
+  us.reset();
+  shm_server_t s(base_name, 128, 128);
+  s.init_local_env();
+  s.add_handler<SampleStringPkg>([](SampleStringPkg *p) {
+    LOG(INFO) << "got data from client " << p->m_value << ", "
+              << p->m_string_val;
+    IPC_EXPECT(p->m_string_val == "test xxx");
+  });
+
+  s.run();
+  LOG(INFO) << "got client start!";
+  eh.kill();
+}
+
+IPC_CLIENT(test_service_string_message) {
+  neb::core::exception_handler eh;
+  eh.run();
+
+  shm_client_t c(base_name, 128, 128);
+  c.init_local_env();
+  std::thread thrd([&c]() {
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    SampleStringPkg *pkg =
+        c.construct<SampleStringPkg>(2, "test xxx", c.default_allocator());
+    c.push_back(pkg);
+
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+    neb::core::command_queue::instance().send_command(
+        std::make_shared<neb::core::exit_command>());
+  });
+  c.run();
+  thrd.join();
+
+  // c.wait_till_finish();
+  eh.kill();
+}

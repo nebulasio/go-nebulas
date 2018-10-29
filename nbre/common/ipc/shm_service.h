@@ -70,6 +70,9 @@ public:
   void reset();
 
   inline shm_session_base *session() { return m_session.get(); }
+  inline default_allocator_t &default_allocator() {
+    return *m_default_allocator;
+  }
 
 private:
   void init_local_interprocess_var();
@@ -100,7 +103,8 @@ protected:
   std::unique_ptr<shm_service_construct_helper> m_constructer;
   std::unique_ptr<shm_service_recv_handler> m_recv_handler;
   std::unique_ptr<shm_queue_watcher> m_queue_watcher;
-
+  std::unique_ptr<char_allocator_t> m_char_allocator;
+  std::unique_ptr<default_allocator_t> m_default_allocator;
 }; // end class shm_service_base
 }
 
