@@ -1,5 +1,7 @@
 // Copyright (C) 2018 go-nebulas authors
 //
+//
+//
 // This file is part of the go-nebulas library.
 //
 // the go-nebulas library is free software: you can redistribute it and/or
@@ -19,34 +21,13 @@
 //
 
 #pragma once
-#include <array>
-#include <cstdint>
-#include <glog/logging.h>
-#include <iostream>
-#include <memory>
-#include <mutex>
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include "common/common.h"
 
 namespace neb {
-typedef std::string hex_hash_t;
-typedef uint8_t byte_t;
-typedef uint64_t block_height_t;
-extern std::string program_name;
 
-typedef std::string address_t;
-typedef std::string module_t;
-typedef block_height_t start_block_t;
-typedef block_height_t end_block_t;
-
-namespace tcolor {
-const static char *red = "\033[1;31m";
-const static char *green = "\033[1;32m";
-const static char *yellow = "\033[1;33m";
-const static char *blue = "\033[1;34m";
-const static char *magenta = "\033[1;35m";
-const static char *cyan = "\033[1;36m";
-const static char *reset = "\033[0m";
-}
-}
+class string_util {
+public:
+  static std::shared_ptr<std::vector<std::string>>
+  split_by_comma(const std::string &s, char comma);
+};
+} // namespace neb

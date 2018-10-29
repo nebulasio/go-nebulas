@@ -29,8 +29,8 @@ extern "C" {
 typedef void(*handle_recv_callback_func_t)(const char *);
 
 void ipc_nbre_version(void *holder, uint64_t height);
-typedef void(*nbre_version_callback_t)(void *holder, uint32_t major,
-                                      uint32_t minor, uint32_t patch);
+typedef void (*nbre_version_callback_t)(void *holder, uint32_t major,
+                                        uint32_t minor, uint32_t patch);
 
 void set_recv_nbre_version_callback(nbre_version_callback_t func);
 

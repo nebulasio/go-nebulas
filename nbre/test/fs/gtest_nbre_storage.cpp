@@ -186,3 +186,30 @@ TEST(test_fs, read_nbre_by_name_version) {
   EXPECT_EQ(it->name(), "nr");
   EXPECT_EQ(it->version(), 2LL << 48);
 }
+
+TEST(test_fs, get_auth_table) {
+
+  std::string db_read = get_db_path_for_read();
+  std::string db_write = get_db_path_for_write();
+
+  std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
+      std::make_shared<neb::fs::nbre_storage>(db_write, db_read);
+
+  std::string addr1_base58 = neb::util::string_to_byte("addr1").to_base58();
+  std::string addr2_base58 = neb::util::string_to_byte("addr2").to_base58();
+  std::vector<std::vector<std::string>> expected_table(
+      {{"nr", addr1_base58, "100", "200"},
+       {"nr", addr2_base58, "150", "250"},
+       {"dip", addr1_base58, "200", "300"}});
+
+  auto at_ptr = nbre_ptr->get_auth_table();
+  auto auth_table = *at_ptr;
+  EXPECT_EQ(expected_table.size(), auth_table.size());
+
+  for (auto &r : expected_table) {
+    auto it = auth_table.find(std::make_pair(r[0], r[1]));
+    EXPECT_TRUE(it != auth_table.end());
+    EXPECT_EQ(it->second.first, std::stoll(r[2]));
+    EXPECT_EQ(it->second.second, std::stoll(r[3]));
+  }
+}

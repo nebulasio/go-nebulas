@@ -5,6 +5,7 @@
 #include "fs/proto/ir.pb.h"
 #include "fs/rocksdb_storage.h"
 #include "fs/util.h"
+#include <boost/format.hpp>
 #include <boost/program_options.hpp>
 
 namespace po = boost::program_options;
@@ -44,6 +45,7 @@ int main(int argc, char *argv[]) {
       LOG(INFO) << it->key().ToString();
     }
   };
+  rs.display(f_keys);
 
   auto f_raw_val = [&](rocksdb::Iterator *it) {};
 
@@ -62,7 +64,7 @@ int main(int argc, char *argv[]) {
     bool ret = block->ParseFromArray(block_bytes.value(), block_bytes.size());
     LOG(INFO) << "blockchain lib height: " << block->height();
   };
-  f_lib_height();
+  // f_lib_height();
 
   auto f_block_hash = [&](neb::block_height_t height) {
     auto block_hash_bytes =
@@ -72,7 +74,17 @@ int main(int argc, char *argv[]) {
   };
   // f_block_hash(height);
 
-  // rs.show_all(f_keys);
+  auto f_set_nbre_auth_table = [&]() {
+    std::string addr1_base58 = neb::util::string_to_byte("addr1").to_base58();
+    std::string addr2_base58 = neb::util::string_to_byte("addr2").to_base58();
+
+    rs.put(
+        "nbre_auth_table",
+        neb::util::string_to_byte(boost::str(
+            boost::format("nr,%1%,100,200\nnr,%2%,150,250\ndip,%1%,200,300\n") %
+            addr1_base58 % addr2_base58)));
+  };
+  f_set_nbre_auth_table();
 
   return 0;
 }
