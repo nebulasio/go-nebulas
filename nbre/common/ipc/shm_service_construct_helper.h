@@ -60,7 +60,6 @@ public:
     LOG(INFO) << "done push back construct op";
     while (true) {
       std::unique_lock<std::mutex> _l(m_mutex);
-      m_cond_var.wait(_l);
       for (auto it = m_finished_alloc_ops.begin();
            it != m_finished_alloc_ops.end(); ++it) {
         auto lp = *it;
@@ -71,6 +70,7 @@ public:
           return (T *)p->m_ret;
         }
       }
+      m_cond_var.wait(_l);
     }
   };
 

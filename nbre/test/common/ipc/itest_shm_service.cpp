@@ -146,12 +146,13 @@ IPC_SERVER(test_service_message_pingpong) {
 
   uint64_t v = 0;
   s.add_handler<SamplePkg>([&s, &v](SamplePkg *p) {
-    LOG(INFO) << "got data from client " << p->m_value;
+    std::cout << "got data from client " << p->m_value;
     IPC_EXPECT(p->m_value == v);
 
     v++;
     SamplePkg *pkg = s.construct<SamplePkg>(v);
     s.push_back(pkg);
+    LOG(INFO) << "push back data " << v;
     // neb::core::command_queue::instance().send_command(
     // std::make_shared<neb::core::exit_command>());
   });
@@ -179,6 +180,8 @@ IPC_CLIENT(test_service_message_pingpong) {
 
     SamplePkg *pkg = c.construct<SamplePkg>(p->m_value);
     c.push_back(pkg);
+    LOG(INFO) << "push back data " << p->m_value;
+
     if (p->m_value > 100000) {
       neb::core::command_queue::instance().send_command(
           std::make_shared<neb::core::exit_command>());
