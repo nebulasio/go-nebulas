@@ -35,6 +35,11 @@ typedef uint8_t byte_t;
 typedef uint64_t block_height_t;
 extern std::string program_name;
 
+typedef std::string address_t;
+typedef std::string module_t;
+typedef block_height_t start_block_t;
+typedef block_height_t end_block_t;
+
 namespace tcolor {
 const static char *red = "\033[1;31m";
 const static char *green = "\033[1;32m";

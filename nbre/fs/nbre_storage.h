@@ -48,7 +48,15 @@ private:
                               block_height_t height,
                               std::unordered_set<std::string> &pkg,
                               std::vector<std::shared_ptr<nbre::NBREIR>> &irs);
-  void write_nbre_by_height(block_height_t height);
+  void write_nbre_by_height(
+      block_height_t height,
+      const std::map<std::pair<module_t, address_t>,
+                     std::pair<start_block_t, end_block_t>> &auth_table);
+
+public:
+  std::shared_ptr<std::map<std::pair<module_t, address_t>,
+                           std::pair<start_block_t, end_block_t>>>
+  get_auth_table();
 
 private:
   std::unique_ptr<rocksdb_storage> m_storage;
@@ -56,6 +64,7 @@ private:
 
   static constexpr char const *s_payload_type = "protocol";
   static constexpr char const *s_nbre_max_height = "nbre_max_height";
+  static constexpr char const *s_nbre_auth_table = "nbre_auth_table";
 };
 } // namespace fs
 } // namespace neb

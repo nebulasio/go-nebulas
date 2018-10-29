@@ -152,7 +152,7 @@ void rocksdb_storage::flush() {
   }
 }
 
-void rocksdb_storage::show_all(
+void rocksdb_storage::display(
     const std::function<void(rocksdb::Iterator *)> &cb) {
   rocksdb::Iterator *it = m_db->NewIterator(rocksdb::ReadOptions());
   cb(it);

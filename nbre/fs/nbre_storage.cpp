@@ -20,6 +20,7 @@
 
 #include "fs/nbre_storage.h"
 #include "common/util/byte.h"
+#include "common/util/util.h"
 #include "common/util/version.h"
 
 namespace neb {
@@ -118,21 +119,29 @@ void nbre_storage::write_nbre() {
   LOG(INFO) << "start height " << start_height << ',' << "end height "
             << end_height;
 
+  auto auth_table_ptr = get_auth_table();
+
   //! TODO: we may consider parallel here!
   for (block_height_t h = start_height + 1; h <= end_height; h++) {
     LOG(INFO) << h;
-    write_nbre_by_height(h);
+    write_nbre_by_height(h, *auth_table_ptr);
     m_storage->put(std::string(s_nbre_max_height, std::allocator<char>()),
                    neb::util::number_to_byte<neb::util::bytes>(h));
   }
 }
 
-void nbre_storage::write_nbre_by_height(block_height_t height) {
+void nbre_storage::write_nbre_by_height(
+    block_height_t height,
+    const std::map<std::pair<module_t, address_t>,
+                   std::pair<start_block_t, end_block_t>> &auth_table) {
 
   auto block = m_blockchain->load_block_with_height(height);
   for (auto &tx : block->transactions()) {
     auto &data = tx.data();
     const std::string &type = data.type();
+
+    std::string from = tx.from();
+    std::string from_base58 = neb::util::string_to_byte(from).to_base58();
 
     if (type == s_payload_type) {
       const std::string &payload = data.payload();
@@ -147,6 +156,15 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
 
       const std::string &name = nbre_ir->name();
       const uint64_t version = nbre_ir->version();
+
+      auto it = auth_table.find(std::make_pair(name, from_base58));
+      if (it == auth_table.end()) {
+        continue;
+      }
+      const uint64_t height = nbre_ir->height();
+      if (height < it->second.first || height >= it->second.second) {
+        continue;
+      }
 
       try {
         neb::util::bytes bytes_versions = m_storage->get(name);
@@ -170,5 +188,33 @@ bool nbre_storage::is_latest_irreversible_block() {
   return lib_block->height() ==
          neb::util::byte_to_number<neb::block_height_t>(max_height_bytes);
 }
+
+std::shared_ptr<std::map<std::pair<module_t, address_t>,
+                         std::pair<start_block_t, end_block_t>>>
+nbre_storage::get_auth_table() {
+
+  std::map<std::pair<module_t, address_t>,
+           std::pair<start_block_t, end_block_t>>
+      auth_table;
+
+  auto auth_table_bytes = m_storage->get(s_nbre_auth_table);
+  auto auth_table_string = neb::util::byte_to_string(auth_table_bytes);
+
+  auto lines_ptr = string_util::split_by_comma(auth_table_string, '\n');
+  for (auto &line : *lines_ptr) {
+    auto eles_ptr = string_util::split_by_comma(line, ',');
+    auto eles = *eles_ptr;
+    assert(4 == eles.size());
+
+    auth_table.insert(std::make_pair(
+        std::make_pair(eles[0], eles[1]),
+        std::make_pair(std::stoll(eles[2]), std::stoll(eles[3]))));
+  }
+
+  return std::make_shared<std::map<std::pair<module_t, address_t>,
+                                   std::pair<start_block_t, end_block_t>>>(
+      auth_table);
+}
+
 } // namespace fs
 } // namespace neb
