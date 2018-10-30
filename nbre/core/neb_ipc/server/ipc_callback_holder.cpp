@@ -17,7 +17,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "core/neb_ipc/ipc_callback_holder.h"
+#include "core/neb_ipc/server/ipc_callback_holder.h"
 
 namespace neb {
 namespace core {

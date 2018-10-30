@@ -21,12 +21,8 @@
 #include "common/common.h"
 
 #include "common/configuration.h"
-#include "core/neb_ipc/ipc_endpoint.h"
 
 #include "core/driver.h"
-#include "core/neb_ipc/ipc_client.h"
-#include "core/neb_ipc/ipc_interface.h"
-#include "core/neb_ipc/ipc_pkg.h"
 #include "fs/util.h"
 
 int main(int argc, char *argv[]) {

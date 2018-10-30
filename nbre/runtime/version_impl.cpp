@@ -33,19 +33,17 @@ int entry_point_foo_impl(neb::core::driver *d, void *param) {
     return 1;
   }
 
-  neb::core::nbre_version_req *req = (neb::core::nbre_version_req *)param;
+  neb::core::ipc_pkg::nbre_version_req *req =
+      (neb::core::ipc_pkg::nbre_version_req *)param;
   auto ipc_conn = d->ipc_conn();
 
-  LOG(INFO) << "start construct, ipc_conn:" << (void *)ipc_conn
-            << ", d:" << (void *)d;
-  neb::core::nbre_version_ack *ack =
-      ipc_conn->construct<neb::core::nbre_version_ack>();
-  LOG(INFO) << "end construct ";
+  neb::core::ipc_pkg::nbre_version_ack *ack =
+      ipc_conn->construct<neb::core::ipc_pkg::nbre_version_ack>(
+          req->m_holder, ipc_conn->default_allocator());
   neb::util::version v = neb::rt::get_version();
-  ack->m_major = v.major_version();
-  ack->m_minor = v.minor_version();
-  ack->m_patch = v.patch_version();
-  ack->m_holder = req->m_holder;
+  ack->set<neb::core::ipc_pkg::major>(v.major_version());
+  ack->set<neb::core::ipc_pkg::minor>(v.minor_version());
+  ack->set<neb::core::ipc_pkg::patch>(v.patch_version());
   ipc_conn->push_back(ack);
   LOG(INFO) << "done push back data to server";
   return 0;

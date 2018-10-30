@@ -1,4 +1,4 @@
-// Copyright (C) 2018 go-nebulas authors
+// Copyright (C) 2017 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -17,38 +17,23 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#pragma once
-#include "common/common.h"
-#include "common/ipc/shm_service.h"
-#include "core/neb_ipc/ipc_callback_holder.h"
-#include "core/neb_ipc/ipc_common.h"
+
+#include "common/timer_loop.h"
 
 namespace neb {
-namespace core {
-
-class ipc_endpoint {
-public:
-  ipc_endpoint(const std::string &root_dir, const std::string &nbre_exe_path);
-
-  bool start();
-
-  void send_nbre_version_req(void *holder, uint64_t height);
-
-  void shutdown();
-
-private:
-  bool check_path_exists();
-  void add_all_callbacks();
-
-protected:
-
-protected:
-  std::string m_root_dir;
-  std::string m_nbre_exe_name;
-  std::unique_ptr<std::thread> m_thread;
-  std::unique_ptr<ipc_server_t> m_ipc_server;
-  boost::process::child *m_client;
-};
-
-} // namespace core
+void timer_loop::timer_callback(
+    const boost::system::error_code &ec, long seconds,
+    std::shared_ptr<boost::asio::deadline_timer> timer,
+    std::function<void()> func) {
+  if (m_exit_flag)
+    return;
+  if (ec) {
+    LOG(ERROR) << ec;
+  }
+  timer->expires_at(timer->expires_at() + boost::posix_time::seconds(seconds));
+  timer->async_wait(
+      [this, timer, seconds, func](const boost::system::error_code &ec) {
+        timer_callback(ec, seconds, timer, func);
+      });
+}
 } // namespace neb

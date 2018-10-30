@@ -26,9 +26,16 @@ extern "C" {
 #include <stdint.h>
 #endif
 
-typedef void(*handle_recv_callback_func_t)(const char *);
+enum ipc_status_code {
+  ipc_status_succ,
+  ipc_status_timeout,
+  ipc_status_exception,
+};
+
+typedef void (*handle_recv_callback_func_t)(ipc_status_code isc, const char *);
 
 void ipc_nbre_version(void *holder, uint64_t height);
+
 typedef void (*nbre_version_callback_t)(void *holder, uint32_t major,
                                         uint32_t minor, uint32_t patch);
 

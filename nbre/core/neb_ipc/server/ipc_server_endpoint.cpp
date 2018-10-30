@@ -16,7 +16,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "core/neb_ipc/ipc_endpoint.h"
+#include "core/neb_ipc/server/ipc_server_endpoint.h"
 #include "core/neb_ipc/ipc_pkg.h"
 #include "fs/util.h"
 #include <atomic>
@@ -25,29 +25,36 @@
 
 namespace neb {
 namespace core {
-ipc_endpoint::ipc_endpoint(const std::string &root_dir,
-                           const std::string &nbre_exe_path)
+ipc_server_endpoint::ipc_server_endpoint(const std::string &root_dir,
+                                         const std::string &nbre_exe_path)
     : m_root_dir(root_dir), m_nbre_exe_name(nbre_exe_path), m_client(nullptr){};
 
-bool ipc_endpoint::start() {
+bool ipc_server_endpoint::start() {
   if (!check_path_exists()) {
+    LOG(ERROR) << "nbre path not exist";
     return false;
   }
   if (!ipc_callback_holder::instance().check_all_callbacks()) {
+    LOG(ERROR) << "nbre missing callback";
     return false;
   }
 
-  bool init_done = false;
+  std::atomic_bool init_done(false);
   std::mutex local_mutex;
   std::condition_variable local_cond_var;
+  m_got_exception_when_start_nbre = false;
   m_thread = std::unique_ptr<std::thread>(new std::thread([&, this]() {
     try {
+      {
+        ipc_util_t us(shm_service_name, 128, 128);
+        us.reset();
+      }
+
       this->m_ipc_server = std::unique_ptr<ipc_server_t>(
           new ipc_server_t(shm_service_name, 128, 128));
 
-      this->m_ipc_server->reset();
-
       m_ipc_server->init_local_env();
+      LOG(INFO) << "nbre ipc init done!";
       add_all_callbacks();
       boost::process::child client(m_nbre_exe_name);
 
@@ -55,11 +62,19 @@ bool ipc_endpoint::start() {
       init_done = true;
       local_mutex.unlock();
       local_cond_var.notify_one();
-      m_client = &client;
+
       m_ipc_server->run();
+
       client.wait();
-      m_client = nullptr;
+
+      LOG(INFO) << "nbre stopped!";
     } catch (const std::exception &e) {
+      LOG(ERROR) << "get exception when start nbre, " << typeid(e).name()
+                 << ", " << e.what();
+      m_got_exception_when_start_nbre = true;
+    } catch (...) {
+      LOG(ERROR) << "get unknown exception when start nbre";
+      m_got_exception_when_start_nbre = true;
     }
   }));
 
@@ -67,38 +82,40 @@ bool ipc_endpoint::start() {
   if (!init_done) {
     local_cond_var.wait(_l);
   }
-
-  return true;
+  if (m_got_exception_when_start_nbre)
+    return false;
+  else
+    return true;
 }
-
-void ipc_endpoint::add_all_callbacks() {
-  LOG(INFO) << "ipc server pointer: " << (void *)m_ipc_server.get();
-  m_ipc_server->add_handler<nbre_version_ack>([](nbre_version_ack *msg) {
-    ipc_callback_holder::instance().m_nbre_version_callback(
-        msg->m_holder, msg->m_major, msg->m_minor, msg->m_patch);
-  });
-}
-
-void ipc_endpoint::send_nbre_version_req(void *holder, uint64_t height) {
-  nbre_version_req *req = m_ipc_server->construct<nbre_version_req>();
-  req->m_height = height;
-  req->m_holder = holder;
-  m_ipc_server->push_back(req);
-}
-bool ipc_endpoint::check_path_exists() {
+bool ipc_server_endpoint::check_path_exists() {
   return neb::fs::exists(m_nbre_exe_name);
 }
-void ipc_endpoint::shutdown() {
+
+void ipc_server_endpoint::add_all_callbacks() {
+  LOG(INFO) << "ipc server pointer: " << (void *)m_ipc_server.get();
+  m_ipc_server->add_handler<ipc_pkg::nbre_version_ack>(
+      [](ipc_pkg::nbre_version_ack *msg) {
+        ipc_callback_holder::instance().m_nbre_version_callback(
+            msg->m_holder, msg->get<ipc_pkg::major>(),
+            msg->get<ipc_pkg::minor>(), msg->get<ipc_pkg::patch>());
+      });
+}
+
+void ipc_server_endpoint::send_nbre_version_req(void *holder, uint64_t height) {
+  ipc_pkg::nbre_version_req *req =
+      m_ipc_server->construct<ipc_pkg::nbre_version_req>(
+          holder, m_ipc_server->default_allocator());
+  req->set<ipc_pkg::height>(height);
+  m_ipc_server->push_back(req);
+}
+
+void ipc_server_endpoint::shutdown() {
   LOG(INFO) << "shutdown session";
   m_ipc_server->session()->stop();
 
   LOG(INFO) << "shutdown server";
   m_ipc_server->stop();
 
-  LOG(INFO) << "shutdown client";
-  if(nullptr != m_client){
-    m_client->terminate();
-  }
 }
 }// namespace core
 } // namespace neb
