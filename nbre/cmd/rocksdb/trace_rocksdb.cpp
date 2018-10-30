@@ -1,3 +1,22 @@
+// Copyright (C) 2018 go-nebulas authors
+//
+// This file is part of the go-nebulas library.
+//
+// the go-nebulas library is free software: you can redistribute it and/or
+// modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// the go-nebulas library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the go-nebulas library.  If not, see
+// <http://www.gnu.org/licenses/>.
+//
 
 #include "common/util/version.h"
 #include "fs/nbre_storage.h"
@@ -14,9 +33,8 @@ int main(int argc, char *argv[]) {
 
   po::options_description desc("Rocksdb read and write");
   desc.add_options()("help", "show help message")(
-      "db_path", po::value<std::string>(),
-      "Database file directory")("max_height", po::value<neb::block_height_t>(),
-                                 "Nbre max height setting");
+      "db_path", po::value<std::string>(), "Database file directory")(
+      "max_height", po::value<neb::block_height_t>(), "nbre max height");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -47,44 +65,12 @@ int main(int argc, char *argv[]) {
   };
   rs.display(f_keys);
 
-  auto f_raw_val = [&](rocksdb::Iterator *it) {};
-
   neb::block_height_t max_height = vm["max_height"].as<neb::block_height_t>();
   auto f_set_nbre_max_height = [&]() {
     rs.put("nbre_max_height",
            neb::util::number_to_byte<neb::util::bytes>(max_height));
   };
-  // f_set_nbre_max_height();
-
-  auto f_lib_height = [&]() {
-    auto block_hash_bytes = rs.get("blockchain_lib");
-    auto block_bytes = rs.get_bytes(block_hash_bytes);
-
-    std::shared_ptr<corepb::Block> block = std::make_shared<corepb::Block>();
-    bool ret = block->ParseFromArray(block_bytes.value(), block_bytes.size());
-    LOG(INFO) << "blockchain lib height: " << block->height();
-  };
-  // f_lib_height();
-
-  auto f_block_hash = [&](neb::block_height_t height) {
-    auto block_hash_bytes =
-        rs.get_bytes(neb::util::number_to_byte<neb::util::bytes>(height));
-    LOG(INFO) << neb::util::byte_to_number<neb::block_height_t>(
-        block_hash_bytes);
-  };
-  // f_block_hash(height);
-
-  auto f_set_nbre_auth_table = [&]() {
-    std::string addr1_base58 = neb::util::string_to_byte("addr1").to_base58();
-    std::string addr2_base58 = neb::util::string_to_byte("addr2").to_base58();
-
-    rs.put(
-        "nbre_auth_table",
-        neb::util::string_to_byte(boost::str(
-            boost::format("nr,%1%,100,200\nnr,%2%,150,250\ndip,%1%,200,300\n") %
-            addr1_base58 % addr2_base58)));
-  };
-  f_set_nbre_auth_table();
+  f_set_nbre_max_height();
 
   return 0;
 }

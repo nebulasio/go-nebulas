@@ -1,4 +1,10 @@
 
-add_executable(rocksdb main.cpp)
-target_link_libraries(rocksdb nbre_rt)
+add_executable(trace_rocksdb trace_rocksdb.cpp)
+target_link_libraries(trace_rocksdb nbre_rt)
+
+add_executable(blockchain blockchain.cpp)
+target_link_libraries(blockchain nbre_rt)
+
+add_executable(auth_table auth_table.cpp)
+target_link_libraries(auth_table nbre_rt)
 
