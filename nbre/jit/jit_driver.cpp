@@ -105,6 +105,25 @@ public:
     LOG(INFO) << "jit return : " << ret;
   }
 
+  void auto_run(const nbre::NBREIR &ir, const std::string &func_name) {
+
+    std::string errMsg;
+    if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr, &errMsg)) {
+      LOG(ERROR) << errMsg;
+      throw jit_internal_failure("failed to load local program");
+    }
+    std::string ir_str = ir.ir();
+    llvm::StringRef sr(ir_str);
+    auto mem_buf = llvm::MemoryBuffer::getMemBuffer(sr, "", false);
+    llvm::SMDiagnostic err;
+
+    std::unique_ptr<llvm::Module> module =
+        llvm::parseIR(mem_buf->getMemBufferRef(), err, m_context, true);
+    // LOG(INFO) << " call llvm::auto_runOrcLazyJIT";
+    auto ret = llvm::auto_runOrcLazyJIT(std::move(module), func_name);
+    LOG(INFO) << "jit return : " << ret;
+  }
+
   virtual ~jit_driver_impl() { llvm::llvm_shutdown(); }
 
 protected:
@@ -124,5 +143,10 @@ void jit_driver::run(core::driver *d,
                      const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
                      const std::string &func_name, void *param) {
   m_impl->run(d, irs, func_name, param);
+}
+
+void jit_driver::auto_run(const nbre::NBREIR &ir,
+                          const std::string &func_name) {
+  m_impl->auto_run(ir, func_name);
 }
 } // namespace neb

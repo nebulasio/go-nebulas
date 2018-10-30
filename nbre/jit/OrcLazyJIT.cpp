@@ -152,3 +152,60 @@ int llvm::runOrcLazyJIT(neb::core::driver *d,
 
   return 1;
 }
+
+int llvm::auto_runOrcLazyJIT(std::unique_ptr<Module> M,
+                             const std::string &func_name) {
+  // Grab a target machine and try to build a factory function for the
+  // target-specific Orc callback manager.
+  EngineBuilder EB;
+  EB.setOptLevel(CodeGenOpt::Default);
+  auto TM = std::unique_ptr<TargetMachine>(EB.selectTarget());
+  Triple T(TM->getTargetTriple());
+  auto CompileCallbackMgr = orc::createLocalCompileCallbackManager(T, 0);
+
+  // If we couldn't build the factory function then there must not be a callback
+  // manager for this target. Bail out.
+  if (!CompileCallbackMgr) {
+    LOG(ERROR) << "No callback manager available for target '"
+               << TM->getTargetTriple().str() << "'.\n";
+    throw neb::jit_internal_failure("No callback manager available for target");
+  }
+
+  auto IndirectStubsMgrBuilder = orc::createLocalIndirectStubsManagerBuilder(T);
+
+  // If we couldn't build a stubs-manager-builder for this target then bail out.
+  if (!IndirectStubsMgrBuilder) {
+    LOG(ERROR) << "No indirect stubs manager available for target '"
+               << TM->getTargetTriple().str() << "'.\n";
+    throw neb::jit_internal_failure(
+        "No indirect stubs manager available for target");
+  }
+
+  // Everything looks good. Build the JIT.
+  bool OrcInlineStubs = true;
+  OrcLazyJIT J(std::move(TM), std::move(CompileCallbackMgr),
+               std::move(IndirectStubsMgrBuilder), OrcInlineStubs);
+
+  // Add the module, look up main and run it.
+  // outs() << *(M.get());
+  outs().flush();
+  cantFail(J.addModule(std::shared_ptr<Module>(std::move(M))), nullptr);
+
+  if (auto MainSym =
+          J.findSymbol(std::string(func_name, std::allocator<char>()))) {
+    using MainFnPtr = char *(*)();
+    auto Main =
+        fromTargetAddress<MainFnPtr>(cantFail(MainSym.getAddress(), nullptr));
+    LOG(INFO) << "got target function, and to run it! ";
+    LOG(INFO) << Main();
+    return 0;
+  } else if (auto Err = MainSym.takeError()) {
+    logAllUnhandledErrors(std::move(Err), llvm::errs(), "");
+    throw neb::jit_internal_failure("Unhandled errors");
+  } else {
+    LOG(ERROR) << "Could not find target function.\n";
+    throw neb::jit_internal_failure("Could not find target function");
+  }
+
+  return 1;
+}

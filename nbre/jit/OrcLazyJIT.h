@@ -198,6 +198,8 @@ private:
 int runOrcLazyJIT(neb::core::driver *d, std::vector<std::unique_ptr<Module>> Ms,
                   const std::string &func_name, void *param);
 
+int auto_runOrcLazyJIT(std::unique_ptr<Module> M, const std::string &func_name);
+
 } // end namespace llvm
 
 #endif // LLVM_TOOLS_LLI_ORCLAZYJIT_H

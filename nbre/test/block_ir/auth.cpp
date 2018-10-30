@@ -1,6 +1,5 @@
 // Copyright (C) 2018 go-nebulas authors
 //
-//
 // This file is part of the go-nebulas library.
 //
 // the go-nebulas library is free software: you can redistribute it and/or
@@ -18,28 +17,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#pragma once
 
-#include "common/common.h"
-#include "fs/proto/ir.pb.h"
-
-namespace neb {
-namespace internal {
-class jit_driver_impl;
+const char *entry_point_auth() {
+  return "nr,addr1,100,200\nnr,addr2,150,250\ndip,addr1,200,300\n";
 }
-namespace core {
-class driver;
-}
-class jit_driver {
-public:
-  jit_driver();
-  ~jit_driver();
-  void run(core::driver *d,
-           const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
-           const std::string &func_name, void *param);
-  void auto_run(const nbre::NBREIR &ir, const std::string &func_name);
-
-protected:
-  std::unique_ptr<internal::jit_driver_impl> m_impl;
-}; // end class jit_driver;
-} // end namespace neb
