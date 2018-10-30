@@ -198,18 +198,18 @@ TEST(test_fs, get_auth_table) {
   std::string addr1_base58 = neb::util::string_to_byte("addr1").to_base58();
   std::string addr2_base58 = neb::util::string_to_byte("addr2").to_base58();
   std::vector<std::vector<std::string>> expected_table(
-      {{"nr", addr1_base58, "100", "200"},
-       {"nr", addr2_base58, "150", "250"},
-       {"dip", addr1_base58, "200", "300"}});
+      {{"nr", "1", addr1_base58, "100", "200"},
+       {"nr", "2", addr2_base58, "150", "250"},
+       {"dip", "1", addr1_base58, "200", "300"}});
 
   auto at_ptr = nbre_ptr->get_auth_table();
   auto auth_table = *at_ptr;
   EXPECT_EQ(expected_table.size(), auth_table.size());
 
   for (auto &r : expected_table) {
-    auto it = auth_table.find(std::make_pair(r[0], r[1]));
+    auto it = auth_table.find(std::make_tuple(r[0], std::stoull(r[1]), r[2]));
     EXPECT_TRUE(it != auth_table.end());
-    EXPECT_EQ(it->second.first, std::stoll(r[2]));
-    EXPECT_EQ(it->second.second, std::stoll(r[3]));
+    EXPECT_EQ(it->second.first, std::stoull(r[3]));
+    EXPECT_EQ(it->second.second, std::stoull(r[4]));
   }
 }

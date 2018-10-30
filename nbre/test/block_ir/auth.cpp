@@ -19,5 +19,5 @@
 //
 
 const char *entry_point_auth() {
-  return "nr,addr1,100,200\nnr,addr2,150,250\ndip,addr1,200,300\n";
+  return "nr,1,addr1,100,200\nnr,2,addr2,150,250\ndip,1,addr1,200,300\n";
 }

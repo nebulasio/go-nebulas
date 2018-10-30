@@ -26,6 +26,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 
@@ -36,6 +37,7 @@ typedef uint64_t block_height_t;
 extern std::string program_name;
 
 typedef std::string address_t;
+typedef uint64_t version_t;
 typedef std::string module_t;
 typedef block_height_t start_block_t;
 typedef block_height_t end_block_t;

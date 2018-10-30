@@ -132,10 +132,11 @@ void nbre_storage::write_nbre() {
 
 void nbre_storage::write_nbre_by_height(
     block_height_t height,
-    const std::map<std::pair<module_t, address_t>,
+    const std::map<std::tuple<module_t, version_t, address_t>,
                    std::pair<start_block_t, end_block_t>> &auth_table) {
 
   auto block = m_blockchain->load_block_with_height(height);
+
   for (auto &tx : block->transactions()) {
     auto &data = tx.data();
     const std::string &type = data.type();
@@ -157,7 +158,13 @@ void nbre_storage::write_nbre_by_height(
       const std::string &name = nbre_ir->name();
       const uint64_t version = nbre_ir->version();
 
-      auto it = auth_table.find(std::make_pair(name, from_base58));
+      if (name.compare(s_module_auth_name) == 0) {
+        // TODO jit driver executes auth table code immediately
+        // TODO expect auth table exceed 128k bytes size
+        continue;
+      }
+
+      auto it = auth_table.find(std::make_tuple(name, version, from_base58));
       if (it == auth_table.end()) {
         continue;
       }
@@ -171,7 +178,7 @@ void nbre_storage::write_nbre_by_height(
         bytes_versions.append_bytes(
             neb::util::number_to_byte<neb::util::bytes>(version));
         m_storage->put(name, bytes_versions);
-      } catch (std::exception &e) {
+      } catch (const std::exception &e) {
         m_storage->put(name,
                        neb::util::number_to_byte<neb::util::bytes>(version));
       }
@@ -189,29 +196,33 @@ bool nbre_storage::is_latest_irreversible_block() {
          neb::util::byte_to_number<neb::block_height_t>(max_height_bytes);
 }
 
-std::shared_ptr<std::map<std::pair<module_t, address_t>,
+std::shared_ptr<std::map<std::tuple<module_t, version_t, address_t>,
                          std::pair<start_block_t, end_block_t>>>
 nbre_storage::get_auth_table() {
 
-  std::map<std::pair<module_t, address_t>,
+  std::map<std::tuple<module_t, version_t, address_t>,
            std::pair<start_block_t, end_block_t>>
       auth_table;
 
-  auto auth_table_bytes = m_storage->get(s_nbre_auth_table);
-  auto auth_table_string = neb::util::byte_to_string(auth_table_bytes);
+  try {
+    auto auth_table_bytes = m_storage->get(s_nbre_auth_table);
+    auto auth_table_string = neb::util::byte_to_string(auth_table_bytes);
 
-  auto lines_ptr = string_util::split_by_comma(auth_table_string, '\n');
-  for (auto &line : *lines_ptr) {
-    auto eles_ptr = string_util::split_by_comma(line, ',');
-    auto eles = *eles_ptr;
-    assert(4 == eles.size());
+    auto lines_ptr = string_util::split_by_comma(auth_table_string, '\n');
+    for (auto &line : *lines_ptr) {
+      auto eles_ptr = string_util::split_by_comma(line, ',');
+      auto eles = *eles_ptr;
+      assert(5 == eles.size());
 
-    auth_table.insert(std::make_pair(
-        std::make_pair(eles[0], eles[1]),
-        std::make_pair(std::stoll(eles[2]), std::stoll(eles[3]))));
+      auth_table.insert(std::make_pair(
+          std::make_tuple(eles[0], std::stoull(eles[1]), eles[2]),
+          std::make_pair(std::stoull(eles[3]), std::stoull(eles[4]))));
+    }
+  } catch (const std::exception &e) {
+    // TODO auth table init
   }
 
-  return std::make_shared<std::map<std::pair<module_t, address_t>,
+  return std::make_shared<std::map<std::tuple<module_t, version_t, address_t>,
                                    std::pair<start_block_t, end_block_t>>>(
       auth_table);
 }

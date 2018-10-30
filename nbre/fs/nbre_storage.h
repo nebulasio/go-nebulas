@@ -50,11 +50,11 @@ private:
                               std::vector<std::shared_ptr<nbre::NBREIR>> &irs);
   void write_nbre_by_height(
       block_height_t height,
-      const std::map<std::pair<module_t, address_t>,
+      const std::map<std::tuple<module_t, version_t, address_t>,
                      std::pair<start_block_t, end_block_t>> &auth_table);
 
 public:
-  std::shared_ptr<std::map<std::pair<module_t, address_t>,
+  std::shared_ptr<std::map<std::tuple<module_t, version_t, address_t>,
                            std::pair<start_block_t, end_block_t>>>
   get_auth_table();
 
@@ -65,6 +65,7 @@ private:
   static constexpr char const *s_payload_type = "protocol";
   static constexpr char const *s_nbre_max_height = "nbre_max_height";
   static constexpr char const *s_nbre_auth_table = "nbre_auth_table";
+  static constexpr char const *s_module_auth_name = "auth";
 };
 } // namespace fs
 } // namespace neb
