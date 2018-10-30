@@ -19,51 +19,32 @@
 //
 #pragma once
 #include "common/common.h"
+#include "core/neb_ipc/internal/ipc_pkg_internal.h"
 #include "core/neb_ipc/ipc_common.h"
 
-//! According to boost.interprocess document, we should never use reference,
-//! pointer to store data, and we should never use virtual functions here. We
-//! must make sure each class here is POD, thus we can pass it with interprocess
-//! communication.
-//
-//! Also, our IPC framework needs *pkg_identifier* in each class.
 namespace neb {
 namespace core {
-using ipc_pkg_type_id_t = neb::ipc::shm_type_id_t;
-
 enum {
   ipc_pkg_nbre_version_req,
   ipc_pkg_nbre_version_ack,
 };
-namespace internal {
-template <ipc_pkg_type_id_t type> struct empty_req_pkg_t {
-  const static ipc_pkg_type_id_t pkg_identifier = type;
-  uint64_t m_height;
-  void *m_holder; // used by C-Go
-};
-template <ipc_pkg_type_id_t type>
-const ipc_pkg_type_id_t empty_req_pkg_t<type>::pkg_identifier;
-} // namespace internal
+namespace ipc_pkg {
+using namespace internal;
 
-typedef internal::empty_req_pkg_t<ipc_pkg_nbre_version_req> nbre_version_req;
-struct nbre_version_ack {
-  const static ipc_pkg_type_id_t pkg_identifier = ipc_pkg_nbre_version_ack;
-  uint32_t m_major;
-  uint32_t m_minor;
-  uint32_t m_patch;
-  void *m_holder; // used by C-Go
-};
-struct module_info {
-  inline module_info(const std::string &module, const std::string &func)
-      : module_name(module), func_name(func) {}
+using height = ipc_elem_base<0, uint64_t>;
+using nbre_version_req = define_ipc_pkg<ipc_pkg_nbre_version_req, height>;
+using major = ipc_elem_base<1, uint32_t>;
+using minor = ipc_elem_base<2, uint32_t>;
+using patch = ipc_elem_base<3, uint32_t>;
+using nbre_version_ack =
+    define_ipc_pkg<ipc_pkg_nbre_version_ack, major, minor, patch>;
 
-  std::string module_name;
-  std::string func_name;
-};
+} // namespace ipc_pkg
 
-module_info pkg_identifier_to_module_info(ipc_pkg_type_id_t type);
-template <typename T> module_info pkg_type_to_module_info() {
-  return pkg_identifier_to_module_info(T::pkg_identifier);
-}
-}
+add_pkg_module_info(ipc_pkg::nbre_version_req, "foo",
+                    "_Z15entry_point_fooPN3neb4core6driverEPv")
+
+
+
+} // namespace core
 } // namespace neb

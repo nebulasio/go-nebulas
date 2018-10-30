@@ -13,6 +13,7 @@ add_library(nbre_common
   quitable_thread.cpp
   exception_queue.cpp
   ir_conf_reader.cpp
-  configuration.cpp)
+  configuration.cpp
+  timer_loop.cpp)
 
 target_link_libraries(nbre_common glog boost_program_options)

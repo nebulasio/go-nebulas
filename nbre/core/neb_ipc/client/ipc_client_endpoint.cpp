@@ -17,15 +17,15 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "core/neb_ipc/ipc_client.h"
+#include "core/neb_ipc/client/ipc_client_endpoint.h"
 #include "core/neb_ipc/ipc_pkg.h"
 
 namespace neb {
 namespace core {
 
-ipc_client::~ipc_client() { shutdown(); }
+ipc_client_endpoint::~ipc_client_endpoint() { shutdown(); }
 
-bool ipc_client::start() {
+bool ipc_client_endpoint::start() {
   if (m_handlers.empty()) {
     LOG(INFO) << "No handlers here";
     return false;
@@ -61,7 +61,7 @@ bool ipc_client::start() {
   return true;
 }
 
-void ipc_client::shutdown() {
+void ipc_client_endpoint::shutdown() {
   if (m_thread) {
     m_thread->join();
     m_thread.reset();

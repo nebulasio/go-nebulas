@@ -20,30 +20,37 @@
 #pragma once
 #include "common/common.h"
 #include "common/ipc/shm_service.h"
-#include "core/neb_ipc/ipc_callback_holder.h"
 #include "core/neb_ipc/ipc_common.h"
+#include "core/neb_ipc/server/ipc_callback_holder.h"
 
 namespace neb {
 namespace core {
-class ipc_client {
-public:
-  ipc_client() = default;
-  ~ipc_client();
 
-  template <typename T, typename Func> void add_handler(Func &&f) {
-    m_handlers.push_back([this, f]() { m_client->add_handler<T>(f); });
-  }
+class ipc_server_endpoint {
+public:
+  ipc_server_endpoint(const std::string &root_dir,
+                      const std::string &nbre_exe_path);
 
   bool start();
 
+  void send_nbre_version_req(void *holder, uint64_t height);
+
   void shutdown();
 
-  inline ipc_client_t *ipc_connection() { return m_client.get(); }
+private:
+  bool check_path_exists();
+  void add_all_callbacks();
 
 protected:
-  std::vector<std::function<void()>> m_handlers;
+
+protected:
+  std::string m_root_dir;
+  std::string m_nbre_exe_name;
   std::unique_ptr<std::thread> m_thread;
-  std::unique_ptr<ipc_client_t> m_client;
+  std::unique_ptr<ipc_server_t> m_ipc_server;
+  boost::process::child *m_client;
+  std::atomic_bool m_got_exception_when_start_nbre;
 };
+
 } // namespace core
 } // namespace neb

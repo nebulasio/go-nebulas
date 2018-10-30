@@ -18,20 +18,29 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "core/neb_ipc/ipc_interface.h"
-#include "core/neb_ipc/ipc_callback_holder.h"
-#include "core/neb_ipc/ipc_endpoint.h"
+#include "core/neb_ipc/server/ipc_callback_holder.h"
+#include "core/neb_ipc/server/ipc_server_endpoint.h"
 
-std::shared_ptr<neb::core::ipc_endpoint> _ipc;
+std::shared_ptr<neb::core::ipc_server_endpoint> _ipc;
 
 int start_nbre_ipc(const char *root_dir, const char *nbre_path) {
   try {
-    _ipc = std::make_shared<neb::core::ipc_endpoint>(root_dir, nbre_path);
-    _ipc->start();
-    return 0;
+    _ipc =
+        std::make_shared<neb::core::ipc_server_endpoint>(root_dir, nbre_path);
+    if (_ipc->start()) {
+      LOG(INFO) << "start nbre succ";
+      return 0;
+    } else {
+      LOG(ERROR) << "start nbre failed";
+      return 1;
+    }
   } catch (const std::exception &e) {
-    return 1;
+    LOG(ERROR) << "start nbre got exception " << typeid(e).name() << ":"
+               << e.what();
+    return 2;
   } catch (...) {
-    return 1;
+    LOG(ERROR) << "start nbre got unknown exception ";
+    return 3;
   }
 }
 

@@ -17,20 +17,32 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "core/neb_ipc/ipc_pkg.h"
+#pragma once
+#include "common/common.h"
+#include "common/ipc/shm_service.h"
+#include "core/neb_ipc/ipc_common.h"
 
 namespace neb {
 namespace core {
-const ipc_pkg_type_id_t nbre_version_ack::pkg_identifier;
+class ipc_client_endpoint {
+public:
+  ipc_client_endpoint() = default;
+  ~ipc_client_endpoint();
 
-module_info pkg_identifier_to_module_info(ipc_pkg_type_id_t type) {
-  switch (type) {
-  case ipc_pkg_nbre_version_req:
-    return module_info("foo", "_Z15entry_point_fooPN3neb4core6driverEPv");
-    break;
-  default:
-    throw std::logic_error("unsupported ipc_pkg_type_id_t");
+  template <typename T, typename Func> void add_handler(Func &&f) {
+    m_handlers.push_back([this, f]() { m_client->add_handler<T>(f); });
   }
-}
-}
-}
+
+  bool start();
+
+  void shutdown();
+
+  inline ipc_client_t *ipc_connection() { return m_client.get(); }
+
+protected:
+  std::vector<std::function<void()>> m_handlers;
+  std::unique_ptr<std::thread> m_thread;
+  std::unique_ptr<ipc_client_t> m_client;
+};
+} // namespace core
+} // namespace neb

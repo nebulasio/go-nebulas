@@ -22,7 +22,7 @@
 #include "common/common.h"
 
 #include "common/configuration.h"
-#include "core/neb_ipc/ipc_endpoint.h"
+#include "core/neb_ipc/server/ipc_server_endpoint.h"
 
 #include "core/neb_ipc/ipc_interface.h"
 #include "fs/util.h"

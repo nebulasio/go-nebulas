@@ -27,7 +27,7 @@ namespace core {
 driver::driver() : m_exit_flag(false) {}
 
 bool driver::init() {
-  m_client = std::unique_ptr<ipc_client>(new ipc_client());
+  m_client = std::unique_ptr<ipc_client_endpoint>(new ipc_client_endpoint());
   add_handlers();
 
   //! we should make share wait_until_sync first
@@ -53,18 +53,19 @@ void driver::run() {
 }
 
 void driver::add_handlers() {
-  m_client->add_handler<nbre_version_req>([this](nbre_version_req *req) {
-    ff::para<void> p;
-    p([req, this]() {
-      LOG(INFO) << " to start jit driver for data";
-      module_info mi = pkg_type_to_module_info<nbre_version_req>();
-      neb::block_height_t height = req->m_height;
-      auto irs = neb::core::ir_warden::instance().get_ir_by_name_height(
-          mi.module_name, height);
-      jit_driver d;
-      d.run(this, irs, mi.func_name, req);
-    });
-  });
+  m_client->add_handler<ipc_pkg::nbre_version_req>(
+      [this](ipc_pkg::nbre_version_req *req) {
+        ff::para<void> p;
+        p([req, this]() {
+          LOG(INFO) << " to start jit driver for data";
+          using mi = pkg_type_to_module_info<ipc_pkg::nbre_version_req>;
+          neb::block_height_t height = req->get<ipc_pkg::height>();
+          auto irs = neb::core::ir_warden::instance().get_ir_by_name_height(
+              mi::module_name, height);
+          jit_driver d;
+          d.run(this, irs, mi::func_name, req);
+        });
+      });
 }
 void driver::handle_exception(const std::shared_ptr<neb::neb_exception> &p) {
   switch (p->type()) {
