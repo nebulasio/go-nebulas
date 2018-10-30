@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2018 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -17,25 +17,17 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
 #include "common/timer_loop.h"
+#include <iostream>
 
-namespace neb {
-void timer_loop::timer_callback(
-    const boost::system::error_code &ec, long seconds,
-    std::shared_ptr<boost::asio::deadline_timer> timer,
-    std::function<void()> func) {
-  if (m_exit_flag)
-    return;
-  if (ec) {
-    LOG(ERROR) << ec;
-    return;
-  }
-  func();
-  timer->expires_at(timer->expires_at() + boost::posix_time::seconds(seconds));
-  timer->async_wait(
-      [this, timer, seconds, func](const boost::system::error_code &ec) {
-        timer_callback(ec, seconds, timer, func);
-      });
+void func1() { std::cout << "func 1" << std::endl; }
+void func2() { std::cout << "func 2" << std::endl; }
+int main(int argc, char *argv[]) {
+  boost::asio::io_service io_service;
+  neb::timer_loop tl(&io_service);
+  tl.register_timer_and_callback(1, func1);
+  tl.register_timer_and_callback(5, func2);
+
+  io_service.run();
+  return 0;
 }
-} // namespace neb

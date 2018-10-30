@@ -40,7 +40,7 @@ public:
   void register_timer_and_callback(long seconds, Func &&f) {
 
     auto timer = std::make_shared<boost::asio::deadline_timer>(
-        m_service, boost::posix_time::seconds(seconds));
+        *m_service, boost::posix_time::seconds(seconds));
 
     timer->async_wait(
         [this, timer, seconds, &f](const boost::system::error_code &ec) {
