@@ -66,12 +66,14 @@ void shm_service_base::init_local_interprocess_var() {
         new shm_session_client(m_shm_name + ".session"));
   }
 
-
-
   m_session->bookkeeper()->acquire(m_shm_name, [this]() {
     m_shmem = new boost::interprocess::managed_shared_memory(
         boost::interprocess::open_or_create, m_shm_name.c_str(), m_mem_size);
   });
+  m_char_allocator =
+      std::make_unique<char_allocator_t>(m_shmem->get_segment_manager());
+  m_default_allocator =
+      std::make_unique<default_allocator_t>(m_shmem->get_segment_manager());
 
   m_in_buffer = new shm_queue(m_shm_in_name.c_str(), m_session.get(), m_shmem,
                               m_shm_in_capacity);
