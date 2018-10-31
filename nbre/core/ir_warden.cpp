@@ -20,6 +20,7 @@
 
 #include "core/ir_warden.h"
 #include "common/configuration.h"
+#include "common/timer_loop.h"
 #include "core/command.h"
 #include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -56,18 +57,6 @@ void ir_warden::wait_until_sync() {
 
 void ir_warden::on_timer() { m_nbre_storage->write_nbre(); }
 
-void ir_warden::timer_callback(const boost::system::error_code &ec) {
-  if (!m_exit_flag) {
-    m_timer->expires_at(
-        m_timer->expires_at() +
-        boost::posix_time::seconds(
-            neb::configuration::instance().ir_warden_time_interval()));
-    m_timer->async_wait(boost::bind(&ir_warden::timer_callback, this,
-                                    boost::asio::placeholders::error));
-    on_timer();
-  }
-}
-
 void ir_warden::thread_func() {
 
   m_nbre_storage->write_nbre();
@@ -76,8 +65,10 @@ void ir_warden::thread_func() {
   _l.unlock();
   m_sync_cond_var.notify_one();
 
-  m_timer->async_wait(boost::bind(&ir_warden::timer_callback, this,
-                                  boost::asio::placeholders::error));
+  timer_loop tl(&m_io_service);
+  tl.register_timer_and_callback(
+      neb::configuration::instance().ir_warden_time_interval(),
+      [&]() { on_timer(); });
   m_io_service.run();
 }
 
@@ -85,14 +76,9 @@ void ir_warden::async_run() {
   if (m_thread) {
     return;
   }
-  m_timer = std::unique_ptr<boost::asio::deadline_timer>(
-      new boost::asio::deadline_timer(
-          m_io_service,
-          boost::posix_time::seconds(
-              neb::configuration::instance().ir_warden_time_interval())));
   start();
-
 }
+
 ir_warden::ir_warden() : quitable_thread(), m_is_sync_already(false) {
   m_nbre_storage = std::unique_ptr<fs::nbre_storage>(new fs::nbre_storage(
       std::getenv("NBRE_DB"), std::getenv("BLOCKCHAIN_DB")));

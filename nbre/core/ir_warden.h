@@ -50,13 +50,11 @@ public:
 
 protected:
   virtual void thread_func();
-  void timer_callback(const boost::system::error_code &ec);
 
   void on_timer();
 
 private:
   boost::asio::io_service m_io_service;
-  std::unique_ptr<boost::asio::deadline_timer> m_timer;
   std::unique_ptr<fs::nbre_storage> m_nbre_storage;
 
   bool m_is_sync_already;
