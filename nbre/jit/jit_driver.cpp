@@ -105,7 +105,7 @@ public:
     LOG(INFO) << "jit return : " << ret;
   }
 
-  void auto_run(const nbre::NBREIR &ir, const std::string &func_name) {
+  const char *auto_run(const nbre::NBREIR &ir, const std::string &func_name) {
 
     std::string errMsg;
     if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr, &errMsg)) {
@@ -122,6 +122,7 @@ public:
     // LOG(INFO) << " call llvm::auto_runOrcLazyJIT";
     auto ret = llvm::auto_runOrcLazyJIT(std::move(module), func_name);
     LOG(INFO) << "jit return : " << ret;
+    return ret;
   }
 
   virtual ~jit_driver_impl() { llvm::llvm_shutdown(); }
@@ -145,8 +146,8 @@ void jit_driver::run(core::driver *d,
   m_impl->run(d, irs, func_name, param);
 }
 
-void jit_driver::auto_run(const nbre::NBREIR &ir,
-                          const std::string &func_name) {
-  m_impl->auto_run(ir, func_name);
+const char *jit_driver::get_auth_table(const nbre::NBREIR &ir,
+                                       const std::string &func_name) {
+  return m_impl->auto_run(ir, func_name);
 }
 } // namespace neb

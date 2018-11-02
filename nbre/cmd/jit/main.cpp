@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
 
   neb::jit_driver jd;
   // jd.run(nullptr, v, vm["func"].as<std::string>(), nullptr);
-  jd.auto_run(nbre_ir, vm["func"].as<std::string>());
+  jd.get_auth_table(nbre_ir, vm["func"].as<std::string>());
 
   return 0;
 }
