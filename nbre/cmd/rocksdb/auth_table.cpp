@@ -53,6 +53,9 @@ int main(int argc, char *argv[]) {
   neb::fs::rocksdb_storage rs;
   rs.open_database(db_path, neb::fs::storage_open_for_readwrite);
 
+  auto f_del_nbre_auth_table = [&]() { rs.del("nbre_auth_table"); };
+  f_del_nbre_auth_table();
+
   auto f_set_nbre_auth_table = [&]() {
     std::string addr1_base58 = neb::util::string_to_byte("addr1").to_base58();
     std::string addr2_base58 = neb::util::string_to_byte("addr2").to_base58();
@@ -63,7 +66,7 @@ int main(int argc, char *argv[]) {
                    "nr,1,%1%,100,200\nnr,2,%2%,150,250\ndip,1,%1%,200,300\n") %
                addr1_base58 % addr2_base58)));
   };
-  f_set_nbre_auth_table();
+  // f_set_nbre_auth_table();
 
   return 0;
 }
