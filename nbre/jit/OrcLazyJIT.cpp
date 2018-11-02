@@ -153,8 +153,8 @@ int llvm::runOrcLazyJIT(neb::core::driver *d,
   return 1;
 }
 
-int llvm::auto_runOrcLazyJIT(std::unique_ptr<Module> M,
-                             const std::string &func_name) {
+const char *llvm::auto_runOrcLazyJIT(std::unique_ptr<Module> M,
+                                     const std::string &func_name) {
   // Grab a target machine and try to build a factory function for the
   // target-specific Orc callback manager.
   EngineBuilder EB;
@@ -193,12 +193,11 @@ int llvm::auto_runOrcLazyJIT(std::unique_ptr<Module> M,
 
   if (auto MainSym =
           J.findSymbol(std::string(func_name, std::allocator<char>()))) {
-    using MainFnPtr = char *(*)();
+    using MainFnPtr = const char *(*)();
     auto Main =
         fromTargetAddress<MainFnPtr>(cantFail(MainSym.getAddress(), nullptr));
     LOG(INFO) << "got target function, and to run it! ";
-    LOG(INFO) << Main();
-    return 0;
+    return Main();
   } else if (auto Err = MainSym.takeError()) {
     logAllUnhandledErrors(std::move(Err), llvm::errs(), "");
     throw neb::jit_internal_failure("Unhandled errors");
@@ -207,5 +206,5 @@ int llvm::auto_runOrcLazyJIT(std::unique_ptr<Module> M,
     throw neb::jit_internal_failure("Could not find target function");
   }
 
-  return 1;
+  return nullptr;
 }
