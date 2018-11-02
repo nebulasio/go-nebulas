@@ -55,11 +55,14 @@ void issue_callback_with_error(T &&func, ipc_status_code isc) {
     return;                                                                    \
   }                                                                            \
   if (m_got_exception_when_start_nbre) {                                       \
-    m_ipc_server->schedule_task_in_service_thread(                             \
-        [this]() { issue_callback_with_error(a, ipc_status_exception); });     \
+    m_ipc_server->schedule_task_in_service_thread([this]() {                   \
+      issue_callback_with_error(a, ipc_status_exception);                      \
+      return;                                                                  \
+    });                                                                        \
   } else if (!m_client_watcher->is_client_alive()) {                           \
     m_ipc_server->schedule_task_in_service_thread([this]() {                   \
       issue_callback_with_error(a, ipc_status_nbre_not_ready);                 \
+      return;                                                                  \
     });                                                                        \
   }
 } // namespace core
