@@ -50,10 +50,15 @@ bool ipc_server_endpoint::start() {
         us.reset();
       }
 
-      this->m_ipc_server = std::unique_ptr<ipc_server_t>(
+      LOG(INFO) << "start ipc server ";
+      m_ipc_server = std::unique_ptr<ipc_server_t>(
           new ipc_server_t(shm_service_name, 128, 128));
 
       m_ipc_server->init_local_env();
+      m_request_timer =
+          std::unique_ptr<api_request_timer>(new api_request_timer(
+              m_ipc_server.get(), &ipc_callback_holder::instance()));
+
       LOG(INFO) << "nbre ipc init done!";
       add_all_callbacks();
       boost::process::child client(m_nbre_exe_name);
@@ -72,9 +77,11 @@ bool ipc_server_endpoint::start() {
       LOG(ERROR) << "get exception when start nbre, " << typeid(e).name()
                  << ", " << e.what();
       m_got_exception_when_start_nbre = true;
+      local_cond_var.notify_one();
     } catch (...) {
       LOG(ERROR) << "get unknown exception when start nbre";
       m_got_exception_when_start_nbre = true;
+      local_cond_var.notify_one();
     }
   }));
 
@@ -84,24 +91,50 @@ bool ipc_server_endpoint::start() {
   }
   if (m_got_exception_when_start_nbre)
     return false;
-  else
-    return true;
+  try {
+    m_ipc_server->wait_until_client_start();
+  } catch (const std::exception &e) {
+    LOG(ERROR) << "get exception when wait client start, " << typeid(e).name()
+               << e.what();
+    return false;
+  } catch (...) {
+    LOG(ERROR) << "get unknown exception when wait nbre";
+    return false;
+  }
+  return true;
 }
+
 bool ipc_server_endpoint::check_path_exists() {
   return neb::fs::exists(m_nbre_exe_name);
 }
 
+void ipc_server_endpoint::init_params(const char *admin_pub_addr) {
+  m_admin_pub_addr = admin_pub_addr;
+}
 void ipc_server_endpoint::add_all_callbacks() {
   LOG(INFO) << "ipc server pointer: " << (void *)m_ipc_server.get();
+  ipc_server_t *p = m_ipc_server.get();
+
   m_ipc_server->add_handler<ipc_pkg::nbre_version_ack>(
-      [](ipc_pkg::nbre_version_ack *msg) {
+      [p](ipc_pkg::nbre_version_ack *msg) {
+        LOG(INFO) << "alloc: " << (void *)p;
         ipc_callback_holder::instance().m_nbre_version_callback(
-            msg->m_holder, msg->get<ipc_pkg::major>(),
+            ipc_status_succ, msg->m_holder, msg->get<ipc_pkg::major>(),
             msg->get<ipc_pkg::minor>(), msg->get<ipc_pkg::patch>());
+      });
+
+  m_ipc_server->add_handler<ipc_pkg::nbre_init_req>(
+      [p, this](ipc_pkg::nbre_init_req *) {
+        LOG(INFO) << "get init req ";
+        ipc_pkg::nbre_init_ack *ack = p->construct<ipc_pkg::nbre_init_ack>(
+            nullptr, p->default_allocator());
+        ack->set<ipc_pkg::admin_pub_addr>(m_admin_pub_addr.c_str());
+        p->push_back(ack);
       });
 }
 
 void ipc_server_endpoint::send_nbre_version_req(void *holder, uint64_t height) {
+  LOG(INFO) << "send_nbre_version_req";
   ipc_pkg::nbre_version_req *req =
       m_ipc_server->construct<ipc_pkg::nbre_version_req>(
           holder, m_ipc_server->default_allocator());

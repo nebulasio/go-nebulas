@@ -31,11 +31,16 @@ bool driver::init() {
   add_handlers();
 
   //! we should make share wait_until_sync first
-  ir_warden::instance().async_run();
-  ir_warden::instance().wait_until_sync();
 
-  m_client->start();
+  bool ret = m_client->start();
+  if (!ret)
+    return ret;
+
   m_ipc_conn = m_client->ipc_connection();
+
+  auto p = m_ipc_conn->construct<ipc_pkg::nbre_init_req>(
+      nullptr, m_ipc_conn->default_allocator());
+  m_ipc_conn->push_back(p);
 
   return true;
 }
@@ -65,6 +70,16 @@ void driver::add_handlers() {
           jit_driver d;
           d.run(this, irs, mi::func_name, req);
         });
+      });
+
+  m_client->add_handler<ipc_pkg::nbre_init_ack>(
+      [this](ipc_pkg::nbre_init_ack *ack) {
+        std::string s = ack->get<ipc_pkg::admin_pub_addr>().c_str();
+        LOG(INFO) << "got admin_pub_addr: " << s;
+        configuration::instance().auth_table_nas_addr() = s;
+        ir_warden::instance().async_run();
+        ir_warden::instance().wait_until_sync();
+
       });
 }
 void driver::handle_exception(const std::shared_ptr<neb::neb_exception> &p) {

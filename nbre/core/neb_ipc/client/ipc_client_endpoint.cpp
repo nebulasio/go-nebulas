@@ -34,9 +34,11 @@ bool ipc_client_endpoint::start() {
   bool init_done = false;
   std::mutex local_mutex;
   std::condition_variable local_cond_var;
+  std::atomic_bool got_exception_when_start_ipc;
 
   m_thread = std::unique_ptr<std::thread>(new std::thread([&, this]() {
     try {
+      got_exception_when_start_ipc = false;
       this->m_client = std::unique_ptr<ipc_client_t>(
           new ipc_client_t(shm_service_name, 128, 128));
 
@@ -52,11 +54,22 @@ bool ipc_client_endpoint::start() {
       m_client->run();
 
     } catch (const std::exception &e) {
+      got_exception_when_start_ipc = true;
+      LOG(ERROR) << "get exception when start ipc, " << typeid(e).name() << ", "
+                 << e.what();
+      local_cond_var.notify_one();
+    } catch (...) {
+      got_exception_when_start_ipc = true;
+      LOG(ERROR) << "get unknown exception when start ipc";
+      local_cond_var.notify_one();
     }
   }));
   std::unique_lock<std::mutex> _l(local_mutex);
   if (!init_done) {
     local_cond_var.wait(_l);
+  }
+  if (got_exception_when_start_ipc) {
+    return false;
   }
   return true;
 }

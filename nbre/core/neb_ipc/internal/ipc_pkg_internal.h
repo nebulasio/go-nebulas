@@ -48,12 +48,19 @@ template <size_t id, typename T> struct ipc_elem_base<id, T, true> {
 template <ipc_pkg_type_id_t id_t, typename... ARGS>
 struct define_ipc_pkg : public ARGS... {
   define_ipc_pkg(void *holder, const neb::ipc::default_allocator_t &alloc)
-      : ARGS(alloc)..., m_holder(holder) {}
+      : ARGS(alloc)..., m_holder(holder), m_alloc(alloc) {}
   const static ipc_pkg_type_id_t pkg_identifier = id_t;
   template <typename T> const typename T::type &get() { return T::__value; }
   template <typename T> void set(const typename T::type &t) { T::__value = t; }
+  template <typename T>
+  auto set(const char *t) -> typename std::enable_if<
+      std::is_same<typename T::type, neb::ipc::char_string_t>::value,
+      void>::type {
+    T::__value = neb::ipc::char_string_t(t, m_alloc);
+  }
 
   void *m_holder; // used by C-GO
+  const neb::ipc::default_allocator_t &m_alloc;
 };
 
 template <ipc_pkg_type_id_t id_t, typename... ARGS>

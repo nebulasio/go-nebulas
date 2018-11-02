@@ -30,6 +30,7 @@ public:
   ~ipc_callback_holder() = default;
 
   nbre_version_callback_t m_nbre_version_callback;
+
   bool check_all_callbacks();
 };
 } // namespace core

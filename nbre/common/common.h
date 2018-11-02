@@ -19,6 +19,7 @@
 //
 
 #pragma once
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <glog/logging.h>
@@ -26,6 +27,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <tuple>
 #include <unordered_map>
 #include <vector>

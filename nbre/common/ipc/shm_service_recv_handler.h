@@ -33,14 +33,13 @@ public:
 
   template <typename T, typename Func> void add_handler(Func &&f) {
     std::lock_guard<std::mutex> _l(m_handlers_mutex);
-    m_all_handlers.insert(
-        std::make_pair(T::pkg_identifier, [this, &f](void *p) {
-          T *r = (T *)p;
-          f(r);
-          std::shared_ptr<shm_service_op_destroy> tp =
-              std::make_shared<shm_service_op_destroy>(m_shmem, r);
-          m_op_queue->push_back(tp);
-        }));
+    m_all_handlers.insert(std::make_pair(T::pkg_identifier, [this, f](void *p) {
+      T *r = (T *)p;
+      f(r);
+      std::shared_ptr<shm_service_op_destroy> tp =
+          std::make_shared<shm_service_op_destroy>(m_shmem, r);
+      m_op_queue->push_back(tp);
+    }));
   }
 
   void handle_recv_op(const std::shared_ptr<shm_service_op_base> &op);

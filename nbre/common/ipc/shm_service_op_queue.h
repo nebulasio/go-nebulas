@@ -33,6 +33,7 @@ public:
     op_recv_obj,
     op_push_back,
     op_destroy,
+    op_general,
   };
   inline shm_service_op_base(shm_service_op_id op_id) : m_op_id(op_id) {}
 
@@ -75,6 +76,13 @@ public:
       : shm_service_op_base(op_destroy) {
     m_func = [shmem, pointer]() { shmem->destroy_ptr(pointer); };
   }
+  std::function<void()> m_func;
+};
+
+class shm_service_op_general : public shm_service_op_base {
+public:
+  template <typename T>
+  shm_service_op_general(T &&f) : shm_service_op_base(op_general), m_func(f) {}
   std::function<void()> m_func;
 };
 

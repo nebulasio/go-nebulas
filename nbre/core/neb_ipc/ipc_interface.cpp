@@ -23,24 +23,27 @@
 
 std::shared_ptr<neb::core::ipc_server_endpoint> _ipc;
 
-int start_nbre_ipc(const char *root_dir, const char *nbre_path) {
+int start_nbre_ipc(const char *root_dir, const char *nbre_path,
+                   const char *admin_pub_addr) {
   try {
     _ipc =
         std::make_shared<neb::core::ipc_server_endpoint>(root_dir, nbre_path);
+    _ipc->init_params(admin_pub_addr);
+
     if (_ipc->start()) {
       LOG(INFO) << "start nbre succ";
-      return 0;
+      return ipc_status_succ;
     } else {
       LOG(ERROR) << "start nbre failed";
-      return 1;
+      return ipc_status_fail;
     }
   } catch (const std::exception &e) {
     LOG(ERROR) << "start nbre got exception " << typeid(e).name() << ":"
                << e.what();
-    return 2;
+    return ipc_status_exception;
   } catch (...) {
     LOG(ERROR) << "start nbre got unknown exception ";
-    return 3;
+    return ipc_status_exception;
   }
 }
 

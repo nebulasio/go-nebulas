@@ -27,17 +27,24 @@ namespace core {
 enum {
   ipc_pkg_nbre_version_req,
   ipc_pkg_nbre_version_ack,
+  ipc_pkg_nbre_init_req,
+  ipc_pkg_nbre_init_ack,
 };
 namespace ipc_pkg {
 using namespace internal;
 
 using height = ipc_elem_base<0, uint64_t>;
 using nbre_version_req = define_ipc_pkg<ipc_pkg_nbre_version_req, height>;
+
 using major = ipc_elem_base<1, uint32_t>;
 using minor = ipc_elem_base<2, uint32_t>;
 using patch = ipc_elem_base<3, uint32_t>;
 using nbre_version_ack =
     define_ipc_pkg<ipc_pkg_nbre_version_ack, major, minor, patch>;
+
+using nbre_init_req = define_ipc_pkg<ipc_pkg_nbre_init_req>;
+using admin_pub_addr = ipc_elem_base<4, neb::ipc::char_string_t>;
+using nbre_init_ack = define_ipc_pkg<ipc_pkg_nbre_init_ack, admin_pub_addr>;
 
 } // namespace ipc_pkg
 

@@ -59,7 +59,7 @@ public:
   }
 
   template <typename T, typename Func> void add_handler(Func &&f) {
-    m_recv_handler->add_handler<T>(std::move(f));
+    m_recv_handler->add_handler<T>(f);
   }
 
   void init_local_env();
@@ -70,8 +70,15 @@ public:
   void reset();
 
   inline shm_session_base *session() { return m_session.get(); }
+  inline char_allocator_t &char_allocator() { return *m_char_allocator; }
   inline default_allocator_t &default_allocator() {
     return *m_default_allocator;
+  }
+
+  template <typename T> void schedule_task_in_service_thread(T &&func) {
+    auto task =
+        std::shared_ptr<shm_service_op_base>(new shm_service_op_general(func));
+    m_op_queue->push_back(task);
   }
 
 private:

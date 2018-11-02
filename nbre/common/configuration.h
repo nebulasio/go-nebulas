@@ -38,13 +38,16 @@ public:
   configuration(configuration &&cf) = delete;
   ~configuration();
 
-
+  const std::string &auth_table_nas_addr() const {
+    return m_auth_table_nas_addr;
+  }
+  std::string &auth_table_nas_addr() { return m_auth_table_nas_addr; }
   inline const std::string &root_dir() const { return m_root_dir; }
 
   inline int32_t ir_warden_time_interval() const { return 1; }
 
 protected:
   std::string m_root_dir;
-
+  std::string m_auth_table_nas_addr;
 };
 } // end namespace neb

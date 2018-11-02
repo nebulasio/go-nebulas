@@ -21,6 +21,7 @@
 #include "common/common.h"
 #include "common/ipc/shm_service.h"
 #include "core/neb_ipc/ipc_common.h"
+#include "core/neb_ipc/server/api_request_timer.h"
 #include "core/neb_ipc/server/ipc_callback_holder.h"
 
 namespace neb {
@@ -31,6 +32,7 @@ public:
   ipc_server_endpoint(const std::string &root_dir,
                       const std::string &nbre_exe_path);
 
+  void init_params(const char *admin_pub_addr);
   bool start();
 
   void send_nbre_version_req(void *holder, uint64_t height);
@@ -42,14 +44,16 @@ private:
   void add_all_callbacks();
 
 protected:
-
-protected:
   std::string m_root_dir;
   std::string m_nbre_exe_name;
   std::unique_ptr<std::thread> m_thread;
   std::unique_ptr<ipc_server_t> m_ipc_server;
   boost::process::child *m_client;
   std::atomic_bool m_got_exception_when_start_nbre;
+
+  std::string m_admin_pub_addr;
+  std::unique_ptr<std::thread> m_timer_thread;
+  std::unique_ptr<api_request_timer> m_request_timer;
 };
 
 } // namespace core

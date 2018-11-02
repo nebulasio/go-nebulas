@@ -31,8 +31,8 @@ std::mutex local_mutex;
 std::condition_variable local_cond_var;
 bool to_quit = false;
 
-void nbre_version_callback(void *handler, uint32_t major, uint32_t minor,
-                           uint32_t patch) {
+void nbre_version_callback(ipc_status_code isc, void *handler, uint32_t major,
+                           uint32_t minor, uint32_t patch) {
   std::cout << "got version: " << major << ", " << minor << ", " << patch
             << std::endl;
   std::unique_lock<std::mutex> _l(local_mutex);
@@ -51,9 +51,10 @@ int main(int argc, char *argv[]) {
 
   set_recv_nbre_version_callback(nbre_version_callback);
 
-  start_nbre_ipc(root_dir, nbre_path.c_str());
+  auto ret = start_nbre_ipc(root_dir, nbre_path.c_str(), "auth address here!");
+  if (ret != ipc_status_succ)
+    to_quit = false;
 
-  to_quit = false;
   uint64_t height = 100;
 
   ipc_nbre_version(&local_mutex, height);

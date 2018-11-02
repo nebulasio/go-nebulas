@@ -153,6 +153,7 @@ size_t shm_queue::empty() const {
 }
 
 shm_queue::~shm_queue() {
+  LOG(INFO) << "m_shmem: " << (void *)m_shmem;
   if (m_shmem && m_buffer) {
     m_shmem->destroy_ptr(m_buffer);
   }

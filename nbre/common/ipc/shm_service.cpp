@@ -117,6 +117,13 @@ void shm_service_base::thread_func() {
           m_out_buffer->push_back(push_op->m_type_id, push_op->m_pointer);
         } else if (op->op_id() == shm_service_op_base::op_destroy) {
           m_constructer->handle_destroy_op(op);
+        } else if (op->op_id() == shm_service_op_base::op_general) {
+          shm_service_op_general *og = (shm_service_op_general *)op.get();
+          try {
+            og->m_func();
+          } catch (...) {
+            LOG(ERROR) << "shm_service_base got exception when run general op";
+          }
         }
       }
     }

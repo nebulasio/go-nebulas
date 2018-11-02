@@ -20,13 +20,15 @@
 #pragma once
 #include "common/common.h"
 #include "common/ipc/shm_service.h"
+#include "fs/util.h"
 
 namespace neb {
 namespace core {
 typedef neb::ipc::shm_service_server<32 * 1024 * 1024> ipc_server_t;
 typedef neb::ipc::shm_service_client<32 * 1024 * 1024> ipc_client_t;
 typedef neb::ipc::shm_service_util<32 * 1024 * 1024> ipc_util_t;
-
-constexpr static const char *shm_service_name = "nbre.ipc";
+static std::string shm_service_name_str =
+    std::string("nbre.") + neb::fs::get_user_name();
+static const char *shm_service_name = shm_service_name_str.c_str();
 }
 } // namespace neb

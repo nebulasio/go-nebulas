@@ -27,7 +27,8 @@ extern "C" {
 #endif
 
 enum ipc_status_code {
-  ipc_status_succ,
+  ipc_status_succ = 0,
+  ipc_status_fail,
   ipc_status_timeout,
   ipc_status_exception,
 };
@@ -36,12 +37,14 @@ typedef void (*handle_recv_callback_func_t)(ipc_status_code isc, const char *);
 
 void ipc_nbre_version(void *holder, uint64_t height);
 
-typedef void (*nbre_version_callback_t)(void *holder, uint32_t major,
-                                        uint32_t minor, uint32_t patch);
+typedef void (*nbre_version_callback_t)(ipc_status_code isc, void *holder,
+                                        uint32_t major, uint32_t minor,
+                                        uint32_t patch);
 
 void set_recv_nbre_version_callback(nbre_version_callback_t func);
 
-int start_nbre_ipc(const char *root_dir, const char *nbre_path);
+int start_nbre_ipc(const char *root_dir, const char *nbre_path,
+                   const char *admin_pub_addr);
 
 void nbre_ipc_shutdown();
 
