@@ -24,7 +24,7 @@ package nbre
 #include <stdlib.h>
 #include <native/ipc_interface.h>
 
-void NbreVersionFunc_cgo(void *holder, uint32_t major, uint32_t minor,uint32_t patch);
+void NbreVersionFunc_cgo(int isc, void *holder, uint32_t major, uint32_t minor,uint32_t patch);
 */
 import "C"
 import (
@@ -91,17 +91,20 @@ func (n *Nbre) Start() error {
 	// TODO(larry): add to config
 	root := getCurrPath() + "/nbre/"
 	path := root + "bin/nbre"
+	adminAddr := "n1cYKNHTeVW9v1NQRWuhZZn9ETbqAYozckh"
 	cRoot := C.CString(root)
 	defer C.free(unsafe.Pointer(cRoot))
 	cPath := C.CString(path)
 	defer C.free(unsafe.Pointer(cPath))
+	cAddr := C.CString(adminAddr)
+	defer C.free(unsafe.Pointer(cAddr))
 
 	logging.CLog().WithFields(logrus.Fields{
 		"root": root,
 		"path": path,
 	}).Info("Started nbre.")
 
-	cResult := C.start_nbre_ipc(cRoot, cPath)
+	cResult := C.start_nbre_ipc(cRoot, cPath, cAddr)
 	if int(cResult) != 0 {
 		return ErrNbreStartFailed
 	}
