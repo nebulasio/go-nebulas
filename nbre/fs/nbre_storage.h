@@ -58,14 +58,11 @@ public:
                            std::pair<start_block_t, end_block_t>>>
   get_auth_table();
 
+  void set_auth_table(const std::shared_ptr<nbre::NBREIR> nbreir_ptr);
+
 private:
   std::unique_ptr<rocksdb_storage> m_storage;
   std::unique_ptr<blockchain> m_blockchain;
-
-  static constexpr char const *s_payload_type = "protocol";
-  static constexpr char const *s_nbre_max_height = "nbre_max_height";
-  static constexpr char const *s_nbre_auth_table = "nbre_auth_table";
-  static constexpr char const *s_module_auth_name = "auth";
 };
 } // namespace fs
 } // namespace neb
