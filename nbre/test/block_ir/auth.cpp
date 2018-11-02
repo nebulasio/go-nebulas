@@ -18,6 +18,19 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-const char *entry_point_auth() {
-  return "nr,1,addr1,100,200\nnr,2,addr2,150,250\ndip,1,addr1,200,300\n";
+#include <tuple>
+
+typedef const char *name_t;
+typedef uint64_t version_t;
+typedef const char *address_t;
+typedef uint64_t height_t;
+
+typedef std::tuple<name_t, version_t, address_t, height_t, height_t> row_t;
+
+std::tuple<row_t *, size_t> entry_point_auth() {
+  static row_t r[] = {std::make_tuple("nr", 1, "addr1", 100, 200),
+                      std::make_tuple("nr", 2, "addr2", 150, 250),
+                      std::make_tuple("dip", 1, "addr1", 200, 300)};
+  return std::make_tuple(r, sizeof(r) / sizeof(r[0]));
 }
+

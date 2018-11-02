@@ -105,7 +105,8 @@ public:
     LOG(INFO) << "jit return : " << ret;
   }
 
-  const char *auto_run(const nbre::NBREIR &ir, const std::string &func_name) {
+  void auto_run(const nbre::NBREIR &ir, const std::string &func_name,
+                std::tuple<auth_row_t *, size_t> &auth_table) {
 
     std::string errMsg;
     if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr, &errMsg)) {
@@ -120,9 +121,7 @@ public:
     std::unique_ptr<llvm::Module> module =
         llvm::parseIR(mem_buf->getMemBufferRef(), err, m_context, true);
     // LOG(INFO) << " call llvm::auto_runOrcLazyJIT";
-    auto ret = llvm::auto_runOrcLazyJIT(std::move(module), func_name);
-    LOG(INFO) << "jit return : " << ret;
-    return ret;
+    auth_table = llvm::auto_runOrcLazyJIT(std::move(module), func_name);
   }
 
   virtual ~jit_driver_impl() { llvm::llvm_shutdown(); }
@@ -146,8 +145,8 @@ void jit_driver::run(core::driver *d,
   m_impl->run(d, irs, func_name, param);
 }
 
-const char *jit_driver::get_auth_table(const nbre::NBREIR &ir,
-                                       const std::string &func_name) {
-  return m_impl->auto_run(ir, func_name);
+void jit_driver::auth_run(const nbre::NBREIR &ir, const std::string &func_name,
+                          auth_table_t &auth_table) {
+  m_impl->auto_run(ir, func_name, auth_table);
 }
 } // namespace neb

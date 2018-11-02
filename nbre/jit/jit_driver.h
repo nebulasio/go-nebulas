@@ -37,8 +37,9 @@ public:
   void run(core::driver *d,
            const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
            const std::string &func_name, void *param);
-  const char *get_auth_table(const nbre::NBREIR &ir,
-                             const std::string &func_name);
+
+  void auth_run(const nbre::NBREIR &ir, const std::string &func_name,
+                auth_table_t &auth_table);
 
 protected:
   std::unique_ptr<internal::jit_driver_impl> m_impl;

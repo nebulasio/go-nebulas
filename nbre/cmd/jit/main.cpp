@@ -100,9 +100,9 @@ int main(int argc, char *argv[]) {
   auto nbreir_ptr = std::make_shared<nbre::NBREIR>(nbre_ir);
   auto v = std::vector<std::shared_ptr<nbre::NBREIR>>({nbreir_ptr});
 
+  neb::auth_table_t auth_table;
   neb::jit_driver jd;
-  // jd.run(nullptr, v, vm["func"].as<std::string>(), nullptr);
-  jd.get_auth_table(nbre_ir, vm["func"].as<std::string>());
+  jd.auth_run(nbre_ir, vm["func"].as<std::string>(), auth_table);
 
   return 0;
 }

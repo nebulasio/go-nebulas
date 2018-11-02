@@ -26,6 +26,9 @@
 namespace neb {
 namespace fs {
 
+typedef std::tuple<module_t, version_t, address_t> key_t;
+typedef std::tuple<start_block_t, end_block_t> value_t;
+
 class nbre_storage {
 public:
   nbre_storage(const std::string &path, const std::string &bc_path);
@@ -48,17 +51,12 @@ private:
                               block_height_t height,
                               std::unordered_set<std::string> &pkg,
                               std::vector<std::shared_ptr<nbre::NBREIR>> &irs);
-  void write_nbre_by_height(
-      block_height_t height,
-      const std::map<std::tuple<module_t, version_t, address_t>,
-                     std::pair<start_block_t, end_block_t>> &auth_table);
+
+  void write_nbre_by_height(block_height_t height,
+                            const std::map<key_t, value_t> &auth_table);
 
 public:
-  std::shared_ptr<std::map<std::tuple<module_t, version_t, address_t>,
-                           std::pair<start_block_t, end_block_t>>>
-  get_auth_table();
-
-  void set_auth_table(const std::shared_ptr<nbre::NBREIR> nbreir_ptr);
+  std::shared_ptr<std::map<key_t, value_t>> get_auth_table();
 
 private:
   std::unique_ptr<rocksdb_storage> m_storage;
