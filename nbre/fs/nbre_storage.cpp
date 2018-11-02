@@ -19,9 +19,11 @@
 //
 
 #include "fs/nbre_storage.h"
+#include "common/configuration.h"
 #include "common/util/byte.h"
 #include "common/util/util.h"
 #include "common/util/version.h"
+#include "jit/jit_driver.h"
 
 namespace neb {
 namespace fs {
@@ -108,11 +110,14 @@ void nbre_storage::write_nbre() {
 
   block_height_t start_height = 0;
   try {
-    start_height = neb::util::byte_to_number<block_height_t>(
-        m_storage->get(std::string(s_nbre_max_height, std::allocator<char>())));
+    start_height = neb::util::byte_to_number<block_height_t>(m_storage->get(
+        std::string(neb::configuration::instance().nbre_max_height_name(),
+                    std::allocator<char>())));
   } catch (std::exception &e) {
-    m_storage->put(std::string(s_nbre_max_height, std::allocator<char>()),
-                   neb::util::number_to_byte<neb::util::bytes>(start_height));
+    m_storage->put(
+        std::string(neb::configuration::instance().nbre_max_height_name(),
+                    std::allocator<char>()),
+        neb::util::number_to_byte<neb::util::bytes>(start_height));
   }
 
   block_height_t end_height = end_block->height();
@@ -125,9 +130,23 @@ void nbre_storage::write_nbre() {
   for (block_height_t h = start_height + 1; h <= end_height; h++) {
     LOG(INFO) << h;
     write_nbre_by_height(h, *auth_table_ptr);
-    m_storage->put(std::string(s_nbre_max_height, std::allocator<char>()),
-                   neb::util::number_to_byte<neb::util::bytes>(h));
+    m_storage->put(
+        std::string(neb::configuration::instance().nbre_max_height_name(),
+                    std::allocator<char>()),
+        neb::util::number_to_byte<neb::util::bytes>(h));
   }
+}
+
+void nbre_storage::set_auth_table(
+    const std::shared_ptr<nbre::NBREIR> nbreir_ptr) {
+
+  jit_driver jd;
+  const char *auth_table = jd.get_auth_table(
+      *nbreir_ptr, neb::configuration::instance().auth_func_mangling_name());
+
+  m_storage->put(neb::configuration::instance().nbre_auth_table_name(),
+                 neb::util::string_to_byte(
+                     std::string(auth_table, std::allocator<char>())));
 }
 
 void nbre_storage::write_nbre_by_height(
@@ -144,7 +163,7 @@ void nbre_storage::write_nbre_by_height(
     std::string from = tx.from();
     std::string from_base58 = neb::util::string_to_byte(from).to_base58();
 
-    if (type == s_payload_type) {
+    if (type == neb::configuration::instance().tx_payload_type()) {
       const std::string &payload = data.payload();
       neb::util::bytes payload_bytes = neb::util::string_to_byte(payload);
 
@@ -158,18 +177,23 @@ void nbre_storage::write_nbre_by_height(
       const std::string &name = nbre_ir->name();
       const uint64_t version = nbre_ir->version();
 
-      if (name.compare(s_module_auth_name) == 0) {
+      if (name.compare(neb::configuration::instance().auth_module_name()) ==
+          0) {
         // TODO jit driver executes auth table code immediately
         // TODO expect auth table exceed 128k bytes size
+
+        set_auth_table(nbre_ir);
         continue;
       }
 
       auto it = auth_table.find(std::make_tuple(name, version, from_base58));
       if (it == auth_table.end()) {
+        LOG(INFO) << "tuple <name, version, address> not in auth table";
         continue;
       }
       const uint64_t height = nbre_ir->height();
       if (height < it->second.first || height >= it->second.second) {
+        LOG(INFO) << "address has no access to deploy code";
         continue;
       }
 
@@ -190,8 +214,9 @@ void nbre_storage::write_nbre_by_height(
 
 bool nbre_storage::is_latest_irreversible_block() {
   auto lib_block = m_blockchain->load_LIB_block();
-  auto max_height_bytes =
-      m_storage->get(std::string(s_nbre_max_height, std::allocator<char>()));
+  auto max_height_bytes = m_storage->get(
+      std::string(neb::configuration::instance().nbre_max_height_name(),
+                  std::allocator<char>()));
   return lib_block->height() ==
          neb::util::byte_to_number<neb::block_height_t>(max_height_bytes);
 }
@@ -205,7 +230,8 @@ nbre_storage::get_auth_table() {
       auth_table;
 
   try {
-    auto auth_table_bytes = m_storage->get(s_nbre_auth_table);
+    auto auth_table_bytes =
+        m_storage->get(neb::configuration::instance().nbre_auth_table_name());
     auto auth_table_string = neb::util::byte_to_string(auth_table_bytes);
 
     auto lines_ptr = string_util::split_by_comma(auth_table_string, '\n');
@@ -220,6 +246,7 @@ nbre_storage::get_auth_table() {
     }
   } catch (const std::exception &e) {
     // TODO auth table init
+    LOG(INFO) << e.what();
   }
 
   return std::make_shared<std::map<std::tuple<module_t, version_t, address_t>,
