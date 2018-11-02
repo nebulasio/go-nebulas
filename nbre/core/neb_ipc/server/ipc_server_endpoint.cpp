@@ -20,7 +20,6 @@
 #include "core/neb_ipc/ipc_pkg.h"
 #include "fs/util.h"
 #include <atomic>
-#include <boost/process/child.hpp>
 #include <condition_variable>
 
 namespace neb {
@@ -61,7 +60,10 @@ bool ipc_server_endpoint::start() {
 
       LOG(INFO) << "nbre ipc init done!";
       add_all_callbacks();
-      boost::process::child client(m_nbre_exe_name);
+
+      m_client_watcher = std::unique_ptr<ipc_client_watcher>(
+          new ipc_client_watcher(m_nbre_exe_name));
+      m_client_watcher->start();
 
       local_mutex.lock();
       init_done = true;
@@ -70,7 +72,6 @@ bool ipc_server_endpoint::start() {
 
       m_ipc_server->run();
 
-      client.wait();
 
       LOG(INFO) << "nbre stopped!";
     } catch (const std::exception &e) {
@@ -115,6 +116,7 @@ void ipc_server_endpoint::add_all_callbacks() {
   LOG(INFO) << "ipc server pointer: " << (void *)m_ipc_server.get();
   ipc_server_t *p = m_ipc_server.get();
 
+  m_callbacks = &(ipc_callback_holder::instance());
   m_ipc_server->add_handler<ipc_pkg::nbre_version_ack>(
       [p](ipc_pkg::nbre_version_ack *msg) {
         LOG(INFO) << "alloc: " << (void *)p;
@@ -134,12 +136,18 @@ void ipc_server_endpoint::add_all_callbacks() {
 }
 
 void ipc_server_endpoint::send_nbre_version_req(void *holder, uint64_t height) {
-  LOG(INFO) << "send_nbre_version_req";
-  ipc_pkg::nbre_version_req *req =
-      m_ipc_server->construct<ipc_pkg::nbre_version_req>(
-          holder, m_ipc_server->default_allocator());
-  req->set<ipc_pkg::height>(height);
-  m_ipc_server->push_back(req);
+  CHECK_NBRE_STATUS(m_callbacks->m_nbre_version_callback);
+
+  m_request_timer->issue_api(
+      holder,
+      [holder, height, this]() {
+        ipc_pkg::nbre_version_req *req =
+            m_ipc_server->construct<ipc_pkg::nbre_version_req>(
+                holder, m_ipc_server->default_allocator());
+        req->set<ipc_pkg::height>(height);
+        m_ipc_server->push_back(req);
+      },
+      m_callbacks->m_nbre_version_callback);
 }
 
 void ipc_server_endpoint::shutdown() {

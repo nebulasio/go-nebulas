@@ -31,6 +31,7 @@ enum ipc_status_code {
   ipc_status_fail,
   ipc_status_timeout,
   ipc_status_exception,
+  ipc_status_nbre_not_ready,
 };
 
 typedef void (*handle_recv_callback_func_t)(ipc_status_code isc, const char *);

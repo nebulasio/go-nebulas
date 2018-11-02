@@ -33,5 +33,34 @@ public:
 
   bool check_all_callbacks();
 };
+
+namespace internal {
+template <typename T> struct issue_callback_with_error_helper {};
+
+template <typename... ARGS>
+struct issue_callback_with_error_helper<void (*)(ipc_status_code, ARGS...)> {
+  using func_t = void (*)(ipc_status_code, ARGS...);
+  static void call(const func_t &f, ipc_status_code isc) { f(isc, ARGS()...); }
+};
+} // namespace internal
+
+template <typename T>
+void issue_callback_with_error(T &&func, ipc_status_code isc) {
+  internal::issue_callback_with_error_helper<
+      std::remove_const_t<std::remove_reference_t<T>>>::call(func, isc);
+}
+
+#define CHECK_NBRE_STATUS(a)                                                   \
+  if (!m_ipc_server) {                                                         \
+    return;                                                                    \
+  }                                                                            \
+  if (m_got_exception_when_start_nbre) {                                       \
+    m_ipc_server->schedule_task_in_service_thread(                             \
+        [this]() { issue_callback_with_error(a, ipc_status_exception); });     \
+  } else if (!m_client_watcher->is_client_alive()) {                           \
+    m_ipc_server->schedule_task_in_service_thread([this]() {                   \
+      issue_callback_with_error(a, ipc_status_nbre_not_ready);                 \
+    });                                                                        \
+  }
 } // namespace core
 } // namespace neb

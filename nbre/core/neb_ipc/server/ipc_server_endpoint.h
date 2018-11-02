@@ -23,6 +23,7 @@
 #include "core/neb_ipc/ipc_common.h"
 #include "core/neb_ipc/server/api_request_timer.h"
 #include "core/neb_ipc/server/ipc_callback_holder.h"
+#include "core/neb_ipc/server/ipc_client_watcher.h"
 
 namespace neb {
 namespace core {
@@ -54,6 +55,8 @@ protected:
   std::string m_admin_pub_addr;
   std::unique_ptr<std::thread> m_timer_thread;
   std::unique_ptr<api_request_timer> m_request_timer;
+  std::unique_ptr<ipc_client_watcher> m_client_watcher;
+  ipc_callback_holder *m_callbacks;
 };
 
 } // namespace core

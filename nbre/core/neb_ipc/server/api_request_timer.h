@@ -34,10 +34,16 @@ public:
 
   ~api_request_timer();
 
-  template <typename FT> void issue_api(api_identifier_t id, FT &&f) {
-    std::lock_guard<std::mutex> _l(m_mutex);
+  template <typename FT, typename Func>
+  void issue_api(api_identifier_t id, FT &&f, Func &&func) {
+    std::unique_lock<std::mutex> _l(m_mutex);
     m_api_requests.insert(std::make_pair(id, f));
     m_api_timeout_counter.insert(std::make_pair(id, m_timout_threshold));
+    m_api_timeout_callbacks.insert(std::make_pair(id, [func, this]() {
+      m_ipc->schedule_task_in_service_thread(
+          [func]() { issue_callback_with_error(func, ipc_status_timeout); });
+    }));
+    f();
   }
 
   void remove_api(api_identifier_t id);
@@ -56,6 +62,7 @@ protected:
   mutable std::mutex m_mutex;
   timeout_counter_t m_api_timeout_counter;
   api_requests_t m_api_requests;
+  api_requests_t m_api_timeout_callbacks;
   ipc_server_t *m_ipc;
   ipc_callback_holder *m_cb_holder;
   std::unique_ptr<std::thread> m_thread;

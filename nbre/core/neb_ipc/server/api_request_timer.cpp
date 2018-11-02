@@ -44,6 +44,7 @@ void api_request_timer::remove_api(api_identifier_t id) {
   std::lock_guard<std::mutex> _l(m_mutex);
   m_api_requests.erase(id);
   m_api_timeout_counter.erase(id);
+  m_api_timeout_callbacks.erase(id);
 }
 
 bool api_request_timer::is_api_alive(api_identifier_t id) const {
