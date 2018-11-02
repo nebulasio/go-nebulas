@@ -49,7 +49,6 @@ runtime::~runtime() {
   m_bAllThreadsQuit = true;
   {
     std::unique_lock<std::mutex> _l(m_wakeup_mutex);
-    m_b_is_active = false;
     m_wakeup.notify_all();
   }
   m_pTP->join();
@@ -60,16 +59,6 @@ runtime_ptr runtime::instance() {
   return s_pInstance;
 }
 
-void runtime::active() {
-  m_wakeup_mutex.lock();
-  m_b_is_active = true;
-  m_wakeup_mutex.unlock();
-  m_wakeup.notify_all();
-}
-void runtime::pause() {
-  std::unique_lock<std::mutex> _l(m_wakeup_mutex);
-  m_b_is_active = false;
-}
 
 void runtime::init() {
   s_pInstance = new runtime();
@@ -81,7 +70,7 @@ void runtime::init() {
     s_pInstance->m_oWQueues.push_back(
         std::unique_ptr<simo_queue_t>(new simo_queue_t()));
   }
-  s_pInstance->m_b_is_active = true;
+  s_pInstance->m_sleep_counter = 0;
 
   set_local_thrd_id(0);
 
@@ -99,6 +88,8 @@ void runtime::schedule(task_base_ptr p) {
   thread_local static int i = get_thrd_id();
   if (!m_oQueues[i]->push_back(p)) {
     run_task(p);
+  } else if (m_sleep_counter > 1) {
+    m_wakeup.notify_one();
   }
 }
 
@@ -137,18 +128,23 @@ void runtime::thread_run() {
   size_t dis = 1;
   size_t ts = m_oQueues.size();
   while (!m_bAllThreadsQuit) {
-    while (m_b_is_active.load()) {
+    int8_t retry_counter = 3;
+    while (retry_counter > 0) {
       flag = take_one_task(pTask);
       if (flag) {
         run_task(pTask);
+        retry_counter = 3;
       }
       if (!flag) {
         yield();
+        retry_counter--;
       }
     }
     std::unique_lock<std::mutex> _l(m_wakeup_mutex);
-    if (!m_bAllThreadsQuit && !m_b_is_active) {
+    if (!m_bAllThreadsQuit) {
+      m_sleep_counter++;
       m_wakeup.wait(_l);
+      m_sleep_counter--;
     }
   }
 }

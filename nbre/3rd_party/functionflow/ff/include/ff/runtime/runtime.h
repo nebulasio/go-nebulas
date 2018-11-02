@@ -53,8 +53,6 @@ class runtime {
 
   bool steal_one_task(task_base_ptr &p);
   void run_task(task_base_ptr &p);
-  void active();
-  void pause();
 
   bool is_idle();
 
@@ -75,7 +73,7 @@ class runtime {
   std::atomic<bool> m_bAllThreadsQuit;
   static runtime_ptr s_pInstance;
   static std::once_flag s_oOnce;
-  std::atomic_bool m_b_is_active;
+  std::atomic_int m_sleep_counter;
   std::mutex m_wakeup_mutex;
   std::condition_variable m_wakeup;
 };  // end class runtime
@@ -116,7 +114,5 @@ void yield_and_ret_until(Func &&f) {
 }
 }  // end namespace rt
 
-inline void active_runtime() { rt::runtime::instance()->active(); }
-inline void pause_runtime() { rt::runtime::instance()->pause(); }
 }  // end namespace ff
 #endif
