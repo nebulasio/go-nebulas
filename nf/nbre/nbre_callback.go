@@ -32,7 +32,7 @@ import (
 
 // NbreVersionFunc returns nbre version
 //export NbreVersionFunc
-func NbreVersionFunc(holder unsafe.Pointer, major C.uint32_t, minor C.uint32_t, patch C.uint32_t) {
+func NbreVersionFunc(code C.int, holder unsafe.Pointer, major C.uint32_t, minor C.uint32_t, patch C.uint32_t) {
 	handlerId := uint64(uintptr(holder))
 	handler, _ := getNbreHandler(handlerId)
 	logging.CLog().WithFields(logrus.Fields{

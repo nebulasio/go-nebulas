@@ -38,11 +38,15 @@ typedef uint8_t byte_t;
 typedef uint64_t block_height_t;
 extern std::string program_name;
 
-typedef std::string address_t;
-typedef uint64_t version_t;
 typedef std::string module_t;
+typedef uint64_t version_t;
+typedef std::string address_t;
 typedef block_height_t start_block_t;
 typedef block_height_t end_block_t;
+typedef std::tuple<module_t, version_t, address_t, block_height_t,
+                   block_height_t>
+    auth_row_t;
+typedef std::tuple<auth_row_t *, size_t> auth_table_t;
 
 namespace tcolor {
 const static char *red = "\033[1;31m";

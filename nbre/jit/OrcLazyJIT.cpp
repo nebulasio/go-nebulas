@@ -8,7 +8,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "OrcLazyJIT.h"
-#include "common/common.h"
 #include "jit/jit_exception.h"
 #include "llvm/ADT/Triple.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
@@ -153,8 +152,8 @@ int llvm::runOrcLazyJIT(neb::core::driver *d,
   return 1;
 }
 
-const char *llvm::auto_runOrcLazyJIT(std::unique_ptr<Module> M,
-                                     const std::string &func_name) {
+neb::auth_table_t llvm::auto_runOrcLazyJIT(std::unique_ptr<Module> M,
+                                           const std::string &func_name) {
   // Grab a target machine and try to build a factory function for the
   // target-specific Orc callback manager.
   EngineBuilder EB;
@@ -193,7 +192,7 @@ const char *llvm::auto_runOrcLazyJIT(std::unique_ptr<Module> M,
 
   if (auto MainSym =
           J.findSymbol(std::string(func_name, std::allocator<char>()))) {
-    using MainFnPtr = const char *(*)();
+    using MainFnPtr = neb::auth_table_t (*)();
     auto Main =
         fromTargetAddress<MainFnPtr>(cantFail(MainSym.getAddress(), nullptr));
     LOG(INFO) << "got target function, and to run it! ";
@@ -201,10 +200,7 @@ const char *llvm::auto_runOrcLazyJIT(std::unique_ptr<Module> M,
   } else if (auto Err = MainSym.takeError()) {
     logAllUnhandledErrors(std::move(Err), llvm::errs(), "");
     throw neb::jit_internal_failure("Unhandled errors");
-  } else {
-    LOG(ERROR) << "Could not find target function.\n";
-    throw neb::jit_internal_failure("Could not find target function");
   }
-
-  return nullptr;
+  LOG(ERROR) << "Could not find target function.\n";
+  throw neb::jit_internal_failure("Could not find target function");
 }

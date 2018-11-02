@@ -34,11 +34,11 @@ enum ipc_status_code {
   ipc_status_nbre_not_ready,
 };
 
-typedef void (*handle_recv_callback_func_t)(ipc_status_code isc, const char *);
+typedef void (*handle_recv_callback_func_t)(enum ipc_status_code isc, const char *);
 
 void ipc_nbre_version(void *holder, uint64_t height);
 
-typedef void (*nbre_version_callback_t)(ipc_status_code isc, void *holder,
+typedef void (*nbre_version_callback_t)(enum ipc_status_code isc, void *holder,
                                         uint32_t major, uint32_t minor,
                                         uint32_t patch);
 

@@ -137,22 +137,8 @@ void nbre_storage::write_nbre() {
   }
 }
 
-void nbre_storage::set_auth_table(
-    const std::shared_ptr<nbre::NBREIR> nbreir_ptr) {
-
-  jit_driver jd;
-  const char *auth_table = jd.get_auth_table(
-      *nbreir_ptr, neb::configuration::instance().auth_func_mangling_name());
-
-  m_storage->put(neb::configuration::instance().nbre_auth_table_name(),
-                 neb::util::string_to_byte(
-                     std::string(auth_table, std::allocator<char>())));
-}
-
 void nbre_storage::write_nbre_by_height(
-    block_height_t height,
-    const std::map<std::tuple<module_t, version_t, address_t>,
-                   std::pair<start_block_t, end_block_t>> &auth_table) {
+    block_height_t height, const std::map<key_t, value_t> &auth_table) {
 
   auto block = m_blockchain->load_block_with_height(height);
 
@@ -182,7 +168,8 @@ void nbre_storage::write_nbre_by_height(
         // TODO jit driver executes auth table code immediately
         // TODO expect auth table exceed 128k bytes size
 
-        set_auth_table(nbre_ir);
+        m_storage->put(neb::configuration::instance().nbre_auth_table_name(),
+                       payload_bytes);
         continue;
       }
 
@@ -192,7 +179,8 @@ void nbre_storage::write_nbre_by_height(
         continue;
       }
       const uint64_t height = nbre_ir->height();
-      if (height < it->second.first || height >= it->second.second) {
+      if (height < std::get<0>(it->second) ||
+          height >= std::get<1>(it->second)) {
         LOG(INFO) << "address has no access to deploy code";
         continue;
       }
@@ -221,37 +209,40 @@ bool nbre_storage::is_latest_irreversible_block() {
          neb::util::byte_to_number<neb::block_height_t>(max_height_bytes);
 }
 
-std::shared_ptr<std::map<std::tuple<module_t, version_t, address_t>,
-                         std::pair<start_block_t, end_block_t>>>
-nbre_storage::get_auth_table() {
+std::shared_ptr<std::map<key_t, value_t>> nbre_storage::get_auth_table() {
 
-  std::map<std::tuple<module_t, version_t, address_t>,
-           std::pair<start_block_t, end_block_t>>
-      auth_table;
+  std::map<key_t, value_t> ret;
 
+  std::shared_ptr<nbre::NBREIR> nbre_ir = std::make_shared<nbre::NBREIR>();
   try {
-    auto auth_table_bytes =
+    auto payload_bytes =
         m_storage->get(neb::configuration::instance().nbre_auth_table_name());
-    auto auth_table_string = neb::util::byte_to_string(auth_table_bytes);
 
-    auto lines_ptr = string_util::split_by_comma(auth_table_string, '\n');
-    for (auto &line : *lines_ptr) {
-      auto eles_ptr = string_util::split_by_comma(line, ',');
-      auto eles = *eles_ptr;
-      assert(5 == eles.size());
-
-      auth_table.insert(std::make_pair(
-          std::make_tuple(eles[0], std::stoull(eles[1]), eles[2]),
-          std::make_pair(std::stoull(eles[3]), std::stoull(eles[4]))));
+    bool ret =
+        nbre_ir->ParseFromArray(payload_bytes.value(), payload_bytes.size());
+    if (!ret) {
+      throw std::runtime_error("parse payload auth table failed");
     }
   } catch (const std::exception &e) {
     // TODO auth table init
     LOG(INFO) << e.what();
+    return std::make_shared<std::map<key_t, value_t>>(ret);
   }
 
-  return std::make_shared<std::map<std::tuple<module_t, version_t, address_t>,
-                                   std::pair<start_block_t, end_block_t>>>(
-      auth_table);
+  auth_table_t auth_table;
+  jit_driver jd;
+  jd.auth_run(*nbre_ir,
+              neb::configuration::instance().auth_func_mangling_name(),
+              auth_table);
+
+  for (size_t i = 0; i < std::get<1>(auth_table); i++) {
+    auto r = std::get<0>(auth_table)[i];
+    key_t k = std::make_tuple(std::get<0>(r), std::get<1>(r), std::get<2>(r));
+    value_t v = std::make_tuple(std::get<3>(r), std::get<4>(r));
+    ret.insert(std::make_pair(k, v));
+  }
+
+  return std::make_shared<std::map<key_t, value_t>>(ret);
 }
 
 } // namespace fs

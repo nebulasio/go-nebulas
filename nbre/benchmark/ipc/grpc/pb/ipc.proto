@@ -15,18 +15,14 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
+syntax = "proto3";
+package ipcpb;
 
-package nbre
+message Benchmark {
+    bytes data = 1;
+//    int64 timestamp = 2;
+}
 
-/*
-
-#include <stdint.h>
-
-void NbreVersionFunc(int isc, void *holder, uint32_t major, uint32_t minor,uint32_t patch);
-
-void NbreVersionFunc_cgo(int isc, void *holder, uint32_t major, uint32_t minor,uint32_t patch) {
-	NbreVersionFunc(isc, holder, major, minor, patch);
-};
-
-*/
-import "C"
+service BenchmarkService {
+    rpc transfer (Benchmark) returns (Benchmark);
+}

@@ -209,7 +209,7 @@ TEST(test_fs, get_auth_table) {
   for (auto &r : expected_table) {
     auto it = auth_table.find(std::make_tuple(r[0], std::stoull(r[1]), r[2]));
     EXPECT_TRUE(it != auth_table.end());
-    EXPECT_EQ(it->second.first, std::stoull(r[3]));
-    EXPECT_EQ(it->second.second, std::stoull(r[4]));
+    EXPECT_EQ(std::get<0>(it->second), std::stoull(r[3]));
+    EXPECT_EQ(std::get<1>(it->second), std::stoull(r[4]));
   }
 }

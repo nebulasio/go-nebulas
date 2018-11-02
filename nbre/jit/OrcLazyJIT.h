@@ -15,6 +15,7 @@
 #ifndef LLVM_TOOLS_LLI_ORCLAZYJIT_H
 #define LLVM_TOOLS_LLI_ORCLAZYJIT_H
 
+#include "common/common.h"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Twine.h"
@@ -198,8 +199,8 @@ private:
 int runOrcLazyJIT(neb::core::driver *d, std::vector<std::unique_ptr<Module>> Ms,
                   const std::string &func_name, void *param);
 
-const char *auto_runOrcLazyJIT(std::unique_ptr<Module> M,
-                               const std::string &func_name);
+neb::auth_table_t auto_runOrcLazyJIT(std::unique_ptr<Module> M,
+                                     const std::string &func_name);
 
 } // end namespace llvm
 
