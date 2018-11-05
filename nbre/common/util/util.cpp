@@ -1,6 +1,4 @@
 
-// Copyright (C) 2018 go-nebulas authors
-//
 //
 // This file is part of the go-nebulas library.
 //
