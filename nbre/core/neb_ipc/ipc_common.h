@@ -24,9 +24,10 @@
 
 namespace neb {
 namespace core {
-typedef neb::ipc::shm_service_server<32 * 1024 * 1024> ipc_server_t;
-typedef neb::ipc::shm_service_client<32 * 1024 * 1024> ipc_client_t;
-typedef neb::ipc::shm_service_util<32 * 1024 * 1024> ipc_util_t;
+#define SHM_SIZE 1 << 30
+typedef neb::ipc::shm_service_server<SHM_SIZE> ipc_server_t;
+typedef neb::ipc::shm_service_client<SHM_SIZE> ipc_client_t;
+typedef neb::ipc::shm_service_util<SHM_SIZE> ipc_util_t;
 static std::string shm_service_name_str =
     std::string("nbre.") + neb::fs::get_user_name();
 static const char *shm_service_name = shm_service_name_str.c_str();

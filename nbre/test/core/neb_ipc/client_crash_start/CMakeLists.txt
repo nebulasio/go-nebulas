@@ -1,0 +1,7 @@
+add_executable(test_neb_ipc_crash_server server.cpp)
+
+target_link_libraries(test_neb_ipc_crash_server nbre_rt)
+
+add_executable(test_neb_ipc_client_crash_start client.cpp)
+
+target_link_libraries(test_neb_ipc_client_crash_start nbre_rt)

@@ -151,6 +151,9 @@ int ipc_server_endpoint::send_nbre_version_req(void *holder, uint64_t height) {
         ipc_pkg::nbre_version_req *req =
             m_ipc_server->construct<ipc_pkg::nbre_version_req>(
                 holder, m_ipc_server->default_allocator());
+        if (req == nullptr) {
+          return; // will call timeout later
+        }
         req->set<ipc_pkg::height>(height);
         m_ipc_server->push_back(req);
       },

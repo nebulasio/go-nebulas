@@ -34,9 +34,9 @@ class driver_base {
 public:
   driver_base();
 
-  bool init();
+  virtual bool init();
 
-  void run();
+  virtual void run();
 
   ipc_client_t *ipc_conn() { return m_ipc_conn; }
 
