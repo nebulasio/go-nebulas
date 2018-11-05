@@ -138,7 +138,7 @@ void nbre_storage::write_nbre() {
 }
 
 void nbre_storage::write_nbre_by_height(
-    block_height_t height, const std::map<key_t, value_t> &auth_table) {
+    block_height_t height, std::map<auth_key_t, auth_val_t> &auth_table) {
 
   auto block = m_blockchain->load_block_with_height(height);
 
@@ -170,6 +170,7 @@ void nbre_storage::write_nbre_by_height(
 
         m_storage->put(neb::configuration::instance().nbre_auth_table_name(),
                        payload_bytes);
+        get_auth_table_by_jit(nbre_ir, auth_table);
         continue;
       }
 
@@ -209,9 +210,10 @@ bool nbre_storage::is_latest_irreversible_block() {
          neb::util::byte_to_number<neb::block_height_t>(max_height_bytes);
 }
 
-std::shared_ptr<std::map<key_t, value_t>> nbre_storage::get_auth_table() {
+std::shared_ptr<std::map<auth_key_t, auth_val_t>>
+nbre_storage::get_auth_table() {
 
-  std::map<key_t, value_t> ret;
+  std::map<auth_key_t, auth_val_t> ret;
 
   std::shared_ptr<nbre::NBREIR> nbre_ir = std::make_shared<nbre::NBREIR>();
   try {
@@ -226,23 +228,31 @@ std::shared_ptr<std::map<key_t, value_t>> nbre_storage::get_auth_table() {
   } catch (const std::exception &e) {
     // TODO auth table init
     LOG(INFO) << e.what();
-    return std::make_shared<std::map<key_t, value_t>>(ret);
+    return std::make_shared<std::map<auth_key_t, auth_val_t>>(ret);
   }
 
-  auth_table_t auth_table;
+  get_auth_table_by_jit(nbre_ir, ret);
+
+  return std::make_shared<std::map<auth_key_t, auth_val_t>>(ret);
+}
+
+void nbre_storage::get_auth_table_by_jit(
+    const std::shared_ptr<nbre::NBREIR> nbre_ir,
+    std::map<auth_key_t, auth_val_t> &auth_table) {
+
+  auth_table_t auth_table_raw;
   jit_driver jd;
   jd.auth_run(*nbre_ir,
               neb::configuration::instance().auth_func_mangling_name(),
-              auth_table);
+              auth_table_raw);
 
-  for (size_t i = 0; i < std::get<1>(auth_table); i++) {
-    auto r = std::get<0>(auth_table)[i];
-    key_t k = std::make_tuple(std::get<0>(r), std::get<1>(r), std::get<2>(r));
-    value_t v = std::make_tuple(std::get<3>(r), std::get<4>(r));
-    ret.insert(std::make_pair(k, v));
+  for (size_t i = 0; i < std::get<1>(auth_table_raw); i++) {
+    auto r = std::get<0>(auth_table_raw)[i];
+    auth_key_t k =
+        std::make_tuple(std::get<0>(r), std::get<1>(r), std::get<2>(r));
+    auth_val_t v = std::make_tuple(std::get<3>(r), std::get<4>(r));
+    auth_table.insert(std::make_pair(k, v));
   }
-
-  return std::make_shared<std::map<key_t, value_t>>(ret);
 }
 
 } // namespace fs
