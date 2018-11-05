@@ -48,7 +48,11 @@ void ipc_client_watcher::thread_func() {
     if (client.valid()) {
       m_b_client_alive = true;
     }
-    client.wait();
+    std::error_code ec;
+    client.wait(ec);
+    if (ec) {
+      LOG(ERROR) << ec.message();
+    }
     m_b_client_alive = false;
   }
 }

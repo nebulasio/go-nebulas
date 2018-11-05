@@ -24,9 +24,11 @@
 
 namespace neb {
 namespace core {
-driver::driver() : m_exit_flag(false) {}
+namespace internal {
 
-bool driver::init() {
+driver_base::driver_base() : m_exit_flag(false) {}
+
+bool driver_base::init() {
   m_client = std::unique_ptr<ipc_client_endpoint>(new ipc_client_endpoint());
   add_handlers();
 
@@ -45,7 +47,7 @@ bool driver::init() {
   return true;
 }
 
-void driver::run() {
+void driver_base::run() {
   neb::core::command_queue::instance().listen_command<neb::core::exit_command>(
       this, [this](const std::shared_ptr<neb::core::exit_command> &) {
         m_exit_flag = true;
@@ -57,6 +59,61 @@ void driver::run() {
   }
 }
 
+void driver_base::handle_exception(
+    const std::shared_ptr<neb::neb_exception> &p) {
+  switch (p->type()) {
+    LOG(ERROR) << p->what();
+  case neb_exception::neb_std_exception:
+    neb::core::command_queue::instance().send_command(
+        std::make_shared<neb::core::exit_command>());
+    break;
+  case neb_exception::neb_shm_queue_failure:
+    neb::core::command_queue::instance().send_command(
+        std::make_shared<neb::core::exit_command>());
+    break;
+  case neb_exception::neb_shm_service_failure:
+    neb::core::command_queue::instance().send_command(
+        std::make_shared<neb::core::exit_command>());
+    break;
+  case neb_exception::neb_shm_session_already_start:
+    neb::core::command_queue::instance().send_command(
+        std::make_shared<neb::core::exit_command>());
+    break;
+  case neb_exception::neb_shm_session_timeout:
+    neb::core::command_queue::instance().send_command(
+        std::make_shared<neb::core::exit_command>());
+    break;
+  case neb_exception::neb_shm_session_failure:
+    neb::core::command_queue::instance().send_command(
+        std::make_shared<neb::core::exit_command>());
+    break;
+  case neb_exception::neb_configure_general_failure:
+    neb::core::command_queue::instance().send_command(
+        std::make_shared<neb::core::exit_command>());
+    break;
+  case neb_exception::neb_json_general_failure:
+    neb::core::command_queue::instance().send_command(
+        std::make_shared<neb::core::exit_command>());
+    break;
+  case neb_exception::neb_storage_exception_no_such_key:
+    neb::core::command_queue::instance().send_command(
+        std::make_shared<neb::core::exit_command>());
+    break;
+  case neb_exception::neb_storage_exception_no_init:
+    neb::core::command_queue::instance().send_command(
+        std::make_shared<neb::core::exit_command>());
+    break;
+  case neb_exception::neb_storage_general_failure:
+    neb::core::command_queue::instance().send_command(
+        std::make_shared<neb::core::exit_command>());
+    break;
+  default:
+    break;
+  }
+}
+} // end namespace internal
+
+driver::driver() : internal::driver_base() {}
 void driver::add_handlers() {
   m_client->add_handler<ipc_pkg::nbre_version_req>(
       [this](ipc_pkg::nbre_version_req *req) {
@@ -79,38 +136,7 @@ void driver::add_handlers() {
         configuration::instance().auth_table_nas_addr() = s;
         ir_warden::instance().async_run();
         ir_warden::instance().wait_until_sync();
-
       });
 }
-void driver::handle_exception(const std::shared_ptr<neb::neb_exception> &p) {
-  switch (p->type()) {
-    LOG(INFO) << p->what();
-    // TODO handle when exception
-  case neb_exception::neb_std_exception:
-    break;
-  case neb_exception::neb_shm_queue_failure:
-    break;
-  case neb_exception::neb_shm_service_failure:
-    break;
-  case neb_exception::neb_shm_session_already_start:
-    break;
-  case neb_exception::neb_shm_session_timeout:
-    break;
-  case neb_exception::neb_shm_session_failure:
-    break;
-  case neb_exception::neb_configure_general_failure:
-    break;
-  case neb_exception::neb_json_general_failure:
-    break;
-  case neb_exception::neb_storage_exception_no_such_key:
-    break;
-  case neb_exception::neb_storage_exception_no_init:
-    break;
-  case neb_exception::neb_storage_general_failure:
-    break;
-  default:
-    break;
-  }
 }
-}
-}
+} // namespace neb

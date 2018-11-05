@@ -26,27 +26,22 @@ std::string program_name;
 quitable_thread::quitable_thread() : m_exit_flag(false) {}
 
 quitable_thread::~quitable_thread() {
-  LOG(INFO) << "~quitable_thread : " << (void *)m_thread.get();
   if (m_thread) {
     m_thread->join();
-    LOG(INFO) << "thread quit";
+    m_thread.reset();
   }
   neb::core::command_queue::instance().unlisten_command(this);
-  LOG(INFO) << "~quitable_thread done";
 }
 
 void quitable_thread::start() {
-  LOG(INFO) << "quitable_thread start enter";
   neb::core::command_queue::instance().listen_command<neb::core::exit_command>(
       this, [this](const std::shared_ptr<neb::core::exit_command> &) {
         m_exit_flag = true;
       });
 
   m_thread = std::unique_ptr<std::thread>(new std::thread([this]() {
-    LOG(INFO) << "quitable_thread start thread";
     exception_queue::catch_exception([this]() { this->thread_func(); });
   }));
-  LOG(INFO) << "quitable_thread start done";
 }
 
 void quitable_thread::stop() {

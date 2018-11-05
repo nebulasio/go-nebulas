@@ -28,9 +28,11 @@
 
 namespace neb {
 namespace core {
-class driver {
+namespace internal {
+class driver_base {
+
 public:
-  driver();
+  driver_base();
 
   bool init();
 
@@ -38,8 +40,8 @@ public:
 
   ipc_client_t *ipc_conn() { return m_ipc_conn; }
 
-private:
-  void add_handlers();
+protected:
+  virtual void add_handlers() = 0;
 
   void handle_exception(const std::shared_ptr<neb::neb_exception> &p);
 
@@ -48,6 +50,15 @@ protected:
   ipc_client_t *m_ipc_conn;
   std::unique_ptr<std::thread> m_client_thread;
   std::atomic_bool m_exit_flag;
+};
+} // end namespace internal
+
+class driver : public internal::driver_base {
+public:
+  driver();
+
+protected:
+  virtual void add_handlers();
 };
 }
 }
