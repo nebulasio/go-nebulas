@@ -163,9 +163,8 @@ void nbre_storage::write_nbre_by_height(
       const std::string &name = nbre_ir->name();
       const uint64_t version = nbre_ir->version();
 
-      if (name.compare(neb::configuration::instance().auth_module_name()) ==
-          0) {
-        // TODO jit driver executes auth table code immediately
+      if (neb::configuration::instance().auth_module_name() == name &&
+          neb::configuration::instance().auth_table_nas_addr() == from_base58) {
         // TODO expect auth table exceed 128k bytes size
 
         m_storage->put(neb::configuration::instance().nbre_auth_table_name(),
@@ -226,7 +225,6 @@ nbre_storage::get_auth_table() {
       throw std::runtime_error("parse payload auth table failed");
     }
   } catch (const std::exception &e) {
-    // TODO auth table init
     LOG(INFO) << e.what();
     return std::make_shared<std::map<auth_key_t, auth_val_t>>(ret);
   }
