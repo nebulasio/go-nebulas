@@ -67,12 +67,16 @@ void api_request_timer::timer_callback() {
   _l.unlock();
 
   for (auto &id : timeout_apis) {
-    // TODO handle timeout logic
+    auto it = m_api_timeout_callbacks.find(id);
+    if (it != m_api_timeout_callbacks.end()) {
+      it->second();
+    }
   }
 
   _l.lock();
   for (auto &id : timeout_apis) {
     m_api_timeout_counter.erase(id);
+    m_api_timeout_callbacks.erase(id);
     m_api_requests.erase(id);
   }
   _l.unlock();

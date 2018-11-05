@@ -33,10 +33,12 @@ public:
   ipc_server_endpoint(const std::string &root_dir,
                       const std::string &nbre_exe_path);
 
+  ~ipc_server_endpoint();
+
   void init_params(const char *admin_pub_addr);
   bool start();
 
-  void send_nbre_version_req(void *holder, uint64_t height);
+  int send_nbre_version_req(void *holder, uint64_t height);
 
   void shutdown();
 

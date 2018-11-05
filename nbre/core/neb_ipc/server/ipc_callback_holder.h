@@ -52,17 +52,17 @@ void issue_callback_with_error(T &&func, ipc_status_code isc) {
 
 #define CHECK_NBRE_STATUS(a)                                                   \
   if (!m_ipc_server) {                                                         \
-    return;                                                                    \
+    return ipc_status_fail;                                                    \
   }                                                                            \
   if (m_got_exception_when_start_nbre) {                                       \
     m_ipc_server->schedule_task_in_service_thread([this]() {                   \
       issue_callback_with_error(a, ipc_status_exception);                      \
-      return;                                                                  \
+      return ipc_status_succ;                                                  \
     });                                                                        \
   } else if (!m_client_watcher->is_client_alive()) {                           \
     m_ipc_server->schedule_task_in_service_thread([this]() {                   \
       issue_callback_with_error(a, ipc_status_nbre_not_ready);                 \
-      return;                                                                  \
+      return ipc_status_succ;                                                  \
     });                                                                        \
   }
 } // namespace core

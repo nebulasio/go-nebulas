@@ -29,6 +29,12 @@ ipc_server_endpoint::ipc_server_endpoint(const std::string &root_dir,
                                          const std::string &nbre_exe_path)
     : m_root_dir(root_dir), m_nbre_exe_name(nbre_exe_path), m_client(nullptr){};
 
+ipc_server_endpoint::~ipc_server_endpoint() {
+  if (m_thread) {
+    m_thread->join();
+    m_thread.reset();
+  }
+}
 bool ipc_server_endpoint::start() {
   if (!check_path_exists()) {
     LOG(ERROR) << "nbre path not exist";
@@ -73,8 +79,7 @@ bool ipc_server_endpoint::start() {
 
       m_ipc_server->run();
 
-
-      LOG(INFO) << "nbre stopped!";
+      LOG(INFO) << "ipc server stopped!";
     } catch (const std::exception &e) {
       LOG(ERROR) << "get exception when start nbre, " << typeid(e).name()
                  << ", " << e.what();
@@ -119,8 +124,9 @@ void ipc_server_endpoint::add_all_callbacks() {
 
   m_callbacks = &(ipc_callback_holder::instance());
   m_ipc_server->add_handler<ipc_pkg::nbre_version_ack>(
-      [p](ipc_pkg::nbre_version_ack *msg) {
+      [p, this](ipc_pkg::nbre_version_ack *msg) {
         LOG(INFO) << "alloc: " << (void *)p;
+        m_request_timer->remove_api(msg->m_holder);
         ipc_callback_holder::instance().m_nbre_version_callback(
             ipc_status_succ, msg->m_holder, msg->get<ipc_pkg::major>(),
             msg->get<ipc_pkg::minor>(), msg->get<ipc_pkg::patch>());
@@ -136,7 +142,7 @@ void ipc_server_endpoint::add_all_callbacks() {
       });
 }
 
-void ipc_server_endpoint::send_nbre_version_req(void *holder, uint64_t height) {
+int ipc_server_endpoint::send_nbre_version_req(void *holder, uint64_t height) {
   CHECK_NBRE_STATUS(m_callbacks->m_nbre_version_callback);
 
   m_request_timer->issue_api(
@@ -145,19 +151,19 @@ void ipc_server_endpoint::send_nbre_version_req(void *holder, uint64_t height) {
         ipc_pkg::nbre_version_req *req =
             m_ipc_server->construct<ipc_pkg::nbre_version_req>(
                 holder, m_ipc_server->default_allocator());
+        if (req == nullptr) {
+          return; // will call timeout later
+        }
         req->set<ipc_pkg::height>(height);
         m_ipc_server->push_back(req);
       },
       m_callbacks->m_nbre_version_callback);
+  return ipc_status_succ;
 }
 
 void ipc_server_endpoint::shutdown() {
-  LOG(INFO) << "shutdown session";
-  m_ipc_server->session()->stop();
-
-  LOG(INFO) << "shutdown server";
-  m_ipc_server->stop();
-
+  neb::core::command_queue::instance().send_command(
+      std::make_shared<neb::core::exit_command>());
 }
 }// namespace core
 } // namespace neb
