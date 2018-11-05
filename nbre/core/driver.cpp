@@ -20,6 +20,7 @@
 #include "core/driver.h"
 #include "core/ir_warden.h"
 #include "jit/jit_driver.h"
+#include "runtime/version.h"
 #include <ff/ff.h>
 
 namespace neb {
@@ -117,16 +118,17 @@ driver::driver() : internal::driver_base() {}
 void driver::add_handlers() {
   m_client->add_handler<ipc_pkg::nbre_version_req>(
       [this](ipc_pkg::nbre_version_req *req) {
-        ff::para<void> p;
-        p([req, this]() {
-          LOG(INFO) << " to start jit driver for data";
-          using mi = pkg_type_to_module_info<ipc_pkg::nbre_version_req>;
-          neb::block_height_t height = req->get<ipc_pkg::height>();
-          auto irs = neb::core::ir_warden::instance().get_ir_by_name_height(
-              mi::module_name, height);
-          jit_driver d;
-          d.run(this, irs, mi::func_name, req);
-        });
+        neb::core::ipc_pkg::nbre_version_ack *ack =
+            m_ipc_conn->construct<neb::core::ipc_pkg::nbre_version_ack>(
+                req->m_holder, m_ipc_conn->default_allocator());
+        if (ack == nullptr) {
+          return;
+        }
+        neb::util::version v = neb::rt::get_version();
+        ack->set<neb::core::ipc_pkg::major>(v.major_version());
+        ack->set<neb::core::ipc_pkg::minor>(v.minor_version());
+        ack->set<neb::core::ipc_pkg::patch>(v.patch_version());
+        m_ipc_conn->push_back(ack);
       });
 
   m_client->add_handler<ipc_pkg::nbre_init_ack>(
