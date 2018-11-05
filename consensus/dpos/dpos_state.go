@@ -126,7 +126,7 @@ func (dpos *Dpos) CheckTimeout(block *core.Block) bool {
 
 // GenesisConsensusState create a new genesis dpos state
 func (dpos *Dpos) GenesisConsensusState(chain *core.BlockChain, conf *corepb.Genesis) (state.ConsensusState, error) {
-	dynastyTrie, err := trie.NewTrie(nil, chain.Storage(), false)
+	dynastyTrie, err := trie.NewTrie(nil, chain.StateDB(), false)
 	if err != nil {
 		return nil, err
 	}

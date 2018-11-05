@@ -69,7 +69,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		return nil, ErrNilArgument
 	}
 
-	worldState, err := state.NewWorldState(chain.ConsensusHandler(), chain.storage)
+	worldState, err := state.NewWorldState(chain.ConsensusHandler(), chain.StateDB())
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		dependency:   dag.NewDag(),
 		worldState:   worldState,
 		txPool:       chain.txPool,
-		storage:      chain.storage,
+		stateDB:      chain.stateDB,
 		eventEmitter: chain.eventEmitter,
 		nvm:          chain.nvm,
 		height:       1,

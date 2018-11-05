@@ -60,6 +60,8 @@ type Neblet struct {
 
 	storage storage.Storage
 
+	state storage.Storage
+
 	blockChain *core.BlockChain
 
 	syncService *nsync.Service
@@ -125,6 +127,14 @@ func (n *Neblet) Setup() {
 			"dir": n.config.Chain.Datadir,
 			"err": err,
 		}).Fatal("Failed to open disk storage.")
+	}
+
+	n.state, err = storage.NewRocksStorage(n.config.Chain.Statedir)
+	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"dir": n.config.Chain.Datadir,
+			"err": err,
+		}).Fatal("Failed to open disk state db.")
 	}
 
 	// net
@@ -346,6 +356,11 @@ func (n *Neblet) Config() *nebletpb.Config {
 // Storage returns storage reference.
 func (n *Neblet) Storage() storage.Storage {
 	return n.storage
+}
+
+// State returns state reference.
+func (n *Neblet) State() storage.Storage {
+	return n.state
 }
 
 // BlockChain returns block chain reference.

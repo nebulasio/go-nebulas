@@ -64,7 +64,11 @@ type BlockChain struct {
 	// latest irreversible block
 	lib *Block
 
+	// db for block raw data
 	storage storage.Storage
+
+	// db for world_state
+	stateDB storage.Storage
 
 	eventEmitter *EventEmitter
 
@@ -148,7 +152,8 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		genesis:            neb.Genesis(),
 		bkPool:             blockPool,
 		txPool:             txPool,
-		storage:            neb.Storage(),
+		storage:			neb.Storage(),
+		stateDB:            neb.State(),
 		eventEmitter:       neb.EventEmitter(),
 		nvm:                neb.Nvm(),
 		quitCh:             make(chan int, 1),
@@ -272,8 +277,13 @@ func (bc *BlockChain) ChainID() uint32 {
 }
 
 // Storage return the storage.
-func (bc *BlockChain) Storage() storage.Storage {
-	return bc.storage
+//func (bc *BlockChain) Storage() storage.Storage {
+//	return bc.storage
+//}
+
+// StateDB return the state db.
+func (bc *BlockChain) StateDB() storage.Storage {
+	return bc.stateDB
 }
 
 // GenesisBlock return the genesis block.
@@ -437,7 +447,7 @@ func (bc *BlockChain) GetBlockOnCanonicalChainByHeight(height uint64) *Block {
 		return nil
 	}
 
-	blockHash, err := bc.storage.Get(byteutils.FromUint64(height))
+	blockHash, err := bc.getStorage(byteutils.FromUint64(height))
 	if err != nil {
 		return nil
 	}
@@ -822,7 +832,7 @@ func (bc *BlockChain) StoreLIBHashToStorage(block *Block) error {
 
 // LoadTailFromStorage load tail block
 func (bc *BlockChain) LoadTailFromStorage() (*Block, error) {
-	hash, err := bc.storage.Get([]byte(Tail))
+	hash, err := bc.getStorage([]byte(Tail))
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}
@@ -866,7 +876,7 @@ func (bc *BlockChain) LoadGenesisFromStorage() (*Block, error) { // ToRefine, re
 
 // LoadLIBFromStorage load LIB
 func (bc *BlockChain) LoadLIBFromStorage() (*Block, error) {
-	hash, err := bc.storage.Get([]byte(LIB))
+	hash, err := bc.getStorage([]byte(LIB))
 	if err != nil && err != storage.ErrKeyNotFound {
 		return nil, err
 	}
@@ -879,4 +889,19 @@ func (bc *BlockChain) LoadLIBFromStorage() (*Block, error) {
 	}
 
 	return LoadBlockFromStorage(hash, bc)
+}
+
+// get data from storage, if data not find in storage, find it in state db
+func (bc *BlockChain) getStorage(key []byte) ([]byte, error) {
+	data, err := bc.storage.Get(key)
+	if err != nil && err != storage.ErrKeyNotFound {
+		return nil, err
+	}
+	if err == storage.ErrKeyNotFound {
+		data, err = bc.stateDB.Get(key)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return data, nil
 }

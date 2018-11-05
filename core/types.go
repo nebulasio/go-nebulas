@@ -280,6 +280,7 @@ type Neblet interface {
 	SetGenesis(*corepb.Genesis)
 	Config() *nebletpb.Config
 	Storage() storage.Storage
+	State() storage.Storage
 	EventEmitter() *EventEmitter
 	Consensus() Consensus
 	BlockChain() *BlockChain

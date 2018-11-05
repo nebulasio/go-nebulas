@@ -80,7 +80,7 @@ func LoadDynastyConf(filePath string, genesis *corepb.Genesis) {
 // InitDynastyFromConf Fatal when initialization failed
 func InitDynastyFromConf(chain *BlockChain, BlockIntervalInSecond, DynastyIntervalInSecond int64) {
 	once.Do(func() {
-		d, err := trie.NewTrie(nil, chain.Storage(), false)
+		d, err := trie.NewTrie(nil, chain.StateDB(), false)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,

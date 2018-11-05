@@ -148,7 +148,7 @@ type Block struct {
 	txPool       *TransactionPool
 	eventEmitter *EventEmitter
 	nvm          NVM
-	storage      storage.Storage
+	stateDB      storage.Storage
 }
 
 // ToProto converts domain Block into proto Block
@@ -252,7 +252,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		txPool:       parent.txPool,
 		eventEmitter: parent.eventEmitter,
 		nvm:          parent.nvm,
-		storage:      parent.storage,
+		stateDB:      parent.stateDB,
 	}
 
 	if err := block.Begin(); err != nil {
@@ -347,9 +347,9 @@ func (block *Block) TxsRoot() byteutils.Hash {
 	return block.header.txsRoot
 }
 
-// Storage return storage.
-func (block *Block) Storage() storage.Storage {
-	return block.storage
+// StateDB return state db.
+func (block *Block) StateDB() storage.Storage {
+	return block.stateDB
 }
 
 // WorldState return the world state of the block
@@ -428,7 +428,7 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 
 	block.height = parentBlock.height + 1
 	block.txPool = parentBlock.txPool
-	block.storage = parentBlock.storage
+	block.stateDB = parentBlock.stateDB
 	block.eventEmitter = parentBlock.eventEmitter
 	block.nvm = parentBlock.nvm
 
@@ -1254,7 +1254,7 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 		return nil, ErrNilArgument
 	}
 
-	value, err := chain.storage.Get(hash)
+	value, err := chain.getStorage(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -1266,7 +1266,7 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 	if err = block.FromProto(pbBlock); err != nil {
 		return nil, err
 	}
-	block.worldState, err = state.NewWorldState(chain.ConsensusHandler(), chain.storage)
+	block.worldState, err = state.NewWorldState(chain.ConsensusHandler(), chain.stateDB)
 	if err != nil {
 		return nil, err
 	}
@@ -1288,7 +1288,7 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 		if err != nil {
 			return nil, err
 		}
-		dynastyTrie, err := trie.NewTrie(nil, chain.Storage(), false)
+		dynastyTrie, err := trie.NewTrie(nil, chain.StateDB(), false)
 		if err != nil {
 			return nil, err
 		}
@@ -1312,7 +1312,7 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 	block.txPool = chain.txPool
 	block.eventEmitter = chain.eventEmitter
 	block.nvm = chain.nvm
-	block.storage = chain.storage
+	block.stateDB = chain.stateDB
 	return block, nil
 }
 

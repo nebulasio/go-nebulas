@@ -57,10 +57,14 @@ message ChainConfig {
     // genesis conf file path
     string genesis = 2;
 
-    // Data dir.
+    // raw data dir.
     string datadir = 11;
-    // Key dir.
+
+    // Keystore dir.
     string keydir = 12;
+
+    // state db dir
+    string statedir = 13;
 
     // Start mine at launch
     bool start_mine = 20;
