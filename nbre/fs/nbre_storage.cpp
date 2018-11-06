@@ -22,6 +22,7 @@
 #include "common/configuration.h"
 #include "common/util/byte.h"
 #include "common/util/version.h"
+#include "fs/flag_storage.h"
 #include "jit/jit_driver.h"
 #include "runtime/version.h"
 
@@ -71,7 +72,7 @@ void nbre_storage::read_nbre_depends_recursive(
 
   if (name == neb::configuration::instance().rt_module_name() &&
       neb::rt::get_version() < neb::util::version(version)) {
-    throw std::runtime_error("nbre runtime pkg version is too low");
+    throw std::runtime_error("nbre runtime pkg version is too old");
   }
 
   std::shared_ptr<nbre::NBREIR> nbre_ir = std::make_shared<nbre::NBREIR>();
@@ -148,14 +149,23 @@ void nbre_storage::write_nbre() {
 
   set_auth_table();
 
+  flag_storage fs(m_storage.get());
+  std::string failed_flag =
+      neb::configuration::instance().nbre_failed_flag_name();
+
   //! TODO: we may consider parallel here!
   for (block_height_t h = start_height + 1; h <= end_height; h++) {
     LOG(INFO) << h;
-    write_nbre_by_height(h);
+
+    if (!fs.has_flag(failed_flag)) {
+      fs.set_flag(failed_flag);
+      write_nbre_by_height(h);
+    }
     m_storage->put(
         std::string(neb::configuration::instance().nbre_max_height_name(),
                     std::allocator<char>()),
         neb::util::number_to_byte<neb::util::bytes>(h));
+    fs.del_flag(failed_flag);
   }
 }
 
@@ -261,10 +271,15 @@ void nbre_storage::set_auth_table_by_jit(
     const std::shared_ptr<nbre::NBREIR> nbre_ir) {
 
   auth_table_t auth_table_raw;
-  jit_driver jd;
-  jd.auth_run(*nbre_ir,
-              neb::configuration::instance().auth_func_mangling_name(),
-              auth_table_raw);
+
+  try {
+    jit_driver jd;
+    jd.auth_run(*nbre_ir,
+                neb::configuration::instance().auth_func_mangling_name(),
+                auth_table_raw);
+  } catch (const std::exception &e) {
+    LOG(INFO) << e.what();
+  }
 
   for (auto &r : auth_table_raw) {
     auth_key_t k =
