@@ -18,19 +18,25 @@
 // <http://www.gnu.org/licenses/>.
 //
 
+#include <string>
 #include <tuple>
+#include <vector>
 
-typedef const char *name_t;
+typedef std::string name_t;
 typedef uint64_t version_t;
-typedef const char *address_t;
+typedef std::string address_t;
 typedef uint64_t height_t;
 
 typedef std::tuple<name_t, version_t, address_t, height_t, height_t> row_t;
 
-std::tuple<row_t *, size_t> entry_point_auth() {
-  static row_t r[] = {std::make_tuple("nr", 1, "addr1", 100, 200),
-                      std::make_tuple("nr", 2, "addr2", 150, 250),
-                      std::make_tuple("dip", 1, "addr1", 200, 300)};
-  return std::make_tuple(r, sizeof(r) / sizeof(r[0]));
+std::vector<row_t> entry_point_auth() {
+  std::vector<row_t> auth_table = {
+      std::make_tuple("nr", 1ULL, "n1HrPpwwH5gTA2d7QCkVjMw14YbN1NNNXHc",
+                      90000ULL, 200000ULL),
+      std::make_tuple("nr", 2ULL, "n1HrPpwwH5gTA2d7QCkVjMw14YbN1NNNXHc",
+                      90000ULL, 200000ULL),
+      std::make_tuple("dip", 1ULL, "n1HrPpwwH5gTA2d7QCkVjMw14YbN1NNNXHc",
+                      90000ULL, 200000ULL)};
+  return auth_table;
 }
 
