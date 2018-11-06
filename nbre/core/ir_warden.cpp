@@ -41,9 +41,7 @@ ir_warden::get_ir_by_name_height(const std::string &name, uint64_t height) {
   return m_nbre_storage->read_nbre_by_height(name, height);
 }
 
-bool ir_warden::is_sync_already() const {
-  return m_nbre_storage->is_latest_irreversible_block();
-}
+bool ir_warden::is_sync_already() const { return m_is_sync_already; }
 
 void ir_warden::wait_until_sync() {
   LOG(INFO) << "wait until sync ...";
@@ -55,11 +53,11 @@ void ir_warden::wait_until_sync() {
   LOG(INFO) << "wait until sync done";
 }
 
-void ir_warden::on_timer() { m_nbre_storage->write_nbre(); }
+void ir_warden::on_timer() { m_nbre_storage->write_nbre_until_sync(); }
 
 void ir_warden::thread_func() {
 
-  m_nbre_storage->write_nbre();
+  on_timer();
   std::unique_lock<std::mutex> _l(m_sync_mutex);
   m_is_sync_already = true;
   _l.unlock();

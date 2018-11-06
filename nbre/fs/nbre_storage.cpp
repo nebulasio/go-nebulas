@@ -23,6 +23,7 @@
 #include "common/util/byte.h"
 #include "common/util/version.h"
 #include "jit/jit_driver.h"
+#include "runtime/version.h"
 
 namespace neb {
 namespace fs {
@@ -68,6 +69,11 @@ void nbre_storage::read_nbre_depends_recursive(
     std::unordered_set<std::string> &pkg,
     std::vector<std::shared_ptr<nbre::NBREIR>> &irs) {
 
+  if (name == neb::configuration::instance().rt_module_name() &&
+      neb::rt::get_version() < neb::util::version(version)) {
+    throw std::runtime_error("nbre runtime pkg version is too low");
+  }
+
   std::shared_ptr<nbre::NBREIR> nbre_ir = std::make_shared<nbre::NBREIR>();
   std::string name_version = name + std::to_string(version);
   if (pkg.find(name_version) != pkg.end()) {
@@ -104,6 +110,23 @@ nbre_storage::read_nbre_by_name_version(const std::string &name,
   return nbre_ir;
 }
 
+void nbre_storage::write_nbre_until_sync() {
+
+  std::chrono::system_clock::time_point start_time;
+  std::chrono::system_clock::time_point end_time;
+  std::chrono::seconds time_spend;
+
+  do {
+    start_time = std::chrono::system_clock::now();
+    write_nbre();
+    end_time = std::chrono::system_clock::now();
+    time_spend =
+        std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
+  } while (time_spend >
+           std::chrono::seconds(
+               neb::configuration::instance().ir_warden_time_interval()));
+}
+
 void nbre_storage::write_nbre() {
   std::shared_ptr<corepb::Block> end_block = m_blockchain->load_LIB_block();
 
@@ -123,12 +146,12 @@ void nbre_storage::write_nbre() {
   LOG(INFO) << "start height " << start_height << ',' << "end height "
             << end_height;
 
-  auto auth_table_ptr = get_auth_table();
+  set_auth_table();
 
   //! TODO: we may consider parallel here!
   for (block_height_t h = start_height + 1; h <= end_height; h++) {
     LOG(INFO) << h;
-    write_nbre_by_height(h, *auth_table_ptr);
+    write_nbre_by_height(h);
     m_storage->put(
         std::string(neb::configuration::instance().nbre_max_height_name(),
                     std::allocator<char>()),
@@ -136,8 +159,7 @@ void nbre_storage::write_nbre() {
   }
 }
 
-void nbre_storage::write_nbre_by_height(
-    block_height_t height, std::map<auth_key_t, auth_val_t> &auth_table) {
+void nbre_storage::write_nbre_by_height(block_height_t height) {
 
   auto block = m_blockchain->load_block_with_height(height);
 
@@ -171,12 +193,12 @@ void nbre_storage::write_nbre_by_height(
 
         m_storage->put(neb::configuration::instance().nbre_auth_table_name(),
                        payload_bytes);
-        get_auth_table_by_jit(nbre_ir, auth_table);
+        set_auth_table_by_jit(nbre_ir);
         continue;
       }
 
-      auto it = auth_table.find(std::make_tuple(name, version, from_base58));
-      if (it == auth_table.end()) {
+      auto it = m_auth_table.find(std::make_tuple(name, version, from_base58));
+      if (it == m_auth_table.end()) {
         LOG(INFO) << "tuple <name, version, address> not in auth table";
         continue;
       }
@@ -211,10 +233,11 @@ bool nbre_storage::is_latest_irreversible_block() {
          neb::util::byte_to_number<neb::block_height_t>(max_height_bytes);
 }
 
-std::shared_ptr<std::map<auth_key_t, auth_val_t>>
-nbre_storage::get_auth_table() {
+void nbre_storage::set_auth_table() {
 
-  std::map<auth_key_t, auth_val_t> ret;
+  if (!m_auth_table.empty()) {
+    return;
+  }
 
   std::shared_ptr<nbre::NBREIR> nbre_ir = std::make_shared<nbre::NBREIR>();
   try {
@@ -228,17 +251,14 @@ nbre_storage::get_auth_table() {
     }
   } catch (const std::exception &e) {
     LOG(INFO) << e.what();
-    return std::make_shared<std::map<auth_key_t, auth_val_t>>(ret);
+    return;
   }
 
-  get_auth_table_by_jit(nbre_ir, ret);
-
-  return std::make_shared<std::map<auth_key_t, auth_val_t>>(ret);
+  set_auth_table_by_jit(nbre_ir);
 }
 
-void nbre_storage::get_auth_table_by_jit(
-    const std::shared_ptr<nbre::NBREIR> nbre_ir,
-    std::map<auth_key_t, auth_val_t> &auth_table) {
+void nbre_storage::set_auth_table_by_jit(
+    const std::shared_ptr<nbre::NBREIR> nbre_ir) {
 
   auth_table_t auth_table_raw;
   jit_driver jd;
@@ -254,7 +274,7 @@ void nbre_storage::get_auth_table_by_jit(
     LOG(INFO) << std::get<0>(r) << ',' << std::get<1>(r) << ','
               << std::get<2>(r) << ',' << std::get<3>(r) << ','
               << std::get<4>(r);
-    auth_table.insert(std::make_pair(k, v));
+    m_auth_table.insert(std::make_pair(k, v));
   }
 }
 

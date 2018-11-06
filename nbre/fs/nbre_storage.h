@@ -41,6 +41,7 @@ public:
   std::shared_ptr<nbre::NBREIR>
   read_nbre_by_name_version(const std::string &name, uint64_t version);
 
+  void write_nbre_until_sync();
   void write_nbre();
 
   bool is_latest_irreversible_block();
@@ -52,17 +53,15 @@ private:
                               std::unordered_set<std::string> &pkg,
                               std::vector<std::shared_ptr<nbre::NBREIR>> &irs);
 
-  void write_nbre_by_height(block_height_t height,
-                            std::map<auth_key_t, auth_val_t> &auth_table);
+  void write_nbre_by_height(block_height_t height);
 
-public:
-  std::shared_ptr<std::map<auth_key_t, auth_val_t>> get_auth_table();
-  void get_auth_table_by_jit(const std::shared_ptr<nbre::NBREIR> nbre_ir,
-                             std::map<auth_key_t, auth_val_t> &auth_table);
+  void set_auth_table();
+  void set_auth_table_by_jit(const std::shared_ptr<nbre::NBREIR> nbre_ir);
 
 private:
   std::unique_ptr<rocksdb_storage> m_storage;
   std::unique_ptr<blockchain> m_blockchain;
+  std::map<auth_key_t, auth_val_t> m_auth_table;
 };
 } // namespace fs
 } // namespace neb
