@@ -46,9 +46,9 @@ public:
 
   inline int32_t ir_warden_time_interval() const { return 1; }
 
-  inline const char *tx_payload_type() const { return "protocol"; }
+  inline const char *ir_tx_payload_type() const { return "protocol"; }
   inline const char *nbre_max_height_name() const { return "nbre_max_height"; }
-  inline const char *nbre_auth_table_name() const { return "auth_table"; }
+  inline const char *nbre_auth_table_name() const { return "nbre_auth_table"; }
   inline const char *auth_module_name() const { return "auth"; }
   inline const char *auth_func_mangling_name() const {
     return "_Z16entry_point_authv";

@@ -46,7 +46,7 @@ typedef block_height_t end_block_t;
 typedef std::tuple<module_t, version_t, address_t, block_height_t,
                    block_height_t>
     auth_row_t;
-typedef std::tuple<auth_row_t *, size_t> auth_table_t;
+typedef std::vector<auth_row_t> auth_table_t;
 
 namespace tcolor {
 const static char *red = "\033[1;31m";

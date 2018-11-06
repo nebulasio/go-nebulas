@@ -105,7 +105,7 @@ public:
   }
 
   void auto_run(const nbre::NBREIR &ir, const std::string &func_name,
-                std::tuple<auth_row_t *, size_t> &auth_table) {
+                auth_table_t &auth_table) {
 
     std::string errMsg;
     if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr, &errMsg)) {
@@ -119,7 +119,7 @@ public:
 
     std::unique_ptr<llvm::Module> module =
         llvm::parseIR(mem_buf->getMemBufferRef(), err, m_context, true);
-    // LOG(INFO) << " call llvm::auto_runOrcLazyJIT";
+    LOG(INFO) << " call llvm::auto_runOrcLazyJIT";
     auth_table = llvm::auto_runOrcLazyJIT(std::move(module), func_name);
   }
 
