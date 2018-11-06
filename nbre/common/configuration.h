@@ -58,6 +58,10 @@ public:
 
   inline const char *rt_module_name() const { return "runtime"; }
 
+  inline const char *nbre_failed_flag_name() const {
+    return "nbre_failed_flag";
+  }
+
 protected:
   std::string m_root_dir;
   std::string m_auth_table_nas_addr;
