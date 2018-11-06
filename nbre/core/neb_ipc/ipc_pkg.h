@@ -43,8 +43,10 @@ using nbre_version_ack =
     define_ipc_pkg<ipc_pkg_nbre_version_ack, major, minor, patch>;
 
 using nbre_init_req = define_ipc_pkg<ipc_pkg_nbre_init_req>;
+using nbre_root_dir = ipc_elem_base<3, neb::ipc::char_string_t>;
 using admin_pub_addr = ipc_elem_base<4, neb::ipc::char_string_t>;
-using nbre_init_ack = define_ipc_pkg<ipc_pkg_nbre_init_ack, admin_pub_addr>;
+using nbre_init_ack =
+    define_ipc_pkg<ipc_pkg_nbre_init_ack, nbre_root_dir, admin_pub_addr>;
 
 } // namespace ipc_pkg
 

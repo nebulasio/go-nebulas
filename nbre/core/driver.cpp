@@ -136,6 +136,8 @@ void driver::add_handlers() {
         std::string s = ack->get<ipc_pkg::admin_pub_addr>().c_str();
         LOG(INFO) << "got admin_pub_addr: " << s;
         configuration::instance().auth_table_nas_addr() = s;
+        configuration::instance().root_dir() =
+            ack->get<ipc_pkg::nbre_root_dir>().c_str();
         ir_warden::instance().async_run();
         ir_warden::instance().wait_until_sync();
       });

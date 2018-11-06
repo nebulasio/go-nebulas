@@ -19,6 +19,7 @@
 //
 #include "core/neb_ipc/server/ipc_client_watcher.h"
 #include <boost/process/child.hpp>
+#include <boost/process/io.hpp>
 #include <thread>
 
 namespace neb {
@@ -44,14 +45,25 @@ void ipc_client_watcher::thread_func() {
 
     LOG(INFO) << "to start nbre ";
     m_last_start_time = now;
-    boost::process::child client(m_path);
+    boost::process::ipstream stream;
+    boost::process::child client(m_path, boost::process::std_err > stream,
+                                 boost::process::std_out > stream);
     if (client.valid()) {
       m_b_client_alive = true;
     }
+
+    std::string line;
+
+    while (stream && std::getline(stream, line) && !line.empty())
+      std::cerr << line << std::endl;
+
     std::error_code ec;
     client.wait(ec);
     if (ec) {
       LOG(ERROR) << ec.message();
+    }
+    if (client.exit_code() != 0) {
+      LOG(ERROR) << "nbre abnormal quit " << client.exit_code() << ": " << line;
     }
     m_b_client_alive = false;
   }

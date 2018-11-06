@@ -43,6 +43,7 @@ public:
   }
   std::string &auth_table_nas_addr() { return m_auth_table_nas_addr; }
   inline const std::string &root_dir() const { return m_root_dir; }
+  inline std::string &root_dir() { return m_root_dir; }
 
   inline int32_t ir_warden_time_interval() const { return 1; }
 

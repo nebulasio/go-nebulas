@@ -51,10 +51,12 @@ public:
 
   inline uint64_t data() const { return m_data.m_data; }
 
-  inline void show_version() {
-    std::cout << m_data.m_detail.m_major_version << ','
-              << m_data.m_detail.m_minor_version << ','
-              << m_data.m_detail.m_patch_version << std::endl;
+  friend inline std::ostream &operator<<(std::ostream &stream,
+                                         const version &v) {
+    stream << v.m_data.m_detail.m_major_version << ','
+           << v.m_data.m_detail.m_minor_version << ','
+           << v.m_data.m_detail.m_patch_version;
+    return stream;
   }
 
 protected:

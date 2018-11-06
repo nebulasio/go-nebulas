@@ -138,6 +138,7 @@ void ipc_server_endpoint::add_all_callbacks() {
         ipc_pkg::nbre_init_ack *ack = p->construct<ipc_pkg::nbre_init_ack>(
             nullptr, p->default_allocator());
         ack->set<ipc_pkg::admin_pub_addr>(m_admin_pub_addr.c_str());
+        ack->set<ipc_pkg::nbre_root_dir>(m_root_dir.c_str());
         p->push_back(ack);
       });
 }
