@@ -59,6 +59,20 @@ public:
     return stream;
   }
 
+  friend inline bool operator<(const version &v1, const version &v2) {
+    if (v1.m_data.m_detail.m_major_version <
+        v2.m_data.m_detail.m_major_version) {
+      return true;
+    } else if (v1.m_data.m_detail.m_minor_version <
+               v2.m_data.m_detail.m_minor_version) {
+      return true;
+    } else if (v1.m_data.m_detail.m_patch_version <
+               v2.m_data.m_detail.m_patch_version) {
+      return true;
+    }
+    return false;
+  }
+
 protected:
   union _version_data {
     uint64_t m_data;
