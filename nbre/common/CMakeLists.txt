@@ -2,7 +2,6 @@ add_library(nbre_common
   util/base58.cpp
   util/base64.cpp
   util/byte.cpp
-  util/util.cpp
   ipc/shm_queue.cpp
   ipc/shm_bookkeeper.cpp
   ipc/shm_session.cpp

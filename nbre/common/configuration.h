@@ -52,7 +52,7 @@ public:
   inline const char *nbre_auth_table_name() const { return "nbre_auth_table"; }
   inline const char *auth_module_name() const { return "auth"; }
   inline const char *auth_func_mangling_name() const {
-    return "_Z16entry_point_authv";
+    return "_Z16entry_point_authB5cxx11v";
   }
 
 protected:

@@ -46,26 +46,28 @@ void ipc_client_watcher::thread_func() {
     LOG(INFO) << "to start nbre ";
     m_last_start_time = now;
     boost::process::ipstream stream;
-    boost::process::child client(m_path, boost::process::std_err > stream,
-                                 boost::process::std_out > stream);
+    // boost::process::child client(m_path, boost::process::std_err > stream,
+    // boost::process::std_out > stream);
+    boost::process::child client(m_path);
     if (client.valid()) {
       m_b_client_alive = true;
     }
 
-    std::string line;
-
-    while (stream && std::getline(stream, line) && !line.empty())
-      std::cerr << line << std::endl;
+    // std::string line;
 
     std::error_code ec;
     client.wait(ec);
     if (ec) {
       LOG(ERROR) << ec.message();
     }
-    if (client.exit_code() != 0) {
-      LOG(ERROR) << "nbre abnormal quit " << client.exit_code() << ": " << line;
-    }
+    // if (client.exit_code() != 0) {
+    // while (stream && std::getline(stream, line) && !line.empty())
+    // std::cerr << line << std::endl;
+    // LOG(ERROR) << "nbre abnormal quit " << client.exit_code() << ": " <<
+    // line;
+    //}
     m_b_client_alive = false;
+
   }
 }
 
