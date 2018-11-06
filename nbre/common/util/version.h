@@ -73,6 +73,27 @@ public:
     return false;
   }
 
+  friend inline bool operator>(const version &v1, const version &v2) {
+    return v2 < v1;
+  }
+
+  friend inline bool operator>=(const version &v1, const version &v2) {
+    return !(v1 < v2);
+  }
+
+  friend inline bool operator<=(const version &v1, const version &v2) {
+    return !(v1 > v2);
+  }
+
+  friend inline bool operator==(const version &v1, const version &v2) {
+    return v1 >= v2 && v2 >= v1;
+  }
+
+  friend inline bool operator!=(const version &v1, const version &v2) {
+    return !(v1 == v2);
+  }
+
+
 protected:
   union _version_data {
     uint64_t m_data;
