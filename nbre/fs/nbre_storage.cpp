@@ -21,7 +21,6 @@
 #include "fs/nbre_storage.h"
 #include "common/configuration.h"
 #include "common/util/byte.h"
-#include "common/util/util.h"
 #include "common/util/version.h"
 #include "jit/jit_driver.h"
 
@@ -149,7 +148,7 @@ void nbre_storage::write_nbre_by_height(
     std::string from = tx.from();
     std::string from_base58 = neb::util::string_to_byte(from).to_base58();
 
-    if (type == neb::configuration::instance().tx_payload_type()) {
+    if (type == neb::configuration::instance().ir_tx_payload_type()) {
       const std::string &payload = data.payload();
       neb::util::bytes payload_bytes = neb::util::string_to_byte(payload);
 
@@ -162,6 +161,9 @@ void nbre_storage::write_nbre_by_height(
 
       const std::string &name = nbre_ir->name();
       const uint64_t version = nbre_ir->version();
+
+      LOG(INFO) << "auth table mainnet address: "
+                << neb::configuration::instance().auth_table_nas_addr();
 
       if (neb::configuration::instance().auth_module_name() == name &&
           neb::configuration::instance().auth_table_nas_addr() == from_base58) {
@@ -244,11 +246,14 @@ void nbre_storage::get_auth_table_by_jit(
               neb::configuration::instance().auth_func_mangling_name(),
               auth_table_raw);
 
-  for (size_t i = 0; i < std::get<1>(auth_table_raw); i++) {
-    auto r = std::get<0>(auth_table_raw)[i];
+  for (auto &r : auth_table_raw) {
     auth_key_t k =
         std::make_tuple(std::get<0>(r), std::get<1>(r), std::get<2>(r));
     auth_val_t v = std::make_tuple(std::get<3>(r), std::get<4>(r));
+
+    LOG(INFO) << std::get<0>(r) << ',' << std::get<1>(r) << ','
+              << std::get<2>(r) << ',' << std::get<3>(r) << ','
+              << std::get<4>(r);
     auth_table.insert(std::make_pair(k, v));
   }
 }
