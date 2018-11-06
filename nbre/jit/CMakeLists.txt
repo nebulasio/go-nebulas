@@ -1,5 +1,5 @@
 
-set(nbre_src ${nbre_src} OrcLazyJIT.cpp jit_driver.cpp PARENT_SCOPE
+set(nbre_src ${nbre_src} OrcLazyJIT.cpp jit_driver.cpp jit_engine.cpp PARENT_SCOPE
   )
 add_library(nbre_jit OrcLazyJIT.cpp jit_driver.cpp
   )

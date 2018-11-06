@@ -84,123 +84,72 @@ llvm::OrcLazyJIT::TransformFtor llvm::OrcLazyJIT::createDebugDumper() {
   llvm_unreachable("Unknown DumpKind");
 }
 
+llvm::Error llvm::OrcLazyJIT::addModule(std::shared_ptr<Module> M) {
+  if (M->getDataLayout().isDefault())
+    M->setDataLayout(DL);
+
+  // Rename, bump linkage and record static constructors and destructors.
+  // We have to do this before we hand over ownership of the module to the
+  // JIT.
+  std::vector<std::string> CtorNames, DtorNames;
+  {
+    unsigned CtorId = 0, DtorId = 0;
+    for (auto Ctor : orc::getConstructors(*M)) {
+      std::string NewCtorName = ("$static_ctor." + Twine(CtorId++)).str();
+      Ctor.Func->setName(NewCtorName);
+      Ctor.Func->setLinkage(GlobalValue::ExternalLinkage);
+      Ctor.Func->setVisibility(GlobalValue::HiddenVisibility);
+      CtorNames.push_back(mangle(NewCtorName));
+    }
+    for (auto Dtor : orc::getDestructors(*M)) {
+      std::string NewDtorName = ("$static_dtor." + Twine(DtorId++)).str();
+      Dtor.Func->setLinkage(GlobalValue::ExternalLinkage);
+      Dtor.Func->setVisibility(GlobalValue::HiddenVisibility);
+      DtorNames.push_back(mangle(Dtor.Func->getName()));
+      Dtor.Func->setName(NewDtorName);
+    }
+  }
+
+  // Symbol resolution order:
+  //   1) Search the JIT symbols.
+  //   2) Check for C++ runtime overrides.
+  //   3) Search the host process (LLI)'s symbol table.
+  if (!ModulesHandle) {
+    auto Resolver = orc::createLambdaResolver(
+        [this](const std::string &Name) -> JITSymbol {
+          if (auto Sym = CODLayer.findSymbol(Name, true))
+            return Sym;
+          return CXXRuntimeOverrides.searchOverrides(Name);
+        },
+        [](const std::string &Name) {
+          if (auto Addr = RTDyldMemoryManager::getSymbolAddressInProcess(Name))
+            return JITSymbol(Addr, JITSymbolFlags::Exported);
+          return JITSymbol(nullptr);
+        });
+
+    // Add the module to the JIT.
+    if (auto ModulesHandleOrErr =
+            CODLayer.addModule(std::move(M), std::move(Resolver)))
+      ModulesHandle = std::move(*ModulesHandleOrErr);
+    else
+      return ModulesHandleOrErr.takeError();
+
+  } else if (auto Err = CODLayer.addExtraModule(*ModulesHandle, std::move(M)))
+    return Err;
+
+  // Run the static constructors, and save the static destructor runner for
+  // execution when the JIT is torn down.
+  orc::CtorDtorRunner<CODLayerT> CtorRunner(std::move(CtorNames),
+                                            *ModulesHandle);
+  if (auto Err = CtorRunner.runViaLayer(CODLayer))
+    return Err;
+
+  IRStaticDestructorRunners.emplace_back(std::move(DtorNames), *ModulesHandle);
+
+  return Error::success();
+}
+
 // Defined in lli.cpp.
 // CodeGenOpt::Level getOptLevel();
 
-template <typename PtrTy>
-static PtrTy fromTargetAddress(llvm::JITTargetAddress Addr) {
-  return reinterpret_cast<PtrTy>(static_cast<uintptr_t>(Addr));
-}
 
-int llvm::runOrcLazyJIT(neb::core::driver *d,
-                        std::vector<std::unique_ptr<Module>> Ms,
-                        const std::string &func_name, void *param) {
-  // Grab a target machine and try to build a factory function for the
-  // target-specific Orc callback manager.
-  EngineBuilder EB;
-  EB.setOptLevel(CodeGenOpt::Default);
-  auto TM = std::unique_ptr<TargetMachine>(EB.selectTarget());
-  Triple T(TM->getTargetTriple());
-  auto CompileCallbackMgr = orc::createLocalCompileCallbackManager(T, 0);
-
-  // If we couldn't build the factory function then there must not be a callback
-  // manager for this target. Bail out.
-  if (!CompileCallbackMgr) {
-    LOG(ERROR) << "No callback manager available for target '"
-               << TM->getTargetTriple().str() << "'.\n";
-    throw neb::jit_internal_failure("No callback manager available for target");
-  }
-
-  auto IndirectStubsMgrBuilder = orc::createLocalIndirectStubsManagerBuilder(T);
-
-  // If we couldn't build a stubs-manager-builder for this target then bail out.
-  if (!IndirectStubsMgrBuilder) {
-    LOG(ERROR) << "No indirect stubs manager available for target '"
-               << TM->getTargetTriple().str() << "'.\n";
-    throw neb::jit_internal_failure(
-        "No indirect stubs manager available for target");
-  }
-
-  // Everything looks good. Build the JIT.
-  bool OrcInlineStubs = true;
-  OrcLazyJIT J(std::move(TM), std::move(CompileCallbackMgr),
-               std::move(IndirectStubsMgrBuilder), OrcInlineStubs);
-
-  // Add the module, look up main and run it.
-  for (auto &M : Ms) {
-    // outs() << *(M.get());
-    outs().flush();
-
-    cantFail(J.addModule(std::shared_ptr<Module>(std::move(M))), nullptr);
-  }
-
-  if (auto MainSym =
-          J.findSymbol(std::string(func_name, std::allocator<char>()))) {
-    using MainFnPtr = int (*)(neb::core::driver *, void *);
-    auto Main =
-        fromTargetAddress<MainFnPtr>(cantFail(MainSym.getAddress(), nullptr));
-    LOG(INFO) << "got target function, and to run it! ";
-    return Main(d, param);
-  } else if (auto Err = MainSym.takeError()) {
-    logAllUnhandledErrors(std::move(Err), llvm::errs(), "");
-    throw neb::jit_internal_failure("Unhandled errors");
-  } else {
-    LOG(ERROR) << "Could not find target function.\n";
-    throw neb::jit_internal_failure("Could not find target function");
-  }
-
-  return 1;
-}
-
-neb::auth_table_t llvm::auto_runOrcLazyJIT(std::unique_ptr<Module> M,
-                                           const std::string &func_name) {
-  // Grab a target machine and try to build a factory function for the
-  // target-specific Orc callback manager.
-  EngineBuilder EB;
-  EB.setOptLevel(CodeGenOpt::Default);
-  auto TM = std::unique_ptr<TargetMachine>(EB.selectTarget());
-  Triple T(TM->getTargetTriple());
-  auto CompileCallbackMgr = orc::createLocalCompileCallbackManager(T, 0);
-
-  // If we couldn't build the factory function then there must not be a callback
-  // manager for this target. Bail out.
-  if (!CompileCallbackMgr) {
-    LOG(ERROR) << "No callback manager available for target '"
-               << TM->getTargetTriple().str() << "'.\n";
-    throw neb::jit_internal_failure("No callback manager available for target");
-  }
-
-  auto IndirectStubsMgrBuilder = orc::createLocalIndirectStubsManagerBuilder(T);
-
-  // If we couldn't build a stubs-manager-builder for this target then bail out.
-  if (!IndirectStubsMgrBuilder) {
-    LOG(ERROR) << "No indirect stubs manager available for target '"
-               << TM->getTargetTriple().str() << "'.\n";
-    throw neb::jit_internal_failure(
-        "No indirect stubs manager available for target");
-  }
-
-  // Everything looks good. Build the JIT.
-  bool OrcInlineStubs = true;
-  OrcLazyJIT J(std::move(TM), std::move(CompileCallbackMgr),
-               std::move(IndirectStubsMgrBuilder), OrcInlineStubs);
-
-  // Add the module, look up main and run it.
-  // outs() << *(M.get());
-  outs().flush();
-  cantFail(J.addModule(std::shared_ptr<Module>(std::move(M))), nullptr);
-
-  if (auto MainSym =
-          J.findSymbol(std::string(func_name, std::allocator<char>()))) {
-    using MainFnPtr = neb::auth_table_t (*)();
-    auto Main =
-        fromTargetAddress<MainFnPtr>(cantFail(MainSym.getAddress(), nullptr));
-    LOG(INFO) << "got target function, and to run it! ";
-    return Main();
-  } else if (auto Err = MainSym.takeError()) {
-    logAllUnhandledErrors(std::move(Err), llvm::errs(), "");
-    throw neb::jit_internal_failure("Unhandled errors");
-  }
-  LOG(ERROR) << "Could not find target function.\n";
-  throw neb::jit_internal_failure("Could not find target function");
-}

@@ -65,87 +65,58 @@
 #include <cerrno>
 
 namespace neb {
-namespace internal {
 
-class jit_driver_impl {
-public:
-  jit_driver_impl() {
-    // llvm::sys::PrintStackTraceOnErrorSignal(
-    // configuration::instance().exec_name(), false);
-    llvm::InitializeNativeTarget();
-    llvm::InitializeNativeTargetAsmPrinter();
-    llvm::sys::Process::PreventCoreFiles();
-  }
-  jit_driver_impl(const jit_driver_impl &) = delete;
-  jit_driver_impl &operator=(const jit_driver_impl &) = delete;
-  jit_driver_impl(jit_driver_impl &&) = delete;
-  jit_driver_impl &&operator=(const jit_driver_impl &&) = delete;
+jit_driver::jit_driver() {
+  // llvm::sys::PrintStackTraceOnErrorSignal(
+  // configuration::instance().exec_name(), false);
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+  llvm::sys::Process::PreventCoreFiles();
+}
 
-  void run(core::driver *d,
-           const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
-           const std::string &func_name, void *param) {
-    std::string errMsg;
-    if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr, &errMsg)) {
-      LOG(ERROR) << errMsg;
-      throw jit_internal_failure("failed to load local program");
-    }
-    std::vector<std::unique_ptr<llvm::Module>> modules;
-    for (const auto &ir : irs) {
-      std::string ir_str = ir->ir();
-      llvm::StringRef sr(ir_str);
-      auto mem_buf = llvm::MemoryBuffer::getMemBuffer(sr, "", false);
-      llvm::SMDiagnostic err;
+jit_driver::~jit_driver() { llvm::llvm_shutdown(); }
 
-      modules.push_back(
-          llvm::parseIR(mem_buf->getMemBufferRef(), err, m_context, true));
-    }
-    LOG(INFO) << " call llvm::runOrcLazyJIT";
-    auto ret = llvm::runOrcLazyJIT(d, std::move(modules), func_name, param);
-    LOG(INFO) << "jit return : " << ret;
-  }
+std::unique_ptr<jit_driver::jit_context>
+jit_driver::make_context(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
+                         const std::string &func_name) {
+  std::unique_ptr<jit_context> ret = std::make_unique<jit_context>();
 
-  void auto_run(const nbre::NBREIR &ir, const std::string &func_name,
-                auth_table_t &auth_table) {
-
-    std::string errMsg;
-    if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr, &errMsg)) {
-      LOG(ERROR) << errMsg;
-      throw jit_internal_failure("failed to load local program");
-    }
-    std::string ir_str = ir.ir();
+  std::vector<std::unique_ptr<llvm::Module>> modules;
+  for (const auto &ir : irs) {
+    std::string ir_str = ir->ir();
     llvm::StringRef sr(ir_str);
     auto mem_buf = llvm::MemoryBuffer::getMemBuffer(sr, "", false);
     llvm::SMDiagnostic err;
 
-    std::unique_ptr<llvm::Module> module =
-        llvm::parseIR(mem_buf->getMemBufferRef(), err, m_context, true);
-    LOG(INFO) << " call llvm::auto_runOrcLazyJIT";
-    auth_table = llvm::auto_runOrcLazyJIT(std::move(module), func_name);
+    modules.push_back(
+        llvm::parseIR(mem_buf->getMemBufferRef(), err, ret->m_context, true));
   }
-
-  virtual ~jit_driver_impl() { llvm::llvm_shutdown(); }
-
-protected:
-  llvm::LLVMContext m_context;
-
-}; // end class jit_driver_impl
-} // end namespace internal
-
-jit_driver::jit_driver() {
-  m_impl = std::unique_ptr<internal::jit_driver_impl>(
-      new internal::jit_driver_impl());
+  ret->m_jit.init(std::move(modules), func_name);
+  return std::move(ret);
 }
 
-jit_driver::~jit_driver() = default;
-
-void jit_driver::run(core::driver *d,
-                     const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
-                     const std::string &func_name, void *param) {
-  m_impl->run(d, irs, func_name, param);
+void jit_driver::timer_callback() {
+  std::unique_lock<std::mutex> _l(m_mutex);
+  std::vector<std::string> keys;
+  for (auto &it : m_jit_instances) {
+    it.second->m_time_counter--;
+    if (it.second->m_time_counter < 0) {
+      keys.push_back(it.first);
+    }
+  }
+  for (auto &s : keys) {
+    m_jit_instances.erase(s);
+  }
 }
 
-void jit_driver::auth_run(const nbre::NBREIR &ir, const std::string &func_name,
-                          auth_table_t &auth_table) {
-  m_impl->auto_run(ir, func_name, auth_table);
+std::string
+jit_driver::gen_key(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
+                    const std::string &func_name) {
+  std::stringstream ss;
+  for (auto &m : irs) {
+    ss << m->name() << m->version();
+  }
+  ss << func_name;
+  return ss.str();
 }
 } // namespace neb

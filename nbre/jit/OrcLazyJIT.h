@@ -16,9 +16,12 @@
 #define LLVM_TOOLS_LLI_ORCLAZYJIT_H
 
 #include "common/common.h"
+#include "jit/jit_exception.h"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/Triple.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/ExecutionEngine/JITSymbol.h"
 #include "llvm/ExecutionEngine/Orc/CompileOnDemandLayer.h"
 #include "llvm/ExecutionEngine/Orc/CompileUtils.h"
@@ -34,13 +37,23 @@
 #include "llvm/IR/GlobalValue.h"
 #include "llvm/IR/Mangler.h"
 #include "llvm/IR/Module.h"
+#include "llvm/Support/CodeGen.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/DynamicLibrary.h"
+#include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include <algorithm>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <set>
 #include <string>
+#include <system_error>
 #include <vector>
 
 namespace neb {
@@ -88,72 +101,7 @@ public:
       }
   }
 
-  Error addModule(std::shared_ptr<Module> M) {
-    if (M->getDataLayout().isDefault())
-      M->setDataLayout(DL);
-
-    // Rename, bump linkage and record static constructors and destructors.
-    // We have to do this before we hand over ownership of the module to the
-    // JIT.
-    std::vector<std::string> CtorNames, DtorNames;
-    {
-      unsigned CtorId = 0, DtorId = 0;
-      for (auto Ctor : orc::getConstructors(*M)) {
-        std::string NewCtorName = ("$static_ctor." + Twine(CtorId++)).str();
-        Ctor.Func->setName(NewCtorName);
-        Ctor.Func->setLinkage(GlobalValue::ExternalLinkage);
-        Ctor.Func->setVisibility(GlobalValue::HiddenVisibility);
-        CtorNames.push_back(mangle(NewCtorName));
-      }
-      for (auto Dtor : orc::getDestructors(*M)) {
-        std::string NewDtorName = ("$static_dtor." + Twine(DtorId++)).str();
-        Dtor.Func->setLinkage(GlobalValue::ExternalLinkage);
-        Dtor.Func->setVisibility(GlobalValue::HiddenVisibility);
-        DtorNames.push_back(mangle(Dtor.Func->getName()));
-        Dtor.Func->setName(NewDtorName);
-      }
-    }
-
-    // Symbol resolution order:
-    //   1) Search the JIT symbols.
-    //   2) Check for C++ runtime overrides.
-    //   3) Search the host process (LLI)'s symbol table.
-    if (!ModulesHandle) {
-      auto Resolver = orc::createLambdaResolver(
-          [this](const std::string &Name) -> JITSymbol {
-            if (auto Sym = CODLayer.findSymbol(Name, true))
-              return Sym;
-            return CXXRuntimeOverrides.searchOverrides(Name);
-          },
-          [](const std::string &Name) {
-            if (auto Addr =
-                    RTDyldMemoryManager::getSymbolAddressInProcess(Name))
-              return JITSymbol(Addr, JITSymbolFlags::Exported);
-            return JITSymbol(nullptr);
-          });
-
-      // Add the module to the JIT.
-      if (auto ModulesHandleOrErr =
-              CODLayer.addModule(std::move(M), std::move(Resolver)))
-        ModulesHandle = std::move(*ModulesHandleOrErr);
-      else
-        return ModulesHandleOrErr.takeError();
-
-    } else if (auto Err = CODLayer.addExtraModule(*ModulesHandle, std::move(M)))
-      return Err;
-
-    // Run the static constructors, and save the static destructor runner for
-    // execution when the JIT is torn down.
-    orc::CtorDtorRunner<CODLayerT> CtorRunner(std::move(CtorNames),
-                                              *ModulesHandle);
-    if (auto Err = CtorRunner.runViaLayer(CODLayer))
-      return Err;
-
-    IRStaticDestructorRunners.emplace_back(std::move(DtorNames),
-                                           *ModulesHandle);
-
-    return Error::success();
-  }
+  Error addModule(std::shared_ptr<Module> M);
 
   JITSymbol findSymbol(const std::string &Name) {
     return CODLayer.findSymbol(mangle(Name), true);
@@ -196,11 +144,7 @@ private:
   llvm::Optional<CODLayerT::ModuleHandleT> ModulesHandle;
 };
 
-int runOrcLazyJIT(neb::core::driver *d, std::vector<std::unique_ptr<Module>> Ms,
-                  const std::string &func_name, void *param);
 
-neb::auth_table_t auto_runOrcLazyJIT(std::unique_ptr<Module> M,
-                                     const std::string &func_name);
 
 } // end namespace llvm
 

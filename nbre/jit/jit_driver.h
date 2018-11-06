@@ -20,7 +20,9 @@
 #pragma once
 
 #include "common/common.h"
+#include "common/util/singleton.h"
 #include "fs/proto/ir.pb.h"
+#include "jit/jit_engine.h"
 
 namespace neb {
 namespace internal {
@@ -29,18 +31,56 @@ class jit_driver_impl;
 namespace core {
 class driver;
 }
-class jit_driver {
+class jit_driver : public ::neb::util::singleton<jit_driver> {
 public:
   jit_driver();
   ~jit_driver();
+
+  // TODO remove this
   void run(core::driver *d,
            const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
-           const std::string &func_name, void *param);
+           const std::string &func_name, void *param) {
+    run<int>(irs, func_name, d, param);
+  }
 
+  // TODO remove this
   void auth_run(const nbre::NBREIR &ir, const std::string &func_name,
-                auth_table_t &auth_table);
+                auth_table_t &auth_table) {}
+
+  template <typename RT, typename... ARGS>
+  RT run(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
+         const std::string &func_name, ARGS... args) {
+    std::string key = gen_key(irs, func_name);
+    m_mutex.lock();
+    auto it = m_jit_instances.find(key);
+    if (it == m_jit_instances.end()) {
+      m_jit_instances.insert(std::make_pair(key, make_context(irs, func_name)));
+      it = m_jit_instances.find(key);
+    }
+    auto &context = it->second;
+    context->m_time_counter = 30 * 60;
+    m_mutex.unlock();
+    return context->m_jit.run<RT>(args...);
+  }
+
+  void timer_callback();
 
 protected:
-  std::unique_ptr<internal::jit_driver_impl> m_impl;
+  std::string gen_key(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
+                      const std::string &func_name);
+
+  struct jit_context {
+    llvm::LLVMContext m_context;
+    jit::jit_engine m_jit;
+    int32_t m_time_counter;
+  };
+
+  std::unique_ptr<jit_driver::jit_context>
+  make_context(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
+               const std::string &func_name);
+
+protected:
+  std::mutex m_mutex;
+  std::unordered_map<std::string, std::unique_ptr<jit_context>> m_jit_instances;
 }; // end class jit_driver;
 } // end namespace neb
