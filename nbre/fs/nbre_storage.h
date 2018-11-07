@@ -45,8 +45,6 @@ public:
   void write_nbre_until_sync();
   void write_nbre();
 
-  bool is_latest_irreversible_block();
-
 private:
   void
   read_nbre_depends_recursive(const std::string &name, uint64_t version,

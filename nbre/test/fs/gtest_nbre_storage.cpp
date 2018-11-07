@@ -155,17 +155,6 @@ TEST(test_fs, read_nbre_by_height) {
   EXPECT_EQ(nbre_ir_ptr->depends_size(), 1);
 }
 
-TEST(test_fs, is_latest_irreversible_block) {
-
-  std::string db_read = get_db_path_for_read();
-  std::string db_write = get_db_path_for_write();
-
-  std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
-      std::make_shared<neb::fs::nbre_storage>(db_write, db_read);
-
-  EXPECT_EQ(nbre_ptr->is_latest_irreversible_block(), true);
-}
-
 TEST(test_fs, read_nbre_by_name_version) {
 
   std::string db_read = get_db_path_for_read();

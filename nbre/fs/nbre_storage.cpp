@@ -247,17 +247,6 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
   }
 }
 
-bool nbre_storage::is_latest_irreversible_block() {
-
-  auto lib_block = m_blockchain->load_LIB_block();
-  auto max_height_bytes = m_storage->get(
-      std::string(neb::configuration::instance().nbre_max_height_name(),
-                  std::allocator<char>()));
-
-  return lib_block->height() ==
-         neb::util::byte_to_number<neb::block_height_t>(max_height_bytes);
-}
-
 void nbre_storage::set_auth_table() {
 
   if (!m_auth_table.empty()) {
