@@ -1,8 +1,11 @@
-
 add_subdirectory(nasir)
+add_subdirectory(nbre)
+
+if(Release)
+else()
 add_subdirectory(blockgen)
 add_subdirectory(rocksdb)
 add_subdirectory(naxer)
 add_subdirectory(dummy_neb)
-add_subdirectory(nbre)
 add_subdirectory(jit)
+endif()
