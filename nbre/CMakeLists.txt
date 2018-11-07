@@ -65,12 +65,8 @@ llvm_map_components_to_libnames(llvm_libs
   support
   nativecodegen
   irreader
-  linker
   orcjit
-  runtimedyld
-  target
-  support
-  option)
+  )
 
 set(jit_libs nbre_jit ${llvm_libs})
 
@@ -108,11 +104,6 @@ endif()
 set(common_libs nbre_common pthread ${common_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES})
 
 
-#add_subdirectory(common)
-#add_subdirectory(fs)
-#add_subdirectory(core)
-#add_subdirectory(jit)
-#add_subdirectory(runtime)
 message(STATUS "nbre src " ${nbre_src})
 file(GLOB nbre_jit_src jit/*.cpp)
 file(GLOB nbre_rt_src runtime/*.cpp)
