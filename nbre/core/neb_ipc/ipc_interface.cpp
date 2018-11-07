@@ -59,3 +59,7 @@ void set_recv_nbre_version_callback(nbre_version_callback_t func) {
 int ipc_nbre_version(void *holder, uint64_t height) {
   return _ipc->send_nbre_version_req(holder, height);
 }
+
+int ipc_nbre_ir_list(void *holder) {
+  return _ipc->send_nbre_ir_list_req(holder);
+}

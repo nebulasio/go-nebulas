@@ -37,12 +37,15 @@ enum ipc_status_code {
 typedef void (*handle_recv_callback_func_t)(enum ipc_status_code isc, const char *);
 
 int ipc_nbre_version(void *holder, uint64_t height);
-
 typedef void (*nbre_version_callback_t)(enum ipc_status_code isc, void *holder,
                                         uint32_t major, uint32_t minor,
                                         uint32_t patch);
-
 void set_recv_nbre_version_callback(nbre_version_callback_t func);
+
+int ipc_nbre_ir_list(void *holder);
+typedef void (*nbre_ir_list_callback_t)(enum ipc_status_code isc, void *holder,
+                                        const char *ir_name_list);
+void set_recv_nbre_ir_list_callback(nbre_ir_list_callback_t func);
 
 int start_nbre_ipc(const char *root_dir, const char *nbre_path,
                    const char *admin_pub_addr);

@@ -29,6 +29,8 @@ enum {
   ipc_pkg_nbre_version_ack,
   ipc_pkg_nbre_init_req,
   ipc_pkg_nbre_init_ack,
+  ipc_pkg_nbre_ir_list_req,
+  ipc_pkg_nbre_ir_list_ack,
 };
 namespace ipc_pkg {
 using namespace internal;
@@ -47,6 +49,10 @@ using nbre_root_dir = ipc_elem_base<3, neb::ipc::char_string_t>;
 using admin_pub_addr = ipc_elem_base<4, neb::ipc::char_string_t>;
 using nbre_init_ack =
     define_ipc_pkg<ipc_pkg_nbre_init_ack, nbre_root_dir, admin_pub_addr>;
+
+using nbre_ir_list_req = define_ipc_pkg<ipc_pkg_nbre_ir_list_req>;
+using ir_name_list = ipc_elem_base<5, neb::ipc::string_vector_t>;
+using nbre_ir_list_ack = define_ipc_pkg<ipc_pkg_nbre_ir_list_ack, ir_name_list>;
 
 } // namespace ipc_pkg
 

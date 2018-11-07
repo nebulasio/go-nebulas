@@ -39,6 +39,7 @@ public:
   bool start();
 
   int send_nbre_version_req(void *holder, uint64_t height);
+  int send_nbre_ir_list_req(void *holder);
 
   void shutdown();
 
