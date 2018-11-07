@@ -21,6 +21,7 @@
 #include "common/common.h"
 #include "common/configuration.h"
 #include "common/exception_queue.h"
+#include "common/timer_loop.h"
 #include "core/neb_ipc/client/ipc_client_endpoint.h"
 #include "core/neb_ipc/ipc_pkg.h"
 #include "fs/util.h"
@@ -45,11 +46,15 @@ protected:
 
   void handle_exception(const std::shared_ptr<neb::neb_exception> &p);
 
+  void init_timer_thread();
+
 protected:
   std::unique_ptr<ipc_client_endpoint> m_client;
   ipc_client_t *m_ipc_conn;
   std::unique_ptr<std::thread> m_client_thread;
   std::atomic_bool m_exit_flag;
+  std::unique_ptr<std::thread> m_timer_thread;
+  std::unique_ptr<timer_loop> m_timer_loop;
 };
 } // end namespace internal
 

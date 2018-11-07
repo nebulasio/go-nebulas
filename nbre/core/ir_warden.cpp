@@ -42,7 +42,10 @@ ir_warden::get_ir_by_name_height(const std::string &name, uint64_t height,
   return m_nbre_storage->read_nbre_by_height(name, height, depends_trace);
 }
 
-bool ir_warden::is_sync_already() const { return m_is_sync_already; }
+bool ir_warden::is_sync_already() const {
+  std::unique_lock<std::mutex> _l(m_sync_mutex);
+  return m_is_sync_already;
+}
 
 void ir_warden::wait_until_sync() {
   LOG(INFO) << "wait until sync ...";
@@ -54,31 +57,17 @@ void ir_warden::wait_until_sync() {
   LOG(INFO) << "wait until sync done";
 }
 
-void ir_warden::on_timer() { m_nbre_storage->write_nbre_until_sync(); }
-
-void ir_warden::thread_func() {
-
-  on_timer();
+void ir_warden::on_timer() {
+  m_nbre_storage->write_nbre_until_sync();
   std::unique_lock<std::mutex> _l(m_sync_mutex);
-  m_is_sync_already = true;
-  _l.unlock();
-  m_sync_cond_var.notify_one();
-
-  timer_loop tl(&m_io_service);
-  tl.register_timer_and_callback(
-      neb::configuration::instance().ir_warden_time_interval(),
-      [&]() { on_timer(); });
-  m_io_service.run();
-}
-
-void ir_warden::async_run() {
-  if (m_thread) {
-    return;
+  if (!m_is_sync_already) {
+    m_is_sync_already = true;
+    _l.unlock();
+    m_sync_cond_var.notify_one();
   }
-  start();
 }
 
-ir_warden::ir_warden() : quitable_thread(), m_is_sync_already(false) {
+ir_warden::ir_warden() : m_is_sync_already(false) {
   m_nbre_storage = std::unique_ptr<fs::nbre_storage>(new fs::nbre_storage(
       std::getenv("NBRE_DB"), std::getenv("BLOCKCHAIN_DB")));
 }

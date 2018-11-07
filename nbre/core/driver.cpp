@@ -112,6 +112,25 @@ void driver_base::handle_exception(
     break;
   }
 }
+void driver_base::init_timer_thread() {
+  if (m_timer_thread) {
+    return;
+  }
+  m_timer_thread = std::unique_ptr<std::thread>(new std::thread([this]() {
+    boost::asio::io_service io_service;
+
+    m_timer_loop = std::unique_ptr<timer_loop>(new timer_loop(&io_service));
+    m_timer_loop->register_timer_and_callback(
+        configuration::instance().ir_warden_time_interval(),
+        []() { ir_warden::instance().on_timer(); });
+
+    m_timer_loop->register_timer_and_callback(
+        1, []() { jit_driver::instance().timer_callback(); });
+
+    io_service.run();
+  }));
+}
+
 } // end namespace internal
 
 driver::driver() : internal::driver_base() {}
@@ -138,7 +157,8 @@ void driver::add_handlers() {
         configuration::instance().auth_table_nas_addr() = s;
         configuration::instance().root_dir() =
             ack->get<ipc_pkg::nbre_root_dir>().c_str();
-        ir_warden::instance().async_run();
+
+        init_timer_thread();
         ir_warden::instance().wait_until_sync();
       });
 }

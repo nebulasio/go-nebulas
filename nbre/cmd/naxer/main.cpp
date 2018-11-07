@@ -53,8 +53,7 @@ int main(int argc, char *argv[]) {
 
   // naxer --module nr --height 1000
 
-  neb::core::ir_warden::instance().async_run();
-
+  neb::core::ir_warden::instance().on_timer();
   neb::core::ir_warden::instance().wait_until_sync();
 
   std::string module = vm["module"].as<std::string>();

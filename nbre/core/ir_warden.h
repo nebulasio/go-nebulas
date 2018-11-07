@@ -32,12 +32,11 @@
 
 namespace neb {
 namespace core {
-class ir_warden : public util::singleton<ir_warden>, public quitable_thread {
+class ir_warden : public util::singleton<ir_warden> {
 public:
   ir_warden();
   virtual ~ir_warden();
 
-  void async_run();
 
   std::shared_ptr<nbre::NBREIR> get_ir_by_name_version(const std::string &name,
                                                        uint64_t version);
@@ -49,17 +48,12 @@ public:
 
   void wait_until_sync();
 
-protected:
-  virtual void thread_func();
-
   void on_timer();
 
 private:
-  boost::asio::io_service m_io_service;
   std::unique_ptr<fs::nbre_storage> m_nbre_storage;
-
   bool m_is_sync_already;
-  std::mutex m_sync_mutex;
+  mutable std::mutex m_sync_mutex;
   std::condition_variable m_sync_cond_var;
 };
 }
