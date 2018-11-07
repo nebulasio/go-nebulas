@@ -72,6 +72,8 @@ jit_driver::jit_driver() {
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
   llvm::sys::Process::PreventCoreFiles();
+  std::string errMsg;
+  llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr, &errMsg);
 }
 
 jit_driver::~jit_driver() { llvm::llvm_shutdown(); }
