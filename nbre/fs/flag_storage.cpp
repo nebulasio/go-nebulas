@@ -30,7 +30,7 @@ void flag_storage::set_flag(const std::string &flag) {
   m_storage->put(flag, neb::util::string_to_byte(flag));
 }
 
-bool flag_storage::has_flag(const std::string &flag) {
+bool flag_storage::has_flag(const std::string &flag) const {
   try {
     m_storage->get(flag);
   } catch (const std::exception &e) {

@@ -30,7 +30,7 @@ public:
 
   void set_flag(const std::string &flag);
 
-  bool has_flag(const std::string &flag);
+  bool has_flag(const std::string &flag) const;
 
   void del_flag(const std::string &flag);
 
