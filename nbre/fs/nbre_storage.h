@@ -36,7 +36,8 @@ public:
   nbre_storage &operator=(const nbre_storage &ns) = delete;
 
   std::vector<std::shared_ptr<nbre::NBREIR>>
-  read_nbre_by_height(const std::string &name, block_height_t height);
+  read_nbre_by_height(const std::string &name, block_height_t height,
+                      bool depends_trace);
 
   std::shared_ptr<nbre::NBREIR>
   read_nbre_by_name_version(const std::string &name, uint64_t version);
@@ -49,9 +50,12 @@ public:
 private:
   void
   read_nbre_depends_recursive(const std::string &name, uint64_t version,
-                              block_height_t height,
+                              block_height_t height, bool depends_trace,
                               std::unordered_set<std::string> &pkg,
                               std::vector<std::shared_ptr<nbre::NBREIR>> &irs);
+
+  block_height_t get_start_height();
+  block_height_t get_end_height();
 
   void write_nbre_by_height(block_height_t height);
 

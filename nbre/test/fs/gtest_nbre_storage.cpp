@@ -92,7 +92,7 @@ TEST(test_fs, read_nbre_by_height_simple) {
   std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
       std::make_shared<neb::fs::nbre_storage>(db_write, db_read);
 
-  auto ret = nbre_ptr->read_nbre_by_height("nr", 1000);
+  auto ret = nbre_ptr->read_nbre_by_height("nr", 1000, true);
   EXPECT_EQ(ret.size(), 1);
   auto it = ret.begin();
   auto nbre_ir_ptr = *it;
@@ -101,7 +101,7 @@ TEST(test_fs, read_nbre_by_height_simple) {
   EXPECT_EQ(nbre_ir_ptr->height(), 150);
   EXPECT_EQ(nbre_ir_ptr->depends_size(), 0);
 
-  ret = nbre_ptr->read_nbre_by_height("nr", 150);
+  ret = nbre_ptr->read_nbre_by_height("nr", 150, true);
   EXPECT_EQ(ret.size(), 1);
   it = ret.begin();
   nbre_ir_ptr = *it;
@@ -110,7 +110,7 @@ TEST(test_fs, read_nbre_by_height_simple) {
   EXPECT_EQ(nbre_ir_ptr->height(), 150);
   EXPECT_EQ(nbre_ir_ptr->depends_size(), 0);
 
-  ret = nbre_ptr->read_nbre_by_height("nr", 149);
+  ret = nbre_ptr->read_nbre_by_height("nr", 149, true);
   EXPECT_EQ(ret.size(), 1);
   it = ret.begin();
   nbre_ir_ptr = *it;
@@ -119,7 +119,7 @@ TEST(test_fs, read_nbre_by_height_simple) {
   EXPECT_EQ(nbre_ir_ptr->height(), 100);
   EXPECT_EQ(nbre_ir_ptr->depends_size(), 0);
 
-  ret = nbre_ptr->read_nbre_by_height("nr", 100);
+  ret = nbre_ptr->read_nbre_by_height("nr", 100, true);
   EXPECT_EQ(ret.size(), 1);
   it = ret.begin();
   nbre_ir_ptr = *it;
@@ -138,7 +138,7 @@ TEST(test_fs, read_nbre_by_height) {
   std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
       std::make_shared<neb::fs::nbre_storage>(db_write, db_read);
 
-  auto ret = nbre_ptr->read_nbre_by_height("dip", 1000);
+  auto ret = nbre_ptr->read_nbre_by_height("dip", 1000, true);
   EXPECT_EQ(ret.size(), 2);
   auto it = ret.begin();
   auto nbre_ir_ptr = *it;

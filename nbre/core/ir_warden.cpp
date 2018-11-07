@@ -37,8 +37,9 @@ ir_warden::get_ir_by_name_version(const std::string &name, uint64_t version) {
 }
 
 std::vector<std::shared_ptr<nbre::NBREIR>>
-ir_warden::get_ir_by_name_height(const std::string &name, uint64_t height) {
-  return m_nbre_storage->read_nbre_by_height(name, height);
+ir_warden::get_ir_by_name_height(const std::string &name, uint64_t height,
+                                 bool depends_trace) {
+  return m_nbre_storage->read_nbre_by_height(name, height, depends_trace);
 }
 
 bool ir_warden::is_sync_already() const { return m_is_sync_already; }

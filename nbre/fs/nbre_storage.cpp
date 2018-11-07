@@ -40,7 +40,7 @@ nbre_storage::nbre_storage(const std::string &path,
 
 std::vector<std::shared_ptr<nbre::NBREIR>>
 nbre_storage::read_nbre_by_height(const std::string &name,
-                                  block_height_t height) {
+                                  block_height_t height, bool depends_trace) {
 
   std::vector<std::shared_ptr<nbre::NBREIR>> ret;
   std::unordered_set<std::string> pkgs;
@@ -56,7 +56,8 @@ nbre_storage::read_nbre_by_height(const std::string &name,
     if (bytes_version != nullptr) {
       uint64_t version =
           neb::util::byte_to_number<uint64_t>(bytes_version, gap);
-      read_nbre_depends_recursive(name, version, height, pkgs, ret);
+      read_nbre_depends_recursive(name, version, height, depends_trace, pkgs,
+                                  ret);
       if (!ret.empty()) {
         break;
       }
@@ -67,7 +68,7 @@ nbre_storage::read_nbre_by_height(const std::string &name,
 
 void nbre_storage::read_nbre_depends_recursive(
     const std::string &name, uint64_t version, block_height_t height,
-    std::unordered_set<std::string> &pkg,
+    bool depends_trace, std::unordered_set<std::string> &pkg,
     std::vector<std::shared_ptr<nbre::NBREIR>> &irs) {
 
   if (name == neb::configuration::instance().rt_module_name() &&
@@ -88,8 +89,11 @@ void nbre_storage::read_nbre_depends_recursive(
   }
 
   if (nbre_ir->height() <= height) {
-    for (auto &dep : nbre_ir->depends()) {
-      read_nbre_depends_recursive(dep.name(), dep.version(), height, pkg, irs);
+    if (depends_trace) {
+      for (auto &dep : nbre_ir->depends()) {
+        read_nbre_depends_recursive(dep.name(), dep.version(), height,
+                                    depends_trace, pkg, irs);
+      }
     }
     irs.push_back(nbre_ir);
     pkg.insert(name_version);
@@ -128,8 +132,7 @@ void nbre_storage::write_nbre_until_sync() {
                neb::configuration::instance().ir_warden_time_interval()));
 }
 
-void nbre_storage::write_nbre() {
-  std::shared_ptr<corepb::Block> end_block = m_blockchain->load_LIB_block();
+block_height_t nbre_storage::get_start_height() {
 
   block_height_t start_height = 0;
   try {
@@ -142,8 +145,20 @@ void nbre_storage::write_nbre() {
                     std::allocator<char>()),
         neb::util::number_to_byte<neb::util::bytes>(start_height));
   }
+  return start_height;
+}
 
+block_height_t nbre_storage::get_end_height() {
+
+  std::shared_ptr<corepb::Block> end_block = m_blockchain->load_LIB_block();
   block_height_t end_height = end_block->height();
+  return end_height;
+}
+
+void nbre_storage::write_nbre() {
+
+  block_height_t start_height = get_start_height();
+  block_height_t end_height = get_end_height();
   LOG(INFO) << "start height " << start_height << ',' << "end height "
             << end_height;
 
@@ -194,9 +209,6 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
       const std::string &name = nbre_ir->name();
       const uint64_t version = nbre_ir->version();
 
-      LOG(INFO) << "auth table mainnet address: "
-                << neb::configuration::instance().auth_table_nas_addr();
-
       if (neb::configuration::instance().auth_module_name() == name &&
           neb::configuration::instance().auth_table_nas_addr() == from_base58) {
         // TODO expect auth table exceed 128k bytes size
@@ -204,6 +216,7 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
         m_storage->put(neb::configuration::instance().nbre_auth_table_name(),
                        payload_bytes);
         set_auth_table_by_jit(nbre_ir);
+        LOG(INFO) << "updating auth table...";
         continue;
       }
 
@@ -235,10 +248,12 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
 }
 
 bool nbre_storage::is_latest_irreversible_block() {
+
   auto lib_block = m_blockchain->load_LIB_block();
   auto max_height_bytes = m_storage->get(
       std::string(neb::configuration::instance().nbre_max_height_name(),
                   std::allocator<char>()));
+
   return lib_block->height() ==
          neb::util::byte_to_number<neb::block_height_t>(max_height_bytes);
 }
@@ -285,10 +300,6 @@ void nbre_storage::set_auth_table_by_jit(
     auth_key_t k =
         std::make_tuple(std::get<0>(r), std::get<1>(r), std::get<2>(r));
     auth_val_t v = std::make_tuple(std::get<3>(r), std::get<4>(r));
-
-    LOG(INFO) << std::get<0>(r) << ',' << std::get<1>(r) << ','
-              << std::get<2>(r) << ',' << std::get<3>(r) << ','
-              << std::get<4>(r);
     m_auth_table.insert(std::make_pair(k, v));
   }
 }
