@@ -213,9 +213,9 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
           neb::configuration::instance().auth_table_nas_addr() == from_base58) {
         // TODO expect auth table exceed 128k bytes size
 
+        set_auth_table_by_jit(nbre_ir);
         m_storage->put(neb::configuration::instance().nbre_auth_table_name(),
                        payload_bytes);
-        set_auth_table_by_jit(nbre_ir);
         LOG(INFO) << "updating auth table...";
         continue;
       }
@@ -303,6 +303,7 @@ void nbre_storage::set_auth_table_by_jit(
     LOG(INFO) << e.what();
   }
 
+  m_auth_table.clear();
   for (auto &r : auth_table_raw) {
     auth_key_t k =
         std::make_tuple(std::get<0>(r), std::get<1>(r), std::get<2>(r));
