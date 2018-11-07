@@ -288,10 +288,17 @@ void nbre_storage::set_auth_table_by_jit(
   auth_table_t auth_table_raw;
 
   try {
-    jit_driver jd;
-    jd.auth_run(*nbre_ir,
-                neb::configuration::instance().auth_func_mangling_name(),
-                auth_table_raw);
+    jit_driver &jd = jit_driver::instance();
+    std::stringstream ss;
+    ss << nbre_ir->name() << nbre_ir->version();
+
+    std::vector<std::shared_ptr<nbre::NBREIR>> irs;
+    irs.push_back(nbre_ir);
+
+    auth_table_raw = jd.run<auth_table_t>(
+        ss.str(), irs,
+        neb::configuration::instance().auth_func_mangling_name());
+
   } catch (const std::exception &e) {
     LOG(INFO) << e.what();
   }

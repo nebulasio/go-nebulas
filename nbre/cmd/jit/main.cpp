@@ -101,8 +101,9 @@ int main(int argc, char *argv[]) {
   auto v = std::vector<std::shared_ptr<nbre::NBREIR>>({nbreir_ptr});
 
   neb::auth_table_t auth_table;
-  neb::jit_driver jd;
-  jd.auth_run(nbre_ir, vm["func"].as<std::string>(), auth_table);
+  neb::jit_driver &jd = neb::jit_driver::instance();
+  jd.run<neb::auth_table_t>("auth_key", v, vm["func"].as<std::string>());
+  // jd.auth_run(nbre_ir, vm["func"].as<std::string>(), auth_table);
 
   return 0;
 }

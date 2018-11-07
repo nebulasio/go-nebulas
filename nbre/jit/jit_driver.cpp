@@ -119,4 +119,19 @@ jit_driver::gen_key(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
   ss << func_name;
   return ss.str();
 }
+
+void jit_driver::shrink_instances() {
+  if (m_jit_instances.size() < 16)
+    return;
+
+  int32_t min_count = 30 * 60 + 1;
+  std::string min_key;
+  for (auto &pair : m_jit_instances) {
+    if (pair.second->m_time_counter < min_count) {
+      min_count = pair.second->m_time_counter;
+      min_key = pair.first;
+    }
+  }
+  m_jit_instances.erase(min_key);
+}
 } // namespace neb

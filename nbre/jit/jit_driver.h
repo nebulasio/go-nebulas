@@ -21,6 +21,7 @@
 
 #include "common/common.h"
 #include "common/util/singleton.h"
+#include "core/ir_warden.h"
 #include "fs/proto/ir.pb.h"
 #include "jit/jit_engine.h"
 
@@ -36,24 +37,52 @@ public:
   jit_driver();
   ~jit_driver();
 
-  // TODO remove this
-  void run(core::driver *d,
-           const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
-           const std::string &func_name, void *param) {
-    run<int>(irs, func_name, d, param);
+  template <typename RT, typename... ARGS>
+  RT run_ir(const std::string &name, uint64_t height,
+            const std::string &func_name, ARGS... args) {
+    auto irs =
+        core::ir_warden::instance().get_ir_by_name_height(name, height, false);
+    if (irs.size() != 1) {
+      throw std::invalid_argument("no such ir");
+    }
+    std::string key = gen_key(irs, func_name);
+    auto ret = run_if_exists<RT>(irs.back(), func_name, args...);
+    if (ret.first) {
+      return ret.second;
+    }
+
+    irs = core::ir_warden::instance().get_ir_by_name_height(name, height, true);
+    return run<RT>(key, irs, func_name, args...);
   }
 
-  // TODO remove this
-  void auth_run(const nbre::NBREIR &ir, const std::string &func_name,
-                auth_table_t &auth_table) {}
+  template <typename RT, typename... ARGS>
+  std::pair<bool, RT> run_if_exists(const std::shared_ptr<nbre::NBREIR> &ir,
+                                    const std::string &func_name,
+                                    ARGS... args) {
+
+    std::vector<std::shared_ptr<nbre::NBREIR>> irs;
+    irs.push_back(ir);
+    std::string key = gen_key(irs, func_name);
+    std::unique_lock<std::mutex> _l(m_mutex);
+    auto it = m_jit_instances.find(key);
+    if (it == m_jit_instances.end())
+      return std::make_pair(false, RT());
+
+    auto &context = it->second;
+    context->m_time_counter = 30 * 60;
+    _l.unlock();
+    return std::make_pair(true, context->m_jit.run<RT>(args...));
+  }
 
   template <typename RT, typename... ARGS>
-  RT run(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
+  RT run(const std::string &ir_key,
+         const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
          const std::string &func_name, ARGS... args) {
-    std::string key = gen_key(irs, func_name);
+    std::string key = ir_key;
     m_mutex.lock();
     auto it = m_jit_instances.find(key);
     if (it == m_jit_instances.end()) {
+      shrink_instances();
       m_jit_instances.insert(std::make_pair(key, make_context(irs, func_name)));
       it = m_jit_instances.find(key);
     }
@@ -66,6 +95,8 @@ public:
   void timer_callback();
 
 protected:
+  void shrink_instances();
+
   std::string gen_key(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
                       const std::string &func_name);
 

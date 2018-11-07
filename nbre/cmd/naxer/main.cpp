@@ -62,7 +62,8 @@ int main(int argc, char *argv[]) {
   auto irs =
       neb::core::ir_warden::instance().get_ir_by_name_height(module, height);
 
-
-  neb::jit_driver jd;
-  jd.run(nullptr, irs, vm["func"].as<std::string>(), nullptr);
+  neb::jit_driver &jd = neb::jit_driver::instance();
+  jd.run_ir<int, neb::core::driver *, void *>(
+      module, height, vm["func"].as<std::string>(), nullptr, nullptr);
+  // jd.run(nullptr, irs, vm["func"].as<std::string>(), nullptr);
 }
