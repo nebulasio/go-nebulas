@@ -69,8 +69,8 @@ void ir_warden::on_timer() {
 
 ir_warden::ir_warden() : m_is_sync_already(false) {
   m_nbre_storage = std::unique_ptr<fs::nbre_storage>(new fs::nbre_storage(
-      neb::configuration::instance().root_dir() + "test/data/write-data.db",
-      neb::configuration::instance().root_dir() + "../data.db"));
+      neb::configuration::instance().root_dir() + "/test/data/write-data.db",
+      neb::configuration::instance().root_dir() + "/../data.db"));
 }
 }
 } // namespace neb
