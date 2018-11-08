@@ -25,6 +25,8 @@
 #include "fs/flag_storage.h"
 #include "jit/jit_driver.h"
 #include "runtime/version.h"
+#include <boost/foreach.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 namespace neb {
 namespace fs {
@@ -36,6 +38,12 @@ nbre_storage::nbre_storage(const std::string &path,
 
   m_blockchain =
       std::make_unique<blockchain>(bc_path, storage_open_for_readonly);
+}
+
+nbre_storage::~nbre_storage() {
+  if (m_storage) {
+    m_storage->close_database();
+  }
 }
 
 std::vector<std::shared_ptr<nbre::NBREIR>>
@@ -243,8 +251,59 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
       }
 
       m_storage->put(name + std::to_string(version), payload_bytes);
+
+      std::string ir_list_name =
+          neb::configuration::instance().nbre_ir_list_name();
+      neb::util::bytes bytes_ir_name_list;
+      try {
+        bytes_ir_name_list = m_storage->get(ir_list_name);
+      } catch (const std::exception &e) {
+        LOG(INFO) << e.what();
+      }
+      update_ir_list(neb::util::byte_to_string(bytes_ir_name_list), name);
     }
   }
+}
+
+void nbre_storage::update_ir_list_to_db(const std::string &ir_list_name,
+                                        const boost::property_tree::ptree &pt) {
+  std::stringstream ss;
+  boost::property_tree::json_parser::write_json(ss, pt);
+  m_storage->put(ir_list_name, neb::util::string_to_byte(ss.str()));
+}
+
+void nbre_storage::update_ir_list(const std::string &ir_name_list,
+                                  const std::string &ir_name) {
+
+  std::string ir_list_name = neb::configuration::instance().ir_list_name();
+
+  if (ir_name_list.empty()) {
+    boost::property_tree::ptree ele, arr, root;
+    ele.put("", ir_name);
+    arr.push_back(std::make_pair("", ele));
+    root.add_child(ir_list_name, root);
+    update_ir_list_to_db(ir_list_name, root);
+    return;
+  }
+
+  boost::property_tree::ptree root;
+  std::stringstream ss(ir_name_list);
+  boost::property_tree::json_parser::read_json(ss, root);
+
+  BOOST_FOREACH (boost::property_tree::ptree::value_type &v,
+                 root.get_child(ir_list_name)) {
+    boost::property_tree::ptree pt = v.second;
+    if (ir_name == pt.get<std::string>(std::string())) {
+      return;
+    }
+  }
+
+  boost::property_tree::ptree &arr = root.get_child(ir_list_name);
+  boost::property_tree::ptree ele;
+  ele.put("", ir_name);
+  arr.push_back(std::make_pair("", ele));
+
+  update_ir_list_to_db(ir_list_name, root);
 }
 
 void nbre_storage::set_auth_table() {

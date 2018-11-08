@@ -22,6 +22,7 @@
 #include "common/common.h"
 #include "fs/blockchain.h"
 #include "fs/proto/ir.pb.h"
+#include <boost/property_tree/ptree.hpp>
 
 namespace neb {
 namespace fs {
@@ -32,6 +33,7 @@ typedef std::tuple<start_block_t, end_block_t> auth_val_t;
 class nbre_storage {
 public:
   nbre_storage(const std::string &path, const std::string &bc_path);
+  ~nbre_storage();
   nbre_storage(const nbre_storage &ns) = delete;
   nbre_storage &operator=(const nbre_storage &ns) = delete;
 
@@ -59,6 +61,11 @@ private:
 
   void set_auth_table();
   void set_auth_table_by_jit(const std::shared_ptr<nbre::NBREIR> nbre_ir);
+
+  void update_ir_list(const std::string &ir_name_list,
+                      const std::string &ir_name);
+  void update_ir_list_to_db(const std::string &ir_list_name,
+                            const boost::property_tree::ptree &pt);
 
 private:
   std::unique_ptr<rocksdb_storage> m_storage;
