@@ -102,10 +102,7 @@ typedef boost::interprocess::basic_string<char, std::char_traits<char>,
 
 typedef boost::interprocess::allocator<char_string_t, segment_manager_t>
     string_allocator_t;
-
 typedef boost::interprocess::vector<char_string_t, string_allocator_t>
     string_vector_t;
-typedef boost::interprocess::allocator<string_vector_t, segment_manager_t>
-    string_vector_allocator_t;
 }
 }

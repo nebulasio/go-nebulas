@@ -50,7 +50,10 @@ struct define_ipc_pkg : public ARGS... {
   define_ipc_pkg(void *holder, const neb::ipc::default_allocator_t &alloc)
       : ARGS(alloc)..., m_holder(holder), m_alloc(alloc) {}
   const static ipc_pkg_type_id_t pkg_identifier = id_t;
-  template <typename T> const typename T::type &get() { return T::__value; }
+  template <typename T> const typename T::type &get() const {
+    return T::__value;
+  }
+  template <typename T> typename T::type &get() { return T::__value; }
   template <typename T> void set(const typename T::type &t) { T::__value = t; }
   template <typename T>
   auto set(const char *t) -> typename std::enable_if<

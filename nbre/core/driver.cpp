@@ -19,6 +19,7 @@
 //
 #include "core/driver.h"
 #include "core/ir_warden.h"
+#include "fs/api/nbre_api.h"
 #include "jit/jit_driver.h"
 #include "runtime/version.h"
 #include <ff/ff.h>
@@ -160,6 +161,26 @@ void driver::add_handlers() {
 
         init_timer_thread();
         ir_warden::instance().wait_until_sync();
+      });
+
+  m_client->add_handler<ipc_pkg::nbre_ir_list_req>(
+      [this](ipc_pkg::nbre_ir_list_req *req) {
+        neb::core::ipc_pkg::nbre_ir_list_ack *ack =
+            m_ipc_conn->construct<neb::core::ipc_pkg::nbre_ir_list_ack>(
+                req->m_holder, m_ipc_conn->default_allocator());
+        if (ack == nullptr) {
+          return;
+        }
+
+        auto irs_ptr =
+            neb::fs::nbre_api(neb::configuration::instance().nbre_db_dir())
+                .get_irs();
+        for (auto &ir : *irs_ptr) {
+          neb::ipc::char_string_t ir_name(ir.c_str(),
+                                          m_ipc_conn->default_allocator());
+          ack->get<neb::core::ipc_pkg::ir_name_list>().push_back(ir_name);
+        }
+        m_ipc_conn->push_back(ack);
       });
 }
 }
