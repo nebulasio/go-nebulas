@@ -31,6 +31,12 @@ blockchain::blockchain(const std::string &path,
   m_storage->open_database(path, open_flag);
 }
 
+blockchain::~blockchain() {
+  if (m_storage) {
+    m_storage->close_database();
+  }
+}
+
 std::shared_ptr<corepb::Block> blockchain::load_tail_block() {
   return load_block_with_tag_string(
       std::string(Block_Tail, std::allocator<char>()));

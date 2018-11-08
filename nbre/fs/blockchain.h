@@ -33,6 +33,7 @@ public:
 
   blockchain(const std::string &path,
              enum storage_open_flag open_flag = storage_open_default);
+  ~blockchain();
   blockchain(const blockchain &bc) = delete;
   blockchain &operator=(const blockchain &bc) = delete;
 
