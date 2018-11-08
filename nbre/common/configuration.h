@@ -38,17 +38,26 @@ public:
   configuration(configuration &&cf) = delete;
   ~configuration();
 
+  // nbre root directory
+  inline const std::string &root_dir() const { return m_root_dir; }
+  inline std::string &root_dir() { return m_root_dir; }
+
+  inline const std::string nbre_db_dir() const {
+    return root_dir() + "/test/data/write-data.db";
+  }
+
+  inline int32_t ir_warden_time_interval() const { return 1; }
+
+  // nbre storage ir config
+  inline const char *ir_tx_payload_type() const { return "protocol"; }
+  inline const char *nbre_max_height_name() const { return "nbre_max_height"; }
+  inline const char *rt_module_name() const { return "runtime"; }
+
+  // nbre storage auth table config
   const std::string &auth_table_nas_addr() const {
     return m_auth_table_nas_addr;
   }
   std::string &auth_table_nas_addr() { return m_auth_table_nas_addr; }
-  inline const std::string &root_dir() const { return m_root_dir; }
-  inline std::string &root_dir() { return m_root_dir; }
-
-  inline int32_t ir_warden_time_interval() const { return 1; }
-
-  inline const char *ir_tx_payload_type() const { return "protocol"; }
-  inline const char *nbre_max_height_name() const { return "nbre_max_height"; }
 
   inline const char *nbre_auth_table_name() const { return "nbre_auth_table"; }
   inline const char *auth_module_name() const { return "auth"; }
@@ -56,11 +65,13 @@ public:
     return "_Z16entry_point_authB5cxx11v";
   }
 
-  inline const char *rt_module_name() const { return "runtime"; }
-
   inline const char *nbre_failed_flag_name() const {
     return "nbre_failed_flag";
   }
+
+  // nbre api config
+  inline const char *nbre_ir_list_name() const { return "nbre_ir_list"; }
+  inline const char *ir_list_name() const { return "ir_list"; }
 
 protected:
   std::string m_root_dir;

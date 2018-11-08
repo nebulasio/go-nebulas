@@ -18,14 +18,19 @@
 // <http://www.gnu.org/licenses/>.
 //
 
+#include "common/configuration.h"
 #include "common/util/version.h"
 #include "fs/nbre_storage.h"
 #include "fs/proto/block.pb.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/rocksdb_storage.h"
 #include "fs/util.h"
+#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <sstream>
 
 namespace po = boost::program_options;
 
@@ -56,7 +61,7 @@ int main(int argc, char *argv[]) {
 
   std::string db_path = vm["db_path"].as<std::string>();
   neb::fs::rocksdb_storage rs;
-  rs.open_database(db_path, neb::fs::storage_open_for_readonly);
+  rs.open_database(db_path, neb::fs::storage_open_for_readwrite);
 
   auto f_keys = [](rocksdb::Iterator *it) {
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
@@ -70,7 +75,32 @@ int main(int argc, char *argv[]) {
     rs.put("nbre_max_height",
            neb::util::number_to_byte<neb::util::bytes>(max_height));
   };
-  f_set_nbre_max_height();
+  // f_set_nbre_max_height();
 
+  auto f_set_ir_list = [&rs]() {
+    auto f_build_json = []() -> std::string {
+      boost::property_tree::ptree pt;
+      boost::property_tree::ptree children;
+      boost::property_tree::ptree child1, child2;
+
+      child1.put("", "nr");
+      child2.put("", "dip");
+      children.push_back(std::make_pair("", child1));
+      children.push_back(std::make_pair("", child2));
+
+      pt.add_child("ir_list", children);
+
+      std::stringstream ss;
+      boost::property_tree::json_parser::write_json(ss, pt);
+      return ss.str();
+    };
+
+    auto json_str = f_build_json();
+    rs.put(neb::configuration::instance().nbre_ir_list_name(),
+           neb::util::string_to_byte(json_str));
+  };
+  f_set_ir_list();
+
+  rs.close_database();
   return 0;
 }
