@@ -62,9 +62,10 @@ private:
   void set_auth_table();
   void set_auth_table_by_jit(const std::shared_ptr<nbre::NBREIR> nbre_ir);
 
-  void update_ir_list(const std::string &ir_name_list,
+  void update_ir_list(const std::string &nbre_ir_list_name,
+                      const std::string &ir_name_list,
                       const std::string &ir_name);
-  void update_ir_list_to_db(const std::string &ir_list_name,
+  void update_ir_list_to_db(const std::string &nbre_ir_list_name,
                             const boost::property_tree::ptree &pt);
 
 private:

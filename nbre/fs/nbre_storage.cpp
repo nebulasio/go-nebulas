@@ -230,7 +230,9 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
 
       auto it = m_auth_table.find(std::make_tuple(name, version, from_base58));
       if (it == m_auth_table.end()) {
-        LOG(INFO) << "tuple <name, version, address> not in auth table";
+        LOG(INFO) << boost::str(
+            boost::format("tuple <%1%, %2%, %3%> not in auth table") % name %
+            version % from_base58);
         continue;
       }
       const uint64_t height = nbre_ir->height();
@@ -251,28 +253,32 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
       }
 
       m_storage->put(name + std::to_string(version), payload_bytes);
+      LOG(INFO) << "deploy " << name << " version " << version
+                << " successfully!";
 
-      std::string ir_list_name =
+      std::string nbre_ir_list_name =
           neb::configuration::instance().nbre_ir_list_name();
       neb::util::bytes bytes_ir_name_list;
       try {
-        bytes_ir_name_list = m_storage->get(ir_list_name);
+        bytes_ir_name_list = m_storage->get(nbre_ir_list_name);
       } catch (const std::exception &e) {
         LOG(INFO) << e.what();
       }
-      update_ir_list(neb::util::byte_to_string(bytes_ir_name_list), name);
+      update_ir_list(nbre_ir_list_name,
+                     neb::util::byte_to_string(bytes_ir_name_list), name);
     }
   }
 }
 
-void nbre_storage::update_ir_list_to_db(const std::string &ir_list_name,
+void nbre_storage::update_ir_list_to_db(const std::string &nbre_ir_list_name,
                                         const boost::property_tree::ptree &pt) {
   std::stringstream ss;
   boost::property_tree::json_parser::write_json(ss, pt);
-  m_storage->put(ir_list_name, neb::util::string_to_byte(ss.str()));
+  m_storage->put(nbre_ir_list_name, neb::util::string_to_byte(ss.str()));
 }
 
-void nbre_storage::update_ir_list(const std::string &ir_name_list,
+void nbre_storage::update_ir_list(const std::string &nbre_ir_list_name,
+                                  const std::string &ir_name_list,
                                   const std::string &ir_name) {
 
   std::string ir_list_name = neb::configuration::instance().ir_list_name();
@@ -282,7 +288,7 @@ void nbre_storage::update_ir_list(const std::string &ir_name_list,
     ele.put("", ir_name);
     arr.push_back(std::make_pair("", ele));
     root.add_child(ir_list_name, root);
-    update_ir_list_to_db(ir_list_name, root);
+    update_ir_list_to_db(nbre_ir_list_name, root);
     return;
   }
 
@@ -303,7 +309,7 @@ void nbre_storage::update_ir_list(const std::string &ir_name_list,
   ele.put("", ir_name);
   arr.push_back(std::make_pair("", ele));
 
-  update_ir_list_to_db(ir_list_name, root);
+  update_ir_list_to_db(nbre_ir_list_name, root);
 }
 
 void nbre_storage::set_auth_table() {
