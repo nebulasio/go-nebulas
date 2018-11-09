@@ -29,17 +29,49 @@
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
 #include <boost/property_tree/json_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <sstream>
 
 namespace po = boost::program_options;
+
+void display_ir_versions(neb::fs::rocksdb_storage &rs) {
+
+  neb::util::bytes bytes_ir_name_list =
+      rs.get(neb::configuration::instance().nbre_ir_list_name());
+  std::string json_ir_name_list = neb::util::byte_to_string(bytes_ir_name_list);
+
+  std::string ir_list_name = neb::configuration::instance().ir_list_name();
+
+  boost::property_tree::ptree root;
+  std::stringstream ss(json_ir_name_list);
+  boost::property_tree::json_parser::read_json(ss, root);
+
+  BOOST_FOREACH (boost::property_tree::ptree::value_type &v,
+                 root.get_child(ir_list_name)) {
+    boost::property_tree::ptree pt = v.second;
+    std::string module_name = pt.get<std::string>(std::string());
+
+    auto bytes_versions = rs.get(module_name);
+    size_t gap = sizeof(uint64_t) / sizeof(uint8_t);
+
+    std::cout << "for module " << module_name << " versions:\n";
+    for (size_t i = 0; i < bytes_versions.size(); i += gap) {
+      neb::byte_t *bytes_version =
+          bytes_versions.value() + (bytes_versions.size() - gap - i);
+
+      if (bytes_version != nullptr) {
+        uint64_t version =
+            neb::util::byte_to_number<uint64_t>(bytes_version, gap);
+        std::cout << version << ' ';
+      }
+    }
+    std::cout << std::endl;
+  }
+}
 
 int main(int argc, char *argv[]) {
 
   po::options_description desc("Rocksdb read and write");
   desc.add_options()("help", "show help message")(
-      "db_path", po::value<std::string>(), "Database file directory")(
-      "max_height", po::value<neb::block_height_t>(), "nbre max height");
+      "db_path", po::value<std::string>(), "Database file directory");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -54,14 +86,10 @@ int main(int argc, char *argv[]) {
     std::cout << "You must specify \"db_path\"!" << std::endl;
     return 1;
   }
-  if (!vm.count("max_height")) {
-    std::cout << "You must specify \"max_height\"!" << std::endl;
-    return 1;
-  }
 
   std::string db_path = vm["db_path"].as<std::string>();
   neb::fs::rocksdb_storage rs;
-  rs.open_database(db_path, neb::fs::storage_open_for_readwrite);
+  rs.open_database(db_path, neb::fs::storage_open_for_readonly);
 
   auto f_keys = [](rocksdb::Iterator *it) {
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
@@ -70,36 +98,7 @@ int main(int argc, char *argv[]) {
   };
   rs.display(f_keys);
 
-  neb::block_height_t max_height = vm["max_height"].as<neb::block_height_t>();
-  auto f_set_nbre_max_height = [&]() {
-    rs.put("nbre_max_height",
-           neb::util::number_to_byte<neb::util::bytes>(max_height));
-  };
-  // f_set_nbre_max_height();
-
-  auto f_set_ir_list = [&rs]() {
-    auto f_build_json = []() -> std::string {
-      boost::property_tree::ptree pt;
-      boost::property_tree::ptree children;
-      boost::property_tree::ptree child1, child2;
-
-      child1.put("", "nr");
-      child2.put("", "dip");
-      children.push_back(std::make_pair("", child1));
-      children.push_back(std::make_pair("", child2));
-
-      pt.add_child("ir_list", children);
-
-      std::stringstream ss;
-      boost::property_tree::json_parser::write_json(ss, pt);
-      return ss.str();
-    };
-
-    auto json_str = f_build_json();
-    rs.put(neb::configuration::instance().nbre_ir_list_name(),
-           neb::util::string_to_byte(json_str));
-  };
-  f_set_ir_list();
+  display_ir_versions(rs);
 
   rs.close_database();
   return 0;

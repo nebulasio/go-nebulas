@@ -8,3 +8,6 @@ target_link_libraries(blockchain nbre_rt)
 add_executable(auth_table auth_table.cpp)
 target_link_libraries(auth_table nbre_rt)
 
+add_executable(rocksdb_storage rocksdb_storage.cpp)
+target_link_libraries(rocksdb_storage nbre_rt)
+
