@@ -23,27 +23,25 @@
 #include "gtest_common.h"
 #include <gtest/gtest.h>
 
-TEST(test_fs, write_nbre) {
+TEST(test_fs, write_nbre_until_sync) {
 
-  std::string db_read = get_db_path_for_read();
+  std::string db_read = get_blockchain_path_for_read();
   std::string db_write = get_db_path_for_write();
 
   std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
       std::make_shared<neb::fs::nbre_storage>(db_write, db_read);
 
-  nbre_ptr->write_nbre();
+  nbre_ptr->write_nbre_until_sync();
   nbre_ptr.reset();
 
   neb::fs::rocksdb_storage rs_write;
-  rs_write.open_database(db_write, neb::fs::storage_open_for_readwrite);
+  rs_write.open_database(db_write, neb::fs::storage_open_for_readonly);
   auto max_height_bytes = rs_write.get("nbre_max_height");
-  EXPECT_EQ(neb::util::byte_to_number<neb::block_height_t>(max_height_bytes),
-            23082);
 
   auto version_bytes = rs_write.get("nr");
-  std::vector<uint64_t> versions({(1LL << 48) + (0LL << 8) + 0LL,
-                                  (2LL << 48) + (0LL << 8) + 0LL,
-                                  (3LL << 48) + (0LL << 8) + 0LL});
+  std::vector<uint64_t> versions({(1LL << 48) + (0LL << 32) + 0LL,
+                                  (1LL << 48) + (0LL << 32) + 0LL,
+                                  (2LL << 48) + (0LL << 32) + 0LL});
   size_t gap = sizeof(uint64_t) / sizeof(uint8_t);
   for (size_t i = 0; i < version_bytes.size(); i += gap) {
     neb::byte_t *bytes = version_bytes.value() + i;
@@ -52,9 +50,8 @@ TEST(test_fs, write_nbre) {
   }
 
   std::vector<std::pair<uint64_t, neb::block_height_t>> version_and_height(
-      {{(1LL << 48) + (0LL << 8) + 0LL, 23079},
-       {(2LL << 48) + (0LL << 8) + 0LL, 23080},
-       {(3LL << 48) + (0LL << 8) + 0LL, 23081}});
+      {{(1LL << 48) + (0LL << 32) + 0LL, 121279},
+       {(2LL << 48) + (0LL << 32) + 0LL, 121462}});
   for (auto &it : version_and_height) {
     uint64_t version = it.first;
     neb::block_height_t height = it.second;
@@ -64,11 +61,9 @@ TEST(test_fs, write_nbre) {
     neb::fs::rocksdb_storage rs_read;
     rs_read.open_database(db_read, neb::fs::storage_open_for_readonly);
 
-    neb::util::bytes height_bytes =
-        neb::util::number_to_byte<neb::util::bytes>(height);
-    neb::util::bytes block_hash_bytes =
-        neb::util::string_to_byte(height_bytes.to_hex());
-    auto block_bytes = rs_read.get_bytes(block_hash_bytes);
+    neb::util::bytes height_hash =
+        rs_read.get_bytes(neb::util::number_to_byte<neb::util::bytes>(height));
+    neb::util::bytes block_bytes = rs_read.get_bytes(height_hash);
 
     std::shared_ptr<corepb::Block> block = std::make_shared<corepb::Block>();
     bool ret = block->ParseFromArray(block_bytes.value(), block_bytes.size());
@@ -77,7 +72,8 @@ TEST(test_fs, write_nbre) {
     }
     auto it_tx = block->transactions().begin();
     auto payload = it_tx->data().payload();
-    EXPECT_TRUE(payload_bytes == neb::util::string_to_byte(payload));
+    EXPECT_EQ(neb::util::string_to_byte(payload).to_hex(),
+              payload_bytes.to_hex());
 
     rs_read.close_database();
   }
@@ -86,99 +82,73 @@ TEST(test_fs, write_nbre) {
 
 TEST(test_fs, read_nbre_by_height_simple) {
 
-  std::string db_read = get_db_path_for_read();
+  std::string db_read = get_blockchain_path_for_read();
   std::string db_write = get_db_path_for_write();
 
   std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
       std::make_shared<neb::fs::nbre_storage>(db_write, db_read);
 
-  auto ret = nbre_ptr->read_nbre_by_height("nr", 1000, true);
+  auto ret = nbre_ptr->read_nbre_by_height("nr", 90001, true);
   EXPECT_EQ(ret.size(), 1);
-  auto it = ret.begin();
-  auto nbre_ir_ptr = *it;
-  EXPECT_EQ(nbre_ir_ptr->name(), "nr");
-  EXPECT_EQ(nbre_ir_ptr->version(), 3LL << 48);
-  EXPECT_EQ(nbre_ir_ptr->height(), 150);
-  EXPECT_EQ(nbre_ir_ptr->depends_size(), 0);
-
-  ret = nbre_ptr->read_nbre_by_height("nr", 150, true);
-  EXPECT_EQ(ret.size(), 1);
-  it = ret.begin();
-  nbre_ir_ptr = *it;
-  EXPECT_EQ(nbre_ir_ptr->name(), "nr");
-  EXPECT_EQ(nbre_ir_ptr->version(), 3LL << 48);
-  EXPECT_EQ(nbre_ir_ptr->height(), 150);
-  EXPECT_EQ(nbre_ir_ptr->depends_size(), 0);
-
-  ret = nbre_ptr->read_nbre_by_height("nr", 149, true);
-  EXPECT_EQ(ret.size(), 1);
-  it = ret.begin();
-  nbre_ir_ptr = *it;
-  EXPECT_EQ(nbre_ir_ptr->name(), "nr");
-  EXPECT_EQ(nbre_ir_ptr->version(), 1LL << 48);
-  EXPECT_EQ(nbre_ir_ptr->height(), 100);
-  EXPECT_EQ(nbre_ir_ptr->depends_size(), 0);
-
-  ret = nbre_ptr->read_nbre_by_height("nr", 100, true);
-  EXPECT_EQ(ret.size(), 1);
-  it = ret.begin();
-  nbre_ir_ptr = *it;
-  EXPECT_EQ(nbre_ir_ptr->name(), "nr");
-  EXPECT_EQ(nbre_ir_ptr->version(), 1LL << 48);
-  EXPECT_EQ(nbre_ir_ptr->height(), 100);
-  EXPECT_EQ(nbre_ir_ptr->depends_size(), 0);
-
-}
-
-TEST(test_fs, read_nbre_by_height) {
-
-  std::string db_read = get_db_path_for_read();
-  std::string db_write = get_db_path_for_write();
-
-  std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
-      std::make_shared<neb::fs::nbre_storage>(db_write, db_read);
-
-  auto ret = nbre_ptr->read_nbre_by_height("dip", 1000, true);
-  EXPECT_EQ(ret.size(), 2);
   auto it = ret.begin();
   auto nbre_ir_ptr = *it;
   EXPECT_EQ(nbre_ir_ptr->name(), "nr");
   EXPECT_EQ(nbre_ir_ptr->version(), 2LL << 48);
-  EXPECT_EQ(nbre_ir_ptr->height(), 200);
+  EXPECT_EQ(nbre_ir_ptr->height(), 90000);
   EXPECT_EQ(nbre_ir_ptr->depends_size(), 0);
 
-  it++;
+  ret = nbre_ptr->read_nbre_by_height("nr", 90000, true);
+  EXPECT_EQ(ret.size(), 1);
+  it = ret.begin();
   nbre_ir_ptr = *it;
+  EXPECT_EQ(nbre_ir_ptr->name(), "nr");
+  EXPECT_EQ(nbre_ir_ptr->version(), 2LL << 48);
+  EXPECT_EQ(nbre_ir_ptr->height(), 90000);
+  EXPECT_EQ(nbre_ir_ptr->depends_size(), 0);
+
+  ret = nbre_ptr->read_nbre_by_height("nr", 89999, true);
+  EXPECT_EQ(ret.size(), 0);
+}
+
+TEST(test_fs, read_nbre_by_height) {
+
+  std::string db_read = get_blockchain_path_for_read();
+  std::string db_write = get_db_path_for_write();
+
+  std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
+      std::make_shared<neb::fs::nbre_storage>(db_write, db_read);
+
+  auto ret = nbre_ptr->read_nbre_by_height("dip", 90000, true);
+  EXPECT_EQ(ret.size(), 1);
+  auto it = ret.begin();
+  auto nbre_ir_ptr = *it;
   EXPECT_EQ(nbre_ir_ptr->name(), "dip");
-  EXPECT_EQ(nbre_ir_ptr->version(), 1);
-  EXPECT_EQ(nbre_ir_ptr->height(), 180);
-  EXPECT_EQ(nbre_ir_ptr->depends_size(), 1);
+  EXPECT_EQ(nbre_ir_ptr->version(), 1LL << 48);
+  EXPECT_EQ(nbre_ir_ptr->height(), 90000);
+  EXPECT_EQ(nbre_ir_ptr->depends_size(), 0);
 }
 
 TEST(test_fs, read_nbre_by_name_version) {
 
-  std::string db_read = get_db_path_for_read();
+  std::string db_read = get_blockchain_path_for_read();
   std::string db_write = get_db_path_for_write();
 
   std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
       std::make_shared<neb::fs::nbre_storage>(db_write, db_read);
 
   std::string name = "dip";
-  uint64_t version = 1;
+  uint64_t version = 1LL << 48;
   auto nbreir_ptr = nbre_ptr->read_nbre_by_name_version(name, version);
 
   EXPECT_EQ(nbreir_ptr->name(), "dip");
-  EXPECT_EQ(nbreir_ptr->version(), 1);
-  EXPECT_EQ(nbreir_ptr->height(), 180);
-
-  auto it = nbreir_ptr->depends().begin();
-  EXPECT_EQ(it->name(), "nr");
-  EXPECT_EQ(it->version(), 2LL << 48);
+  EXPECT_EQ(nbreir_ptr->version(), 1LL << 48);
+  EXPECT_EQ(nbreir_ptr->height(), 90000);
+  EXPECT_EQ(nbreir_ptr->depends_size(), 0);
 }
 
 TEST(test_fs, get_auth_table) {
 
-  std::string db_read = get_db_path_for_read();
+  std::string db_read = get_blockchain_path_for_read();
   std::string db_write = get_db_path_for_write();
 
   std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =

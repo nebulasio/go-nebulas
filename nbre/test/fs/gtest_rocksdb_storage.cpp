@@ -37,6 +37,11 @@ std::string get_db_path_for_write() {
   return neb::fs::join_path(cur_path, "test/data/write-data.db/");
 }
 
+std::string get_blockchain_path_for_read() {
+  std::string cur_path = neb::configuration::instance().root_dir();
+  return neb::fs::join_path(cur_path, "../data.db/");
+}
+
 TEST(test_fs, positive_storage_read_bc) {
   std::string db_path = get_db_path_for_read();
 
@@ -85,13 +90,8 @@ TEST(test_fs, storage_batch_op) {
   std::string db_path = get_db_path_for_write();
   neb::fs::rocksdb_storage rs;
   rs.open_database(db_path, neb::fs::storage_open_for_readwrite);
-  // rs.enable_batch();
   rs.put("123", neb::util::number_to_byte<neb::util::bytes>(
                     static_cast<int64_t>(234)));
-  // rs.put(static_cast<int64_t>(124), static_cast<int64_t>(256));
-  // rs.put(static_cast<int64_t>(125), static_cast<int64_t>(267));
-  // rs.del(static_cast<int64_t>(124));
-  // rs.flush();
 
   auto bytes = rs.get("123");
   int64_t value = neb::util::byte_to_number<int64_t>(bytes);

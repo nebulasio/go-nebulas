@@ -30,3 +30,4 @@ typedef std::shared_ptr<neb::fs::nbre_storage> nbre_storage_ptr_t;
 std::string get_db_path_for_read();
 std::string get_db_path_for_write();
 
+std::string get_blockchain_path_for_read();

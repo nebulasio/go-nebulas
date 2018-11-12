@@ -45,7 +45,6 @@ public:
   read_nbre_by_name_version(const std::string &name, uint64_t version);
 
   void write_nbre_until_sync();
-  void write_nbre();
 
 private:
   void
@@ -57,6 +56,7 @@ private:
   block_height_t get_start_height();
   block_height_t get_end_height();
 
+  void write_nbre();
   void write_nbre_by_height(block_height_t height);
 
   void set_auth_table();
