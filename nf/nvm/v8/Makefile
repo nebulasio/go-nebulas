@@ -44,8 +44,8 @@ else
 	V8_BLOB_BIN_PATH=/usr/local/v8/6.2.414.40/bin
 endif
 
-.PHONY: engine main clean v8_snapshot_bin install
-all: main
+.PHONY: engine v8_engine clean v8_snapshot_bin install
+all: v8_engine
 
 %.c.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $<.o
@@ -56,7 +56,7 @@ all: main
 %.cpp.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $<.o
 
-main: samples/main.cc.o samples/memory_storage.cc.o samples/memory_modules.cc.o engine.cc.o allocator.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/fake_blockchain.cc.o lib/tracing.cc.o lib/file.cc.o lib/util.cc.o lib/typescript.cc.o lib/event.cc.o  lib/crypto.cc.o
+v8_engine: samples/main.cc.o samples/memory_storage.cc.o samples/memory_modules.cc.o engine.cc.o allocator.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/fake_blockchain.cc.o lib/tracing.cc.o lib/file.cc.o lib/util.cc.o lib/typescript.cc.o lib/event.cc.o  lib/crypto.cc.o
 	$(LD) $(LDFLAGS) $^ -o $@ $(LIBS_PATH) $(LIBS)
 
 engine: engine.cc.o thread_engine.cc.o allocator.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/tracing.cc.o lib/file.cc.o lib/util.cc.o lib/typescript.cc.o lib/event.cc.o lib/crypto.cc.o
@@ -69,7 +69,7 @@ install: engine
 clean:
 	-rm -f natives_blob.bin.h snapshot_blob.bin.h;
 	-find . -iname '*.o' -exec rm {} \;
-	-rm -f main libnebulasv8$(DYLIB);
+	-rm -f v8_engine libnebulasv8$(DYLIB);
 
 v8_snapshot_bin:
 	-ln -s $(V8_BLOB_BIN_PATH)/natives_blob.bin .
