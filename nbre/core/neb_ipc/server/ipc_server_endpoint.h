@@ -40,6 +40,7 @@ public:
 
   int send_nbre_version_req(void *holder, uint64_t height);
   int send_nbre_ir_list_req(void *holder);
+  int send_nbre_ir_versions_req(void *holder, const std::string &ir_name);
 
   void shutdown();
 

@@ -18,15 +18,17 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "core/neb_ipc/server/ipc_server_endpoint.h"
+#include "common/configuration.h"
 #include "core/neb_ipc/ipc_pkg.h"
 #include "fs/util.h"
 #include <atomic>
-#include <condition_variable>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <condition_variable>
 
 namespace neb {
 namespace core {
+
 ipc_server_endpoint::ipc_server_endpoint(const std::string &root_dir,
                                          const std::string &nbre_exe_path)
     : m_root_dir(root_dir), m_nbre_exe_name(nbre_exe_path), m_client(nullptr){};
@@ -37,6 +39,7 @@ ipc_server_endpoint::~ipc_server_endpoint() {
     m_thread.reset();
   }
 }
+
 bool ipc_server_endpoint::start() {
   if (!check_path_exists()) {
     LOG(ERROR) << "nbre path not exist";
@@ -120,6 +123,7 @@ bool ipc_server_endpoint::check_path_exists() {
 void ipc_server_endpoint::init_params(const char *admin_pub_addr) {
   m_admin_pub_addr = admin_pub_addr;
 }
+
 void ipc_server_endpoint::add_all_callbacks() {
   LOG(INFO) << "ipc server pointer: " << (void *)m_ipc_server.get();
   ipc_server_t *p = m_ipc_server.get();
@@ -157,12 +161,35 @@ void ipc_server_endpoint::add_all_callbacks() {
           child.put("", ir_name);
           pt.push_back(std::make_pair("", child));
         }
-        root.add_child("ir_list", pt);
+        root.add_child(neb::configuration::instance().ir_list_name(), pt);
 
         std::stringstream ss;
         boost::property_tree::json_parser::write_json(ss, root);
 
         ipc_callback_holder::instance().m_nbre_ir_list_callback(
+            ipc_status_succ, msg->m_holder, ss.str().c_str());
+      });
+
+  m_ipc_server->add_handler<ipc_pkg::nbre_ir_versions_ack>(
+      [p, this](ipc_pkg::nbre_ir_versions_ack *msg) {
+        LOG(INFO) << "alloc: " << (void *)p;
+        m_request_timer->remove_api(msg->m_holder);
+
+        auto ir_name = msg->get<ipc_pkg::ir_name>();
+        auto ir_versions = msg->get<ipc_pkg::ir_versions>();
+        boost::property_tree::ptree pt, root;
+
+        for (auto &v : ir_versions) {
+          boost::property_tree::ptree child;
+          child.put("", v);
+          pt.push_back(std::make_pair("", child));
+        }
+        root.add_child(ir_name.c_str(), pt);
+
+        std::stringstream ss;
+        boost::property_tree::json_parser::write_json(ss, root);
+
+        ipc_callback_holder::instance().m_nbre_ir_versions_callback(
             ipc_status_succ, msg->m_holder, ss.str().c_str());
       });
 }
@@ -201,6 +228,29 @@ int ipc_server_endpoint::send_nbre_ir_list_req(void *holder) {
         m_ipc_server->push_back(req);
       },
       m_callbacks->m_nbre_ir_list_callback);
+  return ipc_status_succ;
+}
+
+int ipc_server_endpoint::send_nbre_ir_versions_req(void *holder,
+                                                   const std::string &ir_name) {
+  m_request_timer->issue_api(
+      holder,
+      [holder, &ir_name, this]() {
+        ipc_pkg::nbre_ir_versions_req *req =
+            m_ipc_server->construct<ipc_pkg::nbre_ir_versions_req>(
+                holder, m_ipc_server->default_allocator());
+        if (req == nullptr) {
+          return; // will call timeout later
+        }
+
+        neb::ipc::char_string_t cstr_ir_name(ir_name.c_str(),
+                                             m_ipc_server->default_allocator());
+        LOG(INFO) << cstr_ir_name;
+        req->set<ipc_pkg::ir_name>(cstr_ir_name);
+
+        m_ipc_server->push_back(req);
+      },
+      m_callbacks->m_nbre_ir_versions_callback);
   return ipc_status_succ;
 }
 

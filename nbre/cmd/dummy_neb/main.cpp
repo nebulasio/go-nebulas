@@ -47,6 +47,14 @@ void nbre_ir_list_callback(ipc_status_code isc, void *handler,
   _l.unlock();
 }
 
+void nbre_ir_versions_callback(ipc_status_code isc, void *handler,
+                               const char *ir_versions) {
+  std::cout << ir_versions << std::endl;
+  std::unique_lock<std::mutex> _l(local_mutex);
+  to_quit = true;
+  _l.unlock();
+}
+
 int main(int argc, char *argv[]) {
   FLAGS_logtostderr = true;
 
@@ -56,7 +64,8 @@ int main(int argc, char *argv[]) {
   std::string nbre_path = neb::fs::join_path(root_dir, "bin/nbre");
 
   // set_recv_nbre_version_callback(nbre_version_callback);
-  set_recv_nbre_ir_list_callback(nbre_ir_list_callback);
+  // set_recv_nbre_ir_list_callback(nbre_ir_list_callback);
+  set_recv_nbre_ir_versions_callback(nbre_ir_versions_callback);
 
   auto ret = start_nbre_ipc(root_dir, nbre_path.c_str(), "auth address here!");
   if (ret != ipc_status_succ)
@@ -65,7 +74,8 @@ int main(int argc, char *argv[]) {
   uint64_t height = 100;
 
   // ipc_nbre_version(&local_mutex, height);
-  ipc_nbre_ir_list(&local_mutex);
+  // ipc_nbre_ir_list(&local_mutex);
+  ipc_nbre_ir_versions(&local_mutex, "dip");
 
   std::unique_lock<std::mutex> _l(local_mutex);
   if (to_quit)

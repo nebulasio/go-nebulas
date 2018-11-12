@@ -31,6 +31,8 @@ enum {
   ipc_pkg_nbre_init_ack,
   ipc_pkg_nbre_ir_list_req,
   ipc_pkg_nbre_ir_list_ack,
+  ipc_pkg_nbre_versions_req,
+  ipc_pkg_nbre_versions_ack,
 };
 namespace ipc_pkg {
 using namespace internal;
@@ -54,12 +56,12 @@ using nbre_ir_list_req = define_ipc_pkg<ipc_pkg_nbre_ir_list_req>;
 using ir_name_list = ipc_elem_base<5, neb::ipc::string_vector_t>;
 using nbre_ir_list_ack = define_ipc_pkg<ipc_pkg_nbre_ir_list_ack, ir_name_list>;
 
+using ir_name = ipc_elem_base<6, neb::ipc::char_string_t>;
+using nbre_ir_versions_req = define_ipc_pkg<ipc_pkg_nbre_versions_req, ir_name>;
+using ir_versions = ipc_elem_base<7, neb::ipc::uint64_vector_t>;
+using nbre_ir_versions_ack =
+    define_ipc_pkg<ipc_pkg_nbre_versions_ack, ir_name, ir_versions>;
+
 } // namespace ipc_pkg
-
-add_pkg_module_info(ipc_pkg::nbre_version_req, "foo",
-                    "_Z15entry_point_fooPN3neb4core6driverEPv")
-
-
-
 } // namespace core
 } // namespace neb

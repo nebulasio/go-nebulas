@@ -113,6 +113,7 @@ void driver_base::handle_exception(
     break;
   }
 }
+
 void driver_base::init_timer_thread() {
   if (m_timer_thread) {
     return;
@@ -179,6 +180,27 @@ void driver::add_handlers() {
           neb::ipc::char_string_t ir_name(ir.c_str(),
                                           m_ipc_conn->default_allocator());
           ack->get<neb::core::ipc_pkg::ir_name_list>().push_back(ir_name);
+        }
+        m_ipc_conn->push_back(ack);
+      });
+
+  m_client->add_handler<ipc_pkg::nbre_ir_versions_req>(
+      [this](ipc_pkg::nbre_ir_versions_req *req) {
+        neb::core::ipc_pkg::nbre_ir_versions_ack *ack =
+            m_ipc_conn->construct<neb::core::ipc_pkg::nbre_ir_versions_ack>(
+                req->m_holder, m_ipc_conn->default_allocator());
+        if (ack == nullptr) {
+          return;
+        }
+
+        auto ir_name = req->get<ipc_pkg::ir_name>();
+        ack->set<neb::core::ipc_pkg::ir_name>(ir_name);
+
+        auto ir_versions_ptr =
+            neb::fs::nbre_api(neb::configuration::instance().nbre_db_dir())
+                .get_ir_versions(ir_name.c_str());
+        for (auto &v : *ir_versions_ptr) {
+          ack->get<neb::core::ipc_pkg::ir_versions>().push_back(v);
         }
         m_ipc_conn->push_back(ack);
       });

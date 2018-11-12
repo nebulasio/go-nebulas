@@ -31,6 +31,7 @@ public:
 
   nbre_version_callback_t m_nbre_version_callback;
   nbre_ir_list_callback_t m_nbre_ir_list_callback;
+  nbre_ir_versions_callback_t m_nbre_ir_versions_callback;
 
   bool check_all_callbacks();
 };

@@ -67,3 +67,11 @@ void set_recv_nbre_ir_list_callback(nbre_ir_list_callback_t func) {
 int ipc_nbre_ir_list(void *holder) {
   return _ipc->send_nbre_ir_list_req(holder);
 }
+
+void set_recv_nbre_ir_versions_callback(nbre_ir_versions_callback_t func) {
+  neb::core::ipc_callback_holder::instance().m_nbre_ir_versions_callback = func;
+}
+
+int ipc_nbre_ir_versions(void *holder, const char *ir_name) {
+  return _ipc->send_nbre_ir_versions_req(holder, ir_name);
+}
