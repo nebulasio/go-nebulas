@@ -65,19 +65,25 @@ void jit_engine::init(std::vector<std::unique_ptr<Module>> ms,
   for (auto &M : m_modules) {
     outs().flush();
 
+    LOG(INFO) << "Before addModule";
     cantFail(m_jit->addModule(std::shared_ptr<Module>(std::move(M))), nullptr);
   }
-  m_main_sym = std::make_unique<llvm::JITSymbol>(
-      m_jit->findSymbol(std::string(m_func_name, std::allocator<char>())));
-  if (*m_main_sym) {
-    return;
-  } else if (auto Err = m_main_sym->takeError()) {
-    logAllUnhandledErrors(std::move(Err), llvm::errs(), "");
-    throw neb::jit_internal_failure("Unhandled errors");
-  } else {
-    LOG(ERROR) << "Could not find target function.\n";
-    throw neb::jit_internal_failure("Could not find target function");
-  }
+  LOG(INFO) << "Before findSymbol";
+  try {
+    m_main_sym = std::make_unique<llvm::JITSymbol>(
+        m_jit->findSymbol(std::string(m_func_name, std::allocator<char>())));
+    if (*m_main_sym) {
+      return;
+    } else if (auto Err = m_main_sym->takeError()) {
+      logAllUnhandledErrors(std::move(Err), llvm::errs(), "");
+      throw neb::jit_internal_failure("Unhandled errors");
+    } else {
+      LOG(ERROR) << "Could not find target function.\n";
+      throw neb::jit_internal_failure("Could not find target function");
+    }
+  } catch (std::exception &e) {
+    LOG(INFO) << e.what();
+    }
 }
 } // namespace jit
 } // namespace neb
