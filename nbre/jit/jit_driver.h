@@ -83,12 +83,20 @@ public:
     auto it = m_jit_instances.find(key);
     if (it == m_jit_instances.end()) {
       shrink_instances();
+      LOG(INFO) << "Before insert";
       m_jit_instances.insert(std::make_pair(key, make_context(irs, func_name)));
       it = m_jit_instances.find(key);
     }
     auto &context = it->second;
     context->m_time_counter = 30 * 60;
     m_mutex.unlock();
+    struct using_helper {
+
+      using_helper(jit_context *jc) : m_jc(jc) { jc->m_using = true; }
+      ~using_helper() { m_jc->m_using = false; }
+      jit_context *m_jc;
+    } _ul(context.get());
+    context->m_using = true;
     return context->m_jit.run<RT>(args...);
   }
 
@@ -104,6 +112,7 @@ protected:
     llvm::LLVMContext m_context;
     jit::jit_engine m_jit;
     int32_t m_time_counter;
+    bool m_using;
   };
 
   std::unique_ptr<jit_driver::jit_context>

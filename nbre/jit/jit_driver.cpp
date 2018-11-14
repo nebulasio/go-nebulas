@@ -144,11 +144,13 @@ void jit_driver::shrink_instances() {
   int32_t min_count = 30 * 60 + 1;
   std::string min_key;
   for (auto &pair : m_jit_instances) {
-    if (pair.second->m_time_counter < min_count) {
+    if (pair.second->m_time_counter < min_count && !pair.second->m_using) {
       min_count = pair.second->m_time_counter;
       min_key = pair.first;
     }
   }
-  m_jit_instances.erase(min_key);
+  if (!min_key.empty()) {
+    m_jit_instances.erase(min_key);
+  }
 }
 } // namespace neb

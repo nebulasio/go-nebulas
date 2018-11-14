@@ -31,6 +31,8 @@ public:
     using MainFnPtr = RT (*)(ARGS...);
     auto main_func = fromTargetAddress<MainFnPtr>(
         cantFail(m_main_sym->getAddress(), nullptr));
+    if (nullptr == main_func)
+      return RT(0);
     return main_func(args...);
   }
 

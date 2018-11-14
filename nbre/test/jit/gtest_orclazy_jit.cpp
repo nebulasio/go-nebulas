@@ -28,6 +28,7 @@ std::string gen_key(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
   std::stringstream ss;
   for (auto &m : irs) {
     ss << m->name() << m->version();
+    std::cout << "version: " << m->version() << std::endl;
   }
   ss << func_name;
   return ss.str();
@@ -148,6 +149,7 @@ void Run_One(const std::string &path, const std::string &func_name) {
 
   std::vector<std::shared_ptr<nbre::NBREIR>> irs;
   irs.push_back(ir_ptr);
+  std::cout << "before gen_key" << std::endl;
   std::string key = gen_key(irs, func_name.c_str());
   std::cout << "Run_One: before run" << std::endl;
   neb::jit_driver::instance().run<neb::core::driver *, void *>(
@@ -164,23 +166,88 @@ TEST(test_jit, another_irs_file) {
   Run_One("../bin/jit_test_1.bc", "_Z10jit_test_1PN3neb4core6driverEPv");
 }
 
-void Run_One_1000(const std::string &path, const std::string &func_name) {
-  for (int i = 0; i < 1000; ++i) {
-    Run_One(path, func_name);
+void Run_One_1000(const std::string &path, const std::string &func_name,
+                  const std::string &ir_name) {
+  std::ifstream ifs;
+  ifs.open(path.c_str(), std::ios::in | std::ios::binary);
+  ifs.seekg(0, ifs.end);
+  std::ifstream::pos_type size = ifs.tellg();
+
+  neb::util::bytes buf(size);
+
+  ifs.seekg(0, ifs.beg);
+  ifs.read((char *)buf.value(), buf.size());
+
+  nbre::NBREIR ir_info;
+  ir_info.set_ir(neb::util::byte_to_string(buf));
+  auto ir_ptr = std::make_shared<nbre::NBREIR>(ir_info);
+  ir_ptr->set_name(ir_name);
+
+  std::vector<std::shared_ptr<nbre::NBREIR>> irs;
+  irs.push_back(ir_ptr);
+  std::string key = gen_key(irs, func_name.c_str());
+  std::cout << "Run_One: before run" << std::endl;
+  for (int i = 0; i < 1000; i++) {
+    neb::jit_driver::instance().run<neb::core::driver *, void *>(
+        key, irs, func_name.c_str(), nullptr);
+    neb::jit_driver::instance().run_if_exists<int, neb::core::driver *, void *>(
+        ir_ptr, func_name.c_str(), nullptr, nullptr);
   }
 }
 
 TEST(test_jit, multi_thread) {
-  std::thread t1(Run_One_1000, "../test/data/test.bc",
-                 "_Z9test_funcPN3neb4core6driverEPv");
-  std::thread t2(Run_One_1000, "../bin/jit_test_1.bc",
-                 "_Z10jit_test_1PN3neb4core6driverEPv");
-  std::thread t3(Run_One_1000, "../test/data/test.bc",
-                 "_Z9test_funcPN3neb4core6driverEP1");
-  std::thread t4(Run_One_1000, "../bin/jit_test_1.bc",
-                 "_Z10jit_test_1PN3neb4core6driverEP1");
-  t1.join();
-  t2.join();
-  t3.join();
-  t4.join();
+  std::vector<std::thread> tv;
+  for (int i = 0; i < 888; i++) {
+
+    std::thread t([i]() {
+      std::string file_name = "../bin/data/";
+      file_name = file_name + std::to_string(i + 1) + ".bc";
+      std::string func_name = "_Z10jit_test_1PN3neb4core6driverEPv";
+      std::string ir_name = std::to_string(i + 1);
+      std::ifstream ifs;
+      ifs.open(file_name.c_str(), std::ios::in | std::ios::binary);
+      ifs.seekg(0, ifs.end);
+      std::ifstream::pos_type size = ifs.tellg();
+
+      neb::util::bytes buf(size);
+
+      ifs.seekg(0, ifs.beg);
+      ifs.read((char *)buf.value(), buf.size());
+      ifs.close();
+      nbre::NBREIR ir_info;
+      LOG(INFO) << "thread enter";
+      ir_info.set_ir(neb::util::byte_to_string(buf));
+      auto ir_ptr = std::make_shared<nbre::NBREIR>(ir_info);
+      ir_ptr->set_name(ir_name);
+      try {
+
+        std::vector<std::shared_ptr<nbre::NBREIR>> irs;
+        irs.push_back(ir_ptr);
+        std::string key = gen_key(irs, func_name.c_str());
+        std::cout << "Run_One: before run" << std::endl;
+        neb::jit_driver::instance().run<neb::core::driver *, void *>(
+            key, irs, func_name.c_str(), nullptr);
+        for (int i = 0; i < 1000; i++) {
+          try {
+            neb::jit_driver::instance()
+                .run_if_exists<int, neb::core::driver *, void *>(
+                    ir_ptr, func_name.c_str(), nullptr, nullptr);
+          } catch (const std::exception &e) {
+            LOG(INFO) << e.what();
+          }
+        }
+      } catch (const std::exception &e) {
+        LOG(INFO) << e.what();
+      }
+      LOG(INFO) << "thread done";
+    });
+    tv.push_back(std::move(t));
+  }
+  std::thread t(Run_One_1000, "../bin/data/error.bc",
+                "_Z10jit_test_1PN3neb4core6driverEPv", "test");
+  tv.push_back(std::move(t));
+
+  for (auto &v : tv) {
+    v.join();
+  }
 }
