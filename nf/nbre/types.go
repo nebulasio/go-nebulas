@@ -27,6 +27,7 @@ import (
 
 // Error types
 var (
+	ErrConfigNotFound   = errors.New("nbre config not found")
 	ErrNbreStartFailed  = errors.New("nbre start failed")
 	ErrCommandNotFound  = errors.New("nbre command not found")
 	ErrExecutionTimeout = errors.New("nbre execute timeout")

@@ -32,6 +32,9 @@ message Config {
     MiscConfig misc = 101;
     // App Config.
 	AppConfig app = 102;
+
+    // Nbre Config.
+    NbreConfig nbre = 200;
 }
 
 message NetworkConfig {
@@ -176,4 +179,15 @@ message InfluxdbConfig {
     string user = 4;
     // Auth password.
     string password = 5;
+}
+
+message NbreConfig {
+    // Nbre log path
+    string log = 1;
+    // Nbre data path
+    string data = 2;
+    // Nbre runtime path
+    string nbre = 3;
+    // Nbre admin address
+    string admin_address = 4;
 }
