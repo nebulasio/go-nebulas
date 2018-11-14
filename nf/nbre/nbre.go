@@ -89,8 +89,8 @@ func getCurrPath() string {
 // Start launch the nbre
 func (n *Nbre) Start() error {
 	// TODO(larry): add to config
-	root := getCurrPath() + "/nbre/"
-	path := root + "bin/nbre"
+	root := getCurrPath()
+	path := root + "/neb-nbre"
 	adminAddr := "n1cYKNHTeVW9v1NQRWuhZZn9ETbqAYozckh"
 	cRoot := C.CString(root)
 	defer C.free(unsafe.Pointer(cRoot))
