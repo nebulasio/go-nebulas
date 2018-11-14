@@ -66,7 +66,12 @@ void jit_engine::init(std::vector<std::unique_ptr<Module>> ms,
     outs().flush();
 
     LOG(INFO) << "Before addModule";
-    cantFail(m_jit->addModule(std::shared_ptr<Module>(std::move(M))), nullptr);
+    try {
+      cantFail(m_jit->addModule(std::shared_ptr<Module>(std::move(M))),
+               nullptr);
+    } catch (std::exception &e) {
+      LOG(ERROR) << e.what();
+    }
   }
   LOG(INFO) << "Before findSymbol";
   try {
