@@ -39,12 +39,28 @@ public:
   ~configuration();
 
   // nbre root directory
-  inline const std::string &root_dir() const { return m_root_dir; }
-  inline std::string &root_dir() { return m_root_dir; }
+  inline const std::string &nbre_root_dir() const { return m_nbre_root_dir; }
+  inline std::string &nbre_root_dir() { return m_nbre_root_dir; }
 
-  inline const std::string nbre_db_dir() const {
-    return root_dir() + "/test/data/write-data.db";
-  }
+  // nbre execute path
+  inline const std::string &nbre_exe_name() const { return m_nbre_exe_name; }
+  inline std::string &nbre_exe_name() { return m_nbre_exe_name; }
+
+  // nebulas blockchain database directory
+  inline const std::string &neb_db_dir() const { return m_neb_db_dir; }
+  inline std::string &neb_db_dir() { return m_neb_db_dir; }
+
+  // nbre database directory
+  inline const std::string nbre_db_dir() const { return m_nbre_db_dir; }
+  inline std::string nbre_db_dir() { return m_nbre_db_dir; }
+
+  // nbre log directory
+  inline const std::string nbre_log_dir() const { return m_nbre_log_dir; }
+  inline std::string nbre_log_dir() { return m_nbre_log_dir; }
+
+  // nbre storage auth table admin address
+  const std::string &admin_pub_addr() const { return m_admin_pub_addr; }
+  std::string &admin_pub_addr() { return m_admin_pub_addr; }
 
   inline int32_t ir_warden_time_interval() const { return 1; }
 
@@ -52,12 +68,6 @@ public:
   inline const char *ir_tx_payload_type() const { return "protocol"; }
   inline const char *nbre_max_height_name() const { return "nbre_max_height"; }
   inline const char *rt_module_name() const { return "runtime"; }
-
-  // nbre storage auth table config
-  const std::string &auth_table_nas_addr() const {
-    return m_auth_table_nas_addr;
-  }
-  std::string &auth_table_nas_addr() { return m_auth_table_nas_addr; }
 
   inline const char *nbre_auth_table_name() const { return "nbre_auth_table"; }
   inline const char *auth_module_name() const { return "auth"; }
@@ -74,7 +84,11 @@ public:
   inline const char *ir_list_name() const { return "ir_list"; }
 
 protected:
-  std::string m_root_dir;
-  std::string m_auth_table_nas_addr;
+  std::string m_nbre_root_dir;
+  std::string m_nbre_exe_name;
+  std::string m_neb_db_dir;
+  std::string m_nbre_db_dir;
+  std::string m_nbre_log_dir;
+  std::string m_admin_pub_addr;
 };
 } // end namespace neb

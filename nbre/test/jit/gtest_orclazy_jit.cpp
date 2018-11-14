@@ -75,7 +75,7 @@ get_modules(llvm::LLVMContext &context) {
   std::vector<std::unique_ptr<llvm::Module>> modules;
   llvm::SMDiagnostic err;
   std::string path = neb::fs::join_path(
-      neb::configuration::instance().root_dir(), "test/data/test.bc");
+      neb::configuration::instance().nbre_root_dir(), "test/data/test.bc");
   modules.push_back(llvm::parseIRFile(path, err, context));
   return modules;
 }
@@ -85,7 +85,7 @@ void run_module() {
     std::vector<std::unique_ptr<llvm::Module>> modules;
     llvm::SMDiagnostic err;
     std::string path = neb::fs::join_path(
-        neb::configuration::instance().root_dir(), "test/data/test.bc");
+        neb::configuration::instance().nbre_root_dir(), "test/data/test.bc");
     modules.push_back(llvm::parseIRFile(path, err, context));
     neb::jit::jit_engine je;
     je.init(std::move(modules), "_Z9test_funcPN3neb4core6driverEPv");

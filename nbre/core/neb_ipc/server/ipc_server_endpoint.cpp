@@ -29,9 +29,7 @@
 namespace neb {
 namespace core {
 
-ipc_server_endpoint::ipc_server_endpoint(const std::string &root_dir,
-                                         const std::string &nbre_exe_path)
-    : m_root_dir(root_dir), m_nbre_exe_name(nbre_exe_path), m_client(nullptr){};
+ipc_server_endpoint::ipc_server_endpoint() : m_client(nullptr){};
 
 ipc_server_endpoint::~ipc_server_endpoint() {
   if (m_thread) {
@@ -74,7 +72,7 @@ bool ipc_server_endpoint::start() {
       add_all_callbacks();
 
       m_client_watcher = std::unique_ptr<ipc_client_watcher>(
-          new ipc_client_watcher(m_nbre_exe_name));
+          new ipc_client_watcher(m_nbre_params.m_nbre_exe_name));
       m_client_watcher->start();
 
       local_mutex.lock();
@@ -117,11 +115,12 @@ bool ipc_server_endpoint::start() {
 }
 
 bool ipc_server_endpoint::check_path_exists() {
-  return neb::fs::exists(m_nbre_exe_name);
+  return neb::fs::exists(m_nbre_params.m_nbre_exe_name);
 }
 
-void ipc_server_endpoint::init_params(const char *admin_pub_addr) {
-  m_admin_pub_addr = admin_pub_addr;
+void ipc_server_endpoint::init_params(const nbre_params_t params) {
+  LOG(INFO) << m_nbre_params.m_nbre_root_dir;
+  m_nbre_params = params;
 }
 
 void ipc_server_endpoint::add_all_callbacks() {
@@ -143,8 +142,12 @@ void ipc_server_endpoint::add_all_callbacks() {
         LOG(INFO) << "get init req ";
         ipc_pkg::nbre_init_ack *ack = p->construct<ipc_pkg::nbre_init_ack>(
             nullptr, p->default_allocator());
-        ack->set<ipc_pkg::admin_pub_addr>(m_admin_pub_addr.c_str());
-        ack->set<ipc_pkg::nbre_root_dir>(m_root_dir.c_str());
+        ack->set<ipc_pkg::nbre_root_dir>(m_nbre_params.m_nbre_root_dir);
+        ack->set<ipc_pkg::nbre_exe_name>(m_nbre_params.m_nbre_exe_name);
+        ack->set<ipc_pkg::neb_db_dir>(m_nbre_params.m_neb_db_dir);
+        ack->set<ipc_pkg::nbre_db_dir>(m_nbre_params.m_nbre_db_dir);
+        ack->set<ipc_pkg::nbre_log_dir>(m_nbre_params.m_nbre_log_dir);
+        ack->set<ipc_pkg::admin_pub_addr>(m_nbre_params.m_admin_pub_addr);
         p->push_back(ack);
       });
 

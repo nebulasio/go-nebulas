@@ -154,11 +154,18 @@ void driver::add_handlers() {
 
   m_client->add_handler<ipc_pkg::nbre_init_ack>(
       [this](ipc_pkg::nbre_init_ack *ack) {
-        std::string s = ack->get<ipc_pkg::admin_pub_addr>().c_str();
-        LOG(INFO) << "got admin_pub_addr: " << s;
-        configuration::instance().auth_table_nas_addr() = s;
-        configuration::instance().root_dir() =
+        configuration::instance().nbre_root_dir() =
             ack->get<ipc_pkg::nbre_root_dir>().c_str();
+        configuration::instance().nbre_exe_name() =
+            ack->get<ipc_pkg::nbre_exe_name>().c_str();
+        configuration::instance().neb_db_dir() =
+            ack->get<ipc_pkg::neb_db_dir>().c_str();
+        configuration::instance().nbre_db_dir() =
+            ack->get<ipc_pkg::nbre_db_dir>().c_str();
+        configuration::instance().nbre_log_dir() =
+            ack->get<ipc_pkg::nbre_log_dir>().c_str();
+        configuration::instance().admin_pub_addr() =
+            ack->get<ipc_pkg::admin_pub_addr>().c_str();
 
         init_timer_thread();
         ir_warden::instance().wait_until_sync();

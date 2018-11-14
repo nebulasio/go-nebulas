@@ -24,7 +24,7 @@
 
 TEST(test_fs_util, simple) {
   std::string cur_path = neb::fs::cur_full_path();
-  std::string cur_dir = neb::configuration::instance().root_dir();
+  std::string cur_dir = neb::configuration::instance().nbre_root_dir();
   std::string tmp_dir = neb::fs::tmp_dir();
 
   EXPECT_TRUE(cur_path.size() > 0);

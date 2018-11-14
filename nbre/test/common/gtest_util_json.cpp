@@ -25,16 +25,17 @@
 #include <boost/property_tree/ptree.hpp>
 
 TEST(test_boost_read_json, simple) {
-  std::string fp = neb::fs::join_path(neb::configuration::instance().root_dir(),
-                                      "test/data/nasir.json");
+  std::string fp = neb::fs::join_path(
+      neb::configuration::instance().nbre_root_dir(), "test/data/nasir.json");
 
   boost::property_tree::ptree json_root;
   boost::property_tree::read_json(fp, json_root);
 }
 
 TEST(test_common_json_util, read_json) {
-  std::string fp = neb::fs::join_path(neb::configuration::instance().root_dir(),
-                                      "test/data/json_util.json");
+  std::string fp =
+      neb::fs::join_path(neb::configuration::instance().nbre_root_dir(),
+                         "test/data/json_util.json");
   neb::ir_conf_reader json_reader(fp);
   EXPECT_EQ(json_reader.self_ref().name(), "nr");
   EXPECT_EQ(json_reader.self_ref().version().major_version(), 0);

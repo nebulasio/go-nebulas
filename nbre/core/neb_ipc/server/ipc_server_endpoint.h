@@ -30,12 +30,11 @@ namespace core {
 
 class ipc_server_endpoint {
 public:
-  ipc_server_endpoint(const std::string &root_dir,
-                      const std::string &nbre_exe_path);
+  ipc_server_endpoint();
 
   ~ipc_server_endpoint();
 
-  void init_params(const char *admin_pub_addr);
+  void init_params(const nbre_params_t params);
   bool start();
 
   int send_nbre_version_req(void *holder, uint64_t height);
@@ -49,14 +48,12 @@ private:
   void add_all_callbacks();
 
 protected:
-  std::string m_root_dir;
-  std::string m_nbre_exe_name;
   std::unique_ptr<std::thread> m_thread;
   std::unique_ptr<ipc_server_t> m_ipc_server;
   boost::process::child *m_client;
   std::atomic_bool m_got_exception_when_start_nbre;
 
-  std::string m_admin_pub_addr;
+  nbre_params_t m_nbre_params;
   std::unique_ptr<std::thread> m_timer_thread;
   std::unique_ptr<api_request_timer> m_request_timer;
   std::unique_ptr<ipc_client_watcher> m_client_watcher;

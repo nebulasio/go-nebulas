@@ -76,12 +76,12 @@ void ipc_instances::init_ipc_instances(int argc, char *argv[]) {
   if (vm.count("enable-log")) {
     FLAGS_logtostderr = true;
     ::google::SetStderrLogging(google::GLOG_INFO);
-    ::google::SetLogDestination(google::GLOG_INFO,
-                                configuration::instance().root_dir().c_str());
+    ::google::SetLogDestination(
+        google::GLOG_INFO, configuration::instance().nbre_root_dir().c_str());
   } else {
     FLAGS_logtostderr = false;
-    ::google::SetLogDestination(google::GLOG_ERROR,
-                                configuration::instance().root_dir().c_str());
+    ::google::SetLogDestination(
+        google::GLOG_ERROR, configuration::instance().nbre_root_dir().c_str());
   }
   ::google::InitGoogleLogging(argv[0]);
   LOG(INFO) << argv[0] << " started! ";

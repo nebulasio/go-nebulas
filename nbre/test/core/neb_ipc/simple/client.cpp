@@ -54,7 +54,7 @@ public:
           std::string s =
               ack->get<neb::core::ipc_pkg::admin_pub_addr>().c_str();
           LOG(INFO) << "got admin_pub_addr: " << s;
-          neb::configuration::instance().auth_table_nas_addr() = s;
+          neb::configuration::instance().admin_pub_addr() = s;
         });
   }
 };

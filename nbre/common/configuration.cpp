@@ -33,9 +33,15 @@ namespace pt = boost::property_tree;
 namespace po = boost::program_options;
 
 #define KTS(v) #v
-#define Str(v) KTS(v)
-configuration::configuration() { m_root_dir = Str(NBRE_PATH); }
-#undef Str
+#define STR(v) KTS(v)
+configuration::configuration() {
+  m_nbre_root_dir = std::getenv("NBRE_ROOT_DIR");
+  m_nbre_exe_name = std::getenv("NBRE_EXE_NAME");
+  m_neb_db_dir = std::getenv("NEB_DB_DIR");
+  m_nbre_db_dir = std::getenv("NBRE_DB_DIR");
+  m_nbre_log_dir = std::getenv("NBRE_LOG_DIR");
+}
+#undef STR
 #undef KTS
 
 configuration::~configuration() = default;

@@ -49,13 +49,19 @@ int main(int argc, char *argv[]) {
 
   ::google::InitGoogleLogging(argv[0]);
 
-  const char *root_dir = neb::configuration::instance().root_dir().c_str();
+  const char *root_dir = neb::configuration::instance().nbre_root_dir().c_str();
   std::string nbre_path =
       neb::fs::join_path(root_dir, "bin/test_neb_ipc_client");
 
   set_recv_nbre_version_callback(nbre_version_callback);
 
-  auto ret = start_nbre_ipc(root_dir, nbre_path.c_str(), "auth address here!");
+  nbre_params_t params{root_dir,
+                       nbre_path.c_str(),
+                       neb::configuration::instance().neb_db_dir().c_str(),
+                       neb::configuration::instance().nbre_db_dir().c_str(),
+                       neb::configuration::instance().nbre_log_dir().c_str(),
+                       "auth address here!"};
+  auto ret = start_nbre_ipc(params);
   if (ret != ipc_status_succ) {
     to_quit = false;
     return 1;

@@ -54,9 +54,17 @@ typedef void (*nbre_ir_versions_callback_t)(enum ipc_status_code isc,
                                             const char *ir_versions);
 void set_recv_nbre_ir_versions_callback(nbre_ir_versions_callback_t func);
 
+typedef struct {
+  const char *m_nbre_root_dir;
+  const char *m_nbre_exe_name;
+  const char *m_neb_db_dir;
+  const char *m_nbre_db_dir;
+  const char *m_nbre_log_dir;
+  const char *m_admin_pub_addr;
+} nbre_params_t;
+
 // nbre ipc start and shutdown
-int start_nbre_ipc(const char *root_dir, const char *nbre_path,
-                   const char *admin_pub_addr);
+int start_nbre_ipc(const nbre_params_t params);
 
 void nbre_ipc_shutdown();
 

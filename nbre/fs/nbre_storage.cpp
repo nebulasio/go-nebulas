@@ -218,7 +218,7 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
       const uint64_t version = nbre_ir->version();
 
       if (neb::configuration::instance().auth_module_name() == name &&
-          neb::configuration::instance().auth_table_nas_addr() == from_base58) {
+          neb::configuration::instance().admin_pub_addr() == from_base58) {
         // TODO expect auth table exceed 128k bytes size
 
         set_auth_table_by_jit(nbre_ir);
