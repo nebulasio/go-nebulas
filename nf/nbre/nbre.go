@@ -31,12 +31,9 @@ import (
 	"sync"
 	"time"
 
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
-
 	"unsafe"
+
+	"path/filepath"
 
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -46,6 +43,13 @@ import (
 const (
 	// ExecutionTimeoutSeconds max nbre execution timeout.
 	ExecutionTimeoutSeconds = 15
+)
+
+// default config path
+const (
+	defaultLogPath  = "nbre/logs"
+	defaultDataPath = "nbre/nbre.db"
+	defaultNbrePath = "nbre/nbre"
 )
 
 // nbre private data
@@ -78,33 +82,63 @@ func NewNbre(neb Neblet) core.Nbre {
 	}
 }
 
-func getCurrPath() string {
-	file, _ := exec.LookPath(os.Args[0])
-	path, _ := filepath.Abs(file)
-	index := strings.LastIndex(path, string(os.PathSeparator))
-	ret := path[:index]
-	return ret
-}
+//func getCurrPath() string {
+//	file, _ := exec.LookPath(os.Args[0])
+//	path, _ := filepath.Abs(file)
+//	index := strings.LastIndex(path, string(os.PathSeparator))
+//	ret := path[:index]
+//	return ret
+//}
 
 // Start launch the nbre
 func (n *Nbre) Start() error {
-	// TODO(larry): add to config
-	root := getCurrPath()
-	path := root + "/neb-nbre"
-	adminAddr := "n1cYKNHTeVW9v1NQRWuhZZn9ETbqAYozckh"
-	cRoot := C.CString(root)
-	defer C.free(unsafe.Pointer(cRoot))
-	cPath := C.CString(path)
-	defer C.free(unsafe.Pointer(cPath))
-	cAddr := C.CString(adminAddr)
+	if n.neb.Config().Nbre == nil {
+		return ErrConfigNotFound
+	}
+	var (
+		logPath  = defaultLogPath
+		dataPath = defaultDataPath
+		nbrePath = defaultNbrePath
+		err      error
+	)
+	conf := n.neb.Config().Nbre
+	if len(conf.Log) > 0 {
+		logPath = conf.Log
+	}
+	if logPath, err = filepath.Abs(logPath); err != nil {
+		return err
+	}
+
+	if len(conf.Data) > 0 {
+		dataPath = conf.Data
+	}
+	if dataPath, err = filepath.Abs(dataPath); err != nil {
+		return err
+	}
+
+	if len(conf.Nbre) > 0 {
+		nbrePath = conf.Nbre
+	}
+	if nbrePath, err = filepath.Abs(nbrePath); err != nil {
+		return err
+	}
+
+	cLogPath := C.CString(logPath)
+	defer C.free(unsafe.Pointer(cLogPath))
+	cDataPath := C.CString(dataPath)
+	defer C.free(unsafe.Pointer(cDataPath))
+	cNbrePath := C.CString(nbrePath)
+	defer C.free(unsafe.Pointer(cNbrePath))
+	cAddr := C.CString(n.neb.Config().Nbre.AdminAddress)
 	defer C.free(unsafe.Pointer(cAddr))
 
 	logging.CLog().WithFields(logrus.Fields{
-		"root": root,
-		"path": path,
+		"data":  dataPath,
+		"nbre":  nbrePath,
+		"admin": n.neb.Config().Nbre.AdminAddress,
 	}).Info("Started nbre.")
 
-	cResult := C.start_nbre_ipc(cRoot, cPath, cAddr)
+	cResult := C.start_nbre_ipc(cDataPath, cNbrePath, cAddr)
 	if int(cResult) != 0 {
 		return ErrNbreStartFailed
 	}
