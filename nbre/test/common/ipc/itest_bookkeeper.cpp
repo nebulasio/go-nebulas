@@ -33,7 +33,7 @@ auto bk_str = user_name + "test_bookkeeper_simple";
 const char *t1_name = t1_str.c_str();
 const char *t2_name = t2_str.c_str();
 const char *t3_name = t3_str.c_str();
-const char *bk_name = bk_str.c_str();
+static const char *bk_name = bk_str.c_str();
 
 IPC_PRELUDE(test_bookkeeper_simple) {
   boost::interprocess::named_mutex::remove(t1_name);

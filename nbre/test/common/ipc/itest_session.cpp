@@ -24,7 +24,7 @@
 #include "test/common/ipc/ipc_test.h"
 
 std::string base_name = neb::fs::get_user_name() + "test_session_simple";
-std::string bk_name = base_name + ".bookkeeper";
+static std::string bk_name = base_name + ".bookkeeper";
 std::string sema_name = bk_name + ".test.sema";
 std::string quit_sema_name = bk_name + ".test.quit.sema";
 
