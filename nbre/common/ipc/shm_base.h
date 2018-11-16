@@ -107,11 +107,8 @@ typedef boost::interprocess::basic_string<char, std::char_traits<char>,
                                           char_allocator_t>
     char_string_t;
 
-
 template <typename T>
 using vector = typename internal::boost_ipc_vector_helper<T>::vector_t;
 
-using string_vector_t = vector<char_string_t>;
-using uint64_vector_t = vector<uint64_t>;
 }
 }
