@@ -83,7 +83,6 @@ public:
     auto it = m_jit_instances.find(key);
     if (it == m_jit_instances.end()) {
       shrink_instances();
-      LOG(INFO) << "Before insert";
       m_jit_instances.insert(std::make_pair(key, make_context(irs, func_name)));
       it = m_jit_instances.find(key);
     }

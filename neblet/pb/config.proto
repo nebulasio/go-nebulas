@@ -182,12 +182,14 @@ message InfluxdbConfig {
 }
 
 message NbreConfig {
+    // Nbre root dir
+    string root_dir = 1;
     // Nbre log path
-    string log = 1;
+    string log_dir = 2;
     // Nbre data path
-    string data = 2;
+    string data_dir = 3;
     // Nbre runtime path
-    string nbre = 3;
+    string nbre_path = 4;
     // Nbre admin address
-    string admin_address = 4;
+    string admin_address = 5;
 }

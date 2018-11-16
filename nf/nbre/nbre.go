@@ -47,9 +47,10 @@ const (
 
 // default config path
 const (
-	defaultLogPath  = "nbre/logs"
-	defaultDataPath = "nbre/nbre.db"
-	defaultNbrePath = "nbre/nbre"
+	defaultRootDir     = "nbre"
+	defaultLogDir      = "nbre/logs"
+	defaultNbreDataDir = "nbre/nbre.db"
+	defaultNbrePath    = "nbre/nbre"
 )
 
 // nbre private data
@@ -96,49 +97,82 @@ func (n *Nbre) Start() error {
 		return ErrConfigNotFound
 	}
 	var (
-		logPath  = defaultLogPath
-		dataPath = defaultDataPath
-		nbrePath = defaultNbrePath
-		err      error
+		rootDir     = defaultRootDir
+		logDir      = defaultLogDir
+		nbreDataDir = defaultNbreDataDir
+		nbrePath    = defaultNbrePath
+		err         error
 	)
 	conf := n.neb.Config().Nbre
-	if len(conf.Log) > 0 {
-		logPath = conf.Log
+	if len(conf.RootDir) > 0 {
+		rootDir = conf.RootDir
 	}
-	if logPath, err = filepath.Abs(logPath); err != nil {
+	if rootDir, err = filepath.Abs(rootDir); err != nil {
 		return err
 	}
 
-	if len(conf.Data) > 0 {
-		dataPath = conf.Data
+	if len(conf.LogDir) > 0 {
+		logDir = conf.LogDir
 	}
-	if dataPath, err = filepath.Abs(dataPath); err != nil {
+	if logDir, err = filepath.Abs(logDir); err != nil {
 		return err
 	}
 
-	if len(conf.Nbre) > 0 {
-		nbrePath = conf.Nbre
+	if len(conf.DataDir) > 0 {
+		nbreDataDir = conf.DataDir
+	}
+	if nbreDataDir, err = filepath.Abs(nbreDataDir); err != nil {
+		return err
+	}
+
+	if len(conf.NbrePath) > 0 {
+		nbrePath = conf.NbrePath
 	}
 	if nbrePath, err = filepath.Abs(nbrePath); err != nil {
 		return err
 	}
 
-	cLogPath := C.CString(logPath)
-	defer C.free(unsafe.Pointer(cLogPath))
-	cDataPath := C.CString(dataPath)
-	defer C.free(unsafe.Pointer(cDataPath))
+	dataDir, err := filepath.Abs(n.neb.Config().Chain.Datadir)
+	if err != nil {
+		return err
+	}
+
+	cRootDir := C.CString(rootDir)
+	defer C.free(unsafe.Pointer(cRootDir))
+	cLogDir := C.CString(logDir)
+	defer C.free(unsafe.Pointer(cLogDir))
+	cNbreDataDir := C.CString(nbreDataDir)
+	defer C.free(unsafe.Pointer(cNbreDataDir))
 	cNbrePath := C.CString(nbrePath)
 	defer C.free(unsafe.Pointer(cNbrePath))
+	cDataDir := C.CString(dataDir)
+	defer C.free(unsafe.Pointer(cDataDir))
+
 	cAddr := C.CString(n.neb.Config().Nbre.AdminAddress)
 	defer C.free(unsafe.Pointer(cAddr))
 
+	p := C.nbre_params_t{
+		m_nbre_root_dir:  cRootDir,
+		m_nbre_exe_name:  cNbrePath,
+		m_neb_db_dir:     cDataDir,
+		m_nbre_db_dir:    cNbreDataDir,
+		m_nbre_log_dir:   cLogDir,
+		m_admin_pub_addr: cAddr,
+	}
+	//p.m_nbre_root_dir = cRootDir
+	//p.m_nbre_exe_name = cNbrePath
+	//p.m_neb_db_dir = cDataDir
+	//p.m_nbre_db_dir = cNbreDataDir
+	//p.m_nbre_log_dir = cLogDir
+	//p.m_admin_pub_addr = cAddr
+
 	logging.CLog().WithFields(logrus.Fields{
-		"data":  dataPath,
+		"data":  nbreDataDir,
 		"nbre":  nbrePath,
 		"admin": n.neb.Config().Nbre.AdminAddress,
 	}).Info("Started nbre.")
 
-	cResult := C.start_nbre_ipc(cDataPath, cNbrePath, cAddr)
+	cResult := C.start_nbre_ipc(p)
 	if int(cResult) != 0 {
 		return ErrNbreStartFailed
 	}

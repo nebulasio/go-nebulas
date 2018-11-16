@@ -32,6 +32,7 @@ driver_base::driver_base() : m_exit_flag(false) {}
 
 bool driver_base::init() {
   m_client = std::unique_ptr<ipc_client_endpoint>(new ipc_client_endpoint());
+  LOG(INFO) << "ipc client construct";
   add_handlers();
 
   //! we should make share wait_until_sync first
@@ -154,6 +155,8 @@ void driver::add_handlers() {
 
   m_client->add_handler<ipc_pkg::nbre_init_ack>(
       [this](ipc_pkg::nbre_init_ack *ack) {
+        LOG(INFO) << "get init ack";
+
         configuration::instance().nbre_root_dir() =
             ack->get<ipc_pkg::nbre_root_dir>().c_str();
         configuration::instance().nbre_exe_name() =
@@ -166,6 +169,9 @@ void driver::add_handlers() {
             ack->get<ipc_pkg::nbre_log_dir>().c_str();
         configuration::instance().admin_pub_addr() =
             ack->get<ipc_pkg::admin_pub_addr>().c_str();
+
+        LOG(INFO) << configuration::instance().nbre_db_dir();
+        LOG(INFO) << configuration::instance().admin_pub_addr();
 
         init_timer_thread();
         ir_warden::instance().wait_until_sync();

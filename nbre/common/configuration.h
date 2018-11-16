@@ -51,12 +51,12 @@ public:
   inline std::string &neb_db_dir() { return m_neb_db_dir; }
 
   // nbre database directory
-  inline const std::string nbre_db_dir() const { return m_nbre_db_dir; }
-  inline std::string nbre_db_dir() { return m_nbre_db_dir; }
+  inline const std::string &nbre_db_dir() const { return m_nbre_db_dir; }
+  inline std::string &nbre_db_dir() { return m_nbre_db_dir; }
 
   // nbre log directory
-  inline const std::string nbre_log_dir() const { return m_nbre_log_dir; }
-  inline std::string nbre_log_dir() { return m_nbre_log_dir; }
+  inline const std::string &nbre_log_dir() const { return m_nbre_log_dir; }
+  inline std::string &nbre_log_dir() { return m_nbre_log_dir; }
 
   // nbre storage auth table admin address
   const std::string &admin_pub_addr() const { return m_admin_pub_addr; }
