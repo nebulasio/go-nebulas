@@ -119,8 +119,13 @@ bool ipc_server_endpoint::check_path_exists() {
 }
 
 void ipc_server_endpoint::init_params(const nbre_params_t params) {
-  LOG(INFO) << m_nbre_params.m_nbre_root_dir;
   m_nbre_params = params;
+  LOG(INFO) << m_nbre_params.m_nbre_root_dir;
+  LOG(INFO) << m_nbre_params.m_nbre_exe_name;
+  LOG(INFO) << m_nbre_params.m_neb_db_dir;
+  LOG(INFO) << m_nbre_params.m_nbre_db_dir;
+  LOG(INFO) << m_nbre_params.m_nbre_log_dir;
+  LOG(INFO) << m_nbre_params.m_admin_pub_addr;
 }
 
 void ipc_server_endpoint::add_all_callbacks() {

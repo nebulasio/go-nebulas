@@ -26,6 +26,7 @@ std::shared_ptr<neb::core::ipc_server_endpoint> _ipc;
 int start_nbre_ipc(const nbre_params_t params) {
   try {
     _ipc = std::make_shared<neb::core::ipc_server_endpoint>();
+    LOG(INFO) << "ipc server construct";
     _ipc->init_params(params);
 
     if (_ipc->start()) {
