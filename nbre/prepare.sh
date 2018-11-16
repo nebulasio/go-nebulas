@@ -226,3 +226,13 @@ fi
 if [ ! -e $CUR_DIR/lib/lib/libc++.so ]; then
   cp -f $CUR_DIR/lib_llvm/lib/libc++* $CUR_DIR/lib/lib/
 fi
+
+if [ ! -f $CUR_DIR/lib/include/softfloat.h ]; then
+  cd $CUR_DIR/3rd_party/SoftFloat-3e/build/Linux-x86_64-GCC/
+  make -j 4
+  cp softfloat.a $CUR_DIR/lib/lib/
+  cp ../../source/include/softfloat.h $CUR_DIR/lib/include/
+  cp ../../source/include/softfloat_types.h $CUR_DIR/lib/include/
+  make clean
+fi
+
