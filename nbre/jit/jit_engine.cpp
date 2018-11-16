@@ -65,7 +65,6 @@ void jit_engine::init(std::vector<std::unique_ptr<Module>> ms,
   for (auto &M : m_modules) {
     outs().flush();
 
-    LOG(INFO) << "Before addModule";
     try {
       cantFail(m_jit->addModule(std::shared_ptr<Module>(std::move(M))),
                nullptr);
@@ -73,7 +72,6 @@ void jit_engine::init(std::vector<std::unique_ptr<Module>> ms,
       LOG(ERROR) << e.what();
     }
   }
-  LOG(INFO) << "Before findSymbol";
   try {
     m_main_sym = std::make_unique<llvm::JITSymbol>(
         m_jit->findSymbol(std::string(m_func_name, std::allocator<char>())));

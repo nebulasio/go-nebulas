@@ -90,8 +90,6 @@ jit_driver::make_context(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
     auto mem_buf = llvm::MemoryBuffer::getMemBuffer(sr, "", false);
     llvm::SMDiagnostic err;
 
-    LOG(INFO) << "Before parseIR";
-
     // To check the module
     std::vector<std::unique_ptr<llvm::Module>> tmp_modules;
     tmp_modules.push_back(
@@ -107,7 +105,6 @@ jit_driver::make_context(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
     //// llvm::parseIR(mem_buf->getMemBufferRef(), err, ret->m_context, true));
     // modules.push_back(module);
   }
-  LOG(INFO) << "Before m_jit.init";
   ret->m_jit.init(std::move(modules), func_name);
   return std::move(ret);
 }
