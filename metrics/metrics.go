@@ -49,6 +49,7 @@ type Neblet interface {
 }
 
 func init() {
+	quitCh = make(chan bool, 1)
 	for _, arg := range os.Args {
 		if strings.TrimLeft(arg, "-") == MetricsEnabledFlag {
 			EnableMetrics()
