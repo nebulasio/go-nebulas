@@ -16,10 +16,11 @@
 # along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-CFLAGS=-DBUILDING_DLL -g -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2
-CXXFLAGS=-DBUILDING_DLL -g -std=c++11 -fno-rtti -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2
+CFLAGS=-DBUILDING_DLL -g -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O3
+CXXFLAGS=-DBUILDING_DLL -g -std=c++11 -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O3
+OUTPUT_DIR=pb/
 
-LDFLAGS=-fvisibility=hidden
+LDFLAGS	= -fvisibility=hidden -lgrpc -lgrpc++ -lgrpc++_cronet -lgrpc++_error_details -lgrpc++_reflection -lgrpc++_unsecure -lgrpc_cronet -lgrpc_unsecure
 LIBS_PATH=
 LIBS=-lpthread -lv8_libbase -lv8_libplatform -licui18n -licuuc
 
@@ -44,8 +45,8 @@ else
 	V8_BLOB_BIN_PATH=/usr/local/v8/6.2.414.40/bin
 endif
 
-.PHONY: engine v8_engine clean v8_snapshot_bin install
-all: v8_engine
+.PHONY: engine v8_server clean v8_snapshot_bin install
+all: v8_server
 
 %.c.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $<.o
@@ -56,11 +57,11 @@ all: v8_engine
 %.cpp.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $<.o
 
-v8_engine: samples/main.cc.o samples/memory_storage.cc.o samples/memory_modules.cc.o engine.cc.o allocator.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/fake_blockchain.cc.o lib/tracing.cc.o lib/file.cc.o lib/util.cc.o lib/typescript.cc.o lib/event.cc.o  lib/crypto.cc.o
-	$(LD) $(LDFLAGS) $^ -o $@ $(LIBS_PATH) $(LIBS)
-
 engine: engine.cc.o thread_engine.cc.o allocator.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/tracing.cc.o lib/file.cc.o lib/util.cc.o lib/typescript.cc.o lib/event.cc.o lib/crypto.cc.o
 	$(LD) -shared $(LDFLAGS) $^ -o libnebulasv8$(DYLIB) $(LIBS_PATH) $(LIBS)
+
+v8_server: v8_server.cc.o pb/nvm.grpc.pb.o pb/nvm.pb.o samples/memory_storage.cc.o samples/memory_modules.cc.o engine.cc.o allocator.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/fake_blockchain.cc.o lib/tracing.cc.o lib/file.cc.o lib/util.cc.o lib/typescript.cc.o lib/event.cc.o  lib/crypto.cc.o
+	$(LD) $(LDFLAGS) $^ -o $@ $(LIBS_PATH) $(LIBS)
 
 install: engine
 	-mkdir -p ../native-lib
@@ -69,7 +70,7 @@ install: engine
 clean:
 	-rm -f natives_blob.bin.h snapshot_blob.bin.h;
 	-find . -iname '*.o' -exec rm {} \;
-	-rm -f v8_engine libnebulasv8$(DYLIB);
+	-rm -f v8_server libnebulasv8$(DYLIB);
 
 v8_snapshot_bin:
 	-ln -s $(V8_BLOB_BIN_PATH)/natives_blob.bin .
@@ -77,3 +78,7 @@ v8_snapshot_bin:
 	-xxd -i natives_blob.bin natives_blob.bin.h
 	-xxd -i snapshot_blob.bin snapshot_blob.bin.h
 	-rm natives_blob.bin snapshot_blob.bin
+
+rpc:
+	protoc --grpc_out=$(OUTPUT_DIR) --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` nvm.proto
+	protoc --cpp_out $(OUTPUT_DIR) nvm.proto
