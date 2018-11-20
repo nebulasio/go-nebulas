@@ -651,34 +651,3 @@ message GetConfigResponse {
     // Config
     nebletpb.Config config = 1;
 }
-
-
-// ================ NVM services =================
-
-service NVMService{
-
-    rpc DeploySmartContract(NVMDeployRequest) returns (NVMResponse) {}
-
-    rpc NVMDataExchange(stream NVMDataRequest) returns (stream NVMResponse) {}
-
-}
-
-message NVMDeployRequest{
-    string script_src = 1;
-    string from_addr = 2;
-    int64 block_height = 3;
-    string type = 4;
-}
-
-message NVMDataRequest{
-    string request_type = 1;
-    string script_src = 2;
-    string function_name = 3;
-    string contract_addr = 4;
-    string extra_data = 5;
-}
-
-message NVMResponse {
-    int32 result = 1;
-    string msg = 2;
-}
