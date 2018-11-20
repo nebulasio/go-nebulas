@@ -199,9 +199,7 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
   for (auto &tx : block->transactions()) {
     auto &data = tx.data();
     const std::string &type = data.type();
-
     std::string from = tx.from();
-    std::string from_base58 = neb::util::string_to_byte(from).to_base58();
 
     if (type == neb::configuration::instance().ir_tx_payload_type()) {
       const std::string &payload = data.payload();
@@ -216,23 +214,46 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
 
       const std::string &name = nbre_ir->name();
       const uint64_t version = nbre_ir->version();
+      std::string from_base58 = neb::util::string_to_byte(from).to_base58();
+      std::string admin_base58 =
+          neb::util::string_to_byte(
+              neb::configuration::instance().admin_pub_addr())
+              .to_base58();
+      LOG(INFO) << "from address: " << from_base58
+                << ", admin address: " << admin_base58;
+      LOG(INFO) << "module name: " << name << ", auth module name: "
+                << neb::configuration::instance().auth_module_name();
 
       if (neb::configuration::instance().auth_module_name() == name &&
-          neb::configuration::instance().admin_pub_addr() == from_base58) {
+          neb::configuration::instance().admin_pub_addr() == from) {
         // TODO expect auth table exceed 128k bytes size
 
+        LOG(INFO) << "before set auth table by jit, auth table size: "
+                  << m_auth_table.size();
         set_auth_table_by_jit(nbre_ir);
         m_storage->put(neb::configuration::instance().nbre_auth_table_name(),
                        payload_bytes);
         LOG(INFO) << "updating auth table...";
+        LOG(INFO) << "after set auth table by jit, auth table size: "
+                  << m_auth_table.size();
         continue;
       }
 
-      auto it = m_auth_table.find(std::make_tuple(name, version, from_base58));
+      auto it = m_auth_table.find(std::make_tuple(name, version, from));
       if (it == m_auth_table.end()) {
         LOG(INFO) << boost::str(
             boost::format("tuple <%1%, %2%, %3%> not in auth table") % name %
-            version % from_base58);
+            version % from);
+        LOG(INFO) << "\nshow auth table";
+        for (auto &r : m_auth_table) {
+          std::string key = boost::str(
+              boost::format("key <%1%, %2%, %3%>, ") % std::get<0>(r.first) %
+              std::get<1>(r.first) % std::get<2>(r.first));
+          std::string val =
+              boost::str(boost::format("val <%1%, %2%>") %
+                         std::get<0>(r.second) % std::get<1>(r.second));
+          LOG(INFO) << key << val;
+        }
         continue;
       }
       const uint64_t height = nbre_ir->height();
@@ -266,6 +287,7 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
       }
       update_ir_list(nbre_ir_list_name,
                      neb::util::byte_to_string(bytes_ir_name_list), name);
+
     }
   }
 }
@@ -345,6 +367,7 @@ void nbre_storage::set_auth_table_by_jit(
     jit_driver &jd = jit_driver::instance();
     std::stringstream ss;
     ss << nbre_ir->name() << nbre_ir->version();
+    LOG(INFO) << "set auth table by jit " << ss.str();
 
     std::vector<std::shared_ptr<nbre::NBREIR>> irs;
     irs.push_back(nbre_ir);
@@ -352,6 +375,7 @@ void nbre_storage::set_auth_table_by_jit(
     auth_table_raw = jd.run<auth_table_t>(
         ss.str(), irs,
         neb::configuration::instance().auth_func_mangling_name());
+    LOG(INFO) << "jit driver return size: " << auth_table_raw.size();
 
   } catch (const std::exception &e) {
     LOG(INFO) << e.what();

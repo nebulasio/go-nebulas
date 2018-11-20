@@ -37,16 +37,24 @@ std::vector<row_t> entry_point_auth() {
            ((0ULL + patch_version) << 48);
   };
 
+  auto n1HrPpwwH5gTA2d7QCkVjMw14YbN1NNNXHc = {
+      0x19, 0x57, 0x24, 0x9a, 0x99, 0x01, 0x19, 0xcf, 0x3e,
+      0x7d, 0x3f, 0x65, 0x3f, 0x7e, 0xc5, 0x71, 0x94, 0x6e,
+      0x3c, 0x31, 0x6d, 0xc7, 0xea, 0x86, 0x1c, 0x33};
+
   std::vector<row_t> auth_table = {
       std::make_tuple("nr", to_version_t(0, 0, 1),
-                      "n1HrPpwwH5gTA2d7QCkVjMw14YbN1NNNXHc", 90000ULL,
-                      200000ULL),
+                      std::string(n1HrPpwwH5gTA2d7QCkVjMw14YbN1NNNXHc.begin(),
+                                  n1HrPpwwH5gTA2d7QCkVjMw14YbN1NNNXHc.end()),
+                      90000ULL, 200000ULL),
       std::make_tuple("nr", to_version_t(0, 0, 2),
-                      "n1HrPpwwH5gTA2d7QCkVjMw14YbN1NNNXHc", 90000ULL,
-                      200000ULL),
+                      std::string(n1HrPpwwH5gTA2d7QCkVjMw14YbN1NNNXHc.begin(),
+                                  n1HrPpwwH5gTA2d7QCkVjMw14YbN1NNNXHc.end()),
+                      90000ULL, 200000ULL),
       std::make_tuple("dip", to_version_t(0, 0, 1),
-                      "n1HrPpwwH5gTA2d7QCkVjMw14YbN1NNNXHc", 90000ULL,
-                      200000ULL)};
+                      std::string(n1HrPpwwH5gTA2d7QCkVjMw14YbN1NNNXHc.begin(),
+                                  n1HrPpwwH5gTA2d7QCkVjMw14YbN1NNNXHc.end()),
+                      90000ULL, 200000ULL)};
   return auth_table;
 }
 
