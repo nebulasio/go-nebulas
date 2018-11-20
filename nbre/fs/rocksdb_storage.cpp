@@ -49,12 +49,14 @@ void rocksdb_storage::open_database(const std::string &db_name,
       m_enable_batch = true;
     } else {
       rocksdb::Options options;
+
       //! TODO setup bloomfilter, LRUCache, writer buffer size
       rocksdb::BlockBasedTableOptions table_options;
       table_options.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10));
       table_options.block_cache = rocksdb::NewLRUCache(512 << 20);
       options.table_factory.reset(
           rocksdb::NewBlockBasedTableFactory(table_options));
+
       options.create_if_missing = true;
       options.max_open_files = 500;
       options.write_buffer_size = 64 * 1024 * 1024;
