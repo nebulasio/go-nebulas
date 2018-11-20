@@ -90,15 +90,23 @@ jit_driver::make_context(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
     auto mem_buf = llvm::MemoryBuffer::getMemBuffer(sr, "", false);
     llvm::SMDiagnostic err;
 
-    // To check the module
-    std::vector<std::unique_ptr<llvm::Module>> tmp_modules;
-    tmp_modules.push_back(
-        llvm::parseIR(mem_buf->getMemBufferRef(), err, ret->m_context, true));
-    if (nullptr == tmp_modules[0]) {
+    auto module =
+        llvm::parseIR(mem_buf->getMemBufferRef(), err, ret->m_context, true);
+    if (nullptr == module) {
       LOG(ERROR) << "Module broken";
     } else {
-      modules.push_back(std::move(tmp_modules[0]));
+      modules.push_back(std::move(module));
     }
+
+    // To check the module
+    // std::vector<std::unique_ptr<llvm::Module>> tmp_modules;
+    // tmp_modules.push_back(
+    // llvm::parseIR(mem_buf->getMemBufferRef(), err, ret->m_context, true));
+    // if (nullptr == tmp_modules[0]) {
+    // LOG(ERROR) << "Module broken";
+    //} else {
+    // modules.push_back(std::move(tmp_modules[0]));
+    //}
     // auto &&module = std::move(
     // llvm::parseIR(mem_buf->getMemBufferRef(), err, ret->m_context, true));
     //// modules.push_back(
