@@ -20,8 +20,11 @@
 
 #include "rocksdb_storage.h"
 #include <rocksdb/advanced_options.h>
+#include <rocksdb/cache.h>
+#include <rocksdb/filter_policy.h>
 #include <rocksdb/options.h>
 #include <rocksdb/slice.h>
+#include <rocksdb/table.h>
 
 namespace neb{
 namespace fs {
@@ -47,7 +50,15 @@ void rocksdb_storage::open_database(const std::string &db_name,
     } else {
       rocksdb::Options options;
       //! TODO setup bloomfilter, LRUCache, writer buffer size
+      rocksdb::BlockBasedTableOptions table_options;
+      table_options.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10));
+      table_options.block_cache = rocksdb::NewLRUCache(512 << 20);
+      options.table_factory.reset(
+          rocksdb::NewBlockBasedTableFactory(table_options));
       options.create_if_missing = true;
+      options.max_open_files = 500;
+      options.write_buffer_size = 64 * 1024 * 1024;
+      options.IncreaseParallelism(4);
       status = rocksdb::DB::Open(options, db_name, &db);
       m_enable_batch = false;
     }
