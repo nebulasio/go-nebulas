@@ -55,7 +55,9 @@ bool exists(const std::string &p) {
   return boost::filesystem::exists(boost::filesystem::path(p));
 }
 std::string get_user_name() {
-  return std::getenv("USER");
+//  return std::getenv("USER");
+  //TODO(larry): Using environment variables to find the username is very unreliable. Currently use empty string.
+  return "";
 }
 
 } // end namespace fs
