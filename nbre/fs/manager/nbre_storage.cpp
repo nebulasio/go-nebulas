@@ -18,11 +18,11 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "fs/nbre_storage.h"
+#include "fs/manager/nbre_storage.h"
 #include "common/configuration.h"
 #include "common/util/byte.h"
 #include "common/util/version.h"
-#include "fs/flag_storage.h"
+#include "fs/manager/flag_storage.h"
 #include "jit/jit_driver.h"
 #include "runtime/version.h"
 #include <boost/foreach.hpp>

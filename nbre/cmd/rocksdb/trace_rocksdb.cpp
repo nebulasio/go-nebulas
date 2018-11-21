@@ -20,7 +20,7 @@
 
 #include "common/configuration.h"
 #include "common/util/version.h"
-#include "fs/nbre_storage.h"
+#include "fs/manager/nbre_storage.h"
 #include "fs/proto/block.pb.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/rocksdb_storage.h"

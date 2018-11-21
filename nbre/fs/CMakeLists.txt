@@ -2,7 +2,8 @@ add_library(nbre_fs
   rocksdb_storage.cpp
   util.cpp
   blockchain.cpp
-  nbre_storage.cpp
+  manager/nbre_storage.cpp
+  manager/flag_storage.cpp
   api/nbre_api.cpp
   trie/trie.cpp
 )

@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "fs/nbre_storage.h"
+#include "fs/manager/nbre_storage.h"
 #include "fs/proto/block.pb.h"
 #include "fs/util.h"
 
