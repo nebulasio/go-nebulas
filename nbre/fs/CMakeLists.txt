@@ -4,6 +4,7 @@ add_library(nbre_fs
   blockchain.cpp
   nbre_storage.cpp
   api/nbre_api.cpp
+  trie/trie.cpp
 )
 
 add_library(nbre_fs_proto
