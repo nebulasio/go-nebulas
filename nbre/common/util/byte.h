@@ -154,6 +154,9 @@ public:
   bool operator==(const bytes &v) const;
   bool operator!=(const bytes &v) const;
 
+  byte_t operator[](size_t index) const;
+  byte_t operator[](size_t index);
+
   std::string to_base58() const;
   std::string to_base64() const;
   std::string to_hex() const;
