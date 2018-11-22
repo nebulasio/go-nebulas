@@ -263,6 +263,10 @@ type AccountManager interface {
 type NVM interface {
 	CreateEngine(block *Block, tx *Transaction, contract state.Account, ws WorldState) (SmartContractEngine, error)
 	CheckV8Run() error
+
+	StartNebulasVM(enginePath string) (int, error)
+	StopNebulasVM(enginePid int) error
+	CheckV8ServerRunning(enginePid int) bool
 }
 
 // SmartContractEngine interface

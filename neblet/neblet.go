@@ -46,7 +46,7 @@ var (
 	metricsNebstartGauge = m.GetOrRegisterGauge("neb.start", nil)
 )
 
-// Neblet manages ldife cycle of blockchain services.
+// Neblet manages life cycle of blockchain services.
 type Neblet struct {
 	config *nebletpb.Config
 
@@ -71,6 +71,8 @@ type Neblet struct {
 	eventEmitter *core.EventEmitter
 
 	nvm core.NVM
+
+	nvmProcessID int
 
 	running bool
 }
@@ -135,13 +137,9 @@ func (n *Neblet) Setup() {
 		}).Fatal("Failed to setup net service.")
 	}
 
-	// nvm
+	// nvm setup
 	n.nvm = nvm.NewNebulasVM()
-	if err = n.nvm.CheckV8Run(); err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Fatal("Failed to setup V8.")
-	}
+
 	// core
 	n.eventEmitter = core.NewEventEmitter(40960)
 	n.consensus = dpos.NewDpos()
@@ -270,6 +268,18 @@ func (n *Neblet) Start() {
 		}
 	}
 
+	// start V8 engine
+	// temporary path for NVM engine
+	nvmEnginePath := "/Users/congming/go/src/github.com/nebulasio/go-nebulas/nf/nvm/v8/v8_server"
+	processID, err := n.nvm.StartNebulasVM(nvmEnginePath)
+	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to start V8 engine.")
+	}
+	n.nvmProcessID = processID
+
+
 	metricsNebstartGauge.Update(1)
 
 	logging.CLog().Info("Started Neblet.")
@@ -322,6 +332,8 @@ func (n *Neblet) Stop() {
 	}
 
 	n.accountManager = nil
+
+	n.nvm.StopNebulasVM(n.nvmProcessID)
 
 	n.running = false
 

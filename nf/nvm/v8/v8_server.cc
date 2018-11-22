@@ -281,7 +281,6 @@ void RunServer(){
     std::cout<<"V8 engine server is listening on: "<<engine_addr<<std::endl;
     
     server->Wait();
-
 }
 
 int main(int argc, const char *argv[]) {

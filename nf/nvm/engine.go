@@ -19,8 +19,16 @@
 package nvm
 
 import (
+	"os"
+	"os/exec"
+	"syscall"
+	"errors"
+
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/state"
+
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // NebulasVM type of NebulasVM
@@ -30,6 +38,72 @@ type NebulasVM struct{}
 func NewNebulasVM() core.NVM {
 	return &NebulasVM{}
 }
+
+// Start engine process
+func (nvm *NebulasVM) StartNebulasVM(enginePath string) (int, error) {
+
+	cmd := exec.Command(enginePath, "")
+
+	err := cmd.Start()
+	if err != nil {
+		err = errors.New("Failed to start NVM process")
+		return 0, err
+	}
+
+	pid := cmd.Process.Pid
+
+	logging.CLog().Info("Started NVM process.")
+	
+	return pid, nil
+}
+
+// Stop engine process
+func (nvm *NebulasVM) StopNebulasVM(enginePid int) error {
+
+	proc, err := os.FindProcess(enginePid)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to find nvm process")
+		return err
+	}
+
+	err = proc.Kill()
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to stop nvm process")
+		return err
+	}
+
+	logging.CLog().Info("Stopping NVM process")
+
+	return nil
+}
+
+// Check if V8 is running
+func (nvm *NebulasVM) CheckV8ServerRunning(enginePid int) bool {
+	
+	proc, err := os.FindProcess(enginePid)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to find nvm process")
+		return false
+	}
+	
+	err = proc.Signal(syscall.Signal(0))
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to ping nvm process")
+		return false
+	}
+
+	return true
+}
+
+
 
 // CreateEngine start engine
 func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, contract state.Account, state core.WorldState) (core.SmartContractEngine, error) {
