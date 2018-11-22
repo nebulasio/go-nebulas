@@ -18,28 +18,17 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "fs/flag_storage.h"
+#pragma once
 #include "common/common.h"
+#include "common/util/byte.h"
 
 namespace neb {
 namespace fs {
 
-flag_storage::flag_storage(rocksdb_storage *db_ptr) : m_storage(db_ptr) {}
-
-void flag_storage::set_flag(const std::string &flag) {
-  m_storage->put(flag, neb::util::string_to_byte(flag));
-}
-
-bool flag_storage::has_flag(const std::string &flag) const {
-  try {
-    m_storage->get(flag);
-  } catch (const std::exception &e) {
-    return false;
-  }
-  return true;
-}
-
-void flag_storage::del_flag(const std::string &flag) { m_storage->del(flag); }
-
+class trie {
+public:
+  static neb::util::bytes key_to_route(const neb::util::bytes &key);
+  static neb::util::bytes route_to_key(const neb::util::bytes &route);
+};
 } // namespace fs
 } // namespace neb

@@ -18,16 +18,16 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#pragma once
+#include "ir/nr/algo/nebulas_rank.h"
 
-#include "fs/manager/nbre_storage.h"
-#include "fs/proto/block.pb.h"
-#include "fs/util.h"
+int main(int argc, char *argv[]) {
 
-typedef std::shared_ptr<corepb::Block> block_ptr_t;
-typedef std::shared_ptr<neb::fs::nbre_storage> nbre_storage_ptr_t;
+  neb::nr::transaction_db_ptr_t tdb_ptr;
+  neb::nr::account_db_ptr_t adb_ptr;
+  neb::nr::rank_params_t para;
+  neb::nr::block_height_t start_block = 0;
+  neb::nr::block_height_t end_block = 0;
 
-std::string get_db_path_for_read();
-std::string get_db_path_for_write();
-
-std::string get_blockchain_path_for_read();
+  neb::nr::nebulas_rank nr(tdb_ptr, adb_ptr, para, start_block, end_block);
+  return 0;
+}

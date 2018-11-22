@@ -19,7 +19,7 @@
 //
 #include "common/configuration.h"
 #include "common/util/byte.h"
-#include "fs/nbre_storage.h"
+#include "fs/manager/nbre_storage.h"
 #include "fs/proto/block.pb.h"
 #include "fs/util.h"
 

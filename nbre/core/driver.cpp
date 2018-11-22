@@ -167,8 +167,12 @@ void driver::add_handlers() {
             ack->get<ipc_pkg::nbre_db_dir>().c_str();
         configuration::instance().nbre_log_dir() =
             ack->get<ipc_pkg::nbre_log_dir>().c_str();
+
+        std::string addr_base58 = ack->get<ipc_pkg::admin_pub_addr>().c_str();
+        neb::util::bytes addr_bytes =
+            neb::util::bytes::from_base58(addr_base58);
         configuration::instance().admin_pub_addr() =
-            ack->get<ipc_pkg::admin_pub_addr>().c_str();
+            neb::util::byte_to_string(addr_bytes);
 
         LOG(INFO) << configuration::instance().nbre_db_dir();
         LOG(INFO) << configuration::instance().admin_pub_addr();

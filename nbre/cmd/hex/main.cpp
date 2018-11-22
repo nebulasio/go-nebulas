@@ -18,22 +18,19 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "common/util/version.h"
-#include "fs/manager/nbre_storage.h"
-#include "fs/proto/block.pb.h"
-#include "fs/proto/ir.pb.h"
-#include "fs/rocksdb_storage.h"
-#include "fs/util.h"
-#include <boost/format.hpp>
+#include "common/common.h"
+#include "common/util/byte.h"
 #include <boost/program_options.hpp>
+#include <iomanip>
+#include <sstream>
 
 namespace po = boost::program_options;
 
 int main(int argc, char *argv[]) {
 
-  po::options_description desc("Rocksdb read and write");
+  po::options_description desc("Address base58 to string bytes");
   desc.add_options()("help", "show help message")(
-      "db_path", po::value<std::string>(), "Database file directory");
+      "address", po::value<std::string>(), "address base58 encoding");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -44,29 +41,25 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  if (!vm.count("db_path")) {
-    std::cout << "You must specify \"db_path\"!" << std::endl;
+  if (!vm.count("address")) {
+    std::cout << "You must specify \"address\"!" << std::endl;
     return 1;
   }
 
-  std::string db_path = vm["db_path"].as<std::string>();
-  neb::fs::rocksdb_storage rs;
-  rs.open_database(db_path, neb::fs::storage_open_for_readwrite);
+  std::string addr_base58 = vm["address"].as<std::string>();
+  neb::util::bytes addr_bytes = neb::util::bytes::from_base58(addr_base58);
+  std::string addr = neb::util::byte_to_string(addr_bytes);
+  LOG(INFO) << addr.size();
 
-  auto f_del_nbre_auth_table = [&]() { rs.del("nbre_auth_table"); };
-  f_del_nbre_auth_table();
-
-  auto f_set_nbre_auth_table = [&]() {
-    std::string addr1_base58 = neb::util::string_to_byte("addr1").to_base58();
-    std::string addr2_base58 = neb::util::string_to_byte("addr2").to_base58();
-
-    rs.put("nbre_auth_table",
-           neb::util::string_to_byte(boost::str(
-               boost::format(
-                   "nr,1,%1%,100,200\nnr,2,%2%,150,250\ndip,1,%1%,200,300\n") %
-               addr1_base58 % addr2_base58)));
-  };
-  // f_set_nbre_auth_table();
-
+  std::stringstream ss;
+  ss << '{';
+  for (std::size_t i = 0; i < addr.size(); i++) {
+    uint8_t c = addr[i];
+    ss << "0x" << std::hex << std::setw(2) << std::setfill('0')
+       << static_cast<int>(c) << ',';
+  }
+  ss.seekp(-1, std::ios_base::end);
+  ss << '}';
+  LOG(INFO) << ss.str();
   return 0;
 }

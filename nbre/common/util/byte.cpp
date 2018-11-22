@@ -156,6 +156,9 @@ bool bytes::operator==(const bytes &v) const {
 }
 bool bytes::operator!=(const bytes &v) const { return !operator==(v); }
 
+byte_t bytes::operator[](size_t index) const { return m_value.get()[index]; }
+byte_t bytes::operator[](size_t index) { return m_value.get()[index]; }
+
 std::string bytes::to_base58() const {
   return internal::convert_byte_to_base58(value(), size());
 }

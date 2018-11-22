@@ -79,6 +79,7 @@ if(UNIX AND NOT APPLE)
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_filesystem.so
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_system.so
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_date_time.so
+    ${PROJECT_SOURCE_DIR}/lib/lib/libboost_graph.so
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_program_options.so)
   set(extra_libs
     ${PROJECT_SOURCE_DIR}/lib/lib/libglog.a
@@ -94,6 +95,7 @@ elseif(UNIX)
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_filesystem.dylib
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_system.dylib
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_date_time.dylib
+    ${PROJECT_SOURCE_DIR}/lib/lib/libboost_graph.dylib
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_program_options.dylib)
   set(extra_libs
     ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.a
@@ -106,13 +108,14 @@ set(common_libs nbre_common pthread ${common_libs} ${protobuf_lib} ${cpp_lib} ${
 
 message(STATUS "nbre src " ${nbre_src})
 file(GLOB nbre_jit_src jit/*.cpp)
-file(GLOB nbre_rt_src runtime/*.cpp)
+file(GLOB_RECURSE nbre_rt_src runtime/*.cpp)
 file(GLOB_RECURSE nbre_common_src common/*.cpp)
 file(GLOB_RECURSE nbre_fs_src fs/*.cpp)
 file(GLOB_RECURSE nbre_fs_proto_src fs/proto/*.pb.cc)
 file(GLOB_RECURSE nbre_core_src core/*.cpp)
+file(GLOB_RECURSE nbre_ir_src ir/nr/algo/*.cpp)
 
-add_library(nbre_rt SHARED ${nbre_jit_src} ${nbre_rt_src} ${nbre_common_src} ${nbre_fs_src} ${nbre_fs_proto_src} ${nbre_core_src})
+add_library(nbre_rt SHARED ${nbre_jit_src} ${nbre_rt_src} ${nbre_common_src} ${nbre_fs_src} ${nbre_fs_proto_src} ${nbre_core_src} ${nbre_ir_src})
 target_link_libraries(nbre_rt ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} ${extra_libs} ff)
 
 if(Release)

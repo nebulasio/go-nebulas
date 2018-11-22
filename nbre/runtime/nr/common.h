@@ -17,17 +17,32 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
 #pragma once
+#include <glog/logging.h>
 
-#include "fs/manager/nbre_storage.h"
-#include "fs/proto/block.pb.h"
-#include "fs/util.h"
+#include <algorithm>
+#include <cmath>
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <queue>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
 
-typedef std::shared_ptr<corepb::Block> block_ptr_t;
-typedef std::shared_ptr<neb::fs::nbre_storage> nbre_storage_ptr_t;
+#include <boost/asio.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/foreach.hpp>
+#include <boost/format.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
-std::string get_db_path_for_read();
-std::string get_db_path_for_write();
+namespace neb {
+namespace rt {
 
-std::string get_blockchain_path_for_read();
+using account_address_t = std::string;
+
+} // namespace rt
+} // namespace neb

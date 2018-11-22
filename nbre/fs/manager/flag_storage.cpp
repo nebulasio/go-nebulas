@@ -18,16 +18,28 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#pragma once
+#include "fs/manager/flag_storage.h"
+#include "common/common.h"
 
-#include "fs/manager/nbre_storage.h"
-#include "fs/proto/block.pb.h"
-#include "fs/util.h"
+namespace neb {
+namespace fs {
 
-typedef std::shared_ptr<corepb::Block> block_ptr_t;
-typedef std::shared_ptr<neb::fs::nbre_storage> nbre_storage_ptr_t;
+flag_storage::flag_storage(rocksdb_storage *db_ptr) : m_storage(db_ptr) {}
 
-std::string get_db_path_for_read();
-std::string get_db_path_for_write();
+void flag_storage::set_flag(const std::string &flag) {
+  m_storage->put(flag, neb::util::string_to_byte(flag));
+}
 
-std::string get_blockchain_path_for_read();
+bool flag_storage::has_flag(const std::string &flag) const {
+  try {
+    m_storage->get(flag);
+  } catch (const std::exception &e) {
+    return false;
+  }
+  return true;
+}
+
+void flag_storage::del_flag(const std::string &flag) { m_storage->del(flag); }
+
+} // namespace fs
+} // namespace neb

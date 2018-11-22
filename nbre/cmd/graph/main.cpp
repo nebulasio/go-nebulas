@@ -18,16 +18,15 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#pragma once
+#include "runtime/nr/graph/algo.h"
 
-#include "fs/manager/nbre_storage.h"
-#include "fs/proto/block.pb.h"
-#include "fs/util.h"
+int main(int argc, char *argv[]) {
 
-typedef std::shared_ptr<corepb::Block> block_ptr_t;
-typedef std::shared_ptr<neb::fs::nbre_storage> nbre_storage_ptr_t;
+  neb::rt::transaction_graph tg;
+  tg.add_edge("a", "b", 1, 2);
+  tg.add_edge("a", "c", 3, 4);
 
-std::string get_db_path_for_read();
-std::string get_db_path_for_write();
+  neb::rt::graph_algo::get_degree_sum(tg.internal_graph());
 
-std::string get_blockchain_path_for_read();
+  return 0;
+}

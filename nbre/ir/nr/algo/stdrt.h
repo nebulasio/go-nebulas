@@ -20,14 +20,7 @@
 
 #pragma once
 
-#include "fs/manager/nbre_storage.h"
-#include "fs/proto/block.pb.h"
-#include "fs/util.h"
-
-typedef std::shared_ptr<corepb::Block> block_ptr_t;
-typedef std::shared_ptr<neb::fs::nbre_storage> nbre_storage_ptr_t;
-
-std::string get_db_path_for_read();
-std::string get_db_path_for_write();
-
-std::string get_blockchain_path_for_read();
+namespace neb {
+namespace rt {
+}
+} // namespace neb

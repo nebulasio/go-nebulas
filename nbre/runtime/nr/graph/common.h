@@ -17,17 +17,12 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
 #pragma once
+#include "runtime/nr/common.h"
+#include <boost/graph/adjacency_list.hpp>
 
-#include "fs/manager/nbre_storage.h"
-#include "fs/proto/block.pb.h"
-#include "fs/util.h"
+namespace boost {
+enum edge_timestamp_t { edge_timestamp };
 
-typedef std::shared_ptr<corepb::Block> block_ptr_t;
-typedef std::shared_ptr<neb::fs::nbre_storage> nbre_storage_ptr_t;
-
-std::string get_db_path_for_read();
-std::string get_db_path_for_write();
-
-std::string get_blockchain_path_for_read();
+BOOST_INSTALL_PROPERTY(edge, timestamp);
+} // namespace boost

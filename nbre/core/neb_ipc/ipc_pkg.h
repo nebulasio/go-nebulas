@@ -58,12 +58,13 @@ using nbre_init_ack =
                    neb_db_dir, nbre_db_dir, nbre_log_dir, admin_pub_addr>;
 
 using nbre_ir_list_req = define_ipc_pkg<ipc_pkg_nbre_ir_list_req>;
-using ir_name_list = ipc_elem_base<10, neb::ipc::string_vector_t>;
+using ir_name_list =
+    ipc_elem_base<10, neb::ipc::vector<neb::ipc::char_string_t>>;
 using nbre_ir_list_ack = define_ipc_pkg<ipc_pkg_nbre_ir_list_ack, ir_name_list>;
 
 using ir_name = ipc_elem_base<11, neb::ipc::char_string_t>;
 using nbre_ir_versions_req = define_ipc_pkg<ipc_pkg_nbre_versions_req, ir_name>;
-using ir_versions = ipc_elem_base<12, neb::ipc::uint64_vector_t>;
+using ir_versions = ipc_elem_base<12, neb::ipc::vector<uint64_t>>;
 using nbre_ir_versions_ack =
     define_ipc_pkg<ipc_pkg_nbre_versions_ack, ir_name, ir_versions>;
 
