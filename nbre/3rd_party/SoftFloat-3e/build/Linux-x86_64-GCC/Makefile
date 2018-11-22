@@ -54,7 +54,7 @@ LIB = .a
 OTHER_HEADERS = $(SOURCE_DIR)/include/opts-GCC.h
 
 .PHONY: all
-all: softfloat$(LIB)
+all: libsoftfloat$(LIB)
 
 OBJS_PRIMITIVES = \
   s_eq128$(OBJ) \
@@ -90,7 +90,6 @@ OBJS_PRIMITIVES = \
   s_approxRecipSqrt32_1$(OBJ) \
 
 OBJS_SPECIALIZE = \
-  softfloat_raiseFlags$(OBJ) \
   s_f16UIToCommonNaN$(OBJ) \
   s_commonNaNToF16UI$(OBJ) \
   s_propagateNaNF16UI$(OBJ) \
@@ -108,6 +107,26 @@ OBJS_SPECIALIZE = \
   s_f128UIToCommonNaN$(OBJ) \
   s_commonNaNToF128UI$(OBJ) \
   s_propagateNaNF128UI$(OBJ) \
+
+#OBJS_SPECIALIZE = \
+  #softfloat_raiseFlags$(OBJ) \
+  #s_f16UIToCommonNaN$(OBJ) \
+  #s_commonNaNToF16UI$(OBJ) \
+  #s_propagateNaNF16UI$(OBJ) \
+  #s_f32UIToCommonNaN$(OBJ) \
+  #s_commonNaNToF32UI$(OBJ) \
+  #s_propagateNaNF32UI$(OBJ) \
+  #s_f64UIToCommonNaN$(OBJ) \
+  #s_commonNaNToF64UI$(OBJ) \
+  #s_propagateNaNF64UI$(OBJ) \
+  #extF80M_isSignalingNaN$(OBJ) \
+  #s_extF80UIToCommonNaN$(OBJ) \
+  #s_commonNaNToExtF80UI$(OBJ) \
+  #s_propagateNaNExtF80UI$(OBJ) \
+  #f128M_isSignalingNaN$(OBJ) \
+  #s_f128UIToCommonNaN$(OBJ) \
+  #s_commonNaNToF128UI$(OBJ) \
+  #s_propagateNaNF128UI$(OBJ) \
 
 OBJS_OTHERS = \
   s_roundToUI32$(OBJ) \
@@ -380,11 +399,11 @@ $(OBJS_PRIMITIVES) $(OBJS_OTHERS): %$(OBJ): $(SOURCE_DIR)/%.c
 $(OBJS_SPECIALIZE): %$(OBJ): $(SOURCE_DIR)/$(SPECIALIZE_TYPE)/%.c
 	$(COMPILE_C) $(SOURCE_DIR)/$(SPECIALIZE_TYPE)/$*.c
 
-softfloat$(LIB): $(OBJS_ALL)
+libsoftfloat$(LIB): $(OBJS_ALL)
 	$(DELETE) $@
 	$(MAKELIB) $^
 
 .PHONY: clean
 clean:
-	$(DELETE) $(OBJS_ALL) softfloat$(LIB)
+	$(DELETE) $(OBJS_ALL) libsoftfloat$(LIB)
 

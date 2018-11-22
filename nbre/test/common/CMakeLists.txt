@@ -1,6 +1,7 @@
 add_executable(test_common main.cpp
   gtest_util.cpp
   gtest_util_json.cpp
+  gtest_math.cpp
   #gtest_util_conf.cpp
   )
 

@@ -48,6 +48,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdbool.h>
 #include <stdint.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "softfloat_types.h"
 
 #ifndef THREAD_LOCAL
@@ -368,5 +372,8 @@ bool f128M_le_quiet( const float128_t *, const float128_t * );
 bool f128M_lt_quiet( const float128_t *, const float128_t * );
 bool f128M_isSignalingNaN( const float128_t * );
 
+#ifdef __cplusplus
+}
+#endif
 #endif
 
