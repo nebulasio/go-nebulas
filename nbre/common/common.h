@@ -21,6 +21,7 @@
 #pragma once
 #include <algorithm>
 #include <array>
+#include <boost/multiprecision/cpp_int.hpp>
 #include <cstdint>
 #include <glog/logging.h>
 #include <iostream>
@@ -48,6 +49,11 @@ typedef std::tuple<module_t, version_t, address_t, block_height_t,
                    block_height_t>
     auth_row_t;
 typedef std::vector<auth_row_t> auth_table_t;
+
+typedef boost::multiprecision::int128_t int128_t;
+typedef boost::multiprecision::uint128_t uint128_t;
+
+typedef int128_t nas_amount_t;
 
 namespace tcolor {
 const static char *red = "\033[1;31m";
