@@ -181,6 +181,8 @@ public:
     }
   }
 
+  inline bool empty() const { return m_size == 0; }
+
   bytes &append_bytes(const byte_t *buf, size_t buf_len);
   bytes &append_bytes(const bytes &v);
 
