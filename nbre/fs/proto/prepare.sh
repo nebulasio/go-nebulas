@@ -25,9 +25,10 @@ cp ../../../core/pb/dynasty.proto ./
 cp ../../../core/pb/genesis.proto ./
 cp ../../../consensus/pb/state.proto ./
 cp ../../../common/dag/pb/dag.proto ./
+cp ../../../common/trie/pb/trie.proto ./
 
 patch < block.proto.patch
 
 #unzip protoc-3.2.0-linux-x86_64.zip -d protoc3
 
-protoc --cpp_out=./ block.proto dag.proto dynasty.proto genesis.proto state.proto ir.proto
+protoc --cpp_out=./ block.proto dag.proto dynasty.proto genesis.proto state.proto ir.proto trie.proto
