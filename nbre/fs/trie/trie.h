@@ -43,15 +43,12 @@ public:
   inline neb::util::bytes val_at(size_t index) { return m_val[index]; }
 
 private:
-  neb::util::bytes m_hash;
-  neb::util::bytes m_bytes;
   std::vector<neb::util::bytes> m_val;
 };
 
 class trie {
 public:
-  trie(const std::string &neb_db_path);
-  ~trie();
+  trie(rocksdb_storage *db_ptr);
 
   neb::util::bytes get_trie_node(const neb::util::bytes &root_hash,
                                  const neb::util::bytes &key);
@@ -62,11 +59,11 @@ private:
 public:
   static neb::util::bytes key_to_route(const neb::util::bytes &key);
   static neb::util::bytes route_to_key(const neb::util::bytes &route);
-  static size_t prefix_len(const neb::util::bytes &s,
-                           const neb::util::bytes &t);
+  static size_t prefix_len(const neb::byte_t *s, size_t s_len,
+                           const neb::byte_t *t, size_t t_len);
 
 private:
-  std::unique_ptr<rocksdb_storage> m_storage;
+  rocksdb_storage *m_storage;
 };
 } // namespace fs
 } // namespace neb

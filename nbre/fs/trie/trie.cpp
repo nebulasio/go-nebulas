@@ -35,9 +35,6 @@ trie_node::trie_node(const neb::util::bytes &triepb_bytes) {
     throw std::runtime_error("parse triepb node failed");
   }
 
-  m_bytes = triepb_bytes;
-  // TODO sha3256 implement
-  m_hash = triepb_bytes;
   for (auto &v : triepb_node_ptr->val()) {
     m_val.push_back(neb::util::string_to_byte(v));
   }
@@ -54,15 +51,7 @@ trie_node_type trie_node::get_trie_node_type() {
   return trie_node_type::trie_node_unknown;
 }
 
-trie::trie(const std::string &neb_db_path) {
-  m_storage = std::make_unique<rocksdb_storage>();
-  m_storage->open_database(neb_db_path, storage_open_for_readonly);
-}
-trie::~trie() {
-  if (!m_storage) {
-    m_storage->close_database();
-  }
-}
+trie::trie(rocksdb_storage *db_ptr) : m_storage(db_ptr) {}
 
 std::shared_ptr<trie_node> trie::fetch_node(const neb::util::bytes &hash) {
 
@@ -75,76 +64,78 @@ neb::util::bytes trie::get_trie_node(const neb::util::bytes &root_hash,
   auto hash = root_hash;
   auto route = key_to_route(key);
 
-  for (int32_t route_len = static_cast<int32_t>(route.size()); route_len >= 0;
-       route_len--) {
-    auto root_node = fetch_node(root_hash);
+  neb::byte_t *route_ptr = route.value();
+  size_t route_size = route.size();
+  neb::byte_t *end_ptr = route.value() + route_size;
+
+  while (true) {
+
+    auto root_node = fetch_node(hash);
     auto root_type = root_node->get_trie_node_type();
-    if (route.empty() && root_type != trie_node_type::trie_node_leaf) {
+    if (route_ptr == end_ptr && root_type != trie_node_type::trie_node_leaf) {
       throw std::runtime_error("key/path too short");
     }
 
     if (root_type == trie_node_type::trie_node_branch) {
-      hash = root_node->val_at(route[0]);
-      assert(route.size() >= 1);
-      route = neb::util::bytes(route.value() + 1, route.size() - 1);
+      hash = root_node->val_at(route_ptr[0]);
+      route_ptr++;
 
     } else if (root_type == trie_node_type::trie_node_extension) {
       auto key_path = root_node->val_at(1);
       auto next_hash = root_node->val_at(2);
 
-      size_t matched_len = prefix_len(key_path, next_hash);
+      size_t matched_len = prefix_len(key_path.value(), key_path.size(),
+                                      next_hash.value(), next_hash.size());
       if (matched_len == key_path.size()) {
         hash = next_hash;
-        assert(route.size() >= matched_len);
-        route = neb::util::bytes(route.value() + matched_len,
-                                 route.size() - matched_len);
+        route_ptr += matched_len;
       }
     } else if (root_type == trie_node_type::trie_node_leaf) {
       auto key_path = root_node->val_at(1);
-      size_t matched_len = prefix_len(key_path, route);
-      if (matched_len == key_path.size() && matched_len == route.size()) {
+      size_t left_size = end_ptr - route_ptr;
+      size_t matched_len =
+          prefix_len(key_path.value(), key_path.size(), route_ptr, left_size);
+      if (matched_len == key_path.size() && matched_len == (left_size)) {
         return root_node->val_at(2);
       }
     }
   }
 
   throw std::runtime_error("key path not found");
-  return hash;
 }
 
 neb::util::bytes trie::key_to_route(const neb::util::bytes &key) {
 
-  std::unique_ptr<byte_t[]> value;
   size_t size = key.size() << 1;
+  neb::util::bytes value(size);
 
   if (size > 0) {
-    value = std::unique_ptr<byte_t[]>(new byte_t[size]);
     for (size_t i = 0; i < key.size(); i++) {
       byte_shared byte(key[i]);
-      value.get()[i << 1] = byte.bits_high();
-      value.get()[(i << 1) + 1] = byte.bits_low();
+      value[i << 1] = byte.bits_high();
+      value[(i << 1) + 1] = byte.bits_low();
     }
   }
-  return neb::util::bytes(value.get(), size);
+  return value;
 }
 
 neb::util::bytes trie::route_to_key(const neb::util::bytes &route) {
 
-  std::unique_ptr<byte_t[]> value;
   size_t size = route.size() >> 1;
+  neb::util::bytes value(size);
 
   if (size > 0) {
-    value = std::unique_ptr<byte_t[]>(new byte_t[size]);
     for (size_t i = 0; i < size; i++) {
       byte_shared byte(route[(i << 1) + 1], route[i << 1]);
-      value.get()[i] = byte.data();
+      value[i] = byte.data();
     }
   }
-  return neb::util::bytes(value.get(), size);
+  return value;
 }
 
-size_t trie::prefix_len(const neb::util::bytes &s, const neb::util::bytes &t) {
-  size_t min_len = std::min(s.size(), t.size());
+static size_t prefix_len(const neb::byte_t *s, size_t s_len,
+                         const neb::byte_t *t, size_t t_len) {
+  size_t min_len = std::min(s_len, t_len);
   for (size_t i = 0; i < min_len; i++) {
     if (s[i] != t[i]) {
       return i;
