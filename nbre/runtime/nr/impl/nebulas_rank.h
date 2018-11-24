@@ -20,11 +20,13 @@
 
 #pragma once
 
-#include "ir/nr/algo/common.h"
-#include "ir/nr/algo/stdrt.h"
+#include "fs/transaction/transaction_db.h"
 #include "runtime/nr/graph/algo.h"
+#include "runtime/nr/impl/common.h"
 
 namespace neb {
+namespace rt {
+
 namespace nr {
 
 struct rank_params_t {
@@ -36,7 +38,7 @@ struct rank_params_t {
   double m_lambda;
 };
 
-using transaction_db_ptr_t = std::shared_ptr<transaction_db>;
+using transaction_db_ptr_t = std::shared_ptr<neb::fs::transaction_db>;
 using account_db_ptr_t = std::shared_ptr<account_db>;
 using transaction_graph_ptr_t = std::shared_ptr<neb::rt::transaction_graph>;
 
@@ -52,22 +54,23 @@ public:
 
 private:
   auto split_transactions_by_x_block_interval(
-      const std::vector<transaction_info_t> &txs, int32_t block_interval = 128)
-      -> std::shared_ptr<std::vector<std::vector<transaction_info_t>>>;
+      const std::vector<neb::fs::transaction_info_t> &txs,
+      int32_t block_interval = 128)
+      -> std::shared_ptr<std::vector<std::vector<neb::fs::transaction_info_t>>>;
 
   void filter_empty_transactions_this_interval(
-      std::vector<std::vector<transaction_info_t>> &txs);
+      std::vector<std::vector<neb::fs::transaction_info_t>> &txs);
 
   auto build_transaction_graphs(
-      const std::vector<std::vector<transaction_info_t>> &txs)
+      const std::vector<std::vector<neb::fs::transaction_info_t>> &txs)
       -> std::vector<transaction_graph_ptr_t>;
 
-  auto get_normal_accounts(const std::vector<transaction_info_t> &txs)
+  auto get_normal_accounts(const std::vector<neb::fs::transaction_info_t> &txs)
       -> std::shared_ptr<std::unordered_set<std::string>>;
 
   auto get_account_balance_median(
       const std::unordered_set<std::string> &accounts,
-      const std::vector<std::vector<transaction_info_t>> &txs,
+      const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
       const account_db_ptr_t db_ptr,
       std::unordered_map<account_address_t, account_balance_t> &addr_balance)
       -> std::shared_ptr<std::unordered_map<std::string, double>>;
@@ -89,7 +92,7 @@ private:
   build_graph_from_transactions(const std::vector<TransInfo> &trans);
 
   block_height_t get_max_height_this_block_interval(
-      const std::vector<transaction_info_t> &txs);
+      const std::vector<neb::fs::transaction_info_t> &txs);
 
   double f_account_weight(double in_val, double out_val);
 
@@ -104,5 +107,6 @@ private:
   block_height_t m_end_block;
 }; // class nebulas_rank
 } // namespace nr
+} // namespace rt
 } // namespace neb
 

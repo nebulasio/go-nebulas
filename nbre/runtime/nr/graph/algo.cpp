@@ -312,7 +312,7 @@ void graph_algo::merge_topk_edges_with_same_from_and_same_to(
   }
 }
 
-std::shared_ptr<std::unordered_map<account_address_t, in_out_val_t>>
+std::shared_ptr<std::unordered_map<address_t, in_out_val_t>>
 graph_algo::get_in_out_vals(const transaction_graph::internal_graph_t &graph) {
 
   std::unordered_map<std::string, in_out_val_t> ret;
@@ -342,7 +342,7 @@ graph_algo::get_in_out_vals(const transaction_graph::internal_graph_t &graph) {
   return std::make_shared<std::unordered_map<std::string, in_out_val_t>>(ret);
 }
 
-std::shared_ptr<std::unordered_map<account_address_t, double>>
+std::shared_ptr<std::unordered_map<address_t, double>>
 graph_algo::get_stakes(const transaction_graph::internal_graph_t &graph) {
 
   std::unordered_map<std::string, double> ret;
@@ -356,7 +356,7 @@ graph_algo::get_stakes(const transaction_graph::internal_graph_t &graph) {
   return std::make_shared<std::unordered_map<std::string, double>>(ret);
 }
 
-std::shared_ptr<std::unordered_map<account_address_t, in_out_degree_t>>
+std::shared_ptr<std::unordered_map<address_t, in_out_degree_t>>
 graph_algo::get_in_out_degrees(
     const transaction_graph::internal_graph_t &graph) {
 
@@ -386,7 +386,7 @@ graph_algo::get_in_out_degrees(
       ret);
 }
 
-std::shared_ptr<std::unordered_map<account_address_t, uint32_t>>
+std::shared_ptr<std::unordered_map<address_t, uint32_t>>
 graph_algo::get_degree_sum(const transaction_graph::internal_graph_t &graph) {
 
   std::unordered_map<std::string, uint32_t> ret;

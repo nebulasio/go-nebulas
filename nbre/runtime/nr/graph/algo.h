@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
-#include "runtime/nr/graph/common.h"
+#include "common/common.h"
 #include "runtime/nr/graph/graph.h"
 
 namespace neb {
@@ -49,18 +49,17 @@ public:
       transaction_graph::internal_graph_t &graph, uint32_t k = 3);
 
   static auto get_in_out_vals(const transaction_graph::internal_graph_t &graph)
-      -> std::shared_ptr<std::unordered_map<account_address_t, in_out_val_t>>;
+      -> std::shared_ptr<std::unordered_map<address_t, in_out_val_t>>;
 
   static auto get_stakes(const transaction_graph::internal_graph_t &graph)
-      -> std::shared_ptr<std::unordered_map<account_address_t, double>>;
+      -> std::shared_ptr<std::unordered_map<address_t, double>>;
 
   static auto
   get_in_out_degrees(const transaction_graph::internal_graph_t &graph)
-      -> std::shared_ptr<
-          std::unordered_map<account_address_t, in_out_degree_t>>;
+      -> std::shared_ptr<std::unordered_map<address_t, in_out_degree_t>>;
 
   static auto get_degree_sum(const transaction_graph::internal_graph_t &graph)
-      -> std::shared_ptr<std::unordered_map<account_address_t, uint32_t>>;
+      -> std::shared_ptr<std::unordered_map<address_t, uint32_t>>;
 
 private:
   static void dfs_find_a_cycle_from_vertex_based_on_time_sequence(

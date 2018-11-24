@@ -17,12 +17,10 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#pragma once
-#include "runtime/nr/common.h"
-#include <boost/graph/adjacency_list.hpp>
 
-namespace boost {
-enum edge_timestamp_t { edge_timestamp };
+#include "runtime/nr/impl/nr_impl.h"
 
-BOOST_INSTALL_PROPERTY(edge, timestamp);
-} // namespace boost
+std::shared_ptr<std::unordered_map<std::string, double>>
+entry_point_nr_impl(neb::core::driver *d, void *param) {
+  return nullptr;
+}

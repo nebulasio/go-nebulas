@@ -18,9 +18,11 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "ir/nr/algo/nebulas_rank.h"
+#include "runtime/nr/impl/nebulas_rank.h"
 
 namespace neb {
+namespace rt {
+
 namespace nr {
 
 nebulas_rank::nebulas_rank() {}
@@ -31,14 +33,16 @@ nebulas_rank::nebulas_rank(const transaction_db_ptr_t tdb_ptr,
     : m_tdb_ptr(tdb_ptr), m_adb_ptr(adb_ptr), m_rp(rp),
       m_start_block(start_block), m_end_block(end_block) {}
 
-std::shared_ptr<std::vector<std::vector<transaction_info_t>>>
+std::shared_ptr<std::vector<std::vector<neb::fs::transaction_info_t>>>
 nebulas_rank::split_transactions_by_x_block_interval(
-    const std::vector<transaction_info_t> &txs, int32_t block_interval) {
+    const std::vector<neb::fs::transaction_info_t> &txs,
+    int32_t block_interval) {
 
-  std::vector<std::vector<transaction_info_t>> ret;
+  std::vector<std::vector<neb::fs::transaction_info_t>> ret;
 
   if (block_interval < 1 || txs.empty()) {
-    return std::make_shared<std::vector<std::vector<transaction_info_t>>>(ret);
+    return std::make_shared<
+        std::vector<std::vector<neb::fs::transaction_info_t>>>(ret);
   }
 
   auto it = txs.begin();
@@ -47,7 +51,7 @@ nebulas_rank::split_transactions_by_x_block_interval(
   it--;
   block_height_t block_last = it->m_height;
 
-  std::vector<transaction_info_t> v;
+  std::vector<neb::fs::transaction_info_t> v;
   it = txs.begin();
   block_height_t b = block_first;
   while (b <= block_last) {
@@ -64,11 +68,12 @@ nebulas_rank::split_transactions_by_x_block_interval(
       break;
     }
   }
-  return std::make_shared<std::vector<std::vector<transaction_info_t>>>(ret);
+  return std::make_shared<
+      std::vector<std::vector<neb::fs::transaction_info_t>>>(ret);
 }
 
 void nebulas_rank::filter_empty_transactions_this_interval(
-    std::vector<std::vector<transaction_info_t>> &txs) {
+    std::vector<std::vector<neb::fs::transaction_info_t>> &txs) {
   for (auto it = txs.begin(); it != txs.end();) {
     if (it->empty()) {
       it = txs.erase(it);
@@ -95,7 +100,7 @@ transaction_graph_ptr_t nebulas_rank::build_graph_from_transactions(
 }
 
 std::vector<transaction_graph_ptr_t> nebulas_rank::build_transaction_graphs(
-    const std::vector<std::vector<transaction_info_t>> &txs) {
+    const std::vector<std::vector<neb::fs::transaction_info_t>> &txs) {
   std::vector<transaction_graph_ptr_t> tgs;
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
@@ -106,7 +111,7 @@ std::vector<transaction_graph_ptr_t> nebulas_rank::build_transaction_graphs(
 }
 
 block_height_t nebulas_rank::get_max_height_this_block_interval(
-    const std::vector<transaction_info_t> &txs) {
+    const std::vector<neb::fs::transaction_info_t> &txs) {
   if (txs.size() > 0) {
     return txs[txs.size() - 1].m_height;
   }
@@ -114,7 +119,8 @@ block_height_t nebulas_rank::get_max_height_this_block_interval(
 }
 
 std::shared_ptr<std::unordered_set<std::string>>
-nebulas_rank::get_normal_accounts(const std::vector<transaction_info_t> &txs) {
+nebulas_rank::get_normal_accounts(
+    const std::vector<neb::fs::transaction_info_t> &txs) {
 
   std::unordered_set<std::string> ret;
 
@@ -131,7 +137,7 @@ nebulas_rank::get_normal_accounts(const std::vector<transaction_info_t> &txs) {
 std::shared_ptr<std::unordered_map<std::string, double>>
 nebulas_rank::get_account_balance_median(
     const std::unordered_set<std::string> &accounts,
-    const std::vector<std::vector<transaction_info_t>> &txs,
+    const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
     const account_db_ptr_t db_ptr,
     std::unordered_map<account_address_t, account_balance_t> &addr_balance) {
 
@@ -261,5 +267,7 @@ nebulas_rank::get_account_score_service() {
 
   return get_account_rank(median, account_weight, m_rp);
 }
+
 } // namespace nr
+} // namespace rt
 } // namespace neb
