@@ -54,7 +54,7 @@ public:
                                  const neb::util::bytes &key);
 
 private:
-  std::shared_ptr<trie_node> fetch_node(const neb::util::bytes &hash);
+  std::unique_ptr<trie_node> fetch_node(const neb::util::bytes &hash);
 
 public:
   static neb::util::bytes key_to_route(const neb::util::bytes &key);

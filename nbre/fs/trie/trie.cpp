@@ -53,10 +53,10 @@ trie_node_type trie_node::get_trie_node_type() {
 
 trie::trie(rocksdb_storage *db_ptr) : m_storage(db_ptr) {}
 
-std::shared_ptr<trie_node> trie::fetch_node(const neb::util::bytes &hash) {
+std::unique_ptr<trie_node> trie::fetch_node(const neb::util::bytes &hash) {
 
   neb::util::bytes triepb_bytes = m_storage->get_bytes(hash);
-  return std::make_shared<trie_node>(triepb_bytes);
+  return std::make_unique<trie_node>(triepb_bytes);
 }
 
 neb::util::bytes trie::get_trie_node(const neb::util::bytes &root_hash,
@@ -98,6 +98,7 @@ neb::util::bytes trie::get_trie_node(const neb::util::bytes &root_hash,
       if (matched_len == key_path.size() && matched_len == (left_size)) {
         return root_node->val_at(2);
       }
+      throw std::runtime_error("key path not found");
     }
   }
 
@@ -133,8 +134,8 @@ neb::util::bytes trie::route_to_key(const neb::util::bytes &route) {
   return value;
 }
 
-static size_t prefix_len(const neb::byte_t *s, size_t s_len,
-                         const neb::byte_t *t, size_t t_len) {
+size_t trie::prefix_len(const neb::byte_t *s, size_t s_len,
+                        const neb::byte_t *t, size_t t_len) {
   size_t min_len = std::min(s_len, t_len);
   for (size_t i = 0; i < min_len; i++) {
     if (s[i] != t[i]) {
