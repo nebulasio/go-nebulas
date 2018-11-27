@@ -51,6 +51,13 @@ template <typename T> T arctan(const T &x) {
   T two = softfloat_cast<uint32_t, typename T::value_type>(2);
   T x2 = x * x;
 
+  if (x > one) {
+    return neb::math::constants<T>::pi() / 2 - arctan(one / x);
+  } else if (x < (softfloat_cast<uint32_t, typename T::value_type>(0) - one)) {
+    return softfloat_cast<uint32_t, typename T::value_type>(0) -
+           neb::math::constants<T>::pi() / 2 - arctan(one / x);
+  }
+
   T ret = 0;
   T i = one;
   T s = x;
@@ -219,7 +226,7 @@ template <typename T> struct float_math_helper {
 };
 } // namespace internal
 
-template <typename T> T log2(const T &x) { return ln(x) / constants<T>::s_ln2; }
+template <typename T> T log2(const T &x) { return ln(x) / constants<T>::ln2(); }
 
 //! return x^y
 template <typename T> T pow(const T &x, const T &y) {
