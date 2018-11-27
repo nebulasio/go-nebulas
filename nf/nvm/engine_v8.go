@@ -58,8 +58,11 @@ import (
 	"strings"
 	"sync"
 	"unsafe"
+	"time"
 
 	"encoding/json"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core"
@@ -105,6 +108,7 @@ type V8Engine struct {
 	actualTotalMemorySize                   uint64
 	lcsHandler                              uint64
 	gcsHandler                              uint64
+	serverListenAddr						string
 }
 
 type sourceModuleItem struct {
@@ -310,86 +314,16 @@ func (e *V8Engine) CollectTracingStats() {
 	e.actualTotalMemorySize = uint64(e.v8engine.stats.total_memory_size)
 }
 
-// RunScriptSource run js source.
-func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string, error) {
-
-	cSource := C.CString(source)
-	defer C.free(unsafe.Pointer(cSource))
-
-	var (
-		result  string
-		err     error
-		ret     C.int
-		cResult *C.char
-	)
-
-	ctx := e.Context()
-	if ctx == nil || ctx.block == nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"ctx": ctx,
-		}).Error("Unexpected: Failed to get current height")
-		err = core.ErrUnexpected
-		return "", err
-	}
-
-	// done := make(chan bool, 1)
-	// go func() {
-	// 	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
-	// 		C.uintptr_t(e.gcsHandler))
-	// 	done <- true
-	// }()
-	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
-		C.uintptr_t(e.gcsHandler))
-	e.CollectTracingStats()
-
-	//set err
-	if ret == C.NVM_EXE_TIMEOUT_ERR {
-		err = ErrExecutionTimeout
-		if ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
-			err = core.ErrUnexpected
-		} else if ctx.block.Height() >= core.NewNvmExeTimeoutConsumeGasHeight {
-			if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
-				e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
-			} else {
-				e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
-			}
-		}
-	} else if ret == C.NVM_UNEXPECTED_ERR {
-		err = core.ErrUnexpected
-	} else {
-		if ret != C.NVM_SUCCESS {
-			err = core.ErrExecutionFailed
-		}
-		if e.limitsOfExecutionInstructions > 0 &&
-			e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
-			// Reach instruction limits.
-			err = ErrInsufficientGas
-			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
-		} else if e.limitsOfTotalMemorySize > 0 && e.limitsOfTotalMemorySize < e.actualTotalMemorySize {
-			// reach memory limits.
-			err = ErrExceedMemoryLimits
-			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
-		}
-	}
-
-	//set result
-	if cResult != nil {
-		result = C.GoString(cResult)
-		C.free(unsafe.Pointer(cResult))
-	} else if ret == C.NVM_SUCCESS {
-		result = "\"\"" // default JSON String.
-	}
-
-	return result, err
-}
-
 // DeployAndInit a contract
-func (e *V8Engine) DeployAndInit(source, sourceType, args string) (string, error) {
+func (e *V8Engine) DeployAndInit(source, sourceType, args string, listenAddr string) (string, error) {
+	e.serverListenAddr = listenAddr
 	return e.RunContractScript(source, sourceType, "init", args)
 }
 
 // Call function in a script
-func (e *V8Engine) Call(source, sourceType, function, args string) (string, error) {
+func (e *V8Engine) Call(source, sourceType, function, args string, listenAddr string) (string, error) {
+	e.serverListenAddr = listenAddr
+
 	if core.PublicFuncNameChecker.MatchString(function) == false {
 		logging.VLog().Debugf("Invalid function: %v", function)
 		return "", ErrDisallowCallNotStandardFunction
@@ -538,6 +472,97 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 	return runnableSource, 0, nil
 }
 
+// RunScriptSource run js source.
+func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string, error) {
+
+	cSource := C.CString(source)
+	defer C.free(unsafe.Pointer(cSource))
+
+	var (
+		result  string
+		err     error
+		ret     C.int
+		cResult *C.char
+	)
+
+	ctx := e.Context()
+	if ctx == nil || ctx.block == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"ctx": ctx,
+		}).Error("Unexpected: Failed to get current height")
+		err = core.ErrUnexpected
+		return "", err
+	}
+
+	logging.CLog().Info(">>>>>>Now is in RunScriptSource")
+
+	var original_nvm bool = false
+	if original_nvm {
+		// done := make(chan bool, 1)
+		// go func() {
+		// 	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
+		// 		C.uintptr_t(e.gcsHandler))
+		// 	done <- true
+		// }()
+		ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
+			C.uintptr_t(e.gcsHandler))
+		e.CollectTracingStats()
+
+	}else{
+
+		logging.CLog().Info(">>>>>>RUN script through grpc")
+
+		// send RPC request and get result
+		_, err := e.DeployContractByRPC(source, sourceLineOffset)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err": err,
+			}).Error("Unexpected: Failed to get NVM rpc result")
+		}
+
+	}
+
+	//set err
+	if ret == C.NVM_EXE_TIMEOUT_ERR {
+		err = ErrExecutionTimeout
+		if ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
+			err = core.ErrUnexpected
+		} else if ctx.block.Height() >= core.NewNvmExeTimeoutConsumeGasHeight {
+			if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
+				e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+			} else {
+				e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
+			}
+		}
+	} else if ret == C.NVM_UNEXPECTED_ERR {
+		err = core.ErrUnexpected
+	} else {
+		if ret != C.NVM_SUCCESS {
+			err = core.ErrExecutionFailed
+		}
+		if e.limitsOfExecutionInstructions > 0 &&
+			e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
+			// Reach instruction limits.
+			err = ErrInsufficientGas
+			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+		} else if e.limitsOfTotalMemorySize > 0 && e.limitsOfTotalMemorySize < e.actualTotalMemorySize {
+			// reach memory limits.
+			err = ErrExceedMemoryLimits
+			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+		}
+	}
+
+	//set result
+	if cResult != nil {
+		result = C.GoString(cResult)
+		C.free(unsafe.Pointer(cResult))
+	} else if ret == C.NVM_SUCCESS {
+		result = "\"\"" // default JSON String.
+	}
+
+	return result, err
+}
+
 func getEngineByStorageHandler(handler uint64) (*V8Engine, Account) {
 	storagesLock.RLock()
 	engine := storages[handler]
@@ -580,4 +605,54 @@ func formatArgs(s string) string {
 	s = strings.Replace(s, "\r", "\\r", -1)
 	s = strings.Replace(s, "\"", "\\\"", -1)
 	return s
+}
+
+
+
+// =================== NVM rpc ========================
+
+func (e *V8Engine) CallContractByRPC(){
+
+}
+
+func (e *V8Engine) DeployContractByRPC(source string, sourceLineOffset int) (string, error) {
+
+	// start to dial and bulld the connection with v8 server
+	logging.CLog().Info("V8 server address is: ", e.serverListenAddr)
+
+	conn, err := grpc.Dial(e.serverListenAddr, grpc.WithInsecure())
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to connect with V8 server")
+	}
+	defer conn.Close()
+	logging.CLog().Info("NVM client is trying to connect the server")
+	
+	v8Client := NewNVMServiceClient(conn)
+
+	var timeOut time.Duration = 15000
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeOut*time.Second)
+
+	defer cancel()
+
+	request := &NVMDeployRequest{ScriptSrc:source, FromAddr:"xxx_addr", BlockHeight:123456, Type:"deploy"}
+
+	response, err := v8Client.DeploySmartContract(ctx, request)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to get response from V8 server")
+	}
+
+	if response.GetResult() == 0 {
+		logging.VLog().WithFields(logrus.Fields{
+			"msg": response.GetMsg(),
+		}).Error("Failed to deploy the contract")
+	}else{
+		logging.CLog().Info("Deployed smart contract successfully!")
+	}
+
+	return "success", nil
 }

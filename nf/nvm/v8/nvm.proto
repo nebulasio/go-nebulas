@@ -18,7 +18,6 @@
 
 syntax = "proto3";
 
-package nvm;
 
 service NVMService{
 

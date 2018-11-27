@@ -32,17 +32,23 @@ import (
 )
 
 // NebulasVM type of NebulasVM
-type NebulasVM struct{}
+type NebulasVM struct{
+	listenAddr string
+}
 
 // NewNebulasVM create new NebulasVM
 func NewNebulasVM() core.NVM {
 	return &NebulasVM{}
 }
 
-// Start engine process
-func (nvm *NebulasVM) StartNebulasVM(enginePath string) (int, error) {
+func (nvm *NebulasVM) GetNVMListenAddr() string {
+	return nvm.listenAddr
+}
 
-	cmd := exec.Command(enginePath, "")
+// Start engine process
+func (nvm *NebulasVM) StartNebulasVM(nvmPath string, listenAddr string) (int, error) {
+
+	cmd := exec.Command(nvmPath, listenAddr)
 
 	err := cmd.Start()
 	if err != nil {
@@ -53,6 +59,8 @@ func (nvm *NebulasVM) StartNebulasVM(enginePath string) (int, error) {
 	pid := cmd.Process.Pid
 
 	logging.CLog().Info("Started NVM process.")
+
+	nvm.listenAddr = listenAddr
 	
 	return pid, nil
 }
@@ -106,7 +114,9 @@ func (nvm *NebulasVM) CheckV8ServerRunning(enginePid int) bool {
 
 
 // CreateEngine start engine
-func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, contract state.Account, state core.WorldState) (core.SmartContractEngine, error) {
+func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, 
+	contract state.Account, state core.WorldState) (core.SmartContractEngine, error) {
+
 	ctx, err := NewContext(block, tx, contract, state)
 	if err != nil {
 		return nil, err

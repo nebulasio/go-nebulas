@@ -13,11 +13,10 @@
 #include <grpcpp/impl/codegen/rpc_service_method.h>
 #include <grpcpp/impl/codegen/service_type.h>
 #include <grpcpp/impl/codegen/sync_stream.h>
-namespace nvm {
 
 static const char* NVMService_method_names[] = {
-  "/nvm.NVMService/DeploySmartContract",
-  "/nvm.NVMService/NVMDataExchange",
+  "/NVMService/DeploySmartContract",
+  "/NVMService/NVMDataExchange",
 };
 
 std::unique_ptr< NVMService::Stub> NVMService::NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options) {
@@ -31,59 +30,57 @@ NVMService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel
   , rpcmethod_NVMDataExchange_(NVMService_method_names[1], ::grpc::internal::RpcMethod::BIDI_STREAMING, channel)
   {}
 
-::grpc::Status NVMService::Stub::DeploySmartContract(::grpc::ClientContext* context, const ::nvm::NVMDeployRequest& request, ::nvm::NVMResponse* response) {
+::grpc::Status NVMService::Stub::DeploySmartContract(::grpc::ClientContext* context, const ::NVMDeployRequest& request, ::NVMResponse* response) {
   return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_DeploySmartContract_, context, request, response);
 }
 
-::grpc::ClientAsyncResponseReader< ::nvm::NVMResponse>* NVMService::Stub::AsyncDeploySmartContractRaw(::grpc::ClientContext* context, const ::nvm::NVMDeployRequest& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderFactory< ::nvm::NVMResponse>::Create(channel_.get(), cq, rpcmethod_DeploySmartContract_, context, request, true);
+::grpc::ClientAsyncResponseReader< ::NVMResponse>* NVMService::Stub::AsyncDeploySmartContractRaw(::grpc::ClientContext* context, const ::NVMDeployRequest& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderFactory< ::NVMResponse>::Create(channel_.get(), cq, rpcmethod_DeploySmartContract_, context, request, true);
 }
 
-::grpc::ClientAsyncResponseReader< ::nvm::NVMResponse>* NVMService::Stub::PrepareAsyncDeploySmartContractRaw(::grpc::ClientContext* context, const ::nvm::NVMDeployRequest& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderFactory< ::nvm::NVMResponse>::Create(channel_.get(), cq, rpcmethod_DeploySmartContract_, context, request, false);
+::grpc::ClientAsyncResponseReader< ::NVMResponse>* NVMService::Stub::PrepareAsyncDeploySmartContractRaw(::grpc::ClientContext* context, const ::NVMDeployRequest& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderFactory< ::NVMResponse>::Create(channel_.get(), cq, rpcmethod_DeploySmartContract_, context, request, false);
 }
 
-::grpc::ClientReaderWriter< ::nvm::NVMDataRequest, ::nvm::NVMResponse>* NVMService::Stub::NVMDataExchangeRaw(::grpc::ClientContext* context) {
-  return ::grpc::internal::ClientReaderWriterFactory< ::nvm::NVMDataRequest, ::nvm::NVMResponse>::Create(channel_.get(), rpcmethod_NVMDataExchange_, context);
+::grpc::ClientReaderWriter< ::NVMDataRequest, ::NVMResponse>* NVMService::Stub::NVMDataExchangeRaw(::grpc::ClientContext* context) {
+  return ::grpc::internal::ClientReaderWriterFactory< ::NVMDataRequest, ::NVMResponse>::Create(channel_.get(), rpcmethod_NVMDataExchange_, context);
 }
 
-::grpc::ClientAsyncReaderWriter< ::nvm::NVMDataRequest, ::nvm::NVMResponse>* NVMService::Stub::AsyncNVMDataExchangeRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) {
-  return ::grpc::internal::ClientAsyncReaderWriterFactory< ::nvm::NVMDataRequest, ::nvm::NVMResponse>::Create(channel_.get(), cq, rpcmethod_NVMDataExchange_, context, true, tag);
+::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMResponse>* NVMService::Stub::AsyncNVMDataExchangeRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) {
+  return ::grpc::internal::ClientAsyncReaderWriterFactory< ::NVMDataRequest, ::NVMResponse>::Create(channel_.get(), cq, rpcmethod_NVMDataExchange_, context, true, tag);
 }
 
-::grpc::ClientAsyncReaderWriter< ::nvm::NVMDataRequest, ::nvm::NVMResponse>* NVMService::Stub::PrepareAsyncNVMDataExchangeRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncReaderWriterFactory< ::nvm::NVMDataRequest, ::nvm::NVMResponse>::Create(channel_.get(), cq, rpcmethod_NVMDataExchange_, context, false, nullptr);
+::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMResponse>* NVMService::Stub::PrepareAsyncNVMDataExchangeRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncReaderWriterFactory< ::NVMDataRequest, ::NVMResponse>::Create(channel_.get(), cq, rpcmethod_NVMDataExchange_, context, false, nullptr);
 }
 
 NVMService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       NVMService_method_names[0],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< NVMService::Service, ::nvm::NVMDeployRequest, ::nvm::NVMResponse>(
+      new ::grpc::internal::RpcMethodHandler< NVMService::Service, ::NVMDeployRequest, ::NVMResponse>(
           std::mem_fn(&NVMService::Service::DeploySmartContract), this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       NVMService_method_names[1],
       ::grpc::internal::RpcMethod::BIDI_STREAMING,
-      new ::grpc::internal::BidiStreamingHandler< NVMService::Service, ::nvm::NVMDataRequest, ::nvm::NVMResponse>(
+      new ::grpc::internal::BidiStreamingHandler< NVMService::Service, ::NVMDataRequest, ::NVMResponse>(
           std::mem_fn(&NVMService::Service::NVMDataExchange), this)));
 }
 
 NVMService::Service::~Service() {
 }
 
-::grpc::Status NVMService::Service::DeploySmartContract(::grpc::ServerContext* context, const ::nvm::NVMDeployRequest* request, ::nvm::NVMResponse* response) {
+::grpc::Status NVMService::Service::DeploySmartContract(::grpc::ServerContext* context, const ::NVMDeployRequest* request, ::NVMResponse* response) {
   (void) context;
   (void) request;
   (void) response;
   return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
 }
 
-::grpc::Status NVMService::Service::NVMDataExchange(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::nvm::NVMResponse, ::nvm::NVMDataRequest>* stream) {
+::grpc::Status NVMService::Service::NVMDataExchange(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::NVMResponse, ::NVMDataRequest>* stream) {
   (void) context;
   (void) stream;
   return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
 }
 
-
-}  // namespace nvm
 

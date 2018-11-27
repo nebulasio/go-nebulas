@@ -54,7 +54,6 @@ inline void InitDefaults() {
   InitDefaultsNVMResponse();
 }
 }  // namespace protobuf_nvm_2eproto
-namespace nvm {
 class NVMDataRequest;
 class NVMDataRequestDefaultTypeInternal;
 extern NVMDataRequestDefaultTypeInternal _NVMDataRequest_default_instance_;
@@ -64,12 +63,10 @@ extern NVMDeployRequestDefaultTypeInternal _NVMDeployRequest_default_instance_;
 class NVMResponse;
 class NVMResponseDefaultTypeInternal;
 extern NVMResponseDefaultTypeInternal _NVMResponse_default_instance_;
-}  // namespace nvm
-namespace nvm {
 
 // ===================================================================
 
-class NVMDeployRequest : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:nvm.NVMDeployRequest) */ {
+class NVMDeployRequest : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:NVMDeployRequest) */ {
  public:
   NVMDeployRequest();
   virtual ~NVMDeployRequest();
@@ -199,7 +196,7 @@ class NVMDeployRequest : public ::google::protobuf::Message /* @@protoc_insertio
   ::google::protobuf::int64 block_height() const;
   void set_block_height(::google::protobuf::int64 value);
 
-  // @@protoc_insertion_point(class_scope:nvm.NVMDeployRequest)
+  // @@protoc_insertion_point(class_scope:NVMDeployRequest)
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
@@ -213,7 +210,7 @@ class NVMDeployRequest : public ::google::protobuf::Message /* @@protoc_insertio
 };
 // -------------------------------------------------------------------
 
-class NVMDataRequest : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:nvm.NVMDataRequest) */ {
+class NVMDataRequest : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:NVMDataRequest) */ {
  public:
   NVMDataRequest();
   virtual ~NVMDataRequest();
@@ -365,7 +362,7 @@ class NVMDataRequest : public ::google::protobuf::Message /* @@protoc_insertion_
   ::std::string* release_extra_data();
   void set_allocated_extra_data(::std::string* extra_data);
 
-  // @@protoc_insertion_point(class_scope:nvm.NVMDataRequest)
+  // @@protoc_insertion_point(class_scope:NVMDataRequest)
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
@@ -380,7 +377,7 @@ class NVMDataRequest : public ::google::protobuf::Message /* @@protoc_insertion_
 };
 // -------------------------------------------------------------------
 
-class NVMResponse : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:nvm.NVMResponse) */ {
+class NVMResponse : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:NVMResponse) */ {
  public:
   NVMResponse();
   virtual ~NVMResponse();
@@ -482,7 +479,7 @@ class NVMResponse : public ::google::protobuf::Message /* @@protoc_insertion_poi
   ::google::protobuf::int32 result() const;
   void set_result(::google::protobuf::int32 value);
 
-  // @@protoc_insertion_point(class_scope:nvm.NVMResponse)
+  // @@protoc_insertion_point(class_scope:NVMResponse)
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
@@ -508,41 +505,41 @@ inline void NVMDeployRequest::clear_script_src() {
   script_src_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline const ::std::string& NVMDeployRequest::script_src() const {
-  // @@protoc_insertion_point(field_get:nvm.NVMDeployRequest.script_src)
+  // @@protoc_insertion_point(field_get:NVMDeployRequest.script_src)
   return script_src_.GetNoArena();
 }
 inline void NVMDeployRequest::set_script_src(const ::std::string& value) {
   
   script_src_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:nvm.NVMDeployRequest.script_src)
+  // @@protoc_insertion_point(field_set:NVMDeployRequest.script_src)
 }
 #if LANG_CXX11
 inline void NVMDeployRequest::set_script_src(::std::string&& value) {
   
   script_src_.SetNoArena(
     &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:nvm.NVMDeployRequest.script_src)
+  // @@protoc_insertion_point(field_set_rvalue:NVMDeployRequest.script_src)
 }
 #endif
 inline void NVMDeployRequest::set_script_src(const char* value) {
   GOOGLE_DCHECK(value != NULL);
   
   script_src_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:nvm.NVMDeployRequest.script_src)
+  // @@protoc_insertion_point(field_set_char:NVMDeployRequest.script_src)
 }
 inline void NVMDeployRequest::set_script_src(const char* value, size_t size) {
   
   script_src_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:nvm.NVMDeployRequest.script_src)
+  // @@protoc_insertion_point(field_set_pointer:NVMDeployRequest.script_src)
 }
 inline ::std::string* NVMDeployRequest::mutable_script_src() {
   
-  // @@protoc_insertion_point(field_mutable:nvm.NVMDeployRequest.script_src)
+  // @@protoc_insertion_point(field_mutable:NVMDeployRequest.script_src)
   return script_src_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* NVMDeployRequest::release_script_src() {
-  // @@protoc_insertion_point(field_release:nvm.NVMDeployRequest.script_src)
+  // @@protoc_insertion_point(field_release:NVMDeployRequest.script_src)
   
   return script_src_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -553,7 +550,7 @@ inline void NVMDeployRequest::set_allocated_script_src(::std::string* script_src
     
   }
   script_src_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), script_src);
-  // @@protoc_insertion_point(field_set_allocated:nvm.NVMDeployRequest.script_src)
+  // @@protoc_insertion_point(field_set_allocated:NVMDeployRequest.script_src)
 }
 
 // string from_addr = 2;
@@ -561,41 +558,41 @@ inline void NVMDeployRequest::clear_from_addr() {
   from_addr_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline const ::std::string& NVMDeployRequest::from_addr() const {
-  // @@protoc_insertion_point(field_get:nvm.NVMDeployRequest.from_addr)
+  // @@protoc_insertion_point(field_get:NVMDeployRequest.from_addr)
   return from_addr_.GetNoArena();
 }
 inline void NVMDeployRequest::set_from_addr(const ::std::string& value) {
   
   from_addr_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:nvm.NVMDeployRequest.from_addr)
+  // @@protoc_insertion_point(field_set:NVMDeployRequest.from_addr)
 }
 #if LANG_CXX11
 inline void NVMDeployRequest::set_from_addr(::std::string&& value) {
   
   from_addr_.SetNoArena(
     &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:nvm.NVMDeployRequest.from_addr)
+  // @@protoc_insertion_point(field_set_rvalue:NVMDeployRequest.from_addr)
 }
 #endif
 inline void NVMDeployRequest::set_from_addr(const char* value) {
   GOOGLE_DCHECK(value != NULL);
   
   from_addr_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:nvm.NVMDeployRequest.from_addr)
+  // @@protoc_insertion_point(field_set_char:NVMDeployRequest.from_addr)
 }
 inline void NVMDeployRequest::set_from_addr(const char* value, size_t size) {
   
   from_addr_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:nvm.NVMDeployRequest.from_addr)
+  // @@protoc_insertion_point(field_set_pointer:NVMDeployRequest.from_addr)
 }
 inline ::std::string* NVMDeployRequest::mutable_from_addr() {
   
-  // @@protoc_insertion_point(field_mutable:nvm.NVMDeployRequest.from_addr)
+  // @@protoc_insertion_point(field_mutable:NVMDeployRequest.from_addr)
   return from_addr_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* NVMDeployRequest::release_from_addr() {
-  // @@protoc_insertion_point(field_release:nvm.NVMDeployRequest.from_addr)
+  // @@protoc_insertion_point(field_release:NVMDeployRequest.from_addr)
   
   return from_addr_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -606,7 +603,7 @@ inline void NVMDeployRequest::set_allocated_from_addr(::std::string* from_addr) 
     
   }
   from_addr_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from_addr);
-  // @@protoc_insertion_point(field_set_allocated:nvm.NVMDeployRequest.from_addr)
+  // @@protoc_insertion_point(field_set_allocated:NVMDeployRequest.from_addr)
 }
 
 // int64 block_height = 3;
@@ -614,13 +611,13 @@ inline void NVMDeployRequest::clear_block_height() {
   block_height_ = GOOGLE_LONGLONG(0);
 }
 inline ::google::protobuf::int64 NVMDeployRequest::block_height() const {
-  // @@protoc_insertion_point(field_get:nvm.NVMDeployRequest.block_height)
+  // @@protoc_insertion_point(field_get:NVMDeployRequest.block_height)
   return block_height_;
 }
 inline void NVMDeployRequest::set_block_height(::google::protobuf::int64 value) {
   
   block_height_ = value;
-  // @@protoc_insertion_point(field_set:nvm.NVMDeployRequest.block_height)
+  // @@protoc_insertion_point(field_set:NVMDeployRequest.block_height)
 }
 
 // string type = 4;
@@ -628,41 +625,41 @@ inline void NVMDeployRequest::clear_type() {
   type_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline const ::std::string& NVMDeployRequest::type() const {
-  // @@protoc_insertion_point(field_get:nvm.NVMDeployRequest.type)
+  // @@protoc_insertion_point(field_get:NVMDeployRequest.type)
   return type_.GetNoArena();
 }
 inline void NVMDeployRequest::set_type(const ::std::string& value) {
   
   type_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:nvm.NVMDeployRequest.type)
+  // @@protoc_insertion_point(field_set:NVMDeployRequest.type)
 }
 #if LANG_CXX11
 inline void NVMDeployRequest::set_type(::std::string&& value) {
   
   type_.SetNoArena(
     &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:nvm.NVMDeployRequest.type)
+  // @@protoc_insertion_point(field_set_rvalue:NVMDeployRequest.type)
 }
 #endif
 inline void NVMDeployRequest::set_type(const char* value) {
   GOOGLE_DCHECK(value != NULL);
   
   type_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:nvm.NVMDeployRequest.type)
+  // @@protoc_insertion_point(field_set_char:NVMDeployRequest.type)
 }
 inline void NVMDeployRequest::set_type(const char* value, size_t size) {
   
   type_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:nvm.NVMDeployRequest.type)
+  // @@protoc_insertion_point(field_set_pointer:NVMDeployRequest.type)
 }
 inline ::std::string* NVMDeployRequest::mutable_type() {
   
-  // @@protoc_insertion_point(field_mutable:nvm.NVMDeployRequest.type)
+  // @@protoc_insertion_point(field_mutable:NVMDeployRequest.type)
   return type_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* NVMDeployRequest::release_type() {
-  // @@protoc_insertion_point(field_release:nvm.NVMDeployRequest.type)
+  // @@protoc_insertion_point(field_release:NVMDeployRequest.type)
   
   return type_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -673,7 +670,7 @@ inline void NVMDeployRequest::set_allocated_type(::std::string* type) {
     
   }
   type_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), type);
-  // @@protoc_insertion_point(field_set_allocated:nvm.NVMDeployRequest.type)
+  // @@protoc_insertion_point(field_set_allocated:NVMDeployRequest.type)
 }
 
 // -------------------------------------------------------------------
@@ -685,41 +682,41 @@ inline void NVMDataRequest::clear_request_type() {
   request_type_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline const ::std::string& NVMDataRequest::request_type() const {
-  // @@protoc_insertion_point(field_get:nvm.NVMDataRequest.request_type)
+  // @@protoc_insertion_point(field_get:NVMDataRequest.request_type)
   return request_type_.GetNoArena();
 }
 inline void NVMDataRequest::set_request_type(const ::std::string& value) {
   
   request_type_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:nvm.NVMDataRequest.request_type)
+  // @@protoc_insertion_point(field_set:NVMDataRequest.request_type)
 }
 #if LANG_CXX11
 inline void NVMDataRequest::set_request_type(::std::string&& value) {
   
   request_type_.SetNoArena(
     &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:nvm.NVMDataRequest.request_type)
+  // @@protoc_insertion_point(field_set_rvalue:NVMDataRequest.request_type)
 }
 #endif
 inline void NVMDataRequest::set_request_type(const char* value) {
   GOOGLE_DCHECK(value != NULL);
   
   request_type_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:nvm.NVMDataRequest.request_type)
+  // @@protoc_insertion_point(field_set_char:NVMDataRequest.request_type)
 }
 inline void NVMDataRequest::set_request_type(const char* value, size_t size) {
   
   request_type_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:nvm.NVMDataRequest.request_type)
+  // @@protoc_insertion_point(field_set_pointer:NVMDataRequest.request_type)
 }
 inline ::std::string* NVMDataRequest::mutable_request_type() {
   
-  // @@protoc_insertion_point(field_mutable:nvm.NVMDataRequest.request_type)
+  // @@protoc_insertion_point(field_mutable:NVMDataRequest.request_type)
   return request_type_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* NVMDataRequest::release_request_type() {
-  // @@protoc_insertion_point(field_release:nvm.NVMDataRequest.request_type)
+  // @@protoc_insertion_point(field_release:NVMDataRequest.request_type)
   
   return request_type_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -730,7 +727,7 @@ inline void NVMDataRequest::set_allocated_request_type(::std::string* request_ty
     
   }
   request_type_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), request_type);
-  // @@protoc_insertion_point(field_set_allocated:nvm.NVMDataRequest.request_type)
+  // @@protoc_insertion_point(field_set_allocated:NVMDataRequest.request_type)
 }
 
 // string script_src = 2;
@@ -738,41 +735,41 @@ inline void NVMDataRequest::clear_script_src() {
   script_src_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline const ::std::string& NVMDataRequest::script_src() const {
-  // @@protoc_insertion_point(field_get:nvm.NVMDataRequest.script_src)
+  // @@protoc_insertion_point(field_get:NVMDataRequest.script_src)
   return script_src_.GetNoArena();
 }
 inline void NVMDataRequest::set_script_src(const ::std::string& value) {
   
   script_src_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:nvm.NVMDataRequest.script_src)
+  // @@protoc_insertion_point(field_set:NVMDataRequest.script_src)
 }
 #if LANG_CXX11
 inline void NVMDataRequest::set_script_src(::std::string&& value) {
   
   script_src_.SetNoArena(
     &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:nvm.NVMDataRequest.script_src)
+  // @@protoc_insertion_point(field_set_rvalue:NVMDataRequest.script_src)
 }
 #endif
 inline void NVMDataRequest::set_script_src(const char* value) {
   GOOGLE_DCHECK(value != NULL);
   
   script_src_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:nvm.NVMDataRequest.script_src)
+  // @@protoc_insertion_point(field_set_char:NVMDataRequest.script_src)
 }
 inline void NVMDataRequest::set_script_src(const char* value, size_t size) {
   
   script_src_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:nvm.NVMDataRequest.script_src)
+  // @@protoc_insertion_point(field_set_pointer:NVMDataRequest.script_src)
 }
 inline ::std::string* NVMDataRequest::mutable_script_src() {
   
-  // @@protoc_insertion_point(field_mutable:nvm.NVMDataRequest.script_src)
+  // @@protoc_insertion_point(field_mutable:NVMDataRequest.script_src)
   return script_src_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* NVMDataRequest::release_script_src() {
-  // @@protoc_insertion_point(field_release:nvm.NVMDataRequest.script_src)
+  // @@protoc_insertion_point(field_release:NVMDataRequest.script_src)
   
   return script_src_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -783,7 +780,7 @@ inline void NVMDataRequest::set_allocated_script_src(::std::string* script_src) 
     
   }
   script_src_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), script_src);
-  // @@protoc_insertion_point(field_set_allocated:nvm.NVMDataRequest.script_src)
+  // @@protoc_insertion_point(field_set_allocated:NVMDataRequest.script_src)
 }
 
 // string function_name = 3;
@@ -791,41 +788,41 @@ inline void NVMDataRequest::clear_function_name() {
   function_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline const ::std::string& NVMDataRequest::function_name() const {
-  // @@protoc_insertion_point(field_get:nvm.NVMDataRequest.function_name)
+  // @@protoc_insertion_point(field_get:NVMDataRequest.function_name)
   return function_name_.GetNoArena();
 }
 inline void NVMDataRequest::set_function_name(const ::std::string& value) {
   
   function_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:nvm.NVMDataRequest.function_name)
+  // @@protoc_insertion_point(field_set:NVMDataRequest.function_name)
 }
 #if LANG_CXX11
 inline void NVMDataRequest::set_function_name(::std::string&& value) {
   
   function_name_.SetNoArena(
     &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:nvm.NVMDataRequest.function_name)
+  // @@protoc_insertion_point(field_set_rvalue:NVMDataRequest.function_name)
 }
 #endif
 inline void NVMDataRequest::set_function_name(const char* value) {
   GOOGLE_DCHECK(value != NULL);
   
   function_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:nvm.NVMDataRequest.function_name)
+  // @@protoc_insertion_point(field_set_char:NVMDataRequest.function_name)
 }
 inline void NVMDataRequest::set_function_name(const char* value, size_t size) {
   
   function_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:nvm.NVMDataRequest.function_name)
+  // @@protoc_insertion_point(field_set_pointer:NVMDataRequest.function_name)
 }
 inline ::std::string* NVMDataRequest::mutable_function_name() {
   
-  // @@protoc_insertion_point(field_mutable:nvm.NVMDataRequest.function_name)
+  // @@protoc_insertion_point(field_mutable:NVMDataRequest.function_name)
   return function_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* NVMDataRequest::release_function_name() {
-  // @@protoc_insertion_point(field_release:nvm.NVMDataRequest.function_name)
+  // @@protoc_insertion_point(field_release:NVMDataRequest.function_name)
   
   return function_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -836,7 +833,7 @@ inline void NVMDataRequest::set_allocated_function_name(::std::string* function_
     
   }
   function_name_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), function_name);
-  // @@protoc_insertion_point(field_set_allocated:nvm.NVMDataRequest.function_name)
+  // @@protoc_insertion_point(field_set_allocated:NVMDataRequest.function_name)
 }
 
 // string contract_addr = 4;
@@ -844,41 +841,41 @@ inline void NVMDataRequest::clear_contract_addr() {
   contract_addr_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline const ::std::string& NVMDataRequest::contract_addr() const {
-  // @@protoc_insertion_point(field_get:nvm.NVMDataRequest.contract_addr)
+  // @@protoc_insertion_point(field_get:NVMDataRequest.contract_addr)
   return contract_addr_.GetNoArena();
 }
 inline void NVMDataRequest::set_contract_addr(const ::std::string& value) {
   
   contract_addr_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:nvm.NVMDataRequest.contract_addr)
+  // @@protoc_insertion_point(field_set:NVMDataRequest.contract_addr)
 }
 #if LANG_CXX11
 inline void NVMDataRequest::set_contract_addr(::std::string&& value) {
   
   contract_addr_.SetNoArena(
     &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:nvm.NVMDataRequest.contract_addr)
+  // @@protoc_insertion_point(field_set_rvalue:NVMDataRequest.contract_addr)
 }
 #endif
 inline void NVMDataRequest::set_contract_addr(const char* value) {
   GOOGLE_DCHECK(value != NULL);
   
   contract_addr_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:nvm.NVMDataRequest.contract_addr)
+  // @@protoc_insertion_point(field_set_char:NVMDataRequest.contract_addr)
 }
 inline void NVMDataRequest::set_contract_addr(const char* value, size_t size) {
   
   contract_addr_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:nvm.NVMDataRequest.contract_addr)
+  // @@protoc_insertion_point(field_set_pointer:NVMDataRequest.contract_addr)
 }
 inline ::std::string* NVMDataRequest::mutable_contract_addr() {
   
-  // @@protoc_insertion_point(field_mutable:nvm.NVMDataRequest.contract_addr)
+  // @@protoc_insertion_point(field_mutable:NVMDataRequest.contract_addr)
   return contract_addr_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* NVMDataRequest::release_contract_addr() {
-  // @@protoc_insertion_point(field_release:nvm.NVMDataRequest.contract_addr)
+  // @@protoc_insertion_point(field_release:NVMDataRequest.contract_addr)
   
   return contract_addr_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -889,7 +886,7 @@ inline void NVMDataRequest::set_allocated_contract_addr(::std::string* contract_
     
   }
   contract_addr_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), contract_addr);
-  // @@protoc_insertion_point(field_set_allocated:nvm.NVMDataRequest.contract_addr)
+  // @@protoc_insertion_point(field_set_allocated:NVMDataRequest.contract_addr)
 }
 
 // string extra_data = 5;
@@ -897,41 +894,41 @@ inline void NVMDataRequest::clear_extra_data() {
   extra_data_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline const ::std::string& NVMDataRequest::extra_data() const {
-  // @@protoc_insertion_point(field_get:nvm.NVMDataRequest.extra_data)
+  // @@protoc_insertion_point(field_get:NVMDataRequest.extra_data)
   return extra_data_.GetNoArena();
 }
 inline void NVMDataRequest::set_extra_data(const ::std::string& value) {
   
   extra_data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:nvm.NVMDataRequest.extra_data)
+  // @@protoc_insertion_point(field_set:NVMDataRequest.extra_data)
 }
 #if LANG_CXX11
 inline void NVMDataRequest::set_extra_data(::std::string&& value) {
   
   extra_data_.SetNoArena(
     &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:nvm.NVMDataRequest.extra_data)
+  // @@protoc_insertion_point(field_set_rvalue:NVMDataRequest.extra_data)
 }
 #endif
 inline void NVMDataRequest::set_extra_data(const char* value) {
   GOOGLE_DCHECK(value != NULL);
   
   extra_data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:nvm.NVMDataRequest.extra_data)
+  // @@protoc_insertion_point(field_set_char:NVMDataRequest.extra_data)
 }
 inline void NVMDataRequest::set_extra_data(const char* value, size_t size) {
   
   extra_data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:nvm.NVMDataRequest.extra_data)
+  // @@protoc_insertion_point(field_set_pointer:NVMDataRequest.extra_data)
 }
 inline ::std::string* NVMDataRequest::mutable_extra_data() {
   
-  // @@protoc_insertion_point(field_mutable:nvm.NVMDataRequest.extra_data)
+  // @@protoc_insertion_point(field_mutable:NVMDataRequest.extra_data)
   return extra_data_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* NVMDataRequest::release_extra_data() {
-  // @@protoc_insertion_point(field_release:nvm.NVMDataRequest.extra_data)
+  // @@protoc_insertion_point(field_release:NVMDataRequest.extra_data)
   
   return extra_data_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -942,7 +939,7 @@ inline void NVMDataRequest::set_allocated_extra_data(::std::string* extra_data) 
     
   }
   extra_data_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), extra_data);
-  // @@protoc_insertion_point(field_set_allocated:nvm.NVMDataRequest.extra_data)
+  // @@protoc_insertion_point(field_set_allocated:NVMDataRequest.extra_data)
 }
 
 // -------------------------------------------------------------------
@@ -954,13 +951,13 @@ inline void NVMResponse::clear_result() {
   result_ = 0;
 }
 inline ::google::protobuf::int32 NVMResponse::result() const {
-  // @@protoc_insertion_point(field_get:nvm.NVMResponse.result)
+  // @@protoc_insertion_point(field_get:NVMResponse.result)
   return result_;
 }
 inline void NVMResponse::set_result(::google::protobuf::int32 value) {
   
   result_ = value;
-  // @@protoc_insertion_point(field_set:nvm.NVMResponse.result)
+  // @@protoc_insertion_point(field_set:NVMResponse.result)
 }
 
 // string msg = 2;
@@ -968,41 +965,41 @@ inline void NVMResponse::clear_msg() {
   msg_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline const ::std::string& NVMResponse::msg() const {
-  // @@protoc_insertion_point(field_get:nvm.NVMResponse.msg)
+  // @@protoc_insertion_point(field_get:NVMResponse.msg)
   return msg_.GetNoArena();
 }
 inline void NVMResponse::set_msg(const ::std::string& value) {
   
   msg_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:nvm.NVMResponse.msg)
+  // @@protoc_insertion_point(field_set:NVMResponse.msg)
 }
 #if LANG_CXX11
 inline void NVMResponse::set_msg(::std::string&& value) {
   
   msg_.SetNoArena(
     &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:nvm.NVMResponse.msg)
+  // @@protoc_insertion_point(field_set_rvalue:NVMResponse.msg)
 }
 #endif
 inline void NVMResponse::set_msg(const char* value) {
   GOOGLE_DCHECK(value != NULL);
   
   msg_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:nvm.NVMResponse.msg)
+  // @@protoc_insertion_point(field_set_char:NVMResponse.msg)
 }
 inline void NVMResponse::set_msg(const char* value, size_t size) {
   
   msg_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:nvm.NVMResponse.msg)
+  // @@protoc_insertion_point(field_set_pointer:NVMResponse.msg)
 }
 inline ::std::string* NVMResponse::mutable_msg() {
   
-  // @@protoc_insertion_point(field_mutable:nvm.NVMResponse.msg)
+  // @@protoc_insertion_point(field_mutable:NVMResponse.msg)
   return msg_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* NVMResponse::release_msg() {
-  // @@protoc_insertion_point(field_release:nvm.NVMResponse.msg)
+  // @@protoc_insertion_point(field_release:NVMResponse.msg)
   
   return msg_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1013,7 +1010,7 @@ inline void NVMResponse::set_allocated_msg(::std::string* msg) {
     
   }
   msg_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), msg);
-  // @@protoc_insertion_point(field_set_allocated:nvm.NVMResponse.msg)
+  // @@protoc_insertion_point(field_set_allocated:NVMResponse.msg)
 }
 
 #ifdef __GNUC__
@@ -1026,7 +1023,6 @@ inline void NVMResponse::set_allocated_msg(::std::string* msg) {
 
 // @@protoc_insertion_point(namespace_scope)
 
-}  // namespace nvm
 
 // @@protoc_insertion_point(global_scope)
 

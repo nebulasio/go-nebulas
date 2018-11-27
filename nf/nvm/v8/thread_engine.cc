@@ -27,7 +27,6 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
-// #include <stdlib.h>
 #include <stdlib.h>
 #include <thread>
 #include <sys/time.h>
@@ -69,6 +68,7 @@ char *TranspileTypeScriptModuleThread(V8Engine *e, const char *source,
   *source_line_offset = ctx.output.line_offset;
   return ctx.output.result;
 }
+
 int RunScriptSourceThread(char **result, V8Engine *e, const char *source,
                     int source_line_offset, uintptr_t lcs_handler,
                     uintptr_t gcs_handler) {

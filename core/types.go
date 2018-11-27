@@ -264,16 +264,17 @@ type NVM interface {
 	CreateEngine(block *Block, tx *Transaction, contract state.Account, ws WorldState) (SmartContractEngine, error)
 	CheckV8Run() error
 
-	StartNebulasVM(enginePath string) (int, error)
+	StartNebulasVM(enginePath string, listenAddr string) (int, error)
 	StopNebulasVM(enginePid int) error
 	CheckV8ServerRunning(enginePid int) bool
+	GetNVMListenAddr() string
 }
 
 // SmartContractEngine interface
 type SmartContractEngine interface {
 	SetExecutionLimits(uint64, uint64) error
-	DeployAndInit(source, sourceType, args string) (string, error)
-	Call(source, sourceType, function, args string) (string, error)
+	DeployAndInit(source, sourceType, args string, listenAddr string) (string, error)
+	Call(source, sourceType, function, args string, listenAddr string) (string, error)
 	ExecutionInstructions() uint64
 	Dispose()
 }

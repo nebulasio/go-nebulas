@@ -135,7 +135,7 @@ func (payload *DeployPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 	}
 
 	// Deploy and Init.
-	result, exeErr := engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)
+	result, exeErr := engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args, block.nvm.GetNVMListenAddr())
 	gasCount := engine.ExecutionInstructions()
 	instructions, err := util.NewUint128FromInt(int64(gasCount))
 	if err != nil || exeErr == ErrUnexpected {

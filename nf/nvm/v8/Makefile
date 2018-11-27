@@ -20,7 +20,7 @@ CFLAGS=-DBUILDING_DLL -g -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unu
 CXXFLAGS=-DBUILDING_DLL -g -std=c++11 -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O3
 OUTPUT_DIR=pb/
 
-LDFLAGS	= -fvisibility=hidden -lgrpc -lgrpc++ -lgrpc++_cronet -lgrpc++_error_details -lgrpc++_reflection -lgrpc++_unsecure -lgrpc_cronet -lgrpc_unsecure
+LDFLAGS	= -fvisibility=hidden -lgrpc -lgrpc++ -lgrpc++_cronet -lgrpc++_error_details -lgrpc++_reflection -lgrpc++_unsecure -lgrpc_cronet -lgrpc_unsecure -lglog
 LIBS_PATH=
 LIBS=-lpthread -lv8_libbase -lv8_libplatform -licui18n -licuuc
 
@@ -82,3 +82,6 @@ v8_snapshot_bin:
 rpc:
 	protoc --grpc_out=$(OUTPUT_DIR) --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` nvm.proto
 	protoc --cpp_out $(OUTPUT_DIR) nvm.proto
+	protoc --go_out=plugins=grpc:$(OUTPUT_DIR) nvm.proto
+	cp pb/nvm.pb.go ../
+

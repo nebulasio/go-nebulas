@@ -19,7 +19,6 @@
 #include "third_party/protobuf/version.h"
 #endif
 // @@protoc_insertion_point(includes)
-namespace nvm {
 class NVMDeployRequestDefaultTypeInternal {
  public:
   ::google::protobuf::internal::ExplicitlyConstructed<NVMDeployRequest>
@@ -35,7 +34,6 @@ class NVMResponseDefaultTypeInternal {
   ::google::protobuf::internal::ExplicitlyConstructed<NVMResponse>
       _instance;
 } _NVMResponse_default_instance_;
-}  // namespace nvm
 namespace protobuf_nvm_2eproto {
 void InitDefaultsNVMDeployRequestImpl() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -46,11 +44,11 @@ void InitDefaultsNVMDeployRequestImpl() {
   ::google::protobuf::internal::InitProtobufDefaults();
 #endif  // GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
   {
-    void* ptr = &::nvm::_NVMDeployRequest_default_instance_;
-    new (ptr) ::nvm::NVMDeployRequest();
+    void* ptr = &::_NVMDeployRequest_default_instance_;
+    new (ptr) ::NVMDeployRequest();
     ::google::protobuf::internal::OnShutdownDestroyMessage(ptr);
   }
-  ::nvm::NVMDeployRequest::InitAsDefaultInstance();
+  ::NVMDeployRequest::InitAsDefaultInstance();
 }
 
 void InitDefaultsNVMDeployRequest() {
@@ -67,11 +65,11 @@ void InitDefaultsNVMDataRequestImpl() {
   ::google::protobuf::internal::InitProtobufDefaults();
 #endif  // GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
   {
-    void* ptr = &::nvm::_NVMDataRequest_default_instance_;
-    new (ptr) ::nvm::NVMDataRequest();
+    void* ptr = &::_NVMDataRequest_default_instance_;
+    new (ptr) ::NVMDataRequest();
     ::google::protobuf::internal::OnShutdownDestroyMessage(ptr);
   }
-  ::nvm::NVMDataRequest::InitAsDefaultInstance();
+  ::NVMDataRequest::InitAsDefaultInstance();
 }
 
 void InitDefaultsNVMDataRequest() {
@@ -88,11 +86,11 @@ void InitDefaultsNVMResponseImpl() {
   ::google::protobuf::internal::InitProtobufDefaults();
 #endif  // GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
   {
-    void* ptr = &::nvm::_NVMResponse_default_instance_;
-    new (ptr) ::nvm::NVMResponse();
+    void* ptr = &::_NVMResponse_default_instance_;
+    new (ptr) ::NVMResponse();
     ::google::protobuf::internal::OnShutdownDestroyMessage(ptr);
   }
-  ::nvm::NVMResponse::InitAsDefaultInstance();
+  ::NVMResponse::InitAsDefaultInstance();
 }
 
 void InitDefaultsNVMResponse() {
@@ -104,42 +102,42 @@ void InitDefaultsNVMResponse() {
 
 const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
   ~0u,  // no _has_bits_
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nvm::NVMDeployRequest, _internal_metadata_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDeployRequest, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nvm::NVMDeployRequest, script_src_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nvm::NVMDeployRequest, from_addr_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nvm::NVMDeployRequest, block_height_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nvm::NVMDeployRequest, type_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDeployRequest, script_src_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDeployRequest, from_addr_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDeployRequest, block_height_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDeployRequest, type_),
   ~0u,  // no _has_bits_
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nvm::NVMDataRequest, _internal_metadata_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataRequest, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nvm::NVMDataRequest, request_type_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nvm::NVMDataRequest, script_src_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nvm::NVMDataRequest, function_name_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nvm::NVMDataRequest, contract_addr_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nvm::NVMDataRequest, extra_data_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataRequest, request_type_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataRequest, script_src_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataRequest, function_name_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataRequest, contract_addr_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataRequest, extra_data_),
   ~0u,  // no _has_bits_
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nvm::NVMResponse, _internal_metadata_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMResponse, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nvm::NVMResponse, result_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nvm::NVMResponse, msg_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMResponse, result_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMResponse, msg_),
 };
 static const ::google::protobuf::internal::MigrationSchema schemas[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-  { 0, -1, sizeof(::nvm::NVMDeployRequest)},
-  { 9, -1, sizeof(::nvm::NVMDataRequest)},
-  { 19, -1, sizeof(::nvm::NVMResponse)},
+  { 0, -1, sizeof(::NVMDeployRequest)},
+  { 9, -1, sizeof(::NVMDataRequest)},
+  { 19, -1, sizeof(::NVMResponse)},
 };
 
 static ::google::protobuf::Message const * const file_default_instances[] = {
-  reinterpret_cast<const ::google::protobuf::Message*>(&::nvm::_NVMDeployRequest_default_instance_),
-  reinterpret_cast<const ::google::protobuf::Message*>(&::nvm::_NVMDataRequest_default_instance_),
-  reinterpret_cast<const ::google::protobuf::Message*>(&::nvm::_NVMResponse_default_instance_),
+  reinterpret_cast<const ::google::protobuf::Message*>(&::_NVMDeployRequest_default_instance_),
+  reinterpret_cast<const ::google::protobuf::Message*>(&::_NVMDataRequest_default_instance_),
+  reinterpret_cast<const ::google::protobuf::Message*>(&::_NVMResponse_default_instance_),
 };
 
 void protobuf_AssignDescriptors() {
@@ -164,20 +162,20 @@ void protobuf_RegisterTypes(const ::std::string&) {
 void AddDescriptorsImpl() {
   InitDefaults();
   static const char descriptor[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-      "\n\tnvm.proto\022\003nvm\"]\n\020NVMDeployRequest\022\022\n\n"
-      "script_src\030\001 \001(\t\022\021\n\tfrom_addr\030\002 \001(\t\022\024\n\014b"
-      "lock_height\030\003 \001(\003\022\014\n\004type\030\004 \001(\t\"|\n\016NVMDa"
-      "taRequest\022\024\n\014request_type\030\001 \001(\t\022\022\n\nscrip"
-      "t_src\030\002 \001(\t\022\025\n\rfunction_name\030\003 \001(\t\022\025\n\rco"
-      "ntract_addr\030\004 \001(\t\022\022\n\nextra_data\030\005 \001(\t\"*\n"
-      "\013NVMResponse\022\016\n\006result\030\001 \001(\005\022\013\n\003msg\030\002 \001("
-      "\t2\216\001\n\nNVMService\022@\n\023DeploySmartContract\022"
-      "\025.nvm.NVMDeployRequest\032\020.nvm.NVMResponse"
-      "\"\000\022>\n\017NVMDataExchange\022\023.nvm.NVMDataReque"
-      "st\032\020.nvm.NVMResponse\"\000(\0010\001b\006proto3"
+      "\n\tnvm.proto\"]\n\020NVMDeployRequest\022\022\n\nscrip"
+      "t_src\030\001 \001(\t\022\021\n\tfrom_addr\030\002 \001(\t\022\024\n\014block_"
+      "height\030\003 \001(\003\022\014\n\004type\030\004 \001(\t\"|\n\016NVMDataReq"
+      "uest\022\024\n\014request_type\030\001 \001(\t\022\022\n\nscript_src"
+      "\030\002 \001(\t\022\025\n\rfunction_name\030\003 \001(\t\022\025\n\rcontrac"
+      "t_addr\030\004 \001(\t\022\022\n\nextra_data\030\005 \001(\t\"*\n\013NVMR"
+      "esponse\022\016\n\006result\030\001 \001(\005\022\013\n\003msg\030\002 \001(\t2~\n\n"
+      "NVMService\0228\n\023DeploySmartContract\022\021.NVMD"
+      "eployRequest\032\014.NVMResponse\"\000\0226\n\017NVMDataE"
+      "xchange\022\017.NVMDataRequest\032\014.NVMResponse\"\000"
+      "(\0010\001b\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 434);
+      descriptor, 412);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "nvm.proto", &protobuf_RegisterTypes);
 }
@@ -193,7 +191,6 @@ struct StaticDescriptorInitializer {
   }
 } static_descriptor_initializer;
 }  // namespace protobuf_nvm_2eproto
-namespace nvm {
 
 // ===================================================================
 
@@ -212,7 +209,7 @@ NVMDeployRequest::NVMDeployRequest()
     ::protobuf_nvm_2eproto::InitDefaultsNVMDeployRequest();
   }
   SharedCtor();
-  // @@protoc_insertion_point(constructor:nvm.NVMDeployRequest)
+  // @@protoc_insertion_point(constructor:NVMDeployRequest)
 }
 NVMDeployRequest::NVMDeployRequest(const NVMDeployRequest& from)
   : ::google::protobuf::Message(),
@@ -232,7 +229,7 @@ NVMDeployRequest::NVMDeployRequest(const NVMDeployRequest& from)
     type_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.type_);
   }
   block_height_ = from.block_height_;
-  // @@protoc_insertion_point(copy_constructor:nvm.NVMDeployRequest)
+  // @@protoc_insertion_point(copy_constructor:NVMDeployRequest)
 }
 
 void NVMDeployRequest::SharedCtor() {
@@ -244,7 +241,7 @@ void NVMDeployRequest::SharedCtor() {
 }
 
 NVMDeployRequest::~NVMDeployRequest() {
-  // @@protoc_insertion_point(destructor:nvm.NVMDeployRequest)
+  // @@protoc_insertion_point(destructor:NVMDeployRequest)
   SharedDtor();
 }
 
@@ -278,7 +275,7 @@ NVMDeployRequest* NVMDeployRequest::New(::google::protobuf::Arena* arena) const 
 }
 
 void NVMDeployRequest::Clear() {
-// @@protoc_insertion_point(message_clear_start:nvm.NVMDeployRequest)
+// @@protoc_insertion_point(message_clear_start:NVMDeployRequest)
   ::google::protobuf::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -294,7 +291,7 @@ bool NVMDeployRequest::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
 #define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
-  // @@protoc_insertion_point(parse_start:nvm.NVMDeployRequest)
+  // @@protoc_insertion_point(parse_start:NVMDeployRequest)
   for (;;) {
     ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
     tag = p.first;
@@ -309,7 +306,7 @@ bool NVMDeployRequest::MergePartialFromCodedStream(
           DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
             this->script_src().data(), static_cast<int>(this->script_src().length()),
             ::google::protobuf::internal::WireFormatLite::PARSE,
-            "nvm.NVMDeployRequest.script_src"));
+            "NVMDeployRequest.script_src"));
         } else {
           goto handle_unusual;
         }
@@ -325,7 +322,7 @@ bool NVMDeployRequest::MergePartialFromCodedStream(
           DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
             this->from_addr().data(), static_cast<int>(this->from_addr().length()),
             ::google::protobuf::internal::WireFormatLite::PARSE,
-            "nvm.NVMDeployRequest.from_addr"));
+            "NVMDeployRequest.from_addr"));
         } else {
           goto handle_unusual;
         }
@@ -355,7 +352,7 @@ bool NVMDeployRequest::MergePartialFromCodedStream(
           DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
             this->type().data(), static_cast<int>(this->type().length()),
             ::google::protobuf::internal::WireFormatLite::PARSE,
-            "nvm.NVMDeployRequest.type"));
+            "NVMDeployRequest.type"));
         } else {
           goto handle_unusual;
         }
@@ -374,17 +371,17 @@ bool NVMDeployRequest::MergePartialFromCodedStream(
     }
   }
 success:
-  // @@protoc_insertion_point(parse_success:nvm.NVMDeployRequest)
+  // @@protoc_insertion_point(parse_success:NVMDeployRequest)
   return true;
 failure:
-  // @@protoc_insertion_point(parse_failure:nvm.NVMDeployRequest)
+  // @@protoc_insertion_point(parse_failure:NVMDeployRequest)
   return false;
 #undef DO_
 }
 
 void NVMDeployRequest::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // @@protoc_insertion_point(serialize_start:nvm.NVMDeployRequest)
+  // @@protoc_insertion_point(serialize_start:NVMDeployRequest)
   ::google::protobuf::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -393,7 +390,7 @@ void NVMDeployRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->script_src().data(), static_cast<int>(this->script_src().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMDeployRequest.script_src");
+      "NVMDeployRequest.script_src");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
       1, this->script_src(), output);
   }
@@ -403,7 +400,7 @@ void NVMDeployRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->from_addr().data(), static_cast<int>(this->from_addr().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMDeployRequest.from_addr");
+      "NVMDeployRequest.from_addr");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
       2, this->from_addr(), output);
   }
@@ -418,7 +415,7 @@ void NVMDeployRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->type().data(), static_cast<int>(this->type().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMDeployRequest.type");
+      "NVMDeployRequest.type");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
       4, this->type(), output);
   }
@@ -427,13 +424,13 @@ void NVMDeployRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), output);
   }
-  // @@protoc_insertion_point(serialize_end:nvm.NVMDeployRequest)
+  // @@protoc_insertion_point(serialize_end:NVMDeployRequest)
 }
 
 ::google::protobuf::uint8* NVMDeployRequest::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
   (void)deterministic; // Unused
-  // @@protoc_insertion_point(serialize_to_array_start:nvm.NVMDeployRequest)
+  // @@protoc_insertion_point(serialize_to_array_start:NVMDeployRequest)
   ::google::protobuf::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -442,7 +439,7 @@ void NVMDeployRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->script_src().data(), static_cast<int>(this->script_src().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMDeployRequest.script_src");
+      "NVMDeployRequest.script_src");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
         1, this->script_src(), target);
@@ -453,7 +450,7 @@ void NVMDeployRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->from_addr().data(), static_cast<int>(this->from_addr().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMDeployRequest.from_addr");
+      "NVMDeployRequest.from_addr");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
         2, this->from_addr(), target);
@@ -469,7 +466,7 @@ void NVMDeployRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->type().data(), static_cast<int>(this->type().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMDeployRequest.type");
+      "NVMDeployRequest.type");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
         4, this->type(), target);
@@ -479,12 +476,12 @@ void NVMDeployRequest::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), target);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:nvm.NVMDeployRequest)
+  // @@protoc_insertion_point(serialize_to_array_end:NVMDeployRequest)
   return target;
 }
 
 size_t NVMDeployRequest::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:nvm.NVMDeployRequest)
+// @@protoc_insertion_point(message_byte_size_start:NVMDeployRequest)
   size_t total_size = 0;
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -528,22 +525,22 @@ size_t NVMDeployRequest::ByteSizeLong() const {
 }
 
 void NVMDeployRequest::MergeFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:nvm.NVMDeployRequest)
+// @@protoc_insertion_point(generalized_merge_from_start:NVMDeployRequest)
   GOOGLE_DCHECK_NE(&from, this);
   const NVMDeployRequest* source =
       ::google::protobuf::internal::DynamicCastToGenerated<const NVMDeployRequest>(
           &from);
   if (source == NULL) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:nvm.NVMDeployRequest)
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:NVMDeployRequest)
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:nvm.NVMDeployRequest)
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:NVMDeployRequest)
     MergeFrom(*source);
   }
 }
 
 void NVMDeployRequest::MergeFrom(const NVMDeployRequest& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:nvm.NVMDeployRequest)
+// @@protoc_insertion_point(class_specific_merge_from_start:NVMDeployRequest)
   GOOGLE_DCHECK_NE(&from, this);
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   ::google::protobuf::uint32 cached_has_bits = 0;
@@ -567,14 +564,14 @@ void NVMDeployRequest::MergeFrom(const NVMDeployRequest& from) {
 }
 
 void NVMDeployRequest::CopyFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:nvm.NVMDeployRequest)
+// @@protoc_insertion_point(generalized_copy_from_start:NVMDeployRequest)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 void NVMDeployRequest::CopyFrom(const NVMDeployRequest& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:nvm.NVMDeployRequest)
+// @@protoc_insertion_point(class_specific_copy_from_start:NVMDeployRequest)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -622,7 +619,7 @@ NVMDataRequest::NVMDataRequest()
     ::protobuf_nvm_2eproto::InitDefaultsNVMDataRequest();
   }
   SharedCtor();
-  // @@protoc_insertion_point(constructor:nvm.NVMDataRequest)
+  // @@protoc_insertion_point(constructor:NVMDataRequest)
 }
 NVMDataRequest::NVMDataRequest(const NVMDataRequest& from)
   : ::google::protobuf::Message(),
@@ -649,7 +646,7 @@ NVMDataRequest::NVMDataRequest(const NVMDataRequest& from)
   if (from.extra_data().size() > 0) {
     extra_data_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.extra_data_);
   }
-  // @@protoc_insertion_point(copy_constructor:nvm.NVMDataRequest)
+  // @@protoc_insertion_point(copy_constructor:NVMDataRequest)
 }
 
 void NVMDataRequest::SharedCtor() {
@@ -662,7 +659,7 @@ void NVMDataRequest::SharedCtor() {
 }
 
 NVMDataRequest::~NVMDataRequest() {
-  // @@protoc_insertion_point(destructor:nvm.NVMDataRequest)
+  // @@protoc_insertion_point(destructor:NVMDataRequest)
   SharedDtor();
 }
 
@@ -698,7 +695,7 @@ NVMDataRequest* NVMDataRequest::New(::google::protobuf::Arena* arena) const {
 }
 
 void NVMDataRequest::Clear() {
-// @@protoc_insertion_point(message_clear_start:nvm.NVMDataRequest)
+// @@protoc_insertion_point(message_clear_start:NVMDataRequest)
   ::google::protobuf::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -715,7 +712,7 @@ bool NVMDataRequest::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
 #define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
-  // @@protoc_insertion_point(parse_start:nvm.NVMDataRequest)
+  // @@protoc_insertion_point(parse_start:NVMDataRequest)
   for (;;) {
     ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
     tag = p.first;
@@ -730,7 +727,7 @@ bool NVMDataRequest::MergePartialFromCodedStream(
           DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
             this->request_type().data(), static_cast<int>(this->request_type().length()),
             ::google::protobuf::internal::WireFormatLite::PARSE,
-            "nvm.NVMDataRequest.request_type"));
+            "NVMDataRequest.request_type"));
         } else {
           goto handle_unusual;
         }
@@ -746,7 +743,7 @@ bool NVMDataRequest::MergePartialFromCodedStream(
           DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
             this->script_src().data(), static_cast<int>(this->script_src().length()),
             ::google::protobuf::internal::WireFormatLite::PARSE,
-            "nvm.NVMDataRequest.script_src"));
+            "NVMDataRequest.script_src"));
         } else {
           goto handle_unusual;
         }
@@ -762,7 +759,7 @@ bool NVMDataRequest::MergePartialFromCodedStream(
           DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
             this->function_name().data(), static_cast<int>(this->function_name().length()),
             ::google::protobuf::internal::WireFormatLite::PARSE,
-            "nvm.NVMDataRequest.function_name"));
+            "NVMDataRequest.function_name"));
         } else {
           goto handle_unusual;
         }
@@ -778,7 +775,7 @@ bool NVMDataRequest::MergePartialFromCodedStream(
           DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
             this->contract_addr().data(), static_cast<int>(this->contract_addr().length()),
             ::google::protobuf::internal::WireFormatLite::PARSE,
-            "nvm.NVMDataRequest.contract_addr"));
+            "NVMDataRequest.contract_addr"));
         } else {
           goto handle_unusual;
         }
@@ -794,7 +791,7 @@ bool NVMDataRequest::MergePartialFromCodedStream(
           DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
             this->extra_data().data(), static_cast<int>(this->extra_data().length()),
             ::google::protobuf::internal::WireFormatLite::PARSE,
-            "nvm.NVMDataRequest.extra_data"));
+            "NVMDataRequest.extra_data"));
         } else {
           goto handle_unusual;
         }
@@ -813,17 +810,17 @@ bool NVMDataRequest::MergePartialFromCodedStream(
     }
   }
 success:
-  // @@protoc_insertion_point(parse_success:nvm.NVMDataRequest)
+  // @@protoc_insertion_point(parse_success:NVMDataRequest)
   return true;
 failure:
-  // @@protoc_insertion_point(parse_failure:nvm.NVMDataRequest)
+  // @@protoc_insertion_point(parse_failure:NVMDataRequest)
   return false;
 #undef DO_
 }
 
 void NVMDataRequest::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // @@protoc_insertion_point(serialize_start:nvm.NVMDataRequest)
+  // @@protoc_insertion_point(serialize_start:NVMDataRequest)
   ::google::protobuf::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -832,7 +829,7 @@ void NVMDataRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->request_type().data(), static_cast<int>(this->request_type().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMDataRequest.request_type");
+      "NVMDataRequest.request_type");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
       1, this->request_type(), output);
   }
@@ -842,7 +839,7 @@ void NVMDataRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->script_src().data(), static_cast<int>(this->script_src().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMDataRequest.script_src");
+      "NVMDataRequest.script_src");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
       2, this->script_src(), output);
   }
@@ -852,7 +849,7 @@ void NVMDataRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->function_name().data(), static_cast<int>(this->function_name().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMDataRequest.function_name");
+      "NVMDataRequest.function_name");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
       3, this->function_name(), output);
   }
@@ -862,7 +859,7 @@ void NVMDataRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->contract_addr().data(), static_cast<int>(this->contract_addr().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMDataRequest.contract_addr");
+      "NVMDataRequest.contract_addr");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
       4, this->contract_addr(), output);
   }
@@ -872,7 +869,7 @@ void NVMDataRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->extra_data().data(), static_cast<int>(this->extra_data().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMDataRequest.extra_data");
+      "NVMDataRequest.extra_data");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
       5, this->extra_data(), output);
   }
@@ -881,13 +878,13 @@ void NVMDataRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), output);
   }
-  // @@protoc_insertion_point(serialize_end:nvm.NVMDataRequest)
+  // @@protoc_insertion_point(serialize_end:NVMDataRequest)
 }
 
 ::google::protobuf::uint8* NVMDataRequest::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
   (void)deterministic; // Unused
-  // @@protoc_insertion_point(serialize_to_array_start:nvm.NVMDataRequest)
+  // @@protoc_insertion_point(serialize_to_array_start:NVMDataRequest)
   ::google::protobuf::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -896,7 +893,7 @@ void NVMDataRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->request_type().data(), static_cast<int>(this->request_type().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMDataRequest.request_type");
+      "NVMDataRequest.request_type");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
         1, this->request_type(), target);
@@ -907,7 +904,7 @@ void NVMDataRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->script_src().data(), static_cast<int>(this->script_src().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMDataRequest.script_src");
+      "NVMDataRequest.script_src");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
         2, this->script_src(), target);
@@ -918,7 +915,7 @@ void NVMDataRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->function_name().data(), static_cast<int>(this->function_name().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMDataRequest.function_name");
+      "NVMDataRequest.function_name");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
         3, this->function_name(), target);
@@ -929,7 +926,7 @@ void NVMDataRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->contract_addr().data(), static_cast<int>(this->contract_addr().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMDataRequest.contract_addr");
+      "NVMDataRequest.contract_addr");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
         4, this->contract_addr(), target);
@@ -940,7 +937,7 @@ void NVMDataRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->extra_data().data(), static_cast<int>(this->extra_data().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMDataRequest.extra_data");
+      "NVMDataRequest.extra_data");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
         5, this->extra_data(), target);
@@ -950,12 +947,12 @@ void NVMDataRequest::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), target);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:nvm.NVMDataRequest)
+  // @@protoc_insertion_point(serialize_to_array_end:NVMDataRequest)
   return target;
 }
 
 size_t NVMDataRequest::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:nvm.NVMDataRequest)
+// @@protoc_insertion_point(message_byte_size_start:NVMDataRequest)
   size_t total_size = 0;
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -1006,22 +1003,22 @@ size_t NVMDataRequest::ByteSizeLong() const {
 }
 
 void NVMDataRequest::MergeFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:nvm.NVMDataRequest)
+// @@protoc_insertion_point(generalized_merge_from_start:NVMDataRequest)
   GOOGLE_DCHECK_NE(&from, this);
   const NVMDataRequest* source =
       ::google::protobuf::internal::DynamicCastToGenerated<const NVMDataRequest>(
           &from);
   if (source == NULL) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:nvm.NVMDataRequest)
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:NVMDataRequest)
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:nvm.NVMDataRequest)
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:NVMDataRequest)
     MergeFrom(*source);
   }
 }
 
 void NVMDataRequest::MergeFrom(const NVMDataRequest& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:nvm.NVMDataRequest)
+// @@protoc_insertion_point(class_specific_merge_from_start:NVMDataRequest)
   GOOGLE_DCHECK_NE(&from, this);
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   ::google::protobuf::uint32 cached_has_bits = 0;
@@ -1050,14 +1047,14 @@ void NVMDataRequest::MergeFrom(const NVMDataRequest& from) {
 }
 
 void NVMDataRequest::CopyFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:nvm.NVMDataRequest)
+// @@protoc_insertion_point(generalized_copy_from_start:NVMDataRequest)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 void NVMDataRequest::CopyFrom(const NVMDataRequest& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:nvm.NVMDataRequest)
+// @@protoc_insertion_point(class_specific_copy_from_start:NVMDataRequest)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1103,7 +1100,7 @@ NVMResponse::NVMResponse()
     ::protobuf_nvm_2eproto::InitDefaultsNVMResponse();
   }
   SharedCtor();
-  // @@protoc_insertion_point(constructor:nvm.NVMResponse)
+  // @@protoc_insertion_point(constructor:NVMResponse)
 }
 NVMResponse::NVMResponse(const NVMResponse& from)
   : ::google::protobuf::Message(),
@@ -1115,7 +1112,7 @@ NVMResponse::NVMResponse(const NVMResponse& from)
     msg_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.msg_);
   }
   result_ = from.result_;
-  // @@protoc_insertion_point(copy_constructor:nvm.NVMResponse)
+  // @@protoc_insertion_point(copy_constructor:NVMResponse)
 }
 
 void NVMResponse::SharedCtor() {
@@ -1125,7 +1122,7 @@ void NVMResponse::SharedCtor() {
 }
 
 NVMResponse::~NVMResponse() {
-  // @@protoc_insertion_point(destructor:nvm.NVMResponse)
+  // @@protoc_insertion_point(destructor:NVMResponse)
   SharedDtor();
 }
 
@@ -1157,7 +1154,7 @@ NVMResponse* NVMResponse::New(::google::protobuf::Arena* arena) const {
 }
 
 void NVMResponse::Clear() {
-// @@protoc_insertion_point(message_clear_start:nvm.NVMResponse)
+// @@protoc_insertion_point(message_clear_start:NVMResponse)
   ::google::protobuf::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -1171,7 +1168,7 @@ bool NVMResponse::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
 #define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
-  // @@protoc_insertion_point(parse_start:nvm.NVMResponse)
+  // @@protoc_insertion_point(parse_start:NVMResponse)
   for (;;) {
     ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
     tag = p.first;
@@ -1200,7 +1197,7 @@ bool NVMResponse::MergePartialFromCodedStream(
           DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
             this->msg().data(), static_cast<int>(this->msg().length()),
             ::google::protobuf::internal::WireFormatLite::PARSE,
-            "nvm.NVMResponse.msg"));
+            "NVMResponse.msg"));
         } else {
           goto handle_unusual;
         }
@@ -1219,17 +1216,17 @@ bool NVMResponse::MergePartialFromCodedStream(
     }
   }
 success:
-  // @@protoc_insertion_point(parse_success:nvm.NVMResponse)
+  // @@protoc_insertion_point(parse_success:NVMResponse)
   return true;
 failure:
-  // @@protoc_insertion_point(parse_failure:nvm.NVMResponse)
+  // @@protoc_insertion_point(parse_failure:NVMResponse)
   return false;
 #undef DO_
 }
 
 void NVMResponse::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // @@protoc_insertion_point(serialize_start:nvm.NVMResponse)
+  // @@protoc_insertion_point(serialize_start:NVMResponse)
   ::google::protobuf::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -1243,7 +1240,7 @@ void NVMResponse::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->msg().data(), static_cast<int>(this->msg().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMResponse.msg");
+      "NVMResponse.msg");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
       2, this->msg(), output);
   }
@@ -1252,13 +1249,13 @@ void NVMResponse::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), output);
   }
-  // @@protoc_insertion_point(serialize_end:nvm.NVMResponse)
+  // @@protoc_insertion_point(serialize_end:NVMResponse)
 }
 
 ::google::protobuf::uint8* NVMResponse::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
   (void)deterministic; // Unused
-  // @@protoc_insertion_point(serialize_to_array_start:nvm.NVMResponse)
+  // @@protoc_insertion_point(serialize_to_array_start:NVMResponse)
   ::google::protobuf::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -1272,7 +1269,7 @@ void NVMResponse::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->msg().data(), static_cast<int>(this->msg().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "nvm.NVMResponse.msg");
+      "NVMResponse.msg");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
         2, this->msg(), target);
@@ -1282,12 +1279,12 @@ void NVMResponse::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), target);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:nvm.NVMResponse)
+  // @@protoc_insertion_point(serialize_to_array_end:NVMResponse)
   return target;
 }
 
 size_t NVMResponse::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:nvm.NVMResponse)
+// @@protoc_insertion_point(message_byte_size_start:NVMResponse)
   size_t total_size = 0;
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -1317,22 +1314,22 @@ size_t NVMResponse::ByteSizeLong() const {
 }
 
 void NVMResponse::MergeFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:nvm.NVMResponse)
+// @@protoc_insertion_point(generalized_merge_from_start:NVMResponse)
   GOOGLE_DCHECK_NE(&from, this);
   const NVMResponse* source =
       ::google::protobuf::internal::DynamicCastToGenerated<const NVMResponse>(
           &from);
   if (source == NULL) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:nvm.NVMResponse)
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:NVMResponse)
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:nvm.NVMResponse)
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:NVMResponse)
     MergeFrom(*source);
   }
 }
 
 void NVMResponse::MergeFrom(const NVMResponse& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:nvm.NVMResponse)
+// @@protoc_insertion_point(class_specific_merge_from_start:NVMResponse)
   GOOGLE_DCHECK_NE(&from, this);
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   ::google::protobuf::uint32 cached_has_bits = 0;
@@ -1348,14 +1345,14 @@ void NVMResponse::MergeFrom(const NVMResponse& from) {
 }
 
 void NVMResponse::CopyFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:nvm.NVMResponse)
+// @@protoc_insertion_point(generalized_copy_from_start:NVMResponse)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 void NVMResponse::CopyFrom(const NVMResponse& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:nvm.NVMResponse)
+// @@protoc_insertion_point(class_specific_copy_from_start:NVMResponse)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1384,6 +1381,5 @@ void NVMResponse::InternalSwap(NVMResponse* other) {
 
 
 // @@protoc_insertion_point(namespace_scope)
-}  // namespace nvm
 
 // @@protoc_insertion_point(global_scope)

@@ -42,6 +42,8 @@
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
 
+#include <glog/logging.h>
+
 static int concurrency = 1;
 static int enable_tracer_injection = 0;
 static int strict_disallow_usage = 0;
@@ -212,51 +214,10 @@ void *loop(void *arg) {
   ExecuteScript((const char*)arg, RunScriptSourceDelegate);
   return 0x00;
 }
+
 void ExecuteScriptSource(const char *filename) {
-    ExecuteScript(filename, RunScriptSourceDelegate);
+  ExecuteScript(filename, RunScriptSourceDelegate);
 }
-
-
-class NVMEngine final: public nvm::NVMService::Service{
-  
-  public:
-    explicit NVMEngine(const int currency){
-      //TODO: specify how many threads we should start
-    }
-
-    grpc::Status DeploySmartContract(grpc::ServerContext* ctx, const nvm::NVMDeployRequest* request, nvm::NVMResponse* response) override {
-      std::cout<<"Request script source is: "<<request->script_src()<<std::endl;
-      std::cout<<"Request address is: "<<request->from_addr()<<std::endl;
-
-      nvm::NVMResponse* new_response = new nvm::NVMResponse();
-
-      new_response->set_result(101);
-      new_response->set_msg("Deployed successfully!");
-
-      return grpc::Status::OK;
-    }
-
-    grpc::Status NVMDataExchange(grpc::ServerContext* ctx, grpc::ServerReaderWriter<nvm::NVMResponse, nvm::NVMDataRequest> *stm) override {
-      //read the request firstly
-      nvm::NVMDataRequest *request = new nvm::NVMDataRequest();
-      stm->Read(request);
-      std::cout<<"The request script souce "<<request->script_src()<<std::endl;
-      std::cout<<"The function name is: "<<request->function_name()<<std::endl;
-
-      //send request to client if necessary
-      nvm::NVMResponse* response = new nvm::NVMResponse();
-      response->set_result(202);
-      response->set_msg("Send request to client!");
-
-      stm->Write(*response);
-
-      return grpc::Status::OK;
-    }
-
-  private:
-    int m_currency = 1;   // default concurrency number
-
-};
 
 void Initialization(){
   Initialize();
@@ -268,26 +229,78 @@ void Initialization(){
   InitializeEvent(eventTriggerFunc);
 }
 
-void RunServer(){
+class NVMEngine final: public NVMService::Service{
+  
+  public:
 
-    std::string engine_addr("127.0.0.1:11199");
+    explicit NVMEngine(const int concurrency){
+      //TODO: specify how many threads we should start and do Initialization
 
+      m_concurrency_scale = concurrency;
+    }
+
+    grpc::Status DeploySmartContract(grpc::ServerContext* ctx, const NVMDeployRequest* request, NVMResponse* response) override {
+      LOG(INFO)<<"Request script source is: "<<request->script_src()<<std::endl;
+      LOG(INFO)<<"Request address is: "<<request->from_addr()<<std::endl;
+
+      NVMResponse* new_response = new NVMResponse();
+
+      new_response->set_result(101);
+      new_response->set_msg("Deployed successfully!");
+
+      return grpc::Status::OK;
+    }
+
+    grpc::Status NVMDataExchange(grpc::ServerContext* ctx, grpc::ServerReaderWriter<NVMResponse, NVMDataRequest> *stm) override {
+
+      //read the request firstly
+      NVMDataRequest *request = new NVMDataRequest();
+      stm->Read(request);
+      LOG(INFO)<<"The request script souce "<<request->script_src()<<std::endl;
+      LOG(INFO)<<"The function name is: "<<request->function_name()<<std::endl;
+
+      //send request to client if necessary
+      NVMResponse* response = new NVMResponse();
+      response->set_result(202);
+      response->set_msg("Send request to client!");
+
+      stm->Write(*response);
+
+      return grpc::Status::OK;
+    }
+
+  private:
+    int m_concurrency_scale = 1;   // default concurrency number
+
+};
+
+
+void RunServer(const char* addr_str){
+
+    std::string engine_addr(addr_str);
     NVMEngine* engine = new NVMEngine(1);
 
     grpc::ServerBuilder builder;
     builder.AddListeningPort(engine_addr, grpc::InsecureServerCredentials());
     builder.RegisterService(engine);
     std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
-    std::cout<<"V8 engine server is listening on: "<<engine_addr<<std::endl;
+    LOG(INFO)<<"V8 engine is listening on: "<<engine_addr;
     
     server->Wait();
 }
 
 int main(int argc, const char *argv[]) {
-  
+
+  FLAGS_log_dir = "logs";
+  ::google::InitGoogleLogging(argv[0]);
+
   Initialization();
 
-  RunServer();
+  if(argc > 1){
+    RunServer(argv[1]);
+  }else{
+    std::cout<<"Please specify the port"<<std::endl;
+  }
 
   return 0;
 }

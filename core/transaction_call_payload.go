@@ -146,7 +146,7 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 		}
 	}
 
-	result, exeErr := engine.Call(deploy.Source, deploy.SourceType, payload.Function, payload.Args)
+	result, exeErr := engine.Call(deploy.Source, deploy.SourceType, payload.Function, payload.Args, block.nvm.GetNVMListenAddr())
 	gasCount := engine.ExecutionInstructions()
 	instructions, err := util.NewUint128FromInt(int64(gasCount))
 
