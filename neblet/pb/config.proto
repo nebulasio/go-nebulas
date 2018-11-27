@@ -92,6 +92,13 @@ message ChainConfig {
 
     // access control config path
     string access = 33;
+
+
+    // v8 server path
+    string nvm_path = 34;
+
+    // v8 server listen addresses
+    repeated string nvm_listen = 35;
 }
 
 message RPCConfig {

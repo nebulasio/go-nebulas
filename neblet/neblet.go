@@ -269,9 +269,8 @@ func (n *Neblet) Start() {
 	}
 
 	// start V8 engine
-	// temporary path for NVM engine
-	nvmEnginePath := "/Users/congming/go/src/github.com/nebulasio/go-nebulas/nf/nvm/v8/v8_server"
-	processID, err := n.nvm.StartNebulasVM(nvmEnginePath)
+	//nvmEnginePath := "/Users/congming/go/src/github.com/nebulasio/go-nebulas/nf/nvm/v8/v8_server"
+	processID, err := n.nvm.StartNebulasVM(n.Config().Chain.NvmPath, n.Config().Chain.NvmListen[0])
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
