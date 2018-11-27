@@ -19,7 +19,7 @@
 //
 #include "core/driver.h"
 #include "core/ir_warden.h"
-#include "fs/api/nbre_api.h"
+#include "fs/nbre/api/nbre_api.h"
 #include "jit/jit_driver.h"
 #include "runtime/version.h"
 #include <ff/ff.h>
