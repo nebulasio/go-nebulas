@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "fs/manager/flag_storage.h"
+#include "fs/nbre/flag_storage.h"
 #include "common/common.h"
 
 namespace neb {

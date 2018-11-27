@@ -22,7 +22,7 @@
 #include "common/common.h"
 #include "common/quitable_thread.h"
 #include "common/util/singleton.h"
-#include "fs/manager/nbre_storage.h"
+#include "fs/nbre/nbre_storage.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/storage.h"
 #include <boost/asio.hpp>

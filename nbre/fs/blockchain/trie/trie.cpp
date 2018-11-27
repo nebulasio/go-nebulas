@@ -18,8 +18,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "fs/trie/trie.h"
-#include "fs/trie/byte_shared.h"
+#include "fs/blockchain/trie/trie.h"
+#include "fs/blockchain/trie/byte_shared.h"
 
 namespace neb {
 namespace fs {
@@ -68,7 +68,7 @@ neb::util::bytes trie::get_trie_node(const neb::util::bytes &root_hash,
   size_t route_size = route.size();
   neb::byte_t *end_ptr = route.value() + route_size;
 
-  while (true) {
+  while (route_ptr != end_ptr) {
 
     auto root_node = fetch_node(hash);
     auto root_type = root_node->get_trie_node_type();
@@ -85,19 +85,22 @@ neb::util::bytes trie::get_trie_node(const neb::util::bytes &root_hash,
       auto next_hash = root_node->val_at(2);
 
       size_t matched_len = prefix_len(key_path.value(), key_path.size(),
-                                      next_hash.value(), next_hash.size());
-      if (matched_len == key_path.size()) {
-        hash = next_hash;
-        route_ptr += matched_len;
+                                      route.value(), route.size());
+      if (matched_len != key_path.size()) {
+        throw std::runtime_error("key path not found");
       }
+      hash = next_hash;
+      route_ptr += matched_len;
     } else if (root_type == trie_node_type::trie_node_leaf) {
       auto key_path = root_node->val_at(1);
       size_t left_size = end_ptr - route_ptr;
       size_t matched_len =
           prefix_len(key_path.value(), key_path.size(), route_ptr, left_size);
-      if (matched_len == key_path.size() && matched_len == (left_size)) {
-        return root_node->val_at(2);
+      if (matched_len != key_path.size() || matched_len != left_size) {
+        throw std::runtime_error("key path not found");
       }
+      return root_node->val_at(2);
+    } else {
       throw std::runtime_error("key path not found");
     }
   }

@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "fs/manager/nbre_storage.h"
+#include "fs/nbre/nbre_storage.h"
 #include "fs/util.h"
 #include "gtest_common.h"
 #include <gtest/gtest.h>
