@@ -20,8 +20,7 @@
 
 #include "runtime/nr/impl/nr_impl.h"
 
-std::shared_ptr<std::unordered_map<std::string, double>>
-entry_point_nr(neb::core::driver *d, void *param) {
+std::vector<nr_info_t> entry_point_nr(neb::core::driver *d, void *param) {
   return entry_point_nr_impl(d, param);
 }
 

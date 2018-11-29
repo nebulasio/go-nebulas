@@ -21,9 +21,21 @@
 #pragma once
 
 #include "runtime/stdrt.h"
-#include <memory>
 #include <string>
-#include <unordered_map>
+#include <vector>
 
-std::shared_ptr<std::unordered_map<std::string, double>>
-entry_point_nr_impl(neb::core::driver *d, void *param);
+struct nr_info_t {
+  std::string m_address;
+  std::string m_date;
+  uint32_t m_in_degree;
+  uint32_t m_out_degree;
+  uint32_t m_degrees;
+  long double m_in_val;
+  long double m_out_val;
+  long double m_in_outs;
+  double m_median;
+  double m_weight;
+  double m_nr_score;
+};
+
+std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param);

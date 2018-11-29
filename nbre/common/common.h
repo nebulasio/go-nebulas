@@ -53,8 +53,7 @@ typedef std::vector<auth_row_t> auth_table_t;
 
 typedef boost::multiprecision::int128_t int128_t;
 typedef boost::multiprecision::uint128_t uint128_t;
-
-typedef int128_t nas_amount_t;
+typedef int128_t wei_t;
 
 namespace tcolor {
 const static char *red = "\033[1;31m";
