@@ -20,9 +20,9 @@
 
 #pragma once
 
-#include "fs/transaction/transaction_db.h"
+#include "fs/blockchain/account/account_db.h"
+#include "fs/blockchain/transaction/transaction_db.h"
 #include "runtime/nr/graph/algo.h"
-#include "runtime/nr/impl/common.h"
 
 namespace neb {
 namespace rt {
@@ -39,7 +39,7 @@ struct rank_params_t {
 };
 
 using transaction_db_ptr_t = std::shared_ptr<neb::fs::transaction_db>;
-using account_db_ptr_t = std::shared_ptr<account_db>;
+using account_db_ptr_t = std::shared_ptr<neb::fs::account_db>;
 using transaction_graph_ptr_t = std::shared_ptr<neb::rt::transaction_graph>;
 
 class nebulas_rank {
@@ -49,11 +49,8 @@ public:
                const account_db_ptr_t adb_ptr, const rank_params_t &rp,
                block_height_t start_block, block_height_t end_block);
 
-  auto get_account_score_service()
-      -> std::shared_ptr<std::unordered_map<std::string, double>>;
-
-private:
-  auto split_transactions_by_x_block_interval(
+public:
+  auto split_transactions_by_block_interval(
       const std::vector<neb::fs::transaction_info_t> &txs,
       int32_t block_interval = 128)
       -> std::shared_ptr<std::vector<std::vector<neb::fs::transaction_info_t>>>;
@@ -68,11 +65,15 @@ private:
   auto get_normal_accounts(const std::vector<neb::fs::transaction_info_t> &txs)
       -> std::shared_ptr<std::unordered_set<std::string>>;
 
+  auto get_account_balance(const std::unordered_set<address_t> &accounts,
+                           const account_db_ptr_t db_ptr)
+      -> std::shared_ptr<std::unordered_map<address_t, wei_t>>;
+
   auto get_account_balance_median(
       const std::unordered_set<std::string> &accounts,
       const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
       const account_db_ptr_t db_ptr,
-      std::unordered_map<account_address_t, account_balance_t> &addr_balance)
+      std::unordered_map<address_t, wei_t> &addr_balance)
       -> std::shared_ptr<std::unordered_map<std::string, double>>;
 
   auto get_account_weight(

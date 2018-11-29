@@ -34,7 +34,7 @@ nebulas_rank::nebulas_rank(const transaction_db_ptr_t tdb_ptr,
       m_start_block(start_block), m_end_block(end_block) {}
 
 std::shared_ptr<std::vector<std::vector<neb::fs::transaction_info_t>>>
-nebulas_rank::split_transactions_by_x_block_interval(
+nebulas_rank::split_transactions_by_block_interval(
     const std::vector<neb::fs::transaction_info_t> &txs,
     int32_t block_interval) {
 
@@ -91,9 +91,8 @@ transaction_graph_ptr_t nebulas_rank::build_graph_from_transactions(
   for (auto ite = trans.begin(); ite != trans.end(); ite++) {
     std::string from = ite->m_from;
     std::string to = ite->m_to;
-    std::string tx_value = ite->m_tx_value;
-    double value = std::stod(tx_value);
-    double timestamp = std::stod(ite->m_timestamp);
+    wei_t value = ite->m_tx_value;
+    int64_t timestamp = ite->m_timestamp;
     ret->add_edge(from, to, value, timestamp);
   }
   return ret;
@@ -134,34 +133,39 @@ nebulas_rank::get_normal_accounts(
   return std::make_shared<std::unordered_set<std::string>>(ret);
 }
 
+std::shared_ptr<std::unordered_map<address_t, wei_t>>
+nebulas_rank::get_account_balance(const std::unordered_set<address_t> &accounts,
+                                  const account_db_ptr_t db_ptr) {}
+
 std::shared_ptr<std::unordered_map<std::string, double>>
 nebulas_rank::get_account_balance_median(
     const std::unordered_set<std::string> &accounts,
     const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
     const account_db_ptr_t db_ptr,
-    std::unordered_map<account_address_t, account_balance_t> &addr_balance) {
+    std::unordered_map<address_t, wei_t> &addr_balance) {
 
   std::unordered_map<std::string, double> ret;
-  std::unordered_map<std::string, std::vector<double>> addr_balance_v;
+  std::unordered_map<std::string, std::vector<wei_t>> addr_balance_v;
 
-  db_ptr->set_height_address_val(m_start_block, m_end_block, addr_balance);
+  db_ptr->set_height_address_val_internal(m_start_block, m_end_block,
+                                          addr_balance);
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
     block_height_t max_height_this_interval =
         get_max_height_this_block_interval(*it);
     for (auto ite = accounts.begin(); ite != accounts.end(); ite++) {
       std::string addr = *ite;
-      double balance = boost::lexical_cast<double>(
-          db_ptr->get_account_balance(max_height_this_interval, addr));
+      wei_t balance =
+          db_ptr->get_account_balance_internal(addr, max_height_this_interval);
       addr_balance_v[addr].push_back(balance);
     }
   }
 
   for (auto it = addr_balance_v.begin(); it != addr_balance_v.end(); it++) {
-    std::vector<double> v = it->second;
+    std::vector<wei_t> v = it->second;
     sort(v.begin(), v.end());
     int v_len = v.size();
-    double median = v[v_len / 2];
+    wei_t median = v[v_len / 2];
     if ((v_len & 1) == 0) {
       median = (median + v[v_len / 2 - 1]) / 2;
     }
@@ -187,8 +191,8 @@ nebulas_rank::get_account_weight(
   std::unordered_map<std::string, double> ret;
 
   for (auto it = in_out_vals.begin(); it != in_out_vals.end(); it++) {
-    double in_val = it->second.m_in_val;
-    double out_val = it->second.m_out_val;
+    wei_t in_val = it->second.m_in_val;
+    wei_t out_val = it->second.m_out_val;
 
     double normalized_in_val = db_ptr->get_normalized_value(in_val);
     double normalized_out_val = db_ptr->get_normalized_value(out_val);
@@ -222,50 +226,6 @@ nebulas_rank::get_account_rank(
     }
   }
   return std::make_shared<std::unordered_map<std::string, double>>(ret);
-}
-
-std::shared_ptr<std::unordered_map<std::string, double>>
-nebulas_rank::get_account_score_service() {
-
-  auto it_ret = m_tdb_ptr->read_inter_transaction_from_db_with_duration(
-      m_start_block, m_end_block);
-  auto ret = *it_ret;
-
-  auto it_txs = split_transactions_by_x_block_interval(ret);
-  auto txs = *it_txs;
-  filter_empty_transactions_this_interval(txs);
-
-  std::vector<transaction_graph_ptr_t> tgs = build_transaction_graphs(txs);
-  if (tgs.empty()) {
-    return std::make_shared<std::unordered_map<std::string, double>>();
-  }
-
-  for (auto it = tgs.begin(); it != tgs.end(); it++) {
-    transaction_graph_ptr_t ptr = *it;
-    neb::rt::graph_algo::remove_cycles_based_on_time_sequence(
-        ptr->internal_graph());
-    neb::rt::graph_algo::merge_edges_with_same_from_and_same_to(
-        ptr->internal_graph());
-  }
-
-  transaction_graph_ptr_t tg = neb::rt::graph_algo::merge_graphs(tgs);
-  neb::rt::graph_algo::merge_topk_edges_with_same_from_and_same_to(
-      tg->internal_graph());
-
-  auto it_accounts = get_normal_accounts(ret);
-  auto accounts = *it_accounts;
-  std::unordered_map<account_address_t, account_balance_t> addr_balance;
-  auto it_median =
-      get_account_balance_median(accounts, txs, m_adb_ptr, addr_balance);
-  auto median = *it_median;
-
-  auto it_in_out_vals =
-      neb::rt::graph_algo::get_in_out_vals(tg->internal_graph());
-  auto in_out_vals = *it_in_out_vals;
-  auto it_account_weight = get_account_weight(in_out_vals, m_adb_ptr);
-  auto account_weight = *it_account_weight;
-
-  return get_account_rank(median, account_weight, m_rp);
 }
 
 } // namespace nr

@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
+#include "common/common.h"
 #include <boost/graph/adjacency_list.hpp>
 
 namespace boost {
@@ -34,8 +35,8 @@ public:
   typedef boost::adjacency_list<
       boost::vecS, boost::vecS, boost::bidirectionalS,
       boost::property<boost::vertex_name_t, std::string>,
-      boost::property<boost::edge_weight_t, double,
-                      boost::property<boost::edge_timestamp_t, double>>>
+      boost::property<boost::edge_weight_t, wei_t,
+                      boost::property<boost::edge_timestamp_t, int64_t>>>
       internal_graph_t;
 
   typedef typename boost::graph_traits<internal_graph_t>::vertex_descriptor
@@ -52,8 +53,8 @@ public:
 
   transaction_graph();
 
-  void add_edge(const std::string &from, const std::string &to, double val,
-                double ts);
+  void add_edge(const std::string &from, const std::string &to, wei_t val,
+                int64_t ts);
 
   void write_to_graphviz(const std::string &filename);
 

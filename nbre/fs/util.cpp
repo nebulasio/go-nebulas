@@ -71,4 +71,11 @@ std::string now() {
   return ret;
 }
 
+wei_t to_wei(const std::string &hex_str) {
+  std::stringstream ss;
+  ss << std::hex << hex_str;
+  neb::wei_t wei;
+  ss >> wei;
+  return wei;
+}
 } // end namespace neb

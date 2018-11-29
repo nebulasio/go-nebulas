@@ -27,7 +27,7 @@ namespace rt {
 transaction_graph::transaction_graph() : m_cur_max_index(0) {}
 
 void transaction_graph::add_edge(const std::string &from, const std::string &to,
-                                 double val, double ts) {
+                                 wei_t val, int64_t ts) {
   uint64_t from_vertex, to_vertex;
 
   auto tmp_func = [&](const std::string &addr) {
@@ -100,8 +100,8 @@ transaction_graph_ptr_t build_graph_from_internal(
       std::string from = boost::get(boost::vertex_name_t(), sgi, source);
       auto target = boost::target(*oei, sgi);
       std::string to = boost::get(boost::vertex_name_t(), sgi, target);
-      double w = boost::get(boost::edge_weight_t(), sgi, *oei);
-      double t = boost::get(boost::edge_timestamp_t(), sgi, *oei);
+      wei_t w = boost::get(boost::edge_weight_t(), sgi, *oei);
+      int64_t t = boost::get(boost::edge_timestamp_t(), sgi, *oei);
 
       tg_ptr->add_edge(from, to, w, t);
     }

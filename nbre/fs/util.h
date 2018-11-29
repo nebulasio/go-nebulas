@@ -38,5 +38,7 @@ bool exists(const std::string &p);
 } // end namespace fs
 
 std::string now();
+
+wei_t to_wei(const std::string &hex_str);
 } // end namespace neb
 

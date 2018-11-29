@@ -42,8 +42,8 @@ void graph_algo::dfs_find_a_cycle_from_vertex_based_on_time_sequence(
 
     if (target == start_vertex) {
       if (!edges.empty()) {
-        double ts = boost::get(boost::edge_timestamp_t(), graph, edges.back());
-        double ts_next = boost::get(boost::edge_timestamp_t(), graph, *oei);
+        int64_t ts = boost::get(boost::edge_timestamp_t(), graph, edges.back());
+        int64_t ts_next = boost::get(boost::edge_timestamp_t(), graph, *oei);
         if (ts >= ts_next) {
           continue;
         }
@@ -54,16 +54,16 @@ void graph_algo::dfs_find_a_cycle_from_vertex_based_on_time_sequence(
 
       if (!ret.empty()) {
 
-        double min_w_ret = -1;
+        wei_t min_w_ret = -1;
         for (auto it = ret.begin(); it != ret.end(); it++) {
-          double w_ret = boost::get(boost::edge_weight_t(), graph, *it);
-          min_w_ret = (min_w_ret == -1 ? w_ret : fmin(min_w_ret, w_ret));
+          wei_t w_ret = boost::get(boost::edge_weight_t(), graph, *it);
+          min_w_ret = (min_w_ret == -1 ? w_ret : min(min_w_ret, w_ret));
         }
 
-        double min_w_cur = -1;
+        wei_t min_w_cur = -1;
         for (auto it = edges.begin(); it != edges.end(); it++) {
-          double w_cur = boost::get(boost::edge_weight_t(), graph, *it);
-          min_w_cur = (min_w_cur == -1 ? w_cur : fmin(min_w_cur, w_cur));
+          wei_t w_cur = boost::get(boost::edge_weight_t(), graph, *it);
+          min_w_cur = (min_w_cur == -1 ? w_cur : min(min_w_cur, w_cur));
         }
 
         if (min_w_cur >= min_w_ret) {
@@ -91,8 +91,8 @@ void graph_algo::dfs_find_a_cycle_from_vertex_based_on_time_sequence(
           start_vertex, target, graph, visited, edges, has_cycle, ret);
       edges.pop_back();
     } else {
-      double ts = boost::get(boost::edge_timestamp_t(), graph, edges.back());
-      double ts_next = boost::get(boost::edge_timestamp_t(), graph, *oei);
+      int64_t ts = boost::get(boost::edge_timestamp_t(), graph, edges.back());
+      int64_t ts_next = boost::get(boost::edge_timestamp_t(), graph, *oei);
       if (ts < ts_next) {
         edges.push_back(*oei);
         dfs_find_a_cycle_from_vertex_based_on_time_sequence(
@@ -149,14 +149,14 @@ void graph_algo::remove_cycles_based_on_time_sequence(
       find_a_cycle_based_on_time_sequence(graph);
   while (!ret.empty()) {
 
-    double min_w = -1;
+    wei_t min_w = -1;
     for (auto it = ret.begin(); it != ret.end(); it++) {
-      double w = boost::get(boost::edge_weight_t(), graph, *it);
-      min_w = (min_w == -1 ? w : fmin(min_w, w));
+      wei_t w = boost::get(boost::edge_weight_t(), graph, *it);
+      min_w = (min_w == -1 ? w : min(min_w, w));
     }
 
     for (auto it = ret.begin(); it != ret.end(); it++) {
-      double w = boost::get(boost::edge_weight_t(), graph, *it);
+      wei_t w = boost::get(boost::edge_weight_t(), graph, *it);
       boost::put(boost::edge_weight_t(), graph, *it, w - min_w);
       if (w == min_w) {
         boost::remove_edge(*it, graph);
@@ -174,12 +174,12 @@ void graph_algo::merge_edges_with_same_from_and_same_to(
 
   for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
     transaction_graph::oeiterator_t oei, oei_end;
-    std::unordered_map<transaction_graph::vertex_descriptor_t, double>
+    std::unordered_map<transaction_graph::vertex_descriptor_t, wei_t>
         target_and_vals;
     for (boost::tie(oei, oei_end) = boost::out_edges(*vi, graph);
          oei != oei_end; oei++) {
       auto target = boost::target(*oei, graph);
-      double val = boost::get(boost::edge_weight_t(), graph, *oei);
+      wei_t val = boost::get(boost::edge_weight_t(), graph, *oei);
       if (target_and_vals.find(target) == target_and_vals.end()) {
         target_and_vals.insert(std::make_pair(target, val));
       } else {
@@ -221,7 +221,7 @@ graph_algo::merge_two_graphs(transaction_graph_ptr_t tg,
       std::string from = boost::get(boost::vertex_name_t(), sgi, source);
       auto target = boost::target(*oei, sgi);
       std::string to = boost::get(boost::vertex_name_t(), sgi, target);
-      double w = boost::get(boost::edge_weight_t(), sgi, *oei);
+      wei_t w = boost::get(boost::edge_weight_t(), sgi, *oei);
 
       tg->add_edge(from, to, w, 0);
     }
@@ -248,7 +248,7 @@ void graph_algo::merge_topk_edges_with_same_from_and_same_to(
   transaction_graph::viterator_t vi, vi_end;
 
   struct edge_st {
-    double weight;
+    wei_t weight;
     transaction_graph::edge_descriptor_t edescriptor;
   };
 
@@ -260,7 +260,7 @@ void graph_algo::merge_topk_edges_with_same_from_and_same_to(
       pq_t;
 
   for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
-    std::unordered_map<transaction_graph::vertex_descriptor_t, double>
+    std::unordered_map<transaction_graph::vertex_descriptor_t, wei_t>
         target_and_vals;
     std::unordered_map<transaction_graph::vertex_descriptor_t, pq_t>
         target_and_minheap;
@@ -269,7 +269,7 @@ void graph_algo::merge_topk_edges_with_same_from_and_same_to(
     for (boost::tie(oei, oei_end) = boost::out_edges(*vi, graph);
          oei != oei_end; oei++) {
       auto target = boost::target(*oei, graph);
-      double val = boost::get(boost::edge_weight_t(), graph, *oei);
+      wei_t val = boost::get(boost::edge_weight_t(), graph, *oei);
       if (target_and_vals.find(target) == target_and_vals.end()) {
         target_and_vals.insert(std::make_pair(target, val));
         pq_t min_heap(cmp);
@@ -321,18 +321,18 @@ graph_algo::get_in_out_vals(const transaction_graph::internal_graph_t &graph) {
 
   for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
     transaction_graph::ieiterator_t iei, iei_end;
-    double in_val = 0;
+    wei_t in_val = 0;
     for (boost::tie(iei, iei_end) = boost::in_edges(*vi, graph); iei != iei_end;
          iei++) {
-      double val = boost::get(boost::edge_weight_t(), graph, *iei);
+      wei_t val = boost::get(boost::edge_weight_t(), graph, *iei);
       in_val += val;
     }
 
     transaction_graph::oeiterator_t oei, oei_end;
-    double out_val = 0;
+    wei_t out_val = 0;
     for (boost::tie(oei, oei_end) = boost::out_edges(*vi, graph);
          oei != oei_end; oei++) {
-      double val = boost::get(boost::edge_weight_t(), graph, *oei);
+      wei_t val = boost::get(boost::edge_weight_t(), graph, *oei);
       out_val += val;
     }
 
@@ -342,10 +342,10 @@ graph_algo::get_in_out_vals(const transaction_graph::internal_graph_t &graph) {
   return std::make_shared<std::unordered_map<std::string, in_out_val_t>>(ret);
 }
 
-std::shared_ptr<std::unordered_map<address_t, double>>
+std::shared_ptr<std::unordered_map<address_t, wei_t>>
 graph_algo::get_stakes(const transaction_graph::internal_graph_t &graph) {
 
-  std::unordered_map<std::string, double> ret;
+  std::unordered_map<std::string, wei_t> ret;
 
   auto it_in_out_vals = get_in_out_vals(graph);
   auto in_out_vals = *it_in_out_vals;
@@ -353,7 +353,7 @@ graph_algo::get_stakes(const transaction_graph::internal_graph_t &graph) {
     ret.insert(
         std::make_pair(it->first, it->second.m_in_val - it->second.m_out_val));
   }
-  return std::make_shared<std::unordered_map<std::string, double>>(ret);
+  return std::make_shared<std::unordered_map<std::string, wei_t>>(ret);
 }
 
 std::shared_ptr<std::unordered_map<address_t, in_out_degree_t>>

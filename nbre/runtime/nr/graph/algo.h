@@ -25,8 +25,8 @@ namespace neb {
 namespace rt {
 
 struct in_out_val_t {
-  double m_in_val;
-  double m_out_val;
+  wei_t m_in_val;
+  wei_t m_out_val;
 };
 
 struct in_out_degree_t {
@@ -52,7 +52,7 @@ public:
       -> std::shared_ptr<std::unordered_map<address_t, in_out_val_t>>;
 
   static auto get_stakes(const transaction_graph::internal_graph_t &graph)
-      -> std::shared_ptr<std::unordered_map<address_t, double>>;
+      -> std::shared_ptr<std::unordered_map<address_t, wei_t>>;
 
   static auto
   get_in_out_degrees(const transaction_graph::internal_graph_t &graph)
@@ -82,6 +82,8 @@ private:
   static transaction_graph_ptr_t
   merge_two_graphs(transaction_graph_ptr_t tg,
                    const transaction_graph_ptr_t sg);
+
+  static inline wei_t min(wei_t w1, wei_t w2) { return w1 < w2 ? w1 : w2; }
 };
 } // namespace rt
 } // namespace neb
