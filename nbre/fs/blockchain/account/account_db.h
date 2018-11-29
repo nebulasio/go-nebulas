@@ -20,26 +20,32 @@
 
 #pragma once
 
-#include "fs/blockchain.h"
+#include "common/common.h"
+#include "fs/blockchain/transaction/transaction_db.h"
 
 namespace neb {
 namespace fs {
 
-struct transaction_info_t {
-  block_height_t m_height;
-  std::string m_from;
-  std::string m_to;
-  std::string m_tx_value;
-  std::string m_timestamp;
-};
-
-class transaction_db : public blockchain {
+class account_db {
 public:
-  transaction_db(const std::string &path);
+  account_db(blockchain_api *blockchain_ptr);
 
-  std::shared_ptr<std::vector<transaction_info_t>>
-  read_inter_transaction_from_db_with_duration(block_height_t start_block,
-                                               block_height_t end_block);
+  wei_t get_balance(const address_t &addr, block_height_t height);
+
+  void set_height_address_val_internal(
+      block_height_t start_block, block_height_t end_block,
+      std::unordered_map<address_t, wei_t> &addr_balance);
+
+  wei_t get_account_balance_internal(const address_t &addr,
+                                     block_height_t height);
+
+  static double get_normalized_value(wei_t value);
+
+private:
+  std::unordered_map<address_t, std::vector<block_height_t>> m_addr_height_list;
+  std::unordered_map<block_height_t, std::unordered_map<address_t, wei_t>>
+      m_height_addr_val;
+  blockchain_api *m_blockchain;
 };
 } // namespace fs
 } // namespace neb

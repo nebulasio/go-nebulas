@@ -18,46 +18,44 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "fs/transaction/transaction_db.h"
+#include "fs/blockchain/transaction/transaction_db.h"
 
 namespace neb {
 namespace fs {
 
-transaction_db::transaction_db(const std::string &path) : blockchain(path) {}
+transaction_db::transaction_db(blockchain_api *blockchain_ptr)
+    : m_blockchain(blockchain_ptr) {}
 
 std::shared_ptr<std::vector<transaction_info_t>>
-transaction_db::read_inter_transaction_from_db_with_duration(
+transaction_db::read_transactions_from_db_with_duration(
     block_height_t start_block, block_height_t end_block) {
 
   std::vector<transaction_info_t> txs;
 
   for (block_height_t h = start_block; h < end_block; h++) {
-    auto block = this->load_block_with_height(h);
-
-    // TODO type revise
-    std::string timestamp = std::to_string(block->header().timestamp());
-
-    for (auto &tx : block->transactions()) {
-      transaction_info_t info;
-      neb::util::bytes from_bytes = neb::util::string_to_byte(tx.from());
-      if (from_bytes[1] == 0x58) {
-        continue;
-      }
-      neb::util::bytes to_bytes = neb::util::string_to_byte(tx.to());
-      if (to_bytes[1] == 0x58) {
-        continue;
-      }
-
-      info.m_from = tx.from();
-      info.m_to = tx.to();
-      info.m_tx_value = tx.value();
-      info.m_timestamp = timestamp;
-
-      txs.push_back(info);
-    }
+    auto ret = m_blockchain->get_block_transactions_api(h);
+    txs.insert(txs.end(), ret->begin(), ret->end());
   }
-
   return std::make_shared<std::vector<transaction_info_t>>(txs);
 }
+
+std::shared_ptr<std::vector<transaction_info_t>>
+transaction_db::read_account_inter_transactions(block_height_t start_block,
+                                                block_height_t end_block) {
+
+  auto txs = read_transactions_from_db_with_duration(start_block, end_block);
+  std::vector<transaction_info_t> ret;
+
+  for (auto &tx : *txs) {
+    neb::util::bytes from_bytes = neb::util::string_to_byte(tx.m_from);
+    neb::util::bytes to_bytes = neb::util::string_to_byte(tx.m_to);
+
+    if (from_bytes[1] == 0x58 && to_bytes[1] == 0x58) {
+      ret.push_back(tx);
+    }
+  }
+  return std::make_shared<std::vector<transaction_info_t>>(ret);
+}
+
 } // namespace fs
 } // namespace neb
