@@ -5,6 +5,7 @@ add_executable(test_fs main.cpp
   gtest_nbre_storage.cpp
   gtest_trie.cpp
   gtest_transaction_db.cpp
+  gtest_account_db.cpp
   )
 
 target_link_libraries(test_fs  nbre_rt gtest)

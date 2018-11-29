@@ -19,7 +19,8 @@
 //
 
 #include "common/configuration.h"
-#include "fs/trie/trie.h"
+#include "fs/blockchain.h"
+#include "fs/blockchain/trie/trie.h"
 #include <gtest/gtest.h>
 
 TEST(test_fs, key_to_route) {
@@ -48,13 +49,4 @@ TEST(test_fs, route_to_key) {
   }
 }
 
-TEST(test_fs, get_trie_node) {
-  std::string neb_db_path = neb::configuration::instance().neb_db_dir();
-  neb::fs::rocksdb_storage rs;
-  rs.open_database(neb_db_path, neb::fs::storage_open_for_readonly);
-  neb::fs::trie t(&rs);
-
-  std::string root_hash_str =
-      "fd398c1351e60c44f44038fef233525f59d4fee3a4b4cf5546653a3a188b04db";
-  rs.close_database();
-}
+TEST(test_fs, get_trie_node) {}

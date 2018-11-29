@@ -19,14 +19,16 @@
 //
 
 #include "common/configuration.h"
-#include "fs/transaction/transaction_db.h"
+#include "fs/blockchain/transaction/transaction_db.h"
 #include <gtest/gtest.h>
 
 TEST(test_fs, read_inter_transaction_from_db_with_duration) {
   std::string neb_db_path = neb::configuration::instance().neb_db_dir();
-  neb::fs::transaction_db tdb(neb_db_path);
+  neb::fs::blockchain b(neb_db_path);
+  neb::fs::blockchain_api ba(&b);
+  neb::fs::transaction_db tdb(&ba);
 
-  auto txs = tdb.read_inter_transaction_from_db_with_duration(5700, 5701);
+  auto txs = tdb.read_transactions_from_db_with_duration(204223, 204224);
   for (auto &tx : *txs) {
     LOG(INFO) << neb::util::string_to_byte(tx.m_from).to_base58();
     LOG(INFO) << neb::util::string_to_byte(tx.m_to).to_base58();
