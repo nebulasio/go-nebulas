@@ -50,8 +50,8 @@ class trie {
 public:
   trie(rocksdb_storage *db_ptr);
 
-  neb::util::bytes get_trie_node(const neb::util::bytes &root_hash,
-                                 const neb::util::bytes &key);
+  bool get_trie_node(const neb::util::bytes &root_hash,
+                     const neb::util::bytes &key, neb::util::bytes &trie_node);
 
 private:
   std::unique_ptr<trie_node> fetch_node(const neb::util::bytes &hash);

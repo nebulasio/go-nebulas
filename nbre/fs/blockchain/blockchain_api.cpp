@@ -43,10 +43,12 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
     info.m_status = 1;
     info.m_gas_used = 0;
 
+    info.m_height = height;
+    info.m_timestamp = timestamp;
+
     info.m_from = tx.from();
     info.m_to = tx.to();
     info.m_tx_value = to_wei(neb::util::string_to_byte(tx.value()).to_hex());
-    info.m_timestamp = timestamp;
     info.m_gas_price =
         to_wei(neb::util::string_to_byte(tx.gas_price()).to_hex());
 
@@ -67,9 +69,14 @@ blockchain_api::get_account_api(const address_t &addr, block_height_t height) {
 
   // get trie node
   trie t(rs_ptr);
+  neb::util::bytes addr_bytes = neb::util::string_to_byte(addr);
   // TODO def address_t as neb::util::bytes
-  auto trie_node_bytes =
-      t.get_trie_node(state_root_bytes, neb::util::string_to_byte(addr));
+  neb::util::bytes trie_node_bytes;
+  bool is_found =
+      t.get_trie_node(state_root_bytes, addr_bytes, trie_node_bytes);
+  if (!is_found) {
+    std::make_shared<account_info_t>(account_info_t{addr, 0});
+  }
 
   std::shared_ptr<corepb::Account> corepb_account_ptr =
       std::make_shared<corepb::Account>();

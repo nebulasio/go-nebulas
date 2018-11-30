@@ -59,8 +59,9 @@ std::unique_ptr<trie_node> trie::fetch_node(const neb::util::bytes &hash) {
   return std::make_unique<trie_node>(triepb_bytes);
 }
 
-neb::util::bytes trie::get_trie_node(const neb::util::bytes &root_hash,
-                                     const neb::util::bytes &key) {
+bool trie::get_trie_node(const neb::util::bytes &root_hash,
+                         const neb::util::bytes &key,
+                         neb::util::bytes &trie_node) {
   auto hash = root_hash;
   auto route = key_to_route(key);
 
@@ -68,41 +69,48 @@ neb::util::bytes trie::get_trie_node(const neb::util::bytes &root_hash,
   size_t route_size = route.size();
   neb::byte_t *end_ptr = route.value() + route_size;
 
-  while (route_ptr != end_ptr) {
+  try {
 
-    auto root_node = fetch_node(hash);
-    auto root_type = root_node->get_trie_node_type();
-    if (route_ptr == end_ptr && root_type != trie_node_type::trie_node_leaf) {
-      throw std::runtime_error("key/path too short");
-    }
+    while (route_ptr != end_ptr) {
 
-    if (root_type == trie_node_type::trie_node_branch) {
-      hash = root_node->val_at(route_ptr[0]);
-      route_ptr++;
+      auto root_node = fetch_node(hash);
+      auto root_type = root_node->get_trie_node_type();
+      if (route_ptr == end_ptr && root_type != trie_node_type::trie_node_leaf) {
+        throw std::runtime_error("key/path too short");
+      }
 
-    } else if (root_type == trie_node_type::trie_node_extension) {
-      auto key_path = root_node->val_at(1);
-      auto next_hash = root_node->val_at(2);
+      if (root_type == trie_node_type::trie_node_branch) {
+        hash = root_node->val_at(route_ptr[0]);
+        route_ptr++;
 
-      size_t matched_len = prefix_len(key_path.value(), key_path.size(),
-                                      route.value(), route.size());
-      if (matched_len != key_path.size()) {
+      } else if (root_type == trie_node_type::trie_node_extension) {
+        auto key_path = root_node->val_at(1);
+        auto next_hash = root_node->val_at(2);
+
+        size_t matched_len = prefix_len(key_path.value(), key_path.size(),
+                                        route.value(), route.size());
+        if (matched_len != key_path.size()) {
+          throw std::runtime_error("key path not found");
+        }
+        hash = next_hash;
+        route_ptr += matched_len;
+      } else if (root_type == trie_node_type::trie_node_leaf) {
+        auto key_path = root_node->val_at(1);
+        size_t left_size = end_ptr - route_ptr;
+        size_t matched_len =
+            prefix_len(key_path.value(), key_path.size(), route_ptr, left_size);
+        if (matched_len != key_path.size() || matched_len != left_size) {
+          throw std::runtime_error("key path not found");
+        }
+        trie_node = root_node->val_at(2);
+        return true;
+      } else {
         throw std::runtime_error("key path not found");
       }
-      hash = next_hash;
-      route_ptr += matched_len;
-    } else if (root_type == trie_node_type::trie_node_leaf) {
-      auto key_path = root_node->val_at(1);
-      size_t left_size = end_ptr - route_ptr;
-      size_t matched_len =
-          prefix_len(key_path.value(), key_path.size(), route_ptr, left_size);
-      if (matched_len != key_path.size() || matched_len != left_size) {
-        throw std::runtime_error("key path not found");
-      }
-      return root_node->val_at(2);
-    } else {
-      throw std::runtime_error("key path not found");
-    }
+  }
+
+  } catch (const std::exception &e) {
+    return false;
   }
 
   throw std::runtime_error("key path not found");

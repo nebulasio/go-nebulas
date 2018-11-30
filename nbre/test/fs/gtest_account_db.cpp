@@ -49,7 +49,8 @@ TEST(test_fs, account_state) {
   neb::util::bytes state_root_bytes = neb::util::string_to_byte(state_root_str);
 
   // get trie node
-  auto trie_node_bytes = t.get_trie_node(state_root_bytes, addr_bytes);
+  neb::util::bytes trie_node_bytes;
+  t.get_trie_node(state_root_bytes, addr_bytes, trie_node_bytes);
 
   std::shared_ptr<corepb::Account> corepb_account_ptr =
       std::make_shared<corepb::Account>();
