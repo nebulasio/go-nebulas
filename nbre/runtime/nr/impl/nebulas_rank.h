@@ -65,10 +65,6 @@ public:
   auto get_normal_accounts(const std::vector<neb::fs::transaction_info_t> &txs)
       -> std::shared_ptr<std::unordered_set<std::string>>;
 
-  auto get_account_balance(const std::unordered_set<address_t> &accounts,
-                           const account_db_ptr_t db_ptr)
-      -> std::shared_ptr<std::unordered_map<address_t, wei_t>>;
-
   auto get_account_balance_median(
       const std::unordered_set<std::string> &accounts,
       const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,

@@ -40,17 +40,15 @@ transaction_db::read_transactions_from_db_with_duration(
 }
 
 std::shared_ptr<std::vector<transaction_info_t>>
-transaction_db::read_account_inter_transactions(block_height_t start_block,
-                                                block_height_t end_block) {
+transaction_db::read_account_inter_transactions(
+    const std::vector<transaction_info_t> &txs) {
 
-  auto txs = read_transactions_from_db_with_duration(start_block, end_block);
   std::vector<transaction_info_t> ret;
-
-  for (auto &tx : *txs) {
+  for (auto &tx : txs) {
     neb::util::bytes from_bytes = neb::util::string_to_byte(tx.m_from);
     neb::util::bytes to_bytes = neb::util::string_to_byte(tx.m_to);
 
-    if (from_bytes[1] == 0x58 && to_bytes[1] == 0x58) {
+    if (from_bytes[1] == 0x57 && to_bytes[1] == 0x57) {
       ret.push_back(tx);
     }
   }

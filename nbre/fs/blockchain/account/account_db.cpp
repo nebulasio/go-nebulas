@@ -33,10 +33,9 @@ wei_t account_db::get_balance(const address_t &addr, block_height_t height) {
 }
 
 void account_db::set_height_address_val_internal(
-    block_height_t start_block, block_height_t end_block,
+    const std::vector<transaction_info_t> &txs,
     std::unordered_map<address_t, wei_t> &addr_balance) {
 
-  std::vector<transaction_info_t> txs;
   for (auto it = txs.begin(); it != txs.end(); it++) {
     std::string from = it->m_from;
     std::string to = it->m_to;

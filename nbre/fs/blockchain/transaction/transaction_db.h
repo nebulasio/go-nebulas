@@ -34,8 +34,7 @@ public:
                                           block_height_t end_block);
 
   std::shared_ptr<std::vector<transaction_info_t>>
-  read_account_inter_transactions(block_height_t start_block,
-                                  block_height_t end_block);
+  read_account_inter_transactions(const std::vector<transaction_info_t> &txs);
 
 private:
   blockchain_api *m_blockchain;

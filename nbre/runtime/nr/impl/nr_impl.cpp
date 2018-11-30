@@ -20,29 +20,39 @@
 
 #include "runtime/nr/impl/nr_impl.h"
 #include "common/common.h"
+#include "common/configuration.h"
 #include "fs/blockchain/nebulas_currency.h"
 #include "runtime/nr/impl/nebulas_rank.h"
 
 std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
-  neb::block_height_t start_block;
-  neb::block_height_t end_block;
+  neb::block_height_t start_block = 1111780;
+  neb::block_height_t end_block = 1117539;
   std::string date;
-  neb::rt::nr::transaction_db_ptr_t tdb_ptr;
-  neb::rt::nr::account_db_ptr_t adb_ptr;
+
+  std::string neb_db_path = neb::configuration::instance().neb_db_dir();
+  LOG(INFO) << "neb db path: " << neb_db_path;
+  neb::fs::blockchain bc(neb_db_path);
+  neb::fs::blockchain_api ba(&bc);
+  neb::rt::nr::transaction_db_ptr_t tdb_ptr =
+      std::make_shared<neb::fs::transaction_db>(&ba);
+  neb::rt::nr::account_db_ptr_t adb_ptr =
+      std::make_shared<neb::fs::account_db>(&ba);
 
   LOG(INFO) << "start block: " << start_block << " , end block: " << end_block;
   neb::rt::nr::rank_params_t rp{2000.0, 200000.0, 100.0, 1000.0, 0.75, 3.14};
   neb::rt::nr::nebulas_rank nr(tdb_ptr, adb_ptr, rp, start_block, end_block);
 
+  auto it_txs =
+      tdb_ptr->read_transactions_from_db_with_duration(start_block, end_block);
   // account inter transactions
-  auto it_account_inter_txs =
-      tdb_ptr->read_account_inter_transactions(start_block, end_block);
+  auto it_account_inter_txs = tdb_ptr->read_account_inter_transactions(*it_txs);
   auto account_inter_txs = *it_account_inter_txs;
   LOG(INFO) << "account to account: " << account_inter_txs.size();
 
   // graph
   auto it_txs_v = nr.split_transactions_by_block_interval(account_inter_txs);
   auto txs_v = *it_txs_v;
+  LOG(INFO) << "split by block interval: " << txs_v.size();
 
   neb::rt::nr::transaction_graph_ptr_t tg =
       std::make_shared<neb::rt::transaction_graph>();
@@ -78,6 +88,8 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
     auto balance = adb_ptr->get_balance(acc, start_block);
     addr_balance.insert(std::make_pair(acc, balance));
   }
+  adb_ptr->set_height_address_val_internal(*it_txs, addr_balance);
+
   auto it_account_median =
       nr.get_account_balance_median(accounts, txs_v, adb_ptr, addr_balance);
   auto account_median = *it_account_median;
@@ -137,6 +149,11 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
                    account_weight[addr],
                    account_rank[addr]};
     infos.push_back(info);
+
+    // neb::util::bytes addr_bytes = neb::util::string_to_byte(addr);
+    // LOG(INFO) << addr_bytes.to_base58() << ',' << degrees[addr] << ','
+    //<< nas_stake.value() << ',' << account_median[addr] << ','
+    //<< account_weight[addr] << ',' << account_rank[addr];
   }
   return infos;
 }

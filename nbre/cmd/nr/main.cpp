@@ -18,16 +18,10 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "runtime/nr/impl/nebulas_rank.h"
+#include "runtime/nr/impl/nr_impl.h"
 
 int main(int argc, char *argv[]) {
 
-  neb::rt::nr::transaction_db_ptr_t tdb_ptr;
-  neb::rt::nr::account_db_ptr_t adb_ptr;
-  neb::rt::nr::rank_params_t para;
-  neb::block_height_t start_block = 0;
-  neb::block_height_t end_block = 0;
-
-  neb::rt::nr::nebulas_rank nr(tdb_ptr, adb_ptr, para, start_block, end_block);
+  auto ret = entry_point_nr_impl(nullptr, nullptr);
   return 0;
 }

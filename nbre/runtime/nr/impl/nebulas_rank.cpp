@@ -133,10 +133,6 @@ nebulas_rank::get_normal_accounts(
   return std::make_shared<std::unordered_set<std::string>>(ret);
 }
 
-std::shared_ptr<std::unordered_map<address_t, wei_t>>
-nebulas_rank::get_account_balance(const std::unordered_set<address_t> &accounts,
-                                  const account_db_ptr_t db_ptr) {}
-
 std::shared_ptr<std::unordered_map<std::string, double>>
 nebulas_rank::get_account_balance_median(
     const std::unordered_set<std::string> &accounts,
@@ -146,9 +142,6 @@ nebulas_rank::get_account_balance_median(
 
   std::unordered_map<std::string, double> ret;
   std::unordered_map<std::string, std::vector<wei_t>> addr_balance_v;
-
-  db_ptr->set_height_address_val_internal(m_start_block, m_end_block,
-                                          addr_balance);
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
     block_height_t max_height_this_interval =
@@ -164,7 +157,7 @@ nebulas_rank::get_account_balance_median(
   for (auto it = addr_balance_v.begin(); it != addr_balance_v.end(); it++) {
     std::vector<wei_t> v = it->second;
     sort(v.begin(), v.end());
-    int v_len = v.size();
+    size_t v_len = v.size();
     wei_t median = v[v_len / 2];
     if ((v_len & 1) == 0) {
       median = (median + v[v_len / 2 - 1]) / 2;

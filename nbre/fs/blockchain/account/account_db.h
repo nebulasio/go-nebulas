@@ -33,7 +33,7 @@ public:
   wei_t get_balance(const address_t &addr, block_height_t height);
 
   void set_height_address_val_internal(
-      block_height_t start_block, block_height_t end_block,
+      const std::vector<transaction_info_t> &txs,
       std::unordered_map<address_t, wei_t> &addr_balance);
 
   wei_t get_account_balance_internal(const address_t &addr,
