@@ -19,34 +19,36 @@
 //
 
 #pragma once
-
 #include "common/common.h"
 #include "common/math.h"
-#include "fs/blockchain/transaction/transaction_db.h"
 
 namespace neb {
-namespace fs {
 
-class account_db {
+class detail_int128 {
 public:
-  account_db(blockchain_api *blockchain_ptr);
+  inline detail_int128() { m_data.m_data = 0; }
+  inline detail_int128(int128_t data) { m_data.m_data = data; }
 
-  wei_t get_balance(const address_t &addr, block_height_t height);
+  inline float64 to_float64() {
+    uint64_t tmp = 1ULL << 63;
+    return float64(low()) + float64(high()) * float64(tmp) * 2;
+  }
 
-  void set_height_address_val_internal(
-      const std::vector<transaction_info_t> &txs,
-      std::unordered_map<address_t, wei_t> &addr_balance);
-
-  wei_t get_account_balance_internal(const address_t &addr,
-                                     block_height_t height);
-
-  static float64 get_normalized_value(float64 value);
+  inline uint64_t low() { return m_data.m_detail.m_low; }
+  inline int64_t high() { return m_data.m_detail.m_high; }
 
 private:
-  std::unordered_map<address_t, std::vector<block_height_t>> m_addr_height_list;
-  std::unordered_map<block_height_t, std::unordered_map<address_t, wei_t>>
-      m_height_addr_val;
-  blockchain_api *m_blockchain;
+  union _int128_t {
+    _int128_t() { m_data = 0; }
+    int128_t m_data;
+    struct _detail_t {
+      uint64_t m_low;
+      int64_t m_high;
+    };
+    _detail_t m_detail;
+  };
+
+  _int128_t m_data;
 };
-} // namespace fs
+
 } // namespace neb

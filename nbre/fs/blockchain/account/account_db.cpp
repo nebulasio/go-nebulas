@@ -134,10 +134,9 @@ wei_t account_db::get_account_balance_internal(const address_t &address,
   return m_height_addr_val[*height_it][address];
 }
 
-double account_db::get_normalized_value(wei_t value) {
-  neb::fs::wei wei_val = neb::fs::wei(boost::lexical_cast<long double>(value));
-  neb::fs::nas nas_val = neb::fs::nas_cast<neb::fs::nas>(wei_val);
-  return nas_val.value();
+float64 account_db::get_normalized_value(float64 value) {
+  uint64_t ratio = 1000000000000000000ULL;
+  return value / float64(ratio);
 }
 } // namespace fs
 } // namespace neb

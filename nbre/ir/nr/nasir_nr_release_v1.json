@@ -11,7 +11,8 @@
     "nr_release_v1.cpp"
   ],
   "include_header_files":[
-    "../../"
+    "../../",
+    "../../lib/include"
   ],
   "link_path":[
     "../../lib"

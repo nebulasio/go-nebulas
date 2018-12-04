@@ -21,16 +21,15 @@
 #include "runtime/nr/impl/nr_impl.h"
 #include "common/common.h"
 #include "common/configuration.h"
+#include "common/util/int_conversion.h"
 #include "fs/blockchain/nebulas_currency.h"
 #include "runtime/nr/impl/nebulas_rank.h"
 
 std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
   neb::block_height_t start_block = 1111780;
   neb::block_height_t end_block = 1117539;
-  std::string date;
 
   std::string neb_db_path = neb::configuration::instance().neb_db_dir();
-  LOG(INFO) << "neb db path: " << neb_db_path;
   neb::fs::blockchain bc(neb_db_path);
   neb::fs::blockchain_api ba(&bc);
   neb::rt::nr::transaction_db_ptr_t tdb_ptr =
@@ -40,7 +39,6 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
 
   LOG(INFO) << "start block: " << start_block << " , end block: " << end_block;
   neb::rt::nr::rank_params_t rp{2000.0, 200000.0, 100.0, 1000.0, 0.75, 3.14};
-  neb::rt::nr::nebulas_rank nr(tdb_ptr, adb_ptr, rp, start_block, end_block);
 
   auto it_txs =
       tdb_ptr->read_transactions_from_db_with_duration(start_block, end_block);
@@ -50,16 +48,18 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
   LOG(INFO) << "account to account: " << account_inter_txs.size();
 
   // graph
-  auto it_txs_v = nr.split_transactions_by_block_interval(account_inter_txs);
+  auto it_txs_v =
+      neb::rt::nr::nebulas_rank::split_transactions_by_block_interval(
+          account_inter_txs);
   auto txs_v = *it_txs_v;
   LOG(INFO) << "split by block interval: " << txs_v.size();
 
   neb::rt::nr::transaction_graph_ptr_t tg =
       std::make_shared<neb::rt::transaction_graph>();
 
-  nr.filter_empty_transactions_this_interval(txs_v);
+  neb::rt::nr::nebulas_rank::filter_empty_transactions_this_interval(txs_v);
   std::vector<neb::rt::nr::transaction_graph_ptr_t> tgs =
-      nr.build_transaction_graphs(txs_v);
+      neb::rt::nr::nebulas_rank::build_transaction_graphs(txs_v);
   if (tgs.empty()) {
     return std::vector<nr_info_t>();
   }
@@ -79,7 +79,8 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
   LOG(INFO) << "done with merge graphs.";
 
   // median
-  auto it_accounts = nr.get_normal_accounts(account_inter_txs);
+  auto it_accounts =
+      neb::rt::nr::nebulas_rank::get_normal_accounts(account_inter_txs);
   auto accounts = *it_accounts;
   LOG(INFO) << "account size: " << accounts.size();
 
@@ -91,7 +92,8 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
   adb_ptr->set_height_address_val_internal(*it_txs, addr_balance);
 
   auto it_account_median =
-      nr.get_account_balance_median(accounts, txs_v, adb_ptr, addr_balance);
+      neb::rt::nr::nebulas_rank::get_account_balance_median(
+          accounts, txs_v, adb_ptr, addr_balance);
   auto account_median = *it_account_median;
 
   // degree and in_out amount
@@ -107,10 +109,11 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
   auto stakes = *it_stakes;
 
   // weight and rank
-  auto it_account_weight = nr.get_account_weight(in_out_vals, adb_ptr);
+  auto it_account_weight =
+      neb::rt::nr::nebulas_rank::get_account_weight(in_out_vals, adb_ptr);
   auto account_weight = *it_account_weight;
-  auto it_account_rank =
-      nr.get_account_rank(account_median, account_weight, rp);
+  auto it_account_rank = neb::rt::nr::nebulas_rank::get_account_rank(
+      account_median, account_weight, rp);
   auto account_rank = *it_account_rank;
   LOG(INFO) << "account rank size: " << account_rank.size();
 
@@ -125,35 +128,34 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
       continue;
     }
 
-    neb::fs::wei wei_in_val = neb::fs::wei(boost::lexical_cast<long double>(
-        in_out_vals.find(addr)->second.m_in_val));
-    neb::fs::nas nas_in_val = neb::fs::nas_cast<neb::fs::nas>(wei_in_val);
-
-    neb::fs::wei wei_out_val = neb::fs::wei(boost::lexical_cast<long double>(
-        in_out_vals.find(addr)->second.m_out_val));
-    neb::fs::nas nas_out_val = neb::fs::nas_cast<neb::fs::nas>(wei_out_val);
-
-    neb::fs::wei wei_stake = neb::fs::wei(
-        boost::lexical_cast<long double>(stakes.find(addr)->second));
-    neb::fs::nas nas_stake = neb::fs::nas_cast<neb::fs::nas>(wei_stake);
+    float64 nas_in_val = adb_ptr->get_normalized_value(
+        neb::detail_int128(in_out_vals.find(addr)->second.m_in_val)
+            .to_float64());
+    float64 nas_out_val = adb_ptr->get_normalized_value(
+        neb::detail_int128(in_out_vals.find(addr)->second.m_out_val)
+            .to_float64());
+    float64 nas_stake = adb_ptr->get_normalized_value(
+        neb::detail_int128(stakes.find(addr)->second).to_float64());
 
     nr_info_t info{addr,
-                   date,
                    in_out_degrees[addr].m_in_degree,
                    in_out_degrees[addr].m_out_degree,
                    degrees[addr],
-                   nas_in_val.value(),
-                   nas_out_val.value(),
-                   nas_stake.value(),
+                   nas_in_val,
+                   nas_out_val,
+                   nas_stake,
                    account_median[addr],
                    account_weight[addr],
                    account_rank[addr]};
     infos.push_back(info);
 
-    // neb::util::bytes addr_bytes = neb::util::string_to_byte(addr);
-    // LOG(INFO) << addr_bytes.to_base58() << ',' << degrees[addr] << ','
-    //<< nas_stake.value() << ',' << account_median[addr] << ','
-    //<< account_weight[addr] << ',' << account_rank[addr];
+    if (account_rank[addr] > 0) {
+      neb::util::bytes addr_bytes = neb::util::string_to_byte(addr);
+      LOG(INFO) << addr_bytes.to_base58() << ',' << degrees[addr] << ','
+                << nas_stake << ',' << account_median[addr] << ','
+                << account_weight[addr] << ',' << account_rank[addr];
+    }
   }
+
   return infos;
 }

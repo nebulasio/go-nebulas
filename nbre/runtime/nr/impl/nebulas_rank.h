@@ -30,12 +30,12 @@ namespace rt {
 namespace nr {
 
 struct rank_params_t {
-  double m_a;
-  double m_b;
-  double m_c;
-  double m_d;
-  double m_mu;
-  double m_lambda;
+  float64 m_a;
+  float64 m_b;
+  float64 m_c;
+  float64 m_d;
+  float64 m_mu;
+  float64 m_lambda;
 };
 
 using transaction_db_ptr_t = std::shared_ptr<neb::fs::transaction_db>;
@@ -44,64 +44,56 @@ using transaction_graph_ptr_t = std::shared_ptr<neb::rt::transaction_graph>;
 
 class nebulas_rank {
 public:
-  nebulas_rank();
-  nebulas_rank(const transaction_db_ptr_t tdb_ptr,
-               const account_db_ptr_t adb_ptr, const rank_params_t &rp,
-               block_height_t start_block, block_height_t end_block);
-
-public:
-  auto split_transactions_by_block_interval(
+  static auto split_transactions_by_block_interval(
       const std::vector<neb::fs::transaction_info_t> &txs,
       int32_t block_interval = 128)
       -> std::shared_ptr<std::vector<std::vector<neb::fs::transaction_info_t>>>;
 
-  void filter_empty_transactions_this_interval(
+  static void filter_empty_transactions_this_interval(
       std::vector<std::vector<neb::fs::transaction_info_t>> &txs);
 
-  auto build_transaction_graphs(
+  static auto build_transaction_graphs(
       const std::vector<std::vector<neb::fs::transaction_info_t>> &txs)
       -> std::vector<transaction_graph_ptr_t>;
 
-  auto get_normal_accounts(const std::vector<neb::fs::transaction_info_t> &txs)
+  static auto
+  get_normal_accounts(const std::vector<neb::fs::transaction_info_t> &txs)
       -> std::shared_ptr<std::unordered_set<std::string>>;
 
-  auto get_account_balance_median(
+  static auto get_account_balance_median(
       const std::unordered_set<std::string> &accounts,
       const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
       const account_db_ptr_t db_ptr,
       std::unordered_map<address_t, wei_t> &addr_balance)
-      -> std::shared_ptr<std::unordered_map<std::string, double>>;
+      -> std::shared_ptr<std::unordered_map<std::string, float64>>;
 
-  auto get_account_weight(
+  static auto get_account_weight(
       const std::unordered_map<std::string, neb::rt::in_out_val_t> &in_out_vals,
       const account_db_ptr_t db_ptr)
-      -> std::shared_ptr<std::unordered_map<std::string, double>>;
+      -> std::shared_ptr<std::unordered_map<std::string, float64>>;
 
-  auto get_account_rank(
-      const std::unordered_map<std::string, double> &account_median,
-      const std::unordered_map<std::string, double> &account_weight,
+  static auto get_account_rank(
+      const std::unordered_map<std::string, float64> &account_median,
+      const std::unordered_map<std::string, float64> &account_weight,
       const rank_params_t &rp)
-      -> std::shared_ptr<std::unordered_map<std::string, double>>;
+      -> std::shared_ptr<std::unordered_map<std::string, float64>>;
 
 private:
-  template <class TransInfo>
-  transaction_graph_ptr_t
-  build_graph_from_transactions(const std::vector<TransInfo> &trans);
+  static transaction_graph_ptr_t build_graph_from_transactions(
+      const std::vector<neb::fs::transaction_info_t> &trans);
 
-  block_height_t get_max_height_this_block_interval(
+  static block_height_t get_max_height_this_block_interval(
       const std::vector<neb::fs::transaction_info_t> &txs);
 
-  double f_account_weight(double in_val, double out_val);
+  static float64 max(const float64 &x, const float64 &y) {
+    return x > y ? x : y;
+  }
 
-  double f_account_rank(double a, double b, double c, double d, double mu,
-                        double lambda, double S, double R);
+  static float64 f_account_weight(float64 in_val, float64 out_val);
 
-private:
-  transaction_db_ptr_t m_tdb_ptr;
-  account_db_ptr_t m_adb_ptr;
-  rank_params_t m_rp;
-  block_height_t m_start_block;
-  block_height_t m_end_block;
+  static float64 f_account_rank(float64 a, float64 b, float64 c, float64 d,
+                                float64 mu, float64 lambda, float64 S,
+                                float64 R);
 }; // class nebulas_rank
 } // namespace nr
 } // namespace rt

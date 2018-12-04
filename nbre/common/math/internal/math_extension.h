@@ -99,7 +99,6 @@ template <typename T> T sin(const T &x) {
     } else {
       tmp = ret + s / ji;
     }
-    LOG(INFO) << "tmp: " << tmp;
     if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
       break;
     }
