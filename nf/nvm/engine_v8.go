@@ -59,6 +59,7 @@ import (
 	"sync"
 	"unsafe"
 	"time"
+	"errors"
 
 	"encoding/json"
 	"golang.org/x/net/context"
@@ -227,16 +228,6 @@ func (e *V8Engine) Dispose() {
 // Context returns engine context
 func (e *V8Engine) Context() *Context {
 	return e.ctx
-}
-
-// SetTestingFlag set testing flag, default is False.
-func (e *V8Engine) SetTestingFlag(flag bool) {
-	// deprecated.
-	/*if flag {
-		e.v8engine.testing = C.int(1)
-	} else {
-		e.v8engine.testing = C.int(0)
-	}*/
 }
 
 func (e *V8Engine) SetTimeOut(timeout uint64) {
@@ -494,33 +485,15 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		return "", err
 	}
 
-	logging.CLog().Info(">>>>>>Now is in RunScriptSource")
-
-	var original_nvm bool = false
-	if original_nvm {
-		// done := make(chan bool, 1)
-		// go func() {
-		// 	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
-		// 		C.uintptr_t(e.gcsHandler))
-		// 	done <- true
-		// }()
-		ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
-			C.uintptr_t(e.gcsHandler))
-		e.CollectTracingStats()
-
-	}else{
-
-		logging.CLog().Info(">>>>>>RUN script through grpc")
-
-		// send RPC request and get result
-		_, err := e.DeployContractByRPC(source, sourceLineOffset)
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"err": err,
-			}).Error("Unexpected: Failed to get NVM rpc result")
-		}
-
-	}
+	// done := make(chan bool, 1)
+	// go func() {
+	// 	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
+	// 		C.uintptr_t(e.gcsHandler))
+	// 	done <- true
+	// }()
+	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
+		C.uintptr_t(e.gcsHandler))
+	e.CollectTracingStats()
 
 	//set err
 	if ret == C.NVM_EXE_TIMEOUT_ERR {
@@ -611,33 +584,66 @@ func formatArgs(s string) string {
 
 // =================== NVM rpc ========================
 
-func (e *V8Engine) CallContractByRPC(){
-
+type V8RPCEngine struct{
+	listenAddr string
 }
 
-func (e *V8Engine) DeployContractByRPC(source string, sourceLineOffset int) (string, error) {
+func (e *V8RPCEngine) SetListenAddr(listenAddr string){
+	e.listenAddr = listenAddr
+}
+
+// Get runnable source code, source offset, error
+func (e *V8RPCEngine) GetRunnableSource(origSource string, sourceType string) (string, error){
+	var runnableSource string
+	var sourceLineOffset int
+	var err error
+
+	switch sourceType {
+	case core.SourceTypeJavaScript:
+		runnableSource, sourceLineOffset, err = e.prepareRunnableContractScript(source, function, args)
+	case core.SourceTypeTypeScript:
+		// transpile to javascript.
+		jsSource, _, err := e.TranspileTypeScript(origSource)
+		if err != nil {
+			return "", err
+		}
+		runnableSource, sourceLineOffset, err = e.prepareRunnableContractScript(jsSource, function, args)
+	default:
+		return "", ErrUnsupportedSourceType
+	}
+	return 
+}
+
+// Deploy contract through RPC
+func (e *V8RPCEngine) DeployContractByRPC(config *core.NVMConfig, listenAddr string) (core.NVMExeResponse, error){
 
 	// start to dial and bulld the connection with v8 server
-	logging.CLog().Info("V8 server address is: ", e.serverListenAddr)
+	logging.CLog().Info("V8 server address is: ", e.listenAddr)
 
-	conn, err := grpc.Dial(e.serverListenAddr, grpc.WithInsecure())
+	conn, err := grpc.Dial(e.listenAddr, grpc.WithInsecure())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
 		}).Error("Failed to connect with V8 server")
 	}
 	defer conn.Close()
+
 	logging.CLog().Info("NVM client is trying to connect the server")
 	
 	v8Client := NewNVMServiceClient(conn)
 
-	var timeOut time.Duration = 15000
+	var timeOut time.Duration = 15000   // Set execution timeout to be 15s'
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeOut*time.Second)
 
 	defer cancel()
 
-	request := &NVMDeployRequest{ScriptSrc:source, FromAddr:"xxx_addr", BlockHeight:123456, Type:"deploy"}
+
+
+	logging.CLog().Info("Script source is: ", config.GetPayloadSource())
+
+	request := &NVMDeployRequest{ScriptSrc:config.GetPayloadSource(), FromAddr:"xxx_addr", BlockHeight:123456, Type:"deploy"}
+
 
 	response, err := v8Client.DeploySmartContract(ctx, request)
 	if err != nil {
@@ -654,5 +660,17 @@ func (e *V8Engine) DeployContractByRPC(source string, sourceLineOffset int) (str
 		logging.CLog().Info("Deployed smart contract successfully!")
 	}
 
-	return "success", nil
+	res := core.NVMExeResponse{GasCount:128, ExeError:errors.New("simple execution error")}
+
+	return res, nil
+}
+
+
+func (e *V8RPCEngine) CallContractByRPC(config *core.NVMConfig, listenAddr string) (core.NVMExeResponse, error){
+
+	err := errors.New("Sample error msg")
+
+	res := core.NVMExeResponse{GasCount: 100, Result: "success", ExeError: err, ActualCountOfExecutionInstructions: 101, ActualTotalMemorySize: 56}
+
+	return res, err
 }

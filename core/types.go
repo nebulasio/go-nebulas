@@ -268,6 +268,9 @@ type NVM interface {
 	StopNebulasVM(enginePid int) error
 	CheckV8ServerRunning(enginePid int) bool
 	GetNVMListenAddr() string
+
+	DeployAndInit(config *NVMConfig, listenAddr string) (NVMExeResponse, error)
+	Call(config *NVMConfig, listenAddr string) (NVMExeResponse, error)
 }
 
 // SmartContractEngine interface

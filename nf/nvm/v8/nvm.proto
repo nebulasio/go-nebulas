@@ -21,28 +21,33 @@ syntax = "proto3";
 
 service NVMService{
 
-    rpc DeploySmartContract(NVMDeployRequest) returns (NVMResponse) {}
+    rpc DeploySmartContract(NVMCallRequest) returns (NVMRPCResponse) {}
 
-    rpc NVMDataExchange(stream NVMDataRequest) returns (stream NVMResponse) {}
+    rpc NVMDataExchange(stream NVMDataRequest) returns (stream NVMRPCResponse) {}
 
 }
 
-message NVMDeployRequest{
+message NVMCallRequest{
     string script_src = 1;
-    string from_addr = 2;
-    int64 block_height = 3;
-    string type = 4;
+    string script_type = 2;
+    string func_name = 3;
+    bool enable_limits = 4;
+    int32 limits_exe_instruction = 5;
+    int32 limits_total_mem_size = 6;
+    string from_addr = 7;
+    int64 block_height = 8;
+    repeated string func_args = 9;
 }
 
 message NVMDataRequest{
-    string request_type = 1;
-    string script_src = 2;
+    string script_src = 1;
+    string script_type = 2;
     string function_name = 3;
     string contract_addr = 4;
     string extra_data = 5;
 }
 
-message NVMResponse {
+message NVMRPCResponse {
     int32 result = 1;
     string msg = 2;
 }

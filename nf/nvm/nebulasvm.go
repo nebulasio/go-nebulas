@@ -113,9 +113,31 @@ func (nvm *NebulasVM) CheckV8ServerRunning(enginePid int) bool {
 
 
 
+
+//==================== V8 specific =====================
+
+func (nvm *NebulasVM) DeployAndInit(config *core.NVMConfig, listenAddr string) (core.NVMExeResponse, error) {
+
+	engine := new(V8RPCEngine)
+
+	engine.SetListenAddr(listenAddr)
+
+	config.SetFunctionName("init")
+	
+	return engine.DeployContractByRPC(config, listenAddr)
+}
+
+
+func (nvm *NebulasVM) Call(config *core.NVMConfig, listenAddr string) (core.NVMExeResponse, error) {
+
+	engine := new(V8RPCEngine)
+
+	return engine.CallContractByRPC(config, listenAddr)
+}
+
+
 // CreateEngine start engine
-func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, 
-	contract state.Account, state core.WorldState) (core.SmartContractEngine, error) {
+func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, contract state.Account, state core.WorldState) (core.SmartContractEngine, error) {
 
 	ctx, err := NewContext(block, tx, contract, state)
 	if err != nil {
