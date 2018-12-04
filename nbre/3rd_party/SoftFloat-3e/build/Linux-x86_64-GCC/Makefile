@@ -44,12 +44,12 @@ SOFTFLOAT_OPTS ?= \
 DELETE = rm -f
 C_INCLUDES = -I. -I$(SOURCE_DIR)/$(SPECIALIZE_TYPE) -I$(SOURCE_DIR)/include
 COMPILE_C = \
-  clang -c -Werror-implicit-function-declaration -DSOFTFLOAT_FAST_INT64 \
+  clang -c -fPIC -Werror-implicit-function-declaration -DSOFTFLOAT_FAST_INT64 \
     $(SOFTFLOAT_OPTS) $(C_INCLUDES) -O2 -o $@
 MAKELIB = ar crs $@
 
 OBJ = .o
-LIB = .a
+LIB = .so
 
 OTHER_HEADERS = $(SOURCE_DIR)/include/opts-GCC.h
 
