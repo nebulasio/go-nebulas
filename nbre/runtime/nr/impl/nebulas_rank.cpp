@@ -19,7 +19,8 @@
 //
 
 #include "runtime/nr/impl/nebulas_rank.h"
-#include "common/util/int_conversion.h"
+#include "common/util/conversion.h"
+#include <ff/ff.h>
 
 namespace neb {
 namespace rt {
@@ -125,14 +126,14 @@ nebulas_rank::get_normal_accounts(
   return std::make_shared<std::unordered_set<std::string>>(ret);
 }
 
-std::shared_ptr<std::unordered_map<std::string, float64>>
+std::shared_ptr<std::unordered_map<std::string, floatxx_t>>
 nebulas_rank::get_account_balance_median(
     const std::unordered_set<std::string> &accounts,
     const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
     const account_db_ptr_t db_ptr,
     std::unordered_map<address_t, wei_t> &addr_balance) {
 
-  std::unordered_map<std::string, float64> ret;
+  std::unordered_map<std::string, floatxx_t> ret;
   std::unordered_map<std::string, std::vector<wei_t>> addr_balance_v;
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
@@ -150,73 +151,130 @@ nebulas_rank::get_account_balance_median(
     std::vector<wei_t> v = it->second;
     sort(v.begin(), v.end());
     size_t v_len = v.size();
-    float64 median = detail_int128(v[v_len >> 1]).to_float64();
+    floatxx_t median = int128_conversion(v[v_len >> 1]).to_float<floatxx_t>();
     if ((v_len & 0x1) == 0) {
-      median = (median + detail_int128(v[(v_len >> 1) - 1]).to_float64()) / 2;
+      median = (median +
+                int128_conversion(v[(v_len >> 1) - 1]).to_float<floatxx_t>()) /
+               2;
     }
 
-    float64 normalized_median = db_ptr->get_normalized_value(median);
-    ret.insert(std::make_pair(it->first, max(float64(0), normalized_median)));
+    floatxx_t normalized_median = db_ptr->get_normalized_value(median);
+    ret.insert(std::make_pair(it->first, max(floatxx_t(0), normalized_median)));
   }
 
-  return std::make_shared<std::unordered_map<std::string, float64>>(ret);
+  return std::make_shared<std::unordered_map<std::string, floatxx_t>>(ret);
 }
 
-float64 nebulas_rank::f_account_weight(float64 in_val, float64 out_val) {
-  float64 pi = math::constants<float64>::pi();
-  float64 atan_val = (in_val == 0 ? pi / 2 : math::arctan(out_val / in_val));
-  return (in_val + out_val) *
-         math::exp((-2) *
-                   math::pow(math::sin(pi / 4.0 - atan_val), float64(2)));
+floatxx_t nebulas_rank::f_account_weight(floatxx_t in_val, floatxx_t out_val) {
+  floatxx_t pi = math::constants<floatxx_t>::pi();
+  floatxx_t atan_val = (in_val == 0 ? pi / 2 : math::arctan(out_val / in_val));
+  return (in_val + out_val) * math::exp((-2) * math::sin(pi / 4.0 - atan_val) *
+                                        math::sin(pi / 4.0 - atan_val));
 }
 
-std::shared_ptr<std::unordered_map<std::string, float64>>
+std::shared_ptr<std::unordered_map<std::string, floatxx_t>>
 nebulas_rank::get_account_weight(
     const std::unordered_map<std::string, neb::rt::in_out_val_t> &in_out_vals,
     const account_db_ptr_t db_ptr) {
 
-  std::unordered_map<std::string, float64> ret;
+  std::unordered_map<std::string, floatxx_t> ret;
 
   for (auto it = in_out_vals.begin(); it != in_out_vals.end(); it++) {
     wei_t in_val = it->second.m_in_val;
     wei_t out_val = it->second.m_out_val;
 
-    float64 normalized_in_val =
-        db_ptr->get_normalized_value(detail_int128(in_val).to_float64());
-    float64 normalized_out_val =
-        db_ptr->get_normalized_value(detail_int128(out_val).to_float64());
+    floatxx_t normalized_in_val = db_ptr->get_normalized_value(
+        int128_conversion(in_val).to_float<floatxx_t>());
+    floatxx_t normalized_out_val = db_ptr->get_normalized_value(
+        int128_conversion(out_val).to_float<floatxx_t>());
     ret.insert(std::make_pair(
         it->first, f_account_weight(normalized_in_val, normalized_out_val)));
   }
-  return std::make_shared<std::unordered_map<std::string, float64>>(ret);
+  return std::make_shared<std::unordered_map<std::string, floatxx_t>>(ret);
 }
 
-float64 nebulas_rank::f_account_rank(float64 a, float64 b, float64 c, float64 d,
-                                     float64 mu, float64 lambda, float64 S,
-                                     float64 R) {
+floatxx_t nebulas_rank::f_account_rank(floatxx_t a, floatxx_t b, floatxx_t c,
+                                       floatxx_t d, int64_t mu, int64_t lambda,
+                                       floatxx_t S, floatxx_t R) {
 
-  return math::pow(S * a / (S + b), mu) * math::pow(R * c / (R + d), lambda);
+  auto ret =
+      math::pow(S * a / (S + b), mu) * math::pow(R * c / (R + d), lambda);
+  return ret;
 }
 
-std::shared_ptr<std::unordered_map<std::string, float64>>
+std::shared_ptr<std::unordered_map<std::string, floatxx_t>>
 nebulas_rank::get_account_rank(
-    const std::unordered_map<std::string, float64> &account_median,
-    const std::unordered_map<std::string, float64> &account_weight,
+    const std::unordered_map<std::string, floatxx_t> &account_median,
+    const std::unordered_map<std::string, floatxx_t> &account_weight,
     const rank_params_t &rp) {
 
-  std::unordered_map<std::string, float64> ret;
+  std::unordered_map<std::string, floatxx_t> ret;
 
   for (auto it_m = account_median.begin(); it_m != account_median.end();
        it_m++) {
     auto it_w = account_weight.find(it_m->first);
     if (it_w != account_weight.end()) {
-      float64 rank_val =
+      floatxx_t rank_val =
           f_account_rank(rp.m_a, rp.m_b, rp.m_c, rp.m_d, rp.m_mu, rp.m_lambda,
                          it_m->second, it_w->second);
       ret.insert(std::make_pair(it_m->first, rank_val));
     }
   }
-  return std::make_shared<std::unordered_map<std::string, float64>>(ret);
+
+  // parallel run
+  // std::mutex __l;
+  // typedef std::tuple<std::string, floatxx_t, floatxx_t> item_t;
+  // std::vector<item_t> vcs;
+
+  // for (auto it_m = account_median.begin(); it_m != account_median.end();
+  // it_m++) {
+  // auto it_w = account_weight.find(it_m->first);
+  // if (it_w != account_weight.end()) {
+  // vcs.push_back(std::make_tuple(it_m->first, it_m->second, it_w->second));
+  //}
+  //}
+  // ff::paragroup pg;
+  // typedef std::unordered_map<std::string, floatxx_t> ret_type_t;
+  // ff::thread_local_var<ret_type_t> thread_ret;
+  // pg.for_each(
+  // vcs.begin(), vcs.end(), [&rp, &thread_ret](item_t it) {
+  //// thread_local static std::unordered_map<std::string, floatxx_t>
+  //// local_ret;
+  // floatxx_t rank_val =
+  // f_account_rank(rp.m_a, rp.m_b, rp.m_c, rp.m_d, rp.m_mu, rp.m_lambda,
+  // std::get<1>(it), std::get<2>(it));
+
+  //// local_ret.insert(std::make_pair(std::get<0>(it), rank_val));
+  ////__l.lock();
+  // thread_ret.current().insert(std::make_pair(std::get<0>(it), rank_val));
+  ////__l.unlock();
+  //});
+  // ff::ff_wait(ff::all(pg));
+  // thread_ret.for_each([&ret](ret_type_t local_ret) {
+  // for (auto it : local_ret) {
+  // ret.insert(it);
+  //}
+  //});
+
+  // ff::paracontainer pc;
+  // for (auto it_m = account_median.begin(); it_m != account_median.end();
+  // it_m++) {
+  // auto it_w = account_weight.find(it_m->first);
+  // if (it_w != account_weight.end()) {
+  // ff::para<> p;
+  // p([&rp, &__l, it_m, it_w, &ret]() {
+  // floatxx_t rank_val =
+  // f_account_rank(rp.m_a, rp.m_b, rp.m_c, rp.m_d, rp.m_mu, rp.m_lambda,
+  // it_m->second, it_w->second);
+  //__l.lock();
+  // ret.insert(std::make_pair(it_m->first, rank_val));
+  //__l.unlock();
+  //});
+  // pc.add(p);
+  //}
+  //}
+  // ff::ff_wait(ff::all(pc));
+  return std::make_shared<std::unordered_map<std::string, floatxx_t>>(ret);
 }
 
 } // namespace nr

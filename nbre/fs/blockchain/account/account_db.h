@@ -40,7 +40,7 @@ public:
   wei_t get_account_balance_internal(const address_t &addr,
                                      block_height_t height);
 
-  static float64 get_normalized_value(float64 value);
+  static floatxx_t get_normalized_value(floatxx_t value);
 
 private:
   std::unordered_map<address_t, std::vector<block_height_t>> m_addr_height_list;

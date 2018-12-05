@@ -24,14 +24,14 @@
 
 namespace neb {
 
-class detail_int128 {
+class int128_conversion {
 public:
-  inline detail_int128() { m_data.m_data = 0; }
-  inline detail_int128(int128_t data) { m_data.m_data = data; }
+  inline int128_conversion() { m_data.m_data = 0; }
+  inline int128_conversion(int128_t data) { m_data.m_data = data; }
 
-  inline float64 to_float64() {
+  template <typename T> inline T to_float() {
     uint64_t tmp = 1ULL << 63;
-    return float64(low()) + float64(high()) * float64(tmp) * 2;
+    return T(low()) + T(high()) * T(tmp) * 2;
   }
 
   inline uint64_t low() { return m_data.m_detail.m_low; }

@@ -21,11 +21,15 @@
 #include "runtime/nr/impl/nr_impl.h"
 #include "common/common.h"
 #include "common/configuration.h"
-#include "common/util/int_conversion.h"
+#include "common/util/conversion.h"
 #include "fs/blockchain/nebulas_currency.h"
 #include "runtime/nr/impl/nebulas_rank.h"
+#include <chrono>
+#include <thread>
 
 std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
+  auto start_time = std::chrono::high_resolution_clock::now();
+
   neb::block_height_t start_block = 1111780;
   neb::block_height_t end_block = 1117539;
 
@@ -38,7 +42,7 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
       std::make_shared<neb::fs::account_db>(&ba);
 
   LOG(INFO) << "start block: " << start_block << " , end block: " << end_block;
-  neb::rt::nr::rank_params_t rp{2000.0, 200000.0, 100.0, 1000.0, 0.75, 3.14};
+  neb::rt::nr::rank_params_t rp{2000.0, 200000.0, 100.0, 1000.0, 1, 3};
 
   auto it_txs =
       tdb_ptr->read_transactions_from_db_with_duration(start_block, end_block);
@@ -90,11 +94,13 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
     addr_balance.insert(std::make_pair(acc, balance));
   }
   adb_ptr->set_height_address_val_internal(*it_txs, addr_balance);
+  LOG(INFO) << "done with set height address";
 
   auto it_account_median =
       neb::rt::nr::nebulas_rank::get_account_balance_median(
           accounts, txs_v, adb_ptr, addr_balance);
   auto account_median = *it_account_median;
+  LOG(INFO) << "done with get account balance median";
 
   // degree and in_out amount
   auto it_in_out_degrees =
@@ -107,11 +113,13 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
   auto in_out_vals = *it_in_out_vals;
   auto it_stakes = neb::rt::graph_algo::get_stakes(tg->internal_graph());
   auto stakes = *it_stakes;
+  LOG(INFO) << "done with get stakes";
 
   // weight and rank
   auto it_account_weight =
       neb::rt::nr::nebulas_rank::get_account_weight(in_out_vals, adb_ptr);
   auto account_weight = *it_account_weight;
+  LOG(INFO) << "done with get account weight";
   auto it_account_rank = neb::rt::nr::nebulas_rank::get_account_rank(
       account_median, account_weight, rp);
   auto account_rank = *it_account_rank;
@@ -128,14 +136,15 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
       continue;
     }
 
-    float64 nas_in_val = adb_ptr->get_normalized_value(
-        neb::detail_int128(in_out_vals.find(addr)->second.m_in_val)
-            .to_float64());
-    float64 nas_out_val = adb_ptr->get_normalized_value(
-        neb::detail_int128(in_out_vals.find(addr)->second.m_out_val)
-            .to_float64());
-    float64 nas_stake = adb_ptr->get_normalized_value(
-        neb::detail_int128(stakes.find(addr)->second).to_float64());
+    neb::floatxx_t nas_in_val = adb_ptr->get_normalized_value(
+        neb::int128_conversion(in_out_vals.find(addr)->second.m_in_val)
+            .to_float<neb::floatxx_t>());
+    neb::floatxx_t nas_out_val = adb_ptr->get_normalized_value(
+        neb::int128_conversion(in_out_vals.find(addr)->second.m_out_val)
+            .to_float<neb::floatxx_t>());
+    neb::floatxx_t nas_stake = adb_ptr->get_normalized_value(
+        neb::int128_conversion(stakes.find(addr)->second)
+            .to_float<neb::floatxx_t>());
 
     nr_info_t info{addr,
                    in_out_degrees[addr].m_in_degree,
@@ -157,5 +166,11 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
     }
   }
 
+  auto end_time = std::chrono::high_resolution_clock::now();
+  LOG(INFO) << "time spend: "
+            << std::chrono::duration_cast<std::chrono::seconds>(end_time -
+                                                                start_time)
+                   .count()
+            << " seconds";
   return infos;
 }

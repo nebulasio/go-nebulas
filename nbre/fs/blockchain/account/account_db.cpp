@@ -134,9 +134,9 @@ wei_t account_db::get_account_balance_internal(const address_t &address,
   return m_height_addr_val[*height_it][address];
 }
 
-float64 account_db::get_normalized_value(float64 value) {
+floatxx_t account_db::get_normalized_value(floatxx_t value) {
   uint64_t ratio = 1000000000000000000ULL;
-  return value / float64(ratio);
+  return value / floatxx_t(ratio);
 }
 } // namespace fs
 } // namespace neb

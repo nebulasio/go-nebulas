@@ -30,12 +30,12 @@ namespace rt {
 namespace nr {
 
 struct rank_params_t {
-  float64 m_a;
-  float64 m_b;
-  float64 m_c;
-  float64 m_d;
-  float64 m_mu;
-  float64 m_lambda;
+  floatxx_t m_a;
+  floatxx_t m_b;
+  floatxx_t m_c;
+  floatxx_t m_d;
+  int64_t m_mu;
+  int64_t m_lambda;
 };
 
 using transaction_db_ptr_t = std::shared_ptr<neb::fs::transaction_db>;
@@ -65,18 +65,18 @@ public:
       const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
       const account_db_ptr_t db_ptr,
       std::unordered_map<address_t, wei_t> &addr_balance)
-      -> std::shared_ptr<std::unordered_map<std::string, float64>>;
+      -> std::shared_ptr<std::unordered_map<std::string, floatxx_t>>;
 
   static auto get_account_weight(
       const std::unordered_map<std::string, neb::rt::in_out_val_t> &in_out_vals,
       const account_db_ptr_t db_ptr)
-      -> std::shared_ptr<std::unordered_map<std::string, float64>>;
+      -> std::shared_ptr<std::unordered_map<std::string, floatxx_t>>;
 
   static auto get_account_rank(
-      const std::unordered_map<std::string, float64> &account_median,
-      const std::unordered_map<std::string, float64> &account_weight,
+      const std::unordered_map<std::string, floatxx_t> &account_median,
+      const std::unordered_map<std::string, floatxx_t> &account_weight,
       const rank_params_t &rp)
-      -> std::shared_ptr<std::unordered_map<std::string, float64>>;
+      -> std::shared_ptr<std::unordered_map<std::string, floatxx_t>>;
 
 private:
   static transaction_graph_ptr_t build_graph_from_transactions(
@@ -85,15 +85,15 @@ private:
   static block_height_t get_max_height_this_block_interval(
       const std::vector<neb::fs::transaction_info_t> &txs);
 
-  static float64 max(const float64 &x, const float64 &y) {
+  static floatxx_t max(const floatxx_t &x, const floatxx_t &y) {
     return x > y ? x : y;
   }
 
-  static float64 f_account_weight(float64 in_val, float64 out_val);
+  static floatxx_t f_account_weight(floatxx_t in_val, floatxx_t out_val);
 
-  static float64 f_account_rank(float64 a, float64 b, float64 c, float64 d,
-                                float64 mu, float64 lambda, float64 S,
-                                float64 R);
+  static floatxx_t f_account_rank(floatxx_t a, floatxx_t b, floatxx_t c,
+                                  floatxx_t d, int64_t mu, int64_t lambda,
+                                  floatxx_t S, floatxx_t R);
 }; // class nebulas_rank
 } // namespace nr
 } // namespace rt
