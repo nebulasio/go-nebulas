@@ -78,7 +78,7 @@ TEST(test_common_math, math_functions) {
   // exp
   for (int i = -10; i < 10; ++i) {
     float64 e = neb::math::constants<float64>::e();
-    auto p = neb::math::pow(e, float64(i));
+    auto p = neb::math::pow(e, i);
     std::cout << "neb::pow(e, " << i << "): " << p << std::endl;
     std::cout << "diff form std: " << p - std::exp(i) << std::endl;
     // EXPECT_TRUE(equal(p, float64(std::exp(i))));

@@ -228,13 +228,24 @@ template <typename T> struct float_math_helper {
 template <typename T> T log2(const T &x) { return ln(x) / constants<T>::ln2(); }
 
 //! return x^y
-template <typename T> T pow(const T &x, const T &y) {
-  // auto ex = internal::float_math_helper<T>::get_exponent(x);
-  // auto ey = internal::float_math_helper<T>::get_one_plus_fraction(x);
-  // auto J = log2(ey);
-  // auto pow_ex = y * (ex + J);
-  // return exp(pow_ex * constants<T>::s_ln2);
-  return exp(y * ln(x));
+template <typename T> T pow(const T &x, const int64_t &y) {
+  T one = softfloat_cast<uint32_t, typename T::value_type>(1);
+  if (y == 0) {
+    return one;
+  }
+
+  T ret = one;
+  T tmp_x = x;
+  uint64_t tmp_y = y > 0 ? y : -y;
+
+  while (tmp_y) {
+    if ((tmp_y & 0x1) == 1) {
+      ret *= tmp_x;
+    }
+    tmp_x *= tmp_x;
+    tmp_y >>= 1;
+  }
+  return y > 0 ? ret : one / ret;
 }
 
 } // namespace math
