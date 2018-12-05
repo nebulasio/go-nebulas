@@ -512,7 +512,8 @@ func (s *Stream) close(reason error) {
 
 	// close stream.
 	if s.stream != nil {
-		s.stream.Close()
+		//s.stream.Close()
+		go libnet.FullClose(s.stream)
 	}
 }
 
