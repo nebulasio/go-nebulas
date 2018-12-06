@@ -71,7 +71,7 @@ bool trie::get_trie_node(const neb::util::bytes &root_hash,
 
   try {
 
-    while (route_ptr != end_ptr) {
+    while (route_ptr <= end_ptr) {
 
       auto root_node = fetch_node(hash);
       auto root_type = root_node->get_trie_node_type();
@@ -86,11 +86,12 @@ bool trie::get_trie_node(const neb::util::bytes &root_hash,
       } else if (root_type == trie_node_type::trie_node_extension) {
         auto key_path = root_node->val_at(1);
         auto next_hash = root_node->val_at(2);
+        size_t left_size = end_ptr - route_ptr;
 
-        size_t matched_len = prefix_len(key_path.value(), key_path.size(),
-                                        route.value(), route.size());
+        size_t matched_len =
+            prefix_len(key_path.value(), key_path.size(), route_ptr, left_size);
         if (matched_len != key_path.size()) {
-          throw std::runtime_error("key path not found");
+          throw std::runtime_error("node extension, key path not found");
         }
         hash = next_hash;
         route_ptr += matched_len;
@@ -100,16 +101,17 @@ bool trie::get_trie_node(const neb::util::bytes &root_hash,
         size_t matched_len =
             prefix_len(key_path.value(), key_path.size(), route_ptr, left_size);
         if (matched_len != key_path.size() || matched_len != left_size) {
-          throw std::runtime_error("key path not found");
+          throw std::runtime_error("node leaf, key path not found");
         }
         trie_node = root_node->val_at(2);
         return true;
       } else {
-        throw std::runtime_error("key path not found");
+        throw std::runtime_error("unknown type, key path not found");
       }
   }
 
   } catch (const std::exception &e) {
+    LOG(INFO) << e.what();
     return false;
   }
 
