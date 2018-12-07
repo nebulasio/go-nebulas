@@ -111,7 +111,7 @@ bool trie::get_trie_node(const neb::util::bytes &root_hash,
   }
 
   } catch (const std::exception &e) {
-    LOG(INFO) << e.what();
+    // LOG(INFO) << e.what();
     return false;
   }
 

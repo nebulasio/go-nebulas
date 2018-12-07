@@ -40,6 +40,11 @@ struct account_info_t {
   wei_t m_balance;
 };
 
+struct event_info_t {
+  int32_t m_status;
+  wei_t m_gas_used;
+};
+
 class blockchain_api {
 public:
   blockchain_api(blockchain *blockchain_ptr);
@@ -49,6 +54,13 @@ public:
 
   std::shared_ptr<account_info_t> get_account_api(const address_t &addr,
                                                   block_height_t height);
+
+private:
+  std::shared_ptr<event_info_t>
+  get_transaction_result_api(const neb::util::bytes &events_root,
+                             const neb::util::bytes &tx_hash);
+
+  std::shared_ptr<event_info_t> json_parse_event(const std::string &json);
 
 private:
   blockchain *m_blockchain;

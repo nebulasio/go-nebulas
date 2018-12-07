@@ -22,6 +22,9 @@
 #include "fs/blockchain/trie/trie.h"
 #include "fs/util.h"
 
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+
 namespace neb {
 namespace fs {
 
@@ -36,12 +39,12 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
 
   int64_t timestamp = block->header().timestamp();
 
+  std::string events_root_str = block->header().events_root();
+  neb::util::bytes events_root_bytes =
+      neb::util::string_to_byte(events_root_str);
+
   for (auto &tx : block->transactions()) {
     transaction_info_t info;
-
-    // TODO file status and gas_used not in proto transaction
-    info.m_status = 1;
-    info.m_gas_used = 0;
 
     info.m_height = height;
     info.m_timestamp = timestamp;
@@ -52,9 +55,64 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
     info.m_gas_price =
         to_wei(neb::util::string_to_byte(tx.gas_price()).to_hex());
 
+    // get topic chain.transactionResult
+    std::string tx_hash_str = tx.hash();
+    neb::util::bytes tx_hash_bytes = neb::util::string_to_byte(tx_hash_str);
+    auto txs_result_ptr =
+        get_transaction_result_api(events_root_bytes, tx_hash_bytes);
+
+    info.m_status = txs_result_ptr->m_status;
+    info.m_gas_used = txs_result_ptr->m_gas_used;
+
     txs.push_back(info);
   }
   return std::make_shared<std::vector<transaction_info_t>>(txs);
+}
+
+std::shared_ptr<event_info_t>
+blockchain_api::get_transaction_result_api(const neb::util::bytes &events_root,
+                                           const neb::util::bytes &tx_hash) {
+
+  auto rs_ptr = m_blockchain->get_blockchain_storage();
+  trie t(rs_ptr);
+  neb::util::bytes txs_result;
+
+  for (int64_t id = 1;; id++) {
+    neb::util::bytes id_bytes = neb::util::number_to_byte<neb::util::bytes>(id);
+    neb::util::bytes events_tx_hash = tx_hash;
+    events_tx_hash.append_bytes(id_bytes.value(), id_bytes.size());
+
+    neb::util::bytes trie_node_bytes;
+    bool ret = t.get_trie_node(events_root, events_tx_hash, trie_node_bytes);
+    if (!ret) {
+      break;
+    }
+    txs_result = trie_node_bytes;
+  }
+  assert(!txs_result.empty());
+
+  std::string json_str = neb::util::byte_to_string(txs_result);
+
+  return json_parse_event(json_str);
+}
+
+std::shared_ptr<event_info_t>
+blockchain_api::json_parse_event(const std::string &json) {
+  boost::property_tree::ptree pt;
+  std::stringstream ss(json);
+  boost::property_tree::read_json(ss, pt);
+
+  std::string topic = pt.get<std::string>("Topic");
+  assert(topic.compare("chain.transactionResult") == 0);
+
+  std::string data_json = pt.get<std::string>("Data");
+  ss = std::stringstream(data_json);
+  boost::property_tree::read_json(ss, pt);
+
+  int32_t status = pt.get<int32_t>("status");
+  wei_t gas_used = boost::lexical_cast<wei_t>(pt.get<std::string>("gas_used"));
+
+  return std::make_shared<event_info_t>(event_info_t{status, gas_used});
 }
 
 std::shared_ptr<account_info_t>

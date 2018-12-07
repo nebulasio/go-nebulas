@@ -28,6 +28,31 @@
 #include <boost/property_tree/ptree.hpp>
 #include <random>
 
+void json_parse_event(const std::string &json) {
+  boost::property_tree::ptree pt;
+  std::stringstream ss(json);
+  try {
+    boost::property_tree::read_json(ss, pt);
+  } catch (boost::property_tree::ptree_error &e) {
+    return;
+  }
+
+  std::string topic = pt.get<std::string>("Topic");
+  assert(topic.compare("chain.transactionResult") == 0);
+
+  std::string data_json = pt.get<std::string>("Data");
+  ss = std::stringstream(data_json);
+  try {
+    boost::property_tree::read_json(ss, pt);
+  } catch (boost::property_tree::ptree_error &e) {
+    return;
+  }
+
+  int32_t status = pt.get<int32_t>("status");
+  std::string gas_used = pt.get<std::string>("gas_used");
+  LOG(INFO) << status << ',' << gas_used;
+}
+
 void trie_event(const neb::block_height_t start_block,
                 const neb::block_height_t end_block) {
 
@@ -73,21 +98,31 @@ void trie_event(const neb::block_height_t start_block,
 
       neb::util::bytes trie_node_bytes;
 
-      int64_t id = 1;
-      neb::util::bytes id_bytes =
-          neb::util::number_to_byte<neb::util::bytes>(id);
-      // LOG(INFO) << "tx hash hex: " << tx_hash_bytes.to_hex();
-      neb::util::bytes events_tx_hash_bytes = tx_hash_bytes;
-      events_tx_hash_bytes.append_bytes(id_bytes.value(), id_bytes.size());
-      // LOG(INFO) << "tx hash append id: " << tx_hash_bytes.to_hex();
+      // traversing event list for specific transaction
+      // and get topic chain.transactionResult
 
-      ret = t.get_trie_node(txs_root_bytes, tx_hash_bytes, trie_node_bytes);
-      // ret = t.get_trie_node(events_root_bytes, events_tx_hash_bytes,
-      // trie_node_bytes);
+      neb::util::bytes txs_result;
+      for (int64_t id = 1;; id++) {
+        neb::util::bytes id_bytes =
+            neb::util::number_to_byte<neb::util::bytes>(id);
+        // LOG(INFO) << "tx hash hex: " << tx_hash_bytes.to_hex();
+        neb::util::bytes events_tx_hash_bytes = tx_hash_bytes;
+        events_tx_hash_bytes.append_bytes(id_bytes.value(), id_bytes.size());
+        // LOG(INFO) << "tx hash append id: " << tx_hash_bytes.to_hex();
 
-      assert(ret == true);
-      LOG(INFO) << "hash " << events_tx_hash_bytes.to_hex() << " get trie node "
-                << ret;
+        // ret = t.get_trie_node(txs_root_bytes, tx_hash_bytes,
+        // trie_node_bytes);
+        ret = t.get_trie_node(events_root_bytes, events_tx_hash_bytes,
+                              trie_node_bytes);
+        if (!ret) {
+          break;
+        }
+        txs_result = trie_node_bytes;
+      }
+      // LOG(INFO) << neb::util::byte_to_string(txs_result);
+      json_parse_event(neb::util::byte_to_string(txs_result));
+
+      // assert(ret == true);
     }
   }
   rs.close_database();
@@ -194,7 +229,7 @@ void trie_balance(const neb::block_height_t start_block,
 }
 
 int main(int argc, char *argv[]) {
-  trie_balance(std::stoll(argv[1]), std::stoll(argv[2]));
-  // trie_event(std::stoll(argv[1]), std::stoll(argv[2]));
+  // trie_balance(std::stoll(argv[1]), std::stoll(argv[2]));
+  trie_event(std::stoll(argv[1]), std::stoll(argv[2]));
   return 0;
 }
