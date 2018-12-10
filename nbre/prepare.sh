@@ -236,3 +236,4 @@ if [ ! -f $CUR_DIR/lib/include/softfloat.h ]; then
   make clean
 fi
 
+cd $CUR_DIR

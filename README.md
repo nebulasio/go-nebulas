@@ -1,5 +1,8 @@
 # go-nebulas
 
+**[NOTE] Please make sure you're checking out master branch for production purpose. 
+The current branch is still under development.**
+
 Official Go implementation of the Nebulas protocol.
 
 [![Build Status](https://travis-ci.org/nebulasio/go-nebulas.svg?branch=master)](https://travis-ci.org/nebulasio/go-nebulas)
@@ -12,8 +15,6 @@ TestNet is released, please check [here](https://github.com/nebulasio/wiki/blob/
 
 Mainnet is released, please check [here](https://github.com/nebulasio/wiki/blob/master/mainnet.md) for more details.
 
-**[Note] Please make sure you're checking out master branch for production
-purpose.**
 ## Building from source
 
 ### Prerequisites
