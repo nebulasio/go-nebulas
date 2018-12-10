@@ -76,6 +76,7 @@ func TestTransactionPool_1(t *testing.T) {
 	txPool, _ := NewTransactionPool(3)
 	txPool.setBlockChain(bc)
 	txPool.setEventEmitter(bc.eventEmitter)
+	txPool.setAccess(&Access{})
 
 	gasLimit, _ := util.NewUint128FromInt(200000)
 	tx1, _ := NewTransaction(bc.ChainID(), from, &Address{address: []byte("to")}, util.NewUint128(), 10, TxPayloadBinaryType, []byte("1"), TransactionGasPrice, gasLimit)

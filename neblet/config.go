@@ -41,16 +41,18 @@ func LoadConfig(file string) *nebletpb.Config {
 	b, err := ioutil.ReadFile(file)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Fatal("Failed to read the config file: %s.", file)
+			"err":  err,
+			"file": file,
+		}).Fatal("Failed to read the config file.")
 	}
 	content = string(b)
 
 	pb := new(nebletpb.Config)
 	if err := proto.UnmarshalText(content, pb); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Fatal("Failed to parse the config file: %s.", file)
+			"err":  err,
+			"file": file,
+		}).Fatal("Failed to parse the config file.")
 	}
 	return pb
 }
