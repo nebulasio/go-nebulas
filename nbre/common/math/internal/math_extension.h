@@ -248,6 +248,24 @@ template <typename T> T pow(const T &x, const int64_t &y) {
   return y > 0 ? ret : one / ret;
 }
 
+// only applicable for float16 and float32
+template <typename T> T sqrt(const T &x) {
+  T one = softfloat_cast<uint32_t, typename T::value_type>(1);
+  T two = softfloat_cast<uint32_t, typename T::value_type>(2);
+  T one_and_half = one + one / two;
+  T half_x = x / two;
+
+  typename T::value_type sqrt_x = typename T::value_type(x);
+  uint32_t i = *reinterpret_cast<uint32_t *>(&sqrt_x);
+  i = 0x5f3759df - (i >> 1);
+  sqrt_x = *reinterpret_cast<typename T::value_type *>(&i);
+  T tmp_x(sqrt_x);
+  tmp_x = tmp_x * (one_and_half - half_x * tmp_x * tmp_x);
+  tmp_x = tmp_x * (one_and_half - half_x * tmp_x * tmp_x);
+  tmp_x = tmp_x * (one_and_half - half_x * tmp_x * tmp_x);
+  return one / tmp_x;
+}
+
 } // namespace math
 
 } // namespace neb

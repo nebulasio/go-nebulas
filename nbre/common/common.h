@@ -56,7 +56,7 @@ typedef boost::multiprecision::int128_t int128_t;
 typedef boost::multiprecision::uint128_t uint128_t;
 typedef int128_t wei_t;
 
-typedef float64 floatxx_t;
+typedef float32 floatxx_t;
 
 namespace tcolor {
 const static char *red = "\033[1;31m";

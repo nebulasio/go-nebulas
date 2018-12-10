@@ -22,7 +22,7 @@
 #include "common/math/softfloat.hpp"
 #include <functional>
 
-#define MATH_MIN 1e-6
+#define MATH_MIN 1e-5
 
 namespace neb {
 namespace math {
