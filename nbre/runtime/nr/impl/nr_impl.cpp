@@ -27,11 +27,10 @@
 #include <chrono>
 #include <thread>
 
-std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
+std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param,
+                                           uint64_t start_block,
+                                           uint64_t end_block) {
   auto start_time = std::chrono::high_resolution_clock::now();
-
-  neb::block_height_t start_block = 1111780;
-  neb::block_height_t end_block = 1117539;
 
   std::string neb_db_path = neb::configuration::instance().neb_db_dir();
   neb::fs::blockchain bc(neb_db_path);
@@ -94,13 +93,11 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
     addr_balance.insert(std::make_pair(acc, balance));
   }
   adb_ptr->set_height_address_val_internal(*it_txs, addr_balance);
-  LOG(INFO) << "done with set height address";
 
   auto it_account_median =
       neb::rt::nr::nebulas_rank::get_account_balance_median(
           accounts, txs_v, adb_ptr, addr_balance);
   auto account_median = *it_account_median;
-  LOG(INFO) << "done with get account balance median";
 
   // degree and in_out amount
   auto it_in_out_degrees =
@@ -113,13 +110,11 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
   auto in_out_vals = *it_in_out_vals;
   auto it_stakes = neb::rt::graph_algo::get_stakes(tg->internal_graph());
   auto stakes = *it_stakes;
-  LOG(INFO) << "done with get stakes";
 
   // weight and rank
   auto it_account_weight =
       neb::rt::nr::nebulas_rank::get_account_weight(in_out_vals, adb_ptr);
   auto account_weight = *it_account_weight;
-  LOG(INFO) << "done with get account weight";
   auto it_account_rank = neb::rt::nr::nebulas_rank::get_account_rank(
       account_median, account_weight, rp);
   auto account_rank = *it_account_rank;
@@ -158,12 +153,6 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param) {
                    account_rank[addr]};
     infos.push_back(info);
 
-    if (account_rank[addr] > 0) {
-      neb::util::bytes addr_bytes = neb::util::string_to_byte(addr);
-      LOG(INFO) << addr_bytes.to_base58() << ',' << degrees[addr] << ','
-                << nas_stake << ',' << account_median[addr] << ','
-                << account_weight[addr] << ',' << account_rank[addr];
-    }
   }
 
   auto end_time = std::chrono::high_resolution_clock::now();

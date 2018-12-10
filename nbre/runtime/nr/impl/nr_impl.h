@@ -38,4 +38,6 @@ struct nr_info_t {
   float64 m_nr_score;
 };
 
-std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param);
+std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param,
+                                           uint64_t start_block,
+                                           uint64_t end_block);
