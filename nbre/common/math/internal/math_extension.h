@@ -255,15 +255,15 @@ template <typename T> T sqrt(const T &x) {
   T one_and_half = one + one / two;
   T half_x = x / two;
 
-  typename T::value_type sqrt_x = typename T::value_type(x);
-  uint32_t i = *reinterpret_cast<uint32_t *>(&sqrt_x);
+  typename T::value_type tmp_x = typename T::value_type(x);
+  uint32_t i = *reinterpret_cast<uint32_t *>(&tmp_x);
   i = 0x5f3759df - (i >> 1);
-  sqrt_x = *reinterpret_cast<typename T::value_type *>(&i);
-  T tmp_x(sqrt_x);
-  tmp_x = tmp_x * (one_and_half - half_x * tmp_x * tmp_x);
-  tmp_x = tmp_x * (one_and_half - half_x * tmp_x * tmp_x);
-  tmp_x = tmp_x * (one_and_half - half_x * tmp_x * tmp_x);
-  return one / tmp_x;
+  tmp_x = *reinterpret_cast<typename T::value_type *>(&i);
+  T sqrt_x(tmp_x);
+  sqrt_x = sqrt_x * (one_and_half - half_x * sqrt_x * sqrt_x);
+  sqrt_x = sqrt_x * (one_and_half - half_x * sqrt_x * sqrt_x);
+  sqrt_x = sqrt_x * (one_and_half - half_x * sqrt_x * sqrt_x);
+  return one / sqrt_x;
 }
 
 } // namespace math

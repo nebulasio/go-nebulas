@@ -18,14 +18,13 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "common/math/softfloat.hpp"
+#include "common/common.h"
+#include "common/math.h"
 
-void softfloat_raiseFlags(uint_fast8_t) {
-  uint_fast8_t ff = 0xff;
-  softfloat_exceptionFlags &= ff;
-  if (softfloat_exceptionFlags == softfloat_flag_overflow ||
-      softfloat_exceptionFlags == softfloat_flag_infinite ||
-      softfloat_exceptionFlags == softfloat_flag_invalid) {
-    throw std::runtime_error("softfloat exception");
-  }
+int main(int argc, char *argv[]) {
+  neb::floatxx_t xx = 1;
+  std::stringstream ss;
+  ss << xx;
+  std::cout << ss.str() << std::endl;
+  return 0;
 }
