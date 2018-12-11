@@ -21,6 +21,8 @@ package nbre
 import (
 	"errors"
 
+	"encoding/json"
+
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 )
@@ -37,6 +39,9 @@ var (
 // Command types
 var (
 	CommandVersion = "version"
+	CommandNRHash  = "nrHash"
+	CommandNRList  = "nrList"
+	CommandDIPList = "dipList"
 )
 
 type Neblet interface {
@@ -48,4 +53,15 @@ type Version struct {
 	Major uint64 `json:"major"`
 	Minor uint64 `json:"minor"`
 	Patch uint64 `json:"patch"`
+}
+
+func (v *Version) ToBytes() ([]byte, error) {
+	return json.Marshal(v)
+}
+
+func (v *Version) FromBytes(data []byte) error {
+	if err := json.Unmarshal(data, v); err != nil {
+		return err
+	}
+	return nil
 }

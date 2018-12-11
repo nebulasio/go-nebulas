@@ -286,6 +286,8 @@ type Neblet interface {
 	AccountManager() AccountManager
 	Nvm() NVM
 	Nbre() Nbre
+	Nr() Nr
+	Dip() Dip
 	StartPprof(string) error
 }
 
@@ -311,9 +313,24 @@ type WorldState interface {
 	GetBlock(txHash byteutils.Hash) ([]byte, error)
 }
 
+type Data interface {
+	ToBytes() ([]byte, error)
+	FromBytes([]byte) error
+}
+
 // Nbre interface
 type Nbre interface {
 	Start() error
 	Execute(command string, params []byte) ([]byte, error)
 	Shutdown() error
+}
+
+type Nr interface {
+	GetNRHash(start, end uint64) ([]byte, error)
+	GetNRList(hash []byte) (Data, error)
+}
+
+type Dip interface {
+	GetDipList(height uint64) (Data, error)
+	CheckReward(height uint64, addr string, value *util.Uint128) error
 }

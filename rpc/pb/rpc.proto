@@ -20,7 +20,6 @@ syntax = "proto3";
 
 import "google/api/annotations.proto";
 import "github.com/nebulasio/go-nebulas/consensus/pb/state.proto";
-import "github.com/nebulasio/go-nebulas/core/pb/block.proto";
 import "github.com/nebulasio/go-nebulas/neblet/pb/config.proto";
 
 package rpcpb;
@@ -134,10 +133,26 @@ service ApiService {
 		};
     }
 
-    rpc GetNRByAddress (GetNRByAddressRequest) returns (GetNRByAddressResponse) {
+    // get nr hash with height interval
+    rpc GetNRHash (GetNRHashRequest) returns (GetNRHashResponse) {
 		option (google.api.http) = {
-            post: "/v1/user/nr"
+            post: "/v1/user/getNrHash"
             body: "*"
+		};
+    }
+
+    // get nr list by hash, which returned by `GetNRHash`
+    rpc GetNRList (GetNRListRequest) returns (GetNRListResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/getNrList"
+            body: "*"
+		};
+    }
+
+    // get latest dip list
+    rpc GetDIPList (NonParamsRequest) returns (GetDIPListResponse) {
+        option (google.api.http) = {
+            get: "/v1/user/getDipList"
 		};
     }
 }
@@ -659,14 +674,56 @@ message GetConfigResponse {
     nebletpb.Config config = 1;
 }
 
-message GetNRByAddressRequest {
-    // Hex string of the account addresss.
-    string address = 1;
+message GetNRHashRequest {
+    // start block height of nr calculate interval
+    uint64 start = 1;
 
-    // block account state with height. If not specified, use 0 as tail height.
-    uint64 height = 2;
+    // end block height of nr calculate interval. If not specified, use 0 as tail height.
+    uint64 end = 2;
 }
 
-message GetNRByAddressResponse {
-    string data = 1;
+message GetNRHashResponse {
+    string hash = 1;
+}
+
+message GetNRListRequest {
+    // nr hash
+    string hash = 1;
+}
+
+message GetNRListResponse {
+
+    // nr algorithm version
+    string version = 1;
+
+    // start block height of nr calculate interval
+    uint64 start = 2;
+
+    // end block height of nr calculate interval. If not specified, use 0 as tail height.
+    uint64 end = 3;
+
+    // nr data list
+    repeated NData data = 4;
+}
+
+message GetDIPListResponse {
+    // dip algorithm version
+    string version = 1;
+
+    // start block height of dip calculate interval
+    uint64 start = 2;
+
+    // end block height of dip calculate interval.
+    uint64 end = 3;
+
+    // dip data list
+    repeated NData data = 4;
+}
+
+message NData {
+    // dip address
+    string address = 1;
+
+    // value of dip reward.
+    string value = 2;
 }
