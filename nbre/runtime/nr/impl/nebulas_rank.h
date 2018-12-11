@@ -29,6 +29,19 @@ namespace rt {
 
 namespace nr {
 
+struct nr_info_t {
+  std::string m_address;
+  uint32_t m_in_degree;
+  uint32_t m_out_degree;
+  uint32_t m_degrees;
+  floatxx_t m_in_val;
+  floatxx_t m_out_val;
+  floatxx_t m_in_outs;
+  floatxx_t m_median;
+  floatxx_t m_weight;
+  floatxx_t m_nr_score;
+};
+
 struct rank_params_t {
   floatxx_t m_a;
   floatxx_t m_b;
@@ -44,6 +57,14 @@ using transaction_graph_ptr_t = std::shared_ptr<neb::rt::transaction_graph>;
 
 class nebulas_rank {
 public:
+  static auto get_nr_score(const transaction_db_ptr_t &tdb_ptr,
+                           const account_db_ptr_t &adb_ptr,
+                           const std::vector<neb::fs::transaction_info_t> &txs,
+                           const rank_params_t &rp,
+                           neb::block_height_t start_block,
+                           neb::block_height_t end_block)
+      -> std::shared_ptr<std::vector<nr_info_t>>;
+
   static auto split_transactions_by_block_interval(
       const std::vector<neb::fs::transaction_info_t> &txs,
       int32_t block_interval = 128)

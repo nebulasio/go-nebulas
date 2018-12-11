@@ -24,13 +24,70 @@
 #include "common/util/conversion.h"
 #include "fs/blockchain/nebulas_currency.h"
 #include "runtime/nr/impl/nebulas_rank.h"
+
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <chrono>
 #include <thread>
 
-std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param,
-                                           uint64_t start_block,
-                                           uint64_t end_block) {
-  auto start_time = std::chrono::high_resolution_clock::now();
+template <typename T> std::string to_string(const T &val) {
+  std::stringstream ss;
+  ss << val;
+  return ss.str();
+}
+
+void convert_nr_info_to_ptree(const neb::rt::nr::nr_info_t &info,
+                              boost::property_tree::ptree &p) {
+
+  neb::util::bytes addr_bytes = neb::util::string_to_byte(info.m_address);
+
+  uint32_t in_degree = info.m_in_degree;
+  uint32_t out_degree = info.m_out_degree;
+  uint32_t degrees = info.m_degrees;
+
+  neb::floatxx_t in_val = info.m_in_val;
+  neb::floatxx_t out_val = info.m_out_val;
+  neb::floatxx_t in_outs = info.m_in_outs;
+
+  neb::floatxx_t median = info.m_median;
+  neb::floatxx_t weight = info.m_weight;
+  neb::floatxx_t score = info.m_nr_score;
+
+  std::vector<std::pair<std::string, std::string>> kv_pair(
+      {{"address", addr_bytes.to_base58()},
+       {"in_degree", to_string(in_degree)},
+       {"out_degree", to_string(out_degree)},
+       {"degrees", to_string(degrees)},
+       {"in_val", to_string(in_val)},
+       {"out_val", to_string(out_val)},
+       {"in_outs", to_string(in_outs)},
+       {"median", to_string(median)},
+       {"weight", to_string(weight)},
+       {"score", to_string(score)}});
+
+  for (auto &ele : kv_pair) {
+    p.put(ele.first, ele.second);
+  }
+}
+
+std::string to_json(const std::vector<neb::rt::nr::nr_info_t> &rs) {
+  boost::property_tree::ptree root;
+  boost::property_tree::ptree arr;
+
+  for (auto it = rs.begin(); it != rs.end(); it++) {
+    const neb::rt::nr::nr_info_t &info = *it;
+    boost::property_tree::ptree p;
+    convert_nr_info_to_ptree(info, p);
+    arr.push_back(std::make_pair(std::string(), p));
+  }
+  root.add_child("nrs", arr);
+
+  std::stringstream ss;
+  boost::property_tree::write_json(ss, root, false);
+  return ss.str();
+}
+
+std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block) {
 
   std::string neb_db_path = neb::configuration::instance().neb_db_dir();
   neb::fs::blockchain bc(neb_db_path);
@@ -45,121 +102,8 @@ std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param,
 
   auto it_txs =
       tdb_ptr->read_transactions_from_db_with_duration(start_block, end_block);
-  // account inter transactions
-  auto it_account_inter_txs = tdb_ptr->read_account_inter_transactions(*it_txs);
-  auto account_inter_txs = *it_account_inter_txs;
-  LOG(INFO) << "account to account: " << account_inter_txs.size();
 
-  // graph
-  auto it_txs_v =
-      neb::rt::nr::nebulas_rank::split_transactions_by_block_interval(
-          account_inter_txs);
-  auto txs_v = *it_txs_v;
-  LOG(INFO) << "split by block interval: " << txs_v.size();
-
-  neb::rt::nr::transaction_graph_ptr_t tg =
-      std::make_shared<neb::rt::transaction_graph>();
-
-  neb::rt::nr::nebulas_rank::filter_empty_transactions_this_interval(txs_v);
-  std::vector<neb::rt::nr::transaction_graph_ptr_t> tgs =
-      neb::rt::nr::nebulas_rank::build_transaction_graphs(txs_v);
-  if (tgs.empty()) {
-    return std::vector<nr_info_t>();
-  }
-  LOG(INFO) << "we have " << tgs.size() << " subgraphs.";
-  for (auto it = tgs.begin(); it != tgs.end(); it++) {
-    neb::rt::nr::transaction_graph_ptr_t ptr = *it;
-    neb::rt::graph_algo::remove_cycles_based_on_time_sequence(
-        ptr->internal_graph());
-    neb::rt::graph_algo::merge_edges_with_same_from_and_same_to(
-        ptr->internal_graph());
-  }
-  LOG(INFO) << "done with remove cycle.";
-
-  tg = neb::rt::graph_algo::merge_graphs(tgs);
-  neb::rt::graph_algo::merge_topk_edges_with_same_from_and_same_to(
-      tg->internal_graph());
-  LOG(INFO) << "done with merge graphs.";
-
-  // median
-  auto it_accounts =
-      neb::rt::nr::nebulas_rank::get_normal_accounts(account_inter_txs);
-  auto accounts = *it_accounts;
-  LOG(INFO) << "account size: " << accounts.size();
-
-  std::unordered_map<neb::address_t, neb::wei_t> addr_balance;
-  for (auto &acc : accounts) {
-    auto balance = adb_ptr->get_balance(acc, start_block);
-    addr_balance.insert(std::make_pair(acc, balance));
-  }
-  adb_ptr->set_height_address_val_internal(*it_txs, addr_balance);
-
-  auto it_account_median =
-      neb::rt::nr::nebulas_rank::get_account_balance_median(
-          accounts, txs_v, adb_ptr, addr_balance);
-  auto account_median = *it_account_median;
-
-  // degree and in_out amount
-  auto it_in_out_degrees =
-      neb::rt::graph_algo::get_in_out_degrees(tg->internal_graph());
-  auto in_out_degrees = *it_in_out_degrees;
-  auto it_degrees = neb::rt::graph_algo::get_degree_sum(tg->internal_graph());
-  auto degrees = *it_degrees;
-  auto it_in_out_vals =
-      neb::rt::graph_algo::get_in_out_vals(tg->internal_graph());
-  auto in_out_vals = *it_in_out_vals;
-  auto it_stakes = neb::rt::graph_algo::get_stakes(tg->internal_graph());
-  auto stakes = *it_stakes;
-
-  // weight and rank
-  auto it_account_weight =
-      neb::rt::nr::nebulas_rank::get_account_weight(in_out_vals, adb_ptr);
-  auto account_weight = *it_account_weight;
-  auto it_account_rank = neb::rt::nr::nebulas_rank::get_account_rank(
-      account_median, account_weight, rp);
-  auto account_rank = *it_account_rank;
-  LOG(INFO) << "account rank size: " << account_rank.size();
-
-  std::vector<nr_info_t> infos;
-  for (auto it = accounts.begin(); it != accounts.end(); it++) {
-    std::string addr = *it;
-    if (account_median.find(addr) == account_median.end() ||
-        account_rank.find(addr) == account_rank.end() ||
-        in_out_degrees.find(addr) == in_out_degrees.end() ||
-        in_out_vals.find(addr) == in_out_vals.end() ||
-        stakes.find(addr) == stakes.end()) {
-      continue;
-    }
-
-    neb::floatxx_t nas_in_val = adb_ptr->get_normalized_value(
-        neb::int128_conversion(in_out_vals.find(addr)->second.m_in_val)
-            .to_float<neb::floatxx_t>());
-    neb::floatxx_t nas_out_val = adb_ptr->get_normalized_value(
-        neb::int128_conversion(in_out_vals.find(addr)->second.m_out_val)
-            .to_float<neb::floatxx_t>());
-    neb::floatxx_t nas_stake = adb_ptr->get_normalized_value(
-        neb::int128_conversion(stakes.find(addr)->second)
-            .to_float<neb::floatxx_t>());
-
-    nr_info_t info{addr,
-                   in_out_degrees[addr].m_in_degree,
-                   in_out_degrees[addr].m_out_degree,
-                   degrees[addr],
-                   nas_in_val,
-                   nas_out_val,
-                   nas_stake,
-                   account_median[addr],
-                   account_weight[addr],
-                   account_rank[addr]};
-    infos.push_back(info);
-
-  }
-
-  auto end_time = std::chrono::high_resolution_clock::now();
-  LOG(INFO) << "time spend: "
-            << std::chrono::duration_cast<std::chrono::seconds>(end_time -
-                                                                start_time)
-                   .count()
-            << " seconds";
-  return infos;
+  auto ret = neb::rt::nr::nebulas_rank::get_nr_score(
+      tdb_ptr, adb_ptr, *it_txs, rp, start_block, end_block);
+  return to_json(*ret);
 }

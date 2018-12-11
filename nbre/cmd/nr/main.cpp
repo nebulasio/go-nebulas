@@ -22,6 +22,7 @@
 
 int main(int argc, char *argv[]) {
 
-  auto ret = entry_point_nr_impl(nullptr, nullptr);
+  auto ret = entry_point_nr_impl(1111780, 1117539);
+  std::cout << ret << std::endl;
   return 0;
 }

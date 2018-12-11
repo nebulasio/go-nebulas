@@ -277,6 +277,130 @@ nebulas_rank::get_account_rank(
   return std::make_shared<std::unordered_map<std::string, floatxx_t>>(ret);
 }
 
+std::shared_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
+    const transaction_db_ptr_t &tdb_ptr, const account_db_ptr_t &adb_ptr,
+    const std::vector<neb::fs::transaction_info_t> &txs,
+    const rank_params_t &rp, neb::block_height_t start_block,
+    neb::block_height_t end_block) {
+
+  auto start_time = std::chrono::high_resolution_clock::now();
+  // account inter transactions
+  auto it_account_inter_txs =
+      tdb_ptr->read_transactions_with_address_type(txs, 0x57, 0x57);
+  auto account_inter_txs = *it_account_inter_txs;
+  LOG(INFO) << "account to account: " << account_inter_txs.size();
+
+  // graph
+  auto it_txs_v = split_transactions_by_block_interval(account_inter_txs);
+  auto txs_v = *it_txs_v;
+  LOG(INFO) << "split by block interval: " << txs_v.size();
+
+  neb::rt::nr::transaction_graph_ptr_t tg =
+      std::make_shared<neb::rt::transaction_graph>();
+
+  filter_empty_transactions_this_interval(txs_v);
+  std::vector<neb::rt::nr::transaction_graph_ptr_t> tgs =
+      build_transaction_graphs(txs_v);
+  if (tgs.empty()) {
+    return std::make_shared<std::vector<nr_info_t>>();
+  }
+  LOG(INFO) << "we have " << tgs.size() << " subgraphs.";
+  for (auto it = tgs.begin(); it != tgs.end(); it++) {
+    neb::rt::nr::transaction_graph_ptr_t ptr = *it;
+    neb::rt::graph_algo::remove_cycles_based_on_time_sequence(
+        ptr->internal_graph());
+    neb::rt::graph_algo::merge_edges_with_same_from_and_same_to(
+        ptr->internal_graph());
+  }
+  LOG(INFO) << "done with remove cycle.";
+
+  tg = neb::rt::graph_algo::merge_graphs(tgs);
+  neb::rt::graph_algo::merge_topk_edges_with_same_from_and_same_to(
+      tg->internal_graph());
+  LOG(INFO) << "done with merge graphs.";
+
+  // median
+  auto it_accounts = get_normal_accounts(account_inter_txs);
+  auto accounts = *it_accounts;
+  LOG(INFO) << "account size: " << accounts.size();
+
+  std::unordered_map<neb::address_t, neb::wei_t> addr_balance;
+  for (auto &acc : accounts) {
+    auto balance = adb_ptr->get_balance(acc, start_block);
+    addr_balance.insert(std::make_pair(acc, balance));
+  }
+  adb_ptr->set_height_address_val_internal(txs, addr_balance);
+  LOG(INFO) << "done with set height address";
+
+  auto it_account_median =
+      get_account_balance_median(accounts, txs_v, adb_ptr, addr_balance);
+  auto account_median = *it_account_median;
+  LOG(INFO) << "done with get account balance median";
+
+  // degree and in_out amount
+  auto it_in_out_degrees =
+      neb::rt::graph_algo::get_in_out_degrees(tg->internal_graph());
+  auto in_out_degrees = *it_in_out_degrees;
+  auto it_degrees = neb::rt::graph_algo::get_degree_sum(tg->internal_graph());
+  auto degrees = *it_degrees;
+  auto it_in_out_vals =
+      neb::rt::graph_algo::get_in_out_vals(tg->internal_graph());
+  auto in_out_vals = *it_in_out_vals;
+  auto it_stakes = neb::rt::graph_algo::get_stakes(tg->internal_graph());
+  auto stakes = *it_stakes;
+  LOG(INFO) << "done with get stakes";
+
+  // weight and rank
+  auto it_account_weight = get_account_weight(in_out_vals, adb_ptr);
+  auto account_weight = *it_account_weight;
+  LOG(INFO) << "done with get account weight";
+  auto it_account_rank = get_account_rank(account_median, account_weight, rp);
+  auto account_rank = *it_account_rank;
+  LOG(INFO) << "account rank size: " << account_rank.size();
+
+  std::vector<nr_info_t> infos;
+  for (auto it = accounts.begin(); it != accounts.end(); it++) {
+    std::string addr = *it;
+    if (account_median.find(addr) == account_median.end() ||
+        account_rank.find(addr) == account_rank.end() ||
+        in_out_degrees.find(addr) == in_out_degrees.end() ||
+        in_out_vals.find(addr) == in_out_vals.end() ||
+        stakes.find(addr) == stakes.end()) {
+      continue;
+    }
+
+    neb::floatxx_t nas_in_val = adb_ptr->get_normalized_value(
+        neb::int128_conversion(in_out_vals.find(addr)->second.m_in_val)
+            .to_float<neb::floatxx_t>());
+    neb::floatxx_t nas_out_val = adb_ptr->get_normalized_value(
+        neb::int128_conversion(in_out_vals.find(addr)->second.m_out_val)
+            .to_float<neb::floatxx_t>());
+    neb::floatxx_t nas_stake = adb_ptr->get_normalized_value(
+        neb::int128_conversion(stakes.find(addr)->second)
+            .to_float<neb::floatxx_t>());
+
+    nr_info_t info{addr,
+                   in_out_degrees[addr].m_in_degree,
+                   in_out_degrees[addr].m_out_degree,
+                   degrees[addr],
+                   nas_in_val,
+                   nas_out_val,
+                   nas_stake,
+                   account_median[addr],
+                   account_weight[addr],
+                   account_rank[addr]};
+    infos.push_back(info);
+  }
+
+  auto end_time = std::chrono::high_resolution_clock::now();
+  LOG(INFO) << "time spend: "
+            << std::chrono::duration_cast<std::chrono::seconds>(end_time -
+                                                                start_time)
+                   .count()
+            << " seconds";
+  return std::make_shared<std::vector<nr_info_t>>(infos);
+}
+
 } // namespace nr
 } // namespace rt
 } // namespace neb

@@ -25,19 +25,4 @@
 #include <string>
 #include <vector>
 
-struct nr_info_t {
-  std::string m_address;
-  uint32_t m_in_degree;
-  uint32_t m_out_degree;
-  uint32_t m_degrees;
-  float64 m_in_val;
-  float64 m_out_val;
-  float64 m_in_outs;
-  float64 m_median;
-  float64 m_weight;
-  float64 m_nr_score;
-};
-
-std::vector<nr_info_t> entry_point_nr_impl(neb::core::driver *d, void *param,
-                                           uint64_t start_block,
-                                           uint64_t end_block);
+std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block);
