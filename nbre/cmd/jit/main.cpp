@@ -97,8 +97,9 @@ int main(int argc, char *argv[]) {
     std::cout << e.what() << std::endl;
   }
 
-  auto nbreir_ptr = std::make_shared<nbre::NBREIR>(nbre_ir);
-  auto v = std::vector<std::shared_ptr<nbre::NBREIR>>({nbreir_ptr});
+  auto nbreir_ptr = std::make_unique<nbre::NBREIR>(nbre_ir);
+  std::vector<std::unique_ptr<nbre::NBREIR>> v;
+  v.push_back(std::move(nbreir_ptr));
 
   neb::auth_table_t auth_table;
   neb::jit_driver &jd = neb::jit_driver::instance();

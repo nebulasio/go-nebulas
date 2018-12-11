@@ -32,9 +32,9 @@ public:
   nbre_api(const nbre_api &na) = delete;
   nbre_api &operator=(const nbre_api &na) = delete;
 
-  std::shared_ptr<std::vector<std::string>> get_irs();
+  std::unique_ptr<std::vector<std::string>> get_irs();
 
-  std::shared_ptr<std::vector<version_t>>
+  std::unique_ptr<std::vector<version_t>>
   get_ir_versions(const std::string &ir_name);
 
 private:

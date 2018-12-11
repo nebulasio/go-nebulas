@@ -37,15 +37,15 @@ public:
   blockchain(const blockchain &bc) = delete;
   blockchain &operator=(const blockchain &bc) = delete;
 
-  std::shared_ptr<corepb::Block> load_tail_block();
-  std::shared_ptr<corepb::Block> load_LIB_block();
+  std::unique_ptr<corepb::Block> load_tail_block();
+  std::unique_ptr<corepb::Block> load_LIB_block();
 
-  std::shared_ptr<corepb::Block> load_block_with_height(block_height_t height);
+  std::unique_ptr<corepb::Block> load_block_with_height(block_height_t height);
 
   inline rocksdb_storage *get_blockchain_storage() { return m_storage.get(); }
 
 private:
-  std::shared_ptr<corepb::Block>
+  std::unique_ptr<corepb::Block>
   load_block_with_tag_string(const std::string &tag);
 
 private:

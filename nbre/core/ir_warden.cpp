@@ -31,12 +31,12 @@ namespace core {
 const command_type_t exit_command::command_type;
 ir_warden::~ir_warden() {}
 
-std::shared_ptr<nbre::NBREIR>
+std::unique_ptr<nbre::NBREIR>
 ir_warden::get_ir_by_name_version(const std::string &name, uint64_t version) {
   return m_nbre_storage->read_nbre_by_name_version(name, version);
 }
 
-std::vector<std::shared_ptr<nbre::NBREIR>>
+std::vector<std::unique_ptr<nbre::NBREIR>>
 ir_warden::get_ir_by_name_height(const std::string &name, uint64_t height,
                                  bool depends_trace) {
   return m_nbre_storage->read_nbre_by_height(name, height, depends_trace);

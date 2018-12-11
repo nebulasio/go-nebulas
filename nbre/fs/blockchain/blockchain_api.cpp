@@ -31,7 +31,7 @@ namespace fs {
 blockchain_api::blockchain_api(blockchain *blockchain_ptr)
     : m_blockchain(blockchain_ptr) {}
 
-std::shared_ptr<std::vector<transaction_info_t>>
+std::unique_ptr<std::vector<transaction_info_t>>
 blockchain_api::get_block_transactions_api(block_height_t height) {
 
   std::vector<transaction_info_t> txs;
@@ -66,10 +66,10 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
 
     txs.push_back(info);
   }
-  return std::make_shared<std::vector<transaction_info_t>>(txs);
+  return std::make_unique<std::vector<transaction_info_t>>(txs);
 }
 
-std::shared_ptr<event_info_t>
+std::unique_ptr<event_info_t>
 blockchain_api::get_transaction_result_api(const neb::util::bytes &events_root,
                                            const neb::util::bytes &tx_hash) {
 
@@ -96,7 +96,7 @@ blockchain_api::get_transaction_result_api(const neb::util::bytes &events_root,
   return json_parse_event(json_str);
 }
 
-std::shared_ptr<event_info_t>
+std::unique_ptr<event_info_t>
 blockchain_api::json_parse_event(const std::string &json) {
   boost::property_tree::ptree pt;
   std::stringstream ss(json);
@@ -112,10 +112,10 @@ blockchain_api::json_parse_event(const std::string &json) {
   int32_t status = pt.get<int32_t>("status");
   wei_t gas_used = boost::lexical_cast<wei_t>(pt.get<std::string>("gas_used"));
 
-  return std::make_shared<event_info_t>(event_info_t{status, gas_used});
+  return std::make_unique<event_info_t>(event_info_t{status, gas_used});
 }
 
-std::shared_ptr<account_info_t>
+std::unique_ptr<account_info_t>
 blockchain_api::get_account_api(const address_t &addr, block_height_t height) {
 
   auto rs_ptr = m_blockchain->get_blockchain_storage();
@@ -133,11 +133,11 @@ blockchain_api::get_account_api(const address_t &addr, block_height_t height) {
   bool is_found =
       t.get_trie_node(state_root_bytes, addr_bytes, trie_node_bytes);
   if (!is_found) {
-    std::make_shared<account_info_t>(account_info_t{addr, 0});
+    std::make_unique<account_info_t>(account_info_t{addr, 0});
   }
 
-  std::shared_ptr<corepb::Account> corepb_account_ptr =
-      std::make_shared<corepb::Account>();
+  std::unique_ptr<corepb::Account> corepb_account_ptr =
+      std::make_unique<corepb::Account>();
   bool ret = corepb_account_ptr->ParseFromArray(trie_node_bytes.value(),
                                                 trie_node_bytes.size());
   if (!ret) {
@@ -150,7 +150,7 @@ blockchain_api::get_account_api(const address_t &addr, block_height_t height) {
 
   std::string address = corepb_account_ptr->address();
 
-  return std::make_shared<account_info_t>(
+  return std::make_unique<account_info_t>(
       account_info_t{address, to_wei(hex_str)});
 }
 } // namespace fs

@@ -49,17 +49,17 @@ public:
       transaction_graph::internal_graph_t &graph, uint32_t k = 3);
 
   static auto get_in_out_vals(const transaction_graph::internal_graph_t &graph)
-      -> std::shared_ptr<std::unordered_map<address_t, in_out_val_t>>;
+      -> std::unique_ptr<std::unordered_map<address_t, in_out_val_t>>;
 
   static auto get_stakes(const transaction_graph::internal_graph_t &graph)
-      -> std::shared_ptr<std::unordered_map<address_t, wei_t>>;
+      -> std::unique_ptr<std::unordered_map<address_t, wei_t>>;
 
   static auto
   get_in_out_degrees(const transaction_graph::internal_graph_t &graph)
-      -> std::shared_ptr<std::unordered_map<address_t, in_out_degree_t>>;
+      -> std::unique_ptr<std::unordered_map<address_t, in_out_degree_t>>;
 
   static auto get_degree_sum(const transaction_graph::internal_graph_t &graph)
-      -> std::shared_ptr<std::unordered_map<address_t, uint32_t>>;
+      -> std::unique_ptr<std::unordered_map<address_t, uint32_t>>;
 
 private:
   static void dfs_find_a_cycle_from_vertex_based_on_time_sequence(
@@ -80,8 +80,8 @@ private:
       -> std::vector<transaction_graph::edge_descriptor_t>;
 
   static transaction_graph_ptr_t
-  merge_two_graphs(transaction_graph_ptr_t tg,
-                   const transaction_graph_ptr_t sg);
+  merge_two_graphs(transaction_graph_ptr_t &tg,
+                   const transaction_graph_ptr_t &sg);
 
   static inline wei_t min(wei_t w1, wei_t w2) { return w1 < w2 ? w1 : w2; }
 };

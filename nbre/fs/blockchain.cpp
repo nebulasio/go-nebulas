@@ -37,19 +37,19 @@ blockchain::~blockchain() {
   }
 }
 
-std::shared_ptr<corepb::Block> blockchain::load_tail_block() {
+std::unique_ptr<corepb::Block> blockchain::load_tail_block() {
   return load_block_with_tag_string(
       std::string(Block_Tail, std::allocator<char>()));
 }
 
-std::shared_ptr<corepb::Block> blockchain::load_LIB_block() {
+std::unique_ptr<corepb::Block> blockchain::load_LIB_block() {
   return load_block_with_tag_string(
       std::string(Block_LIB, std::allocator<char>()));
 }
 
-std::shared_ptr<corepb::Block>
+std::unique_ptr<corepb::Block>
 blockchain::load_block_with_height(block_height_t height) {
-  std::shared_ptr<corepb::Block> block = std::make_shared<corepb::Block>();
+  std::unique_ptr<corepb::Block> block = std::make_unique<corepb::Block>();
   neb::util::bytes height_hash =
       m_storage->get_bytes(neb::util::number_to_byte<neb::util::bytes>(height));
   neb::util::bytes block_bytes = m_storage->get_bytes(height_hash);
@@ -61,14 +61,14 @@ blockchain::load_block_with_height(block_height_t height) {
   return block;
 }
 
-std::shared_ptr<corepb::Block>
+std::unique_ptr<corepb::Block>
 blockchain::load_block_with_tag_string(const std::string &tag) {
   if (m_storage) {
     m_storage->close_database();
   }
   m_storage->open_database(m_path, m_open_flag);
 
-  std::shared_ptr<corepb::Block> block = std::make_shared<corepb::Block>();
+  std::unique_ptr<corepb::Block> block = std::make_unique<corepb::Block>();
   neb::util::bytes tail_hash =
       m_storage->get_bytes(neb::util::string_to_byte(tag));
 

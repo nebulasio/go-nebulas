@@ -37,11 +37,10 @@ public:
   ir_warden();
   virtual ~ir_warden();
 
-
-  std::shared_ptr<nbre::NBREIR> get_ir_by_name_version(const std::string &name,
+  std::unique_ptr<nbre::NBREIR> get_ir_by_name_version(const std::string &name,
                                                        uint64_t version);
 
-  std::vector<std::shared_ptr<nbre::NBREIR>>
+  std::vector<std::unique_ptr<nbre::NBREIR>>
   get_ir_by_name_height(const std::string &name, uint64_t height,
                         bool depends_trace = true);
   bool is_sync_already() const;

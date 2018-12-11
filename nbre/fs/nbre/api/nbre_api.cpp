@@ -38,7 +38,7 @@ nbre_api::~nbre_api() {
   }
 }
 
-std::shared_ptr<std::vector<std::string>> nbre_api::get_irs() {
+std::unique_ptr<std::vector<std::string>> nbre_api::get_irs() {
 
   neb::util::bytes bytes_ir_name_list_json =
       m_storage->get(neb::configuration::instance().nbre_ir_list_name());
@@ -57,10 +57,10 @@ std::shared_ptr<std::vector<std::string>> nbre_api::get_irs() {
     boost::property_tree::ptree pt = ir_name.second;
     v.push_back(pt.get<std::string>(std::string()));
   }
-  return std::make_shared<std::vector<std::string>>(v);
+  return std::make_unique<std::vector<std::string>>(v);
 }
 
-std::shared_ptr<std::vector<version_t>>
+std::unique_ptr<std::vector<version_t>>
 nbre_api::get_ir_versions(const std::string &ir_name) {
 
   std::vector<version_t> v;
@@ -80,7 +80,7 @@ nbre_api::get_ir_versions(const std::string &ir_name) {
   } catch (const std::exception &e) {
     LOG(INFO) << e.what();
   }
-  return std::make_shared<std::vector<version_t>>(v);
+  return std::make_unique<std::vector<version_t>>(v);
 }
 } // namespace fs
 } // namespace neb

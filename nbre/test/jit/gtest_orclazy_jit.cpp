@@ -23,7 +23,7 @@
 #include <gtest/gtest.h>
 #include <thread>
 
-std::string gen_key(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
+std::string gen_key(const std::vector<std::unique_ptr<nbre::NBREIR>> &irs,
                     const std::string &func_name) {
   std::stringstream ss;
   for (auto &m : irs) {
@@ -34,9 +34,9 @@ std::string gen_key(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
   return ss.str();
 }
 
-void run_ir_exit(const std::shared_ptr<nbre::NBREIR> &ir_ptr) {
-  std::vector<std::shared_ptr<nbre::NBREIR>> irs;
-  irs.push_back(ir_ptr);
+void run_ir_exit(std::unique_ptr<nbre::NBREIR> &ir_ptr) {
+  std::vector<std::unique_ptr<nbre::NBREIR>> irs;
+  irs.push_back(std::move(ir_ptr));
   std::string key = gen_key(irs, "_Z9test_funcPN3neb4core6driverEPv");
   neb::jit_driver::instance().run<neb::core::driver *, void *>(
       key, irs, "_Z9test_funcPN3neb4core6driverEPv", nullptr);
@@ -59,15 +59,16 @@ TEST(test_jit, irs_file) {
 
   nbre::NBREIR ir_info;
   ir_info.set_ir(neb::util::byte_to_string(buf));
-  auto ir_ptr = std::make_shared<nbre::NBREIR>(ir_info);
+  std::unique_ptr<nbre::NBREIR> ir_ptr =
+      std::make_unique<nbre::NBREIR>(ir_info);
 
   run_ir_exit(ir_ptr);
 
-  std::thread t1(run_ir_exit, ir_ptr);
-  std::thread t2(run_ir_exit, ir_ptr);
+  // std::thread t1(run_ir_exit, ir_ptr);
+  // std::thread t2(run_ir_exit, ir_ptr);
 
-  t1.join();
-  t2.join();
+  // t1.join();
+  // t2.join();
 }
 
 std::vector<std::unique_ptr<llvm::Module>>
@@ -145,10 +146,10 @@ void Run_One(const std::string &path, const std::string &func_name) {
 
   nbre::NBREIR ir_info;
   ir_info.set_ir(neb::util::byte_to_string(buf));
-  auto ir_ptr = std::make_shared<nbre::NBREIR>(ir_info);
+  auto ir_ptr = std::make_unique<nbre::NBREIR>(ir_info);
 
-  std::vector<std::shared_ptr<nbre::NBREIR>> irs;
-  irs.push_back(ir_ptr);
+  std::vector<std::unique_ptr<nbre::NBREIR>> irs;
+  irs.push_back(std::move(ir_ptr));
   std::cout << "before gen_key" << std::endl;
   std::string key = gen_key(irs, func_name.c_str());
   std::cout << "Run_One: before run" << std::endl;
@@ -180,11 +181,11 @@ void Run_One_1000(const std::string &path, const std::string &func_name,
 
   nbre::NBREIR ir_info;
   ir_info.set_ir(neb::util::byte_to_string(buf));
-  auto ir_ptr = std::make_shared<nbre::NBREIR>(ir_info);
+  auto ir_ptr = std::make_unique<nbre::NBREIR>(ir_info);
   ir_ptr->set_name(ir_name);
 
-  std::vector<std::shared_ptr<nbre::NBREIR>> irs;
-  irs.push_back(ir_ptr);
+  std::vector<std::unique_ptr<nbre::NBREIR>> irs;
+  irs.push_back(std::move(ir_ptr));
   std::string key = gen_key(irs, func_name.c_str());
   std::cout << "Run_One: before run" << std::endl;
   for (int i = 0; i < 1000; i++) {
@@ -217,12 +218,12 @@ TEST(test_jit, multi_thread) {
       nbre::NBREIR ir_info;
       LOG(INFO) << "thread enter";
       ir_info.set_ir(neb::util::byte_to_string(buf));
-      auto ir_ptr = std::make_shared<nbre::NBREIR>(ir_info);
+      auto ir_ptr = std::make_unique<nbre::NBREIR>(ir_info);
       ir_ptr->set_name(ir_name);
       try {
 
-        std::vector<std::shared_ptr<nbre::NBREIR>> irs;
-        irs.push_back(ir_ptr);
+        std::vector<std::unique_ptr<nbre::NBREIR>> irs;
+        irs.push_back(std::move(ir_ptr));
         std::string key = gen_key(irs, func_name.c_str());
         std::cout << "Run_One: before run" << std::endl;
         neb::jit_driver::instance().run<neb::core::driver *, void *>(

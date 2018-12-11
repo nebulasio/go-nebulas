@@ -26,8 +26,8 @@ namespace fs {
 
 trie_node::trie_node(const neb::util::bytes &triepb_bytes) {
 
-  std::shared_ptr<triepb::Node> triepb_node_ptr =
-      std::make_shared<triepb::Node>();
+  std::unique_ptr<triepb::Node> triepb_node_ptr =
+      std::make_unique<triepb::Node>();
 
   bool ret = triepb_node_ptr->ParseFromArray(triepb_bytes.value(),
                                              triepb_bytes.size());

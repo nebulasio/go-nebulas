@@ -117,7 +117,7 @@ TEST(test_core, get_ir_by_name_height) {
   auto ret = instance.get_ir_by_name_height("dip", 90000);
   EXPECT_EQ(ret.size(), 1);
   auto it = ret.begin();
-  auto nbre_ir_ptr = *it;
+  auto nbre_ir_ptr = std::move(*it);
   EXPECT_EQ(nbre_ir_ptr->name(), "dip");
   EXPECT_EQ(nbre_ir_ptr->version(), 1LL << 48);
   EXPECT_EQ(nbre_ir_ptr->height(), 90000);

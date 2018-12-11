@@ -46,14 +46,14 @@ nbre_storage::~nbre_storage() {
   }
 }
 
-std::vector<std::shared_ptr<nbre::NBREIR>>
+std::vector<std::unique_ptr<nbre::NBREIR>>
 nbre_storage::read_nbre_by_height(const std::string &name,
                                   block_height_t height, bool depends_trace) {
 
-  std::vector<std::shared_ptr<nbre::NBREIR>> ret;
+  std::vector<std::unique_ptr<nbre::NBREIR>> ret;
   std::unordered_set<std::string> pkgs;
 
-  std::shared_ptr<nbre::NBREIR> nbre_ir = std::make_shared<nbre::NBREIR>();
+  std::unique_ptr<nbre::NBREIR> nbre_ir = std::make_unique<nbre::NBREIR>();
   neb::util::bytes bytes_versions = m_storage->get(name);
 
   size_t gap = sizeof(uint64_t) / sizeof(uint8_t);
@@ -77,14 +77,14 @@ nbre_storage::read_nbre_by_height(const std::string &name,
 void nbre_storage::read_nbre_depends_recursive(
     const std::string &name, uint64_t version, block_height_t height,
     bool depends_trace, std::unordered_set<std::string> &pkg,
-    std::vector<std::shared_ptr<nbre::NBREIR>> &irs) {
+    std::vector<std::unique_ptr<nbre::NBREIR>> &irs) {
 
   if (name == neb::configuration::instance().rt_module_name() &&
       neb::rt::get_version() < neb::util::version(version)) {
     throw std::runtime_error("nbre runtime pkg version is too old");
   }
 
-  std::shared_ptr<nbre::NBREIR> nbre_ir = std::make_shared<nbre::NBREIR>();
+  std::unique_ptr<nbre::NBREIR> nbre_ir = std::make_unique<nbre::NBREIR>();
   std::string name_version = name + std::to_string(version);
   if (pkg.find(name_version) != pkg.end()) {
     return;
@@ -103,15 +103,15 @@ void nbre_storage::read_nbre_depends_recursive(
                                     depends_trace, pkg, irs);
       }
     }
-    irs.push_back(nbre_ir);
+    irs.push_back(std::move(nbre_ir));
     pkg.insert(name_version);
   }
 }
 
-std::shared_ptr<nbre::NBREIR>
+std::unique_ptr<nbre::NBREIR>
 nbre_storage::read_nbre_by_name_version(const std::string &name,
                                         uint64_t version) {
-  std::shared_ptr<nbre::NBREIR> nbre_ir = std::make_shared<nbre::NBREIR>();
+  std::unique_ptr<nbre::NBREIR> nbre_ir = std::make_unique<nbre::NBREIR>();
   std::string name_version = name + std::to_string(version);
 
   neb::util::bytes nbre_bytes = m_storage->get(name_version);
@@ -158,7 +158,7 @@ block_height_t nbre_storage::get_start_height() {
 
 block_height_t nbre_storage::get_end_height() {
 
-  std::shared_ptr<corepb::Block> end_block = m_blockchain->load_LIB_block();
+  std::unique_ptr<corepb::Block> end_block = m_blockchain->load_LIB_block();
   block_height_t end_height = end_block->height();
   return end_height;
 }
@@ -205,7 +205,7 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
       const std::string &payload = data.payload();
       neb::util::bytes payload_bytes = neb::util::string_to_byte(payload);
 
-      std::shared_ptr<nbre::NBREIR> nbre_ir = std::make_shared<nbre::NBREIR>();
+      std::unique_ptr<nbre::NBREIR> nbre_ir = std::make_unique<nbre::NBREIR>();
       bool ret =
           nbre_ir->ParseFromArray(payload_bytes.value(), payload_bytes.size());
       if (!ret) {
@@ -340,7 +340,7 @@ void nbre_storage::set_auth_table() {
     return;
   }
 
-  std::shared_ptr<nbre::NBREIR> nbre_ir = std::make_shared<nbre::NBREIR>();
+  std::unique_ptr<nbre::NBREIR> nbre_ir = std::make_unique<nbre::NBREIR>();
   try {
     auto payload_bytes =
         m_storage->get(neb::configuration::instance().nbre_auth_table_name());
@@ -359,7 +359,7 @@ void nbre_storage::set_auth_table() {
 }
 
 void nbre_storage::set_auth_table_by_jit(
-    const std::shared_ptr<nbre::NBREIR> nbre_ir) {
+    std::unique_ptr<nbre::NBREIR> &nbre_ir) {
 
   auth_table_t auth_table_raw;
 
@@ -369,8 +369,8 @@ void nbre_storage::set_auth_table_by_jit(
     ss << nbre_ir->name() << nbre_ir->version();
     LOG(INFO) << "set auth table by jit " << ss.str();
 
-    std::vector<std::shared_ptr<nbre::NBREIR>> irs;
-    irs.push_back(nbre_ir);
+    std::vector<std::unique_ptr<nbre::NBREIR>> irs;
+    irs.push_back(std::move(nbre_ir));
 
     auth_table_raw = jd.run<auth_table_t>(
         ss.str(), irs,

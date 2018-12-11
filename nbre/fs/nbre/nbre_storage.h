@@ -37,11 +37,11 @@ public:
   nbre_storage(const nbre_storage &ns) = delete;
   nbre_storage &operator=(const nbre_storage &ns) = delete;
 
-  std::vector<std::shared_ptr<nbre::NBREIR>>
+  std::vector<std::unique_ptr<nbre::NBREIR>>
   read_nbre_by_height(const std::string &name, block_height_t height,
                       bool depends_trace);
 
-  std::shared_ptr<nbre::NBREIR>
+  std::unique_ptr<nbre::NBREIR>
   read_nbre_by_name_version(const std::string &name, uint64_t version);
 
   void write_nbre_until_sync();
@@ -51,7 +51,7 @@ private:
   read_nbre_depends_recursive(const std::string &name, uint64_t version,
                               block_height_t height, bool depends_trace,
                               std::unordered_set<std::string> &pkg,
-                              std::vector<std::shared_ptr<nbre::NBREIR>> &irs);
+                              std::vector<std::unique_ptr<nbre::NBREIR>> &irs);
 
   block_height_t get_start_height();
   block_height_t get_end_height();
@@ -60,7 +60,7 @@ private:
   void write_nbre_by_height(block_height_t height);
 
   void set_auth_table();
-  void set_auth_table_by_jit(const std::shared_ptr<nbre::NBREIR> nbre_ir);
+  void set_auth_table_by_jit(std::unique_ptr<nbre::NBREIR> &nbre_ir);
 
   void update_ir_list(const std::string &nbre_ir_list_name,
                       const std::string &ir_name_list,

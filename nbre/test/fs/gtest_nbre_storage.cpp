@@ -91,7 +91,7 @@ TEST(test_fs, read_nbre_by_height_simple) {
   auto ret = nbre_ptr->read_nbre_by_height("nr", 90001, true);
   EXPECT_EQ(ret.size(), 1);
   auto it = ret.begin();
-  auto nbre_ir_ptr = *it;
+  auto nbre_ir_ptr = std::move(*it);
   EXPECT_EQ(nbre_ir_ptr->name(), "nr");
   EXPECT_EQ(nbre_ir_ptr->version(), 2LL << 48);
   EXPECT_EQ(nbre_ir_ptr->height(), 90000);
@@ -100,7 +100,7 @@ TEST(test_fs, read_nbre_by_height_simple) {
   ret = nbre_ptr->read_nbre_by_height("nr", 90000, true);
   EXPECT_EQ(ret.size(), 1);
   it = ret.begin();
-  nbre_ir_ptr = *it;
+  nbre_ir_ptr = std::move(*it);
   EXPECT_EQ(nbre_ir_ptr->name(), "nr");
   EXPECT_EQ(nbre_ir_ptr->version(), 2LL << 48);
   EXPECT_EQ(nbre_ir_ptr->height(), 90000);
@@ -121,7 +121,7 @@ TEST(test_fs, read_nbre_by_height) {
   auto ret = nbre_ptr->read_nbre_by_height("dip", 90000, true);
   EXPECT_EQ(ret.size(), 1);
   auto it = ret.begin();
-  auto nbre_ir_ptr = *it;
+  auto nbre_ir_ptr = std::move(*it);
   EXPECT_EQ(nbre_ir_ptr->name(), "dip");
   EXPECT_EQ(nbre_ir_ptr->version(), 1LL << 48);
   EXPECT_EQ(nbre_ir_ptr->height(), 90000);

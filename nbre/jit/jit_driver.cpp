@@ -79,7 +79,7 @@ jit_driver::jit_driver() {
 jit_driver::~jit_driver() { llvm::llvm_shutdown(); }
 
 std::unique_ptr<jit_driver::jit_context>
-jit_driver::make_context(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
+jit_driver::make_context(const std::vector<std::unique_ptr<nbre::NBREIR>> &irs,
                          const std::string &func_name) {
   std::unique_ptr<jit_context> ret = std::make_unique<jit_context>();
 
@@ -117,7 +117,7 @@ void jit_driver::timer_callback() {
 }
 
 std::string
-jit_driver::gen_key(const std::vector<std::shared_ptr<nbre::NBREIR>> &irs,
+jit_driver::gen_key(const std::vector<std::unique_ptr<nbre::NBREIR>> &irs,
                     const std::string &func_name) {
   std::stringstream ss;
   for (auto &m : irs) {
