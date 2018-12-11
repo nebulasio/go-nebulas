@@ -29,12 +29,14 @@ class transaction_db {
 public:
   transaction_db(blockchain_api *blockchain_ptr);
 
-  std::shared_ptr<std::vector<transaction_info_t>>
+  std::unique_ptr<std::vector<transaction_info_t>>
   read_transactions_from_db_with_duration(block_height_t start_block,
                                           block_height_t end_block);
 
-  std::shared_ptr<std::vector<transaction_info_t>>
-  read_account_inter_transactions(const std::vector<transaction_info_t> &txs);
+  std::unique_ptr<std::vector<transaction_info_t>>
+  read_transactions_with_address_type(
+      const std::vector<transaction_info_t> &txs, byte_t from_type,
+      byte_t to_type);
 
 private:
   blockchain_api *m_blockchain;
