@@ -23,9 +23,14 @@ package nbre
 #include <stdint.h>
 
 void NbreVersionFunc(int isc, void *holder, uint32_t major, uint32_t minor,uint32_t patch);
+void NbreNrFunc(int isc, void *holder, const char *nr_result);
 
 void NbreVersionFunc_cgo(int isc, void *holder, uint32_t major, uint32_t minor,uint32_t patch) {
 	NbreVersionFunc(isc, holder, major, minor, patch);
+};
+
+void NbreNrFunc_cgo(int isc, void *holder, const char *nr_result) {
+	NbreNrFunc(isc, holder, nr_result);
 };
 
 */

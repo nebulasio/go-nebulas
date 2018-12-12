@@ -25,6 +25,7 @@ package nbre
 #include <native/ipc_interface.h>
 
 void NbreVersionFunc_cgo(int isc, void *holder, uint32_t major, uint32_t minor,uint32_t patch);
+void NbreNrFunc_cgo(int isc, void *holder, const char *nr_result);
 */
 import "C"
 import (
@@ -182,6 +183,7 @@ func (n *Nbre) Start() error {
 // InitializeNbre initialize nbre
 func InitializeNbre() {
 	C.set_recv_nbre_version_callback((C.nbre_version_callback_t)(unsafe.Pointer(C.NbreVersionFunc_cgo)))
+	C.set_recv_nbre_nr_callback((C.nbre_nr_callback_t)(unsafe.Pointer(C.NbreNrFunc_cgo)))
 }
 
 // Execute execute command
@@ -246,6 +248,10 @@ func (n *Nbre) handleNbreCommand(handler *handler, command string, params []byte
 	switch command {
 	case CommandVersion:
 		C.ipc_nbre_version(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height))
+	case CommandNRList:
+		pStr := &Params{}
+		pStr.FromBytes(params)
+		C.ipc_nbre_nr(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(pStr.StartBlock), C.uint64_t(pStr.EndBlock), C.uint64_t(pStr.Version))
 	default:
 		handler.err = ErrCommandNotFound
 		handler.done <- true

@@ -20,6 +20,7 @@ package nr
 
 import (
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/nf/nbre"
 )
 
 type NR struct {
@@ -42,5 +43,23 @@ func (n *NR) GetNRHash(start, end uint64) ([]byte, error) {
 
 // GetNRList returns the nr list
 func (n *NR) GetNRList(hash []byte) (core.Data, error) {
-	return nil, nil
+	//TODO(larry): give a test params
+	params := &nbre.Params{
+		StartBlock:10000,
+		EndBlock:11000,
+		Version:4294967296,
+	}
+	pBytes, err := params.ToBytes()
+	if err != nil {
+		return nil, err
+	}
+	data, err := n.nbre.Execute(nbre.CommandNRList, pBytes)
+	if err != nil {
+		return nil, err
+	}
+	nrData := &NRData{}
+	if err := nrData.FromBytes(data); err != nil {
+		return nil, err
+	}
+	return nrData, nil
 }

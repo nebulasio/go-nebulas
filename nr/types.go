@@ -30,15 +30,15 @@ var (
 )
 
 type NRItem struct {
-	Addr string
-	Value string
+	Address string		`json:"address"`
+	Score string		`json:"score"`
 }
 
 type NRData struct {
-	Start uint64
-	End uint64
-	Version string
-	Data []*NRItem
+	Start uint64		`json:"start"`
+	End uint64			`json:"end"`
+	Version string		`json:"version"`
+	Nrs []*NRItem		`json:"nrs"`
 }
 
 // ToBytes serialize data

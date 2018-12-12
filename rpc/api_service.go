@@ -670,11 +670,11 @@ func (s *APIService) GetNRList(ctx context.Context, req *rpcpb.GetNRListRequest)
 	}
 
 	nrData := data.(*nr.NRData)
-	nrItems := make([]*rpcpb.NData, len(nrData.Data))
-	for idx, v := range nrData.Data {
+	nrItems := make([]*rpcpb.NData, len(nrData.Nrs))
+	for idx, v := range nrData.Nrs {
 		item := &rpcpb.NData{
-			Address: v.Addr,
-			Value:   v.Value,
+			Address: v.Address,
+			Value:   v.Score,
 		}
 		nrItems[idx] = item
 	}

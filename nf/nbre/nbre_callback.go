@@ -49,3 +49,18 @@ func NbreVersionFunc(code C.int, holder unsafe.Pointer, major C.uint32_t, minor 
 		nbreHandled(handler, result, err)
 	}
 }
+
+// NbreNrFunc returns nbre nr
+//export NbreNrFunc
+func NbreNrFunc(code C.int, holder unsafe.Pointer, nr_result *C.char) {
+	handlerId := uint64(uintptr(holder))
+	handler, _ := getNbreHandler(handlerId)
+	logging.CLog().WithFields(logrus.Fields{
+		"handlerId": handlerId,
+		"handler":   handler,
+	}).Debug("nbre callback")
+	if handler != nil {
+		result := C.GoString(nr_result)
+		nbreHandled(handler, []byte(result), nil)
+	}
+}
