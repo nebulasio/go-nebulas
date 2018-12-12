@@ -221,6 +221,38 @@ void driver::add_handlers() {
         }
         m_ipc_conn->push_back(ack);
       });
+
+  m_client->add_handler<ipc_pkg::nbre_nr_req>(
+      [this](ipc_pkg::nbre_nr_req *req) {
+        neb::core::ipc_pkg::nbre_nr_ack *ack =
+            m_ipc_conn->construct<neb::core::ipc_pkg::nbre_nr_ack>(
+                req->m_holder, m_ipc_conn->default_allocator());
+        if (ack == nullptr) {
+          return;
+        }
+
+        uint64_t start_block = req->get<ipc_pkg::start_block>();
+        uint64_t end_block = req->get<ipc_pkg::end_block>();
+
+        std::string nr_name = "nr";
+        uint64_t nr_version = req->get<ipc_pkg::nr_version>();
+        std::vector<std::unique_ptr<nbre::NBREIR>> irs;
+        auto ir = neb::core::ir_warden::instance().get_ir_by_name_version(
+            nr_name, nr_version);
+        irs.push_back(std::move(ir));
+
+        jit_driver &jd = jit_driver::instance();
+        std::stringstream ss;
+        ss << nr_name << nr_version;
+
+        //  TODO func name
+        std::string nr_result =
+            jd.run<std::string>(ss.str(), irs, "_Z14entry_point_nrB5cxx11mm",
+                                start_block, end_block);
+
+        ack->set<neb::core::ipc_pkg::nr_result>(nr_result.c_str());
+        m_ipc_conn->push_back(ack);
+      });
 }
 }
 } // namespace neb

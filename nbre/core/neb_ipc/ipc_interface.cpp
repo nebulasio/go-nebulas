@@ -74,3 +74,12 @@ void set_recv_nbre_ir_versions_callback(nbre_ir_versions_callback_t func) {
 int ipc_nbre_ir_versions(void *holder, const char *ir_name) {
   return _ipc->send_nbre_ir_versions_req(holder, ir_name);
 }
+
+void set_recv_nbre_nr_callback(nbre_nr_callback_t func) {
+  neb::core::ipc_callback_holder::instance().m_nbre_nr_callback = func;
+}
+
+int ipc_nbre_nr(void *holder, uint64_t start_block, uint64_t end_block,
+                uint64_t nr_version) {
+  return _ipc->send_nbre_nr_req(holder, start_block, end_block, nr_version);
+}

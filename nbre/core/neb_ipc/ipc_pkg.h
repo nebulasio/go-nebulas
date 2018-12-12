@@ -33,13 +33,14 @@ enum {
   ipc_pkg_nbre_ir_list_ack,
   ipc_pkg_nbre_versions_req,
   ipc_pkg_nbre_versions_ack,
+  ipc_pkg_nbre_nr_req,
+  ipc_pkg_nbre_nr_ack,
 };
 namespace ipc_pkg {
 using namespace internal;
 
 using height = ipc_elem_base<0, uint64_t>;
 using nbre_version_req = define_ipc_pkg<ipc_pkg_nbre_version_req, height>;
-
 using major = ipc_elem_base<1, uint32_t>;
 using minor = ipc_elem_base<2, uint32_t>;
 using patch = ipc_elem_base<3, uint32_t>;
@@ -68,6 +69,13 @@ using ir_versions = ipc_elem_base<12, neb::ipc::vector<uint64_t>>;
 using nbre_ir_versions_ack =
     define_ipc_pkg<ipc_pkg_nbre_versions_ack, ir_name, ir_versions>;
 
+using start_block = ipc_elem_base<13, uint64_t>;
+using end_block = ipc_elem_base<14, uint64_t>;
+using nr_version = ipc_elem_base<15, uint64_t>;
+using nbre_nr_req =
+    define_ipc_pkg<ipc_pkg_nbre_nr_req, start_block, end_block, nr_version>;
+using nr_result = ipc_elem_base<16, neb::ipc::char_string_t>;
+using nbre_nr_ack = define_ipc_pkg<ipc_pkg_nbre_nr_ack, nr_result>;
 } // namespace ipc_pkg
 } // namespace core
 } // namespace neb
