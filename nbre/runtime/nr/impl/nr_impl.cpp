@@ -30,6 +30,10 @@
 #include <chrono>
 #include <thread>
 
+namespace neb {
+namespace rt {
+namespace nr {
+
 template <typename T> std::string to_string(const T &val) {
   std::stringstream ss;
   ss << val;
@@ -83,11 +87,13 @@ std::string to_json(const std::vector<neb::rt::nr::nr_info_t> &rs) {
   root.add_child("nrs", arr);
 
   std::stringstream ss;
-  boost::property_tree::write_json(ss, root, false);
+  boost::property_tree::json_parser::write_json(ss, root, false);
   return ss.str();
 }
 
-std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block) {
+std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
+                                nr_float_t a, nr_float_t b, nr_float_t c,
+                                nr_float_t d, int64_t mu, int64_t lambda) {
 
   std::string neb_db_path = neb::configuration::instance().neb_db_dir();
   neb::fs::blockchain bc(neb_db_path);
@@ -98,7 +104,7 @@ std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block) {
       std::make_shared<neb::fs::account_db>(&ba);
 
   LOG(INFO) << "start block: " << start_block << " , end block: " << end_block;
-  neb::rt::nr::rank_params_t rp{2000.0, 200000.0, 100.0, 1000.0, 1, 3};
+  neb::rt::nr::rank_params_t rp{a, b, c, d, mu, lambda};
 
   auto it_txs =
       tdb_ptr->read_transactions_from_db_with_duration(start_block, end_block);
@@ -107,3 +113,7 @@ std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block) {
       tdb_ptr, adb_ptr, *it_txs, rp, start_block, end_block);
   return to_json(*ret);
 }
+} // namespace nr
+} // namespace rt
+} // namespace neb
+

@@ -20,7 +20,14 @@
 
 #include "runtime/nr/impl/nr_impl.h"
 
-std::vector<nr_info_t> entry_point_nr(neb::core::driver *d, void *param) {
-  return entry_point_nr_impl(d, param);
+std::string entry_point_nr(uint64_t start_block, uint64_t end_block) {
+  neb::rt::nr::nr_float_t a = 2000.0;
+  neb::rt::nr::nr_float_t b = 200000.0;
+  neb::rt::nr::nr_float_t c = 100.0;
+  neb::rt::nr::nr_float_t d = 1000.0;
+  int64_t mu = 1;
+  int64_t lambda = 3;
+  return neb::rt::nr::entry_point_nr_impl(start_block, end_block, a, b, c, d,
+                                          mu, lambda);
 }
 

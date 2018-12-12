@@ -6,7 +6,7 @@
   "version_patch": 0,
   "depends": [
   ],
-  "available_height": 90000,
+  "available_height": 900,
   "cpp_files": [
     "nr_release_v1.cpp"
   ],

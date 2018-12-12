@@ -20,19 +20,18 @@
 
 #pragma once
 
-#include "common/math/softfloat.hpp"
-#include "runtime/stdrt.h"
-#include <string>
-#include <vector>
+#include "runtime/nr/impl/nr_impl.h"
 
 namespace neb {
 namespace rt {
-namespace nr {
+namespace dip {
 
-using nr_float_t = float32;
-std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
-                                nr_float_t a, nr_float_t b, nr_float_t c,
-                                nr_float_t d, int64_t mu, int64_t lambda);
-} // namespace nr
+struct dip_info_t {
+  std::string m_address;
+  std::string m_reward;
+};
+
+std::string entry_point_dip_impl(uint64_t height);
+} // namespace dip
 } // namespace rt
 } // namespace neb
