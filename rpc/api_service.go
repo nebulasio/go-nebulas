@@ -31,7 +31,8 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/nf/nbre"
+	"github.com/nebulasio/go-nebulas/nip/dip"
+	"github.com/nebulasio/go-nebulas/nr"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -641,24 +642,78 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightReq
 	return &rpcpb.GetDynastyResponse{Miners: result}, nil
 }
 
-// GetNRByAddress return nr by address hash.
-func (s *APIService) GetNRByAddress(ctx context.Context, req *rpcpb.GetNRByAddressRequest) (*rpcpb.GetNRByAddressResponse, error) {
+// GetNRHash return nr query hash.
+func (s *APIService) GetNRHash(ctx context.Context, req *rpcpb.GetNRHashRequest) (*rpcpb.GetNRHashResponse, error) {
 	neb := s.server.Neblet()
 
-	addr, err := core.AddressParse(req.Address)
-	if err != nil {
-		return nil, err
+	if req.End == 0 {
+		req.End = neb.BlockChain().TailBlock().Height()
 	}
-	if req.Height == 0 {
-		req.Height = neb.BlockChain().TailBlock().Height()
-	}
-	if req.Height == 0 || req.Height > neb.BlockChain().TailBlock().Height() {
-		return nil, errors.New("invalid height")
-	}
-	data, err := neb.Nbre().Execute(nbre.CommandVersion, addr.Bytes())
+
+	data, err := neb.Nr().GetNRHash(req.Start, req.End)
+
 	if err != nil {
 		return nil, err
 	}
 
-	return &rpcpb.GetNRByAddressResponse{Data: string(data)}, nil
+	return &rpcpb.GetNRHashResponse{Hash: string(data)}, nil
+}
+
+// GetNRList return nr data.
+func (s *APIService) GetNRList(ctx context.Context, req *rpcpb.GetNRListRequest) (*rpcpb.GetNRListResponse, error) {
+	neb := s.server.Neblet()
+
+	data, err := neb.Nr().GetNRList([]byte(req.Hash))
+
+	if err != nil {
+		return nil, err
+	}
+
+	nrData := data.(*nr.NRData)
+	nrItems := make([]*rpcpb.NData, len(nrData.Data))
+	for idx, v := range nrData.Data {
+		item := &rpcpb.NData{
+			Address: v.Addr,
+			Value:   v.Value,
+		}
+		nrItems[idx] = item
+	}
+
+	resp := &rpcpb.GetNRListResponse{
+		Version: nrData.Version,
+		Start:   nrData.Start,
+		End:     nrData.End,
+		Data:    nrItems,
+	}
+
+	return resp, nil
+}
+
+// GetDIPList return dip list.
+func (s *APIService) GetDIPList(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.GetDIPListResponse, error) {
+	neb := s.server.Neblet()
+
+	data, err := neb.Dip().GetDipList(neb.BlockChain().TailBlock().Height())
+
+	if err != nil {
+		return nil, err
+	}
+	dipData := data.(*dip.DIPData)
+	dipItems := make([]*rpcpb.NData, len(dipData.Data))
+	for idx, v := range dipData.Data {
+		item := &rpcpb.NData{
+			Address: v.Addr,
+			Value:   v.Value,
+		}
+		dipItems[idx] = item
+	}
+
+	resp := &rpcpb.GetDIPListResponse{
+		Version: dipData.Version,
+		Start:   dipData.Start,
+		End:     dipData.End,
+		Data:    dipItems,
+	}
+
+	return resp, nil
 }

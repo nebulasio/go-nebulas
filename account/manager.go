@@ -246,9 +246,13 @@ func (m *Manager) Load(keyjson, passphrase []byte) (*core.Address, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer utils.ZeroBytes(data)
+	return m.LoadPrivate(data, passphrase)
+}
 
-	priv, err := crypto.NewPrivateKey(m.signatureAlg, data)
+// LoadPrivate load a private key to keystore, unable to write file
+func (m *Manager) LoadPrivate(privatekey, passphrase []byte) (*core.Address, error) {
+	defer utils.ZeroBytes(privatekey)
+	priv, err := crypto.NewPrivateKey(m.signatureAlg, privatekey)
 	if err != nil {
 		return nil, err
 	}

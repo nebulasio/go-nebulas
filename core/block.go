@@ -148,6 +148,7 @@ type Block struct {
 	txPool       *TransactionPool
 	eventEmitter *EventEmitter
 	nvm          NVM
+	dip          Dip
 	storage      storage.Storage
 }
 
@@ -252,6 +253,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		txPool:       parent.txPool,
 		eventEmitter: parent.eventEmitter,
 		nvm:          parent.nvm,
+		dip:          parent.dip,
 		storage:      parent.storage,
 	}
 
@@ -431,6 +433,7 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	block.storage = parentBlock.storage
 	block.eventEmitter = parentBlock.eventEmitter
 	block.nvm = parentBlock.nvm
+	block.dip = parentBlock.dip
 
 	return nil
 }
@@ -1312,6 +1315,7 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 	block.txPool = chain.txPool
 	block.eventEmitter = chain.eventEmitter
 	block.nvm = chain.nvm
+	block.dip = chain.dip
 	block.storage = chain.storage
 	return block, nil
 }

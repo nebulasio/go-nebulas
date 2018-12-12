@@ -28,6 +28,8 @@ import (
 	nebnet "github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/nf/nbre"
 	"github.com/nebulasio/go-nebulas/nf/nvm"
+	"github.com/nebulasio/go-nebulas/nip/dip"
+	"github.com/nebulasio/go-nebulas/nr"
 	"github.com/nebulasio/go-nebulas/rpc"
 	"github.com/nebulasio/go-nebulas/storage"
 	nsync "github.com/nebulasio/go-nebulas/sync"
@@ -74,6 +76,10 @@ type Neblet struct {
 	nvm core.NVM
 
 	nbre core.Nbre
+
+	nr core.Nr
+
+	dip core.Dip
 
 	running bool
 }
@@ -177,6 +183,16 @@ func (n *Neblet) Setup() {
 	// nbre
 	n.nbre = nbre.NewNbre(n)
 
+	// nr
+	n.nr = nr.NewNR(n)
+
+	// dip
+	if n.dip, err = dip.NewDIP(n); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to setup dip.")
+	}
+
 	logging.CLog().Info("Setuped Neblet.")
 }
 
@@ -265,6 +281,9 @@ func (n *Neblet) Start() {
 				"err": err,
 			}).Fatal("Failed to enable mining.")
 		}
+
+		// start dip
+		n.dip.Start()
 	}
 
 	// first sync
@@ -411,6 +430,16 @@ func (n *Neblet) Nvm() core.NVM {
 // Nbre return the nbre
 func (n *Neblet) Nbre() core.Nbre {
 	return n.nbre
+}
+
+// Nr return the nr
+func (n *Neblet) Nr() core.Nr {
+	return n.nr
+}
+
+// Dip return the dip
+func (n *Neblet) Dip() core.Dip {
+	return n.dip
 }
 
 // TryStartProfiling try start pprof
