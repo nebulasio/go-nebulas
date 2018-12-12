@@ -44,6 +44,7 @@ const (
 	TxPayloadDeployType   = "deploy"
 	TxPayloadCallType     = "call"
 	TxPayloadProtocolType = "protocol"
+	TxPayloadDipType      = "dip"
 )
 
 // Const.
@@ -55,6 +56,11 @@ const (
 // Const
 const (
 	ContractAcceptFunc = "accept"
+)
+
+const (
+	// DipRewardAddress dip reward address
+	DipRewardAddress = "n1c6y4ctkMeZk624QWBTXuywmNpCWmJZiBq"
 )
 
 var (
@@ -175,6 +181,9 @@ var (
 
 	// unsupported keyword error in smart contract
 	ErrUnsupportedKeyword = errors.New("transaction data has unsupported keyword")
+
+	ErrInvalidDipAddress                    = errors.New("invalid dip reward address")
+	ErrUnsupportedTransactionFromDipAddress = errors.New("unsupported transaction from dip address")
 )
 
 // Default gas count
@@ -253,6 +262,7 @@ type AccountManager interface {
 
 	Update(*Address, []byte, []byte) error
 	Load([]byte, []byte) (*Address, error)
+	LoadPrivate([]byte, []byte) (*Address, error)
 	Import([]byte, []byte) (*Address, error)
 	Remove(*Address, []byte) error
 }
@@ -331,6 +341,11 @@ type Nr interface {
 }
 
 type Dip interface {
+	Start()
+	Stop()
+
+	RewardAddress() *Address
+
 	GetDipList(height uint64) (Data, error)
 	CheckReward(height uint64, addr string, value *util.Uint128) error
 }

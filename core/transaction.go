@@ -107,6 +107,11 @@ type Transaction struct {
 	sign byteutils.Hash // Signature values
 }
 
+// SetTimestamp update the timestamp.
+func (tx *Transaction) SetTimestamp(timestamp int64) {
+	tx.timestamp = timestamp
+}
+
 // From return from address
 func (tx *Transaction) From() *Address {
 	return tx.from
@@ -181,12 +186,21 @@ func (tx *Transaction) ToProto() (proto.Message, error) {
 func (tx *Transaction) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*corepb.Transaction); ok {
 		if msg != nil {
+
 			tx.hash = msg.Hash
 			from, err := AddressParseFromBytes(msg.From)
 			if err != nil {
 				return err
 			}
 			tx.from = from
+
+			if msg.Data.Type == TxPayloadDipType && tx.from.String() != DipRewardAddress {
+				return ErrInvalidDipAddress
+			}
+
+			if tx.from.String() == DipRewardAddress && msg.Data.Type != TxPayloadDipType {
+				return ErrUnsupportedTransactionFromDipAddress
+			}
 
 			to, err := AddressParseFromBytes(msg.To)
 			if err != nil {
@@ -324,6 +338,14 @@ func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonc
 		return nil, ErrTxDataPayLoadOutOfMaxLength
 	}
 
+	if payloadType == TxPayloadDipType && from.String() != DipRewardAddress {
+		return nil, ErrInvalidDipAddress
+	}
+
+	if from.String() == DipRewardAddress && payloadType != TxPayloadDipType {
+		return nil, ErrUnsupportedTransactionFromDipAddress
+	}
+
 	tx := &Transaction{
 		from:      from,
 		to:        to,
@@ -395,6 +417,8 @@ func (tx *Transaction) LoadPayload() (TxPayload, error) {
 		payload, err = LoadCallPayload(tx.data.Payload)
 	case TxPayloadProtocolType:
 		payload, err = LoadProtocolPayload(tx.data.Payload)
+	case TxPayloadDipType:
+		payload, err = LoadDipPayload(tx.data.Payload)
 	default:
 		err = ErrInvalidTxPayloadType
 	}

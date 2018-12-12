@@ -281,6 +281,9 @@ func (n *Neblet) Start() {
 				"err": err,
 			}).Fatal("Failed to enable mining.")
 		}
+
+		// start dip
+		n.dip.Start()
 	}
 
 	// first sync
