@@ -23,10 +23,20 @@ package nbre
 #include <stdint.h>
 
 void NbreVersionFunc(int isc, void *holder, uint32_t major, uint32_t minor,uint32_t patch);
+void NbreIrListFunc(int isc, void *holder, const char *ir_name_list);
+void NbreIrVersionsFunc(int isc, void *holder, const char *ir_versions);
 void NbreNrFunc(int isc, void *holder, const char *nr_result);
 
 void NbreVersionFunc_cgo(int isc, void *holder, uint32_t major, uint32_t minor,uint32_t patch) {
 	NbreVersionFunc(isc, holder, major, minor, patch);
+};
+
+void NbreIrListFunc_cgo(int isc, void *holder, const char *ir_name_list) {
+	NbreIrListFunc(isc, holder, ir_name_list);
+};
+
+void NbreIrVersionsFunc_cgo(int isc, void *holder, const char *ir_versions) {
+	NbreIrVersionsFunc(isc, holder, ir_versions);
 };
 
 void NbreNrFunc_cgo(int isc, void *holder, const char *nr_result) {

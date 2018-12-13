@@ -35,10 +35,10 @@ import (
 func NbreVersionFunc(code C.int, holder unsafe.Pointer, major C.uint32_t, minor C.uint32_t, patch C.uint32_t) {
 	handlerId := uint64(uintptr(holder))
 	handler, _ := getNbreHandler(handlerId)
-	logging.CLog().WithFields(logrus.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"handlerId": handlerId,
 		"handler":   handler,
-	}).Debug("nbre callback")
+	}).Debug("nbre versions callback")
 	if handler != nil {
 		version := &Version{
 			Major: uint64(major),
@@ -50,17 +50,53 @@ func NbreVersionFunc(code C.int, holder unsafe.Pointer, major C.uint32_t, minor 
 	}
 }
 
+// NbreIrListFunc returns nbre ir list
+//export NbreIrListFunc
+func NbreIrListFunc(code C.int, holder unsafe.Pointer, ir_name_list *C.char) {
+	handlerId := uint64(uintptr(holder))
+	handler, _ := getNbreHandler(handlerId)
+	if handler != nil {
+		result := C.GoString(ir_name_list)
+
+		logging.VLog().WithFields(logrus.Fields{
+			"handlerId": handlerId,
+			"handler":   handler,
+			"ir":        result,
+		}).Debug("nbre ir list callback")
+		nbreHandled(handler, []byte(result), nil)
+	}
+}
+
+// NbreIrVersionsFunc returns nbre ir versions
+//export NbreIrVersionsFunc
+func NbreIrVersionsFunc(code C.int, holder unsafe.Pointer, ir_versions *C.char) {
+	handlerId := uint64(uintptr(holder))
+	handler, _ := getNbreHandler(handlerId)
+	if handler != nil {
+		result := C.GoString(ir_versions)
+
+		logging.VLog().WithFields(logrus.Fields{
+			"handlerId": handlerId,
+			"handler":   handler,
+			"versions":  result,
+		}).Debug("nbre ir version callback")
+		nbreHandled(handler, []byte(result), nil)
+	}
+}
+
 // NbreNrFunc returns nbre nr
 //export NbreNrFunc
 func NbreNrFunc(code C.int, holder unsafe.Pointer, nr_result *C.char) {
 	handlerId := uint64(uintptr(holder))
 	handler, _ := getNbreHandler(handlerId)
-	logging.CLog().WithFields(logrus.Fields{
-		"handlerId": handlerId,
-		"handler":   handler,
-	}).Debug("nbre callback")
 	if handler != nil {
 		result := C.GoString(nr_result)
+
+		logging.VLog().WithFields(logrus.Fields{
+			"handlerId": handlerId,
+			"handler":   handler,
+			"nr":        result,
+		}).Debug("nbre nr callback")
 		nbreHandled(handler, []byte(result), nil)
 	}
 }

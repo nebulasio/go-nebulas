@@ -38,10 +38,12 @@ var (
 
 // Command types
 var (
-	CommandVersion = "version"
-	CommandNRHash  = "nrHash"
-	CommandNRList  = "nrList"
-	CommandDIPList = "dipList"
+	CommandVersion    = "version"
+	CommandIRList     = "irList"
+	CommandIRVersions = "irVersions"
+	CommandNRHash     = "nrHash"
+	CommandNRList     = "nrList"
+	CommandDIPList    = "dipList"
 )
 
 type Neblet interface {
