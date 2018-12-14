@@ -195,7 +195,7 @@ ignored = ["github.com/google/protobuf/examples*", "github.com/multiformats/go-m
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-peer"
-  version = "v2.4.0"
+  branch = "master"
 
 
 [[constraint]]
