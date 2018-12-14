@@ -84,9 +84,26 @@ func NbreIrVersionsFunc(code C.int, holder unsafe.Pointer, ir_versions *C.char) 
 	}
 }
 
-// NbreNrFunc returns nbre nr
-//export NbreNrFunc
-func NbreNrFunc(code C.int, holder unsafe.Pointer, nr_result *C.char) {
+// NbreNrHandlerFunc returns nbre nr handler
+//export NbreNrHandlerFunc
+func NbreNrHandlerFunc(code C.int, holder unsafe.Pointer, nr_handler *C.char) {
+	handlerId := uint64(uintptr(holder))
+	handler, _ := getNbreHandler(handlerId)
+	if handler != nil {
+		result := C.GoString(nr_handler)
+
+		logging.VLog().WithFields(logrus.Fields{
+			"handlerId":  handlerId,
+			"handler":    handler,
+			"nr_handler": result,
+		}).Debug("nbre nr callback")
+		nbreHandled(handler, []byte(result), nil)
+	}
+}
+
+// NbreNrResultFunc returns nbre nr list
+//export NbreNrResultFunc
+func NbreNrResultFunc(code C.int, holder unsafe.Pointer, nr_result *C.char) {
 	handlerId := uint64(uintptr(holder))
 	handler, _ := getNbreHandler(handlerId)
 	if handler != nil {

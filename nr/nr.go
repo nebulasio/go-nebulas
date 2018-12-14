@@ -36,24 +36,26 @@ func NewNR(neb core.Neblet) *NR {
 	return nr
 }
 
-// GetNRHash returns the nr query hash
-func (n *NR) GetNRHash(start, end uint64) ([]byte, error) {
-	return nil, nil
-}
-
-// GetNRList returns the nr list
-func (n *NR) GetNRList(hash []byte) (core.Data, error) {
-	//TODO(larry): give a test params
+// GetNRHandler returns the nr query handler
+func (n *NR) GetNRHandler(start, end, version uint64) ([]byte, error) {
+	if version == 0 {
+		version = DefaultNRVersion
+	}
 	params := &nbre.Params{
-		StartBlock:10000,
-		EndBlock:11000,
-		Version:4294967296,
+		StartBlock:start,
+		EndBlock:end,
+		Version: version,
 	}
 	pBytes, err := params.ToBytes()
 	if err != nil {
 		return nil, err
 	}
-	data, err := n.nbre.Execute(nbre.CommandNRList, pBytes)
+	return n.nbre.Execute(nbre.CommandNRHandler, pBytes)
+}
+
+// GetNRList returns the nr list
+func (n *NR) GetNRList(hash []byte) (core.Data, error) {
+	data, err := n.nbre.Execute(nbre.CommandNRList, hash)
 	if err != nil {
 		return nil, err
 	}

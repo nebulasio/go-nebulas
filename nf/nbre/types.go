@@ -41,7 +41,7 @@ var (
 	CommandVersion    = "version"
 	CommandIRList     = "irList"
 	CommandIRVersions = "irVersions"
-	CommandNRHash     = "nrHash"
+	CommandNRHandler  = "nrHandler"
 	CommandNRList     = "nrList"
 	CommandDIPList    = "dipList"
 )

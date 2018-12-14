@@ -680,6 +680,9 @@ message GetNRHashRequest {
 
     // end block height of nr calculate interval. If not specified, use 0 as tail height.
     uint64 end = 2;
+
+    // nr version 
+    uint64 version = 3;
 }
 
 message GetNRHashResponse {

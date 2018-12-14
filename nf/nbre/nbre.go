@@ -27,7 +27,8 @@ package nbre
 void NbreVersionFunc_cgo(int isc, void *holder, uint32_t major, uint32_t minor,uint32_t patch);
 void NbreIrListFunc_cgo(int isc, void *holder, const char *ir_name_list);
 void NbreIrVersionsFunc_cgo(int isc, void *holder, const char *ir_versions);
-void NbreNrFunc_cgo(int isc, void *holder, const char *nr_result);
+void NbreNrHandlerFunc_cgo(int isc, void *holder, const char *nr_handler);
+void NbreNrResultFunc_cgo(int isc, void *holder, const char *nr_result);
 */
 import "C"
 import (
@@ -187,7 +188,8 @@ func InitializeNbre() {
 	C.set_recv_nbre_version_callback((C.nbre_version_callback_t)(unsafe.Pointer(C.NbreVersionFunc_cgo)))
 	C.set_recv_nbre_ir_list_callback((C.nbre_ir_list_callback_t)(unsafe.Pointer(C.NbreIrListFunc_cgo)))
 	C.set_recv_nbre_ir_versions_callback((C.nbre_ir_versions_callback_t)(unsafe.Pointer(C.NbreIrVersionsFunc_cgo)))
-	C.set_recv_nbre_nr_callback((C.nbre_nr_callback_t)(unsafe.Pointer(C.NbreNrFunc_cgo)))
+	C.set_recv_nbre_nr_handler_callback((C.nbre_nr_handler_callback_t)(unsafe.Pointer(C.NbreNrHandlerFunc_cgo)))
+	C.set_recv_nbre_nr_result_callback((C.nbre_nr_result_callback_t)(unsafe.Pointer(C.NbreNrResultFunc_cgo)))
 }
 
 // Execute execute command
@@ -256,10 +258,13 @@ func (n *Nbre) handleNbreCommand(handler *handler, command string, params []byte
 		C.ipc_nbre_ir_list(unsafe.Pointer(uintptr(handlerId)))
 	case CommandIRVersions:
 		C.ipc_nbre_ir_versions(unsafe.Pointer(uintptr(handlerId)), C.CString(string(params)))
-	case CommandNRList:
+	case CommandNRHandler:
 		pStr := &Params{}
 		pStr.FromBytes(params)
-		C.ipc_nbre_nr(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(pStr.StartBlock), C.uint64_t(pStr.EndBlock), C.uint64_t(pStr.Version))
+		C.ipc_nbre_nr_handler(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(pStr.StartBlock), C.uint64_t(pStr.EndBlock), C.uint64_t(pStr.Version))
+	case CommandNRList:
+		C.ipc_nbre_nr_result(unsafe.Pointer(uintptr(handlerId)), C.CString(string(params)))
+	case CommandDIPList:
 	default:
 		handler.err = ErrCommandNotFound
 		handler.done <- true

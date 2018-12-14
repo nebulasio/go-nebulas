@@ -650,7 +650,7 @@ func (s *APIService) GetNRHash(ctx context.Context, req *rpcpb.GetNRHashRequest)
 		req.End = neb.BlockChain().TailBlock().Height()
 	}
 
-	data, err := neb.Nr().GetNRHash(req.Start, req.End)
+	data, err := neb.Nr().GetNRHandler(req.Start, req.End, req.Version)
 
 	if err != nil {
 		return nil, err
