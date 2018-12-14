@@ -201,11 +201,20 @@ void ipc_server_endpoint::add_all_callbacks() {
             ipc_status_succ, msg->m_holder, ss.str().c_str());
       });
 
-  m_ipc_server->add_handler<ipc_pkg::nbre_nr_ack>(
-      [p, this](ipc_pkg::nbre_nr_ack *msg) {
+  m_ipc_server->add_handler<ipc_pkg::nbre_nr_handler_ack>(
+      [p, this](ipc_pkg::nbre_nr_handler_ack *msg) {
         LOG(INFO) << "alloc: " << (void *)p;
         m_request_timer->remove_api(msg->m_holder);
-        ipc_callback_holder::instance().m_nbre_nr_callback(
+        ipc_callback_holder::instance().m_nbre_nr_handler_callback(
+            ipc_status_succ, msg->m_holder,
+            msg->get<ipc_pkg::nr_handler_id>().c_str());
+      });
+
+  m_ipc_server->add_handler<ipc_pkg::nbre_nr_result_ack>(
+      [p, this](ipc_pkg::nbre_nr_result_ack *msg) {
+        LOG(INFO) << "alloc: " << (void *)p;
+        m_request_timer->remove_api(msg->m_holder);
+        ipc_callback_holder::instance().m_nbre_nr_result_callback(
             ipc_status_succ, msg->m_holder,
             msg->get<ipc_pkg::nr_result>().c_str());
       });
@@ -271,16 +280,17 @@ int ipc_server_endpoint::send_nbre_ir_versions_req(void *holder,
   return ipc_status_succ;
 }
 
-int ipc_server_endpoint::send_nbre_nr_req(void *holder, uint64_t start_block,
-                                          uint64_t end_block,
-                                          uint64_t nr_version) {
-  CHECK_NBRE_STATUS(m_callbacks->m_nbre_nr_callback);
+int ipc_server_endpoint::send_nbre_nr_handler_req(void *holder,
+                                                  uint64_t start_block,
+                                                  uint64_t end_block,
+                                                  uint64_t nr_version) {
+  CHECK_NBRE_STATUS(m_callbacks->m_nbre_nr_handler_callback);
 
   m_request_timer->issue_api(
       holder,
       [holder, start_block, end_block, nr_version, this]() {
-        ipc_pkg::nbre_nr_req *req =
-            m_ipc_server->construct<ipc_pkg::nbre_nr_req>(
+        ipc_pkg::nbre_nr_handler_req *req =
+            m_ipc_server->construct<ipc_pkg::nbre_nr_handler_req>(
                 holder, m_ipc_server->default_allocator());
         if (req == nullptr) {
           return;
@@ -290,7 +300,31 @@ int ipc_server_endpoint::send_nbre_nr_req(void *holder, uint64_t start_block,
         req->set<ipc_pkg::nr_version>(nr_version);
         m_ipc_server->push_back(req);
       },
-      m_callbacks->m_nbre_nr_callback);
+      m_callbacks->m_nbre_nr_handler_callback);
+  return ipc_status_succ;
+}
+
+int ipc_server_endpoint::send_nbre_nr_result_req(
+    void *holder, const std::string &nr_handler_id) {
+  CHECK_NBRE_STATUS(m_callbacks->m_nbre_nr_result_callback);
+
+  m_request_timer->issue_api(
+      holder,
+      [holder, nr_handler_id, this]() {
+        ipc_pkg::nbre_nr_result_req *req =
+            m_ipc_server->construct<ipc_pkg::nbre_nr_result_req>(
+                holder, m_ipc_server->default_allocator());
+        if (req == nullptr) {
+          return;
+        }
+
+        neb::ipc::char_string_t cstr_nr_handler_id(
+            nr_handler_id.c_str(), m_ipc_server->default_allocator());
+        req->set<ipc_pkg::nr_handler_id>(cstr_nr_handler_id);
+        m_ipc_server->push_back(req);
+      },
+      m_callbacks->m_nbre_nr_result_callback);
+
   return ipc_status_succ;
 }
 

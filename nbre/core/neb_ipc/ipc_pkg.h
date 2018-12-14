@@ -33,8 +33,10 @@ enum {
   ipc_pkg_nbre_ir_list_ack,
   ipc_pkg_nbre_versions_req,
   ipc_pkg_nbre_versions_ack,
-  ipc_pkg_nbre_nr_req,
-  ipc_pkg_nbre_nr_ack,
+  ipc_pkg_nbre_nr_handler_req,
+  ipc_pkg_nbre_nr_handler_ack,
+  ipc_pkg_nbre_nr_result_req,
+  ipc_pkg_nbre_nr_result_ack,
 };
 namespace ipc_pkg {
 using namespace internal;
@@ -72,10 +74,18 @@ using nbre_ir_versions_ack =
 using start_block = ipc_elem_base<13, uint64_t>;
 using end_block = ipc_elem_base<14, uint64_t>;
 using nr_version = ipc_elem_base<15, uint64_t>;
-using nbre_nr_req =
-    define_ipc_pkg<ipc_pkg_nbre_nr_req, start_block, end_block, nr_version>;
-using nr_result = ipc_elem_base<16, neb::ipc::char_string_t>;
-using nbre_nr_ack = define_ipc_pkg<ipc_pkg_nbre_nr_ack, nr_result>;
+using nbre_nr_handler_req = define_ipc_pkg<ipc_pkg_nbre_nr_handler_req,
+                                           start_block, end_block, nr_version>;
+using nr_handler_id = ipc_elem_base<16, neb::ipc::char_string_t>;
+using nbre_nr_handler_ack =
+    define_ipc_pkg<ipc_pkg_nbre_nr_handler_ack, nr_handler_id>;
+
+using nbre_nr_result_req =
+    define_ipc_pkg<ipc_pkg_nbre_nr_result_req, nr_handler_id>;
+using nr_result = ipc_elem_base<17, neb::ipc::char_string_t>;
+using nbre_nr_result_ack =
+    define_ipc_pkg<ipc_pkg_nbre_nr_result_ack, nr_result>;
+
 } // namespace ipc_pkg
 } // namespace core
 } // namespace neb

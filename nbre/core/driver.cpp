@@ -21,6 +21,7 @@
 #include "core/ir_warden.h"
 #include "fs/nbre/api/nbre_api.h"
 #include "jit/jit_driver.h"
+#include "runtime/nr/impl/nr_handler.h"
 #include "runtime/version.h"
 #include <ff/ff.h>
 
@@ -222,35 +223,55 @@ void driver::add_handlers() {
         m_ipc_conn->push_back(ack);
       });
 
-  m_client->add_handler<ipc_pkg::nbre_nr_req>(
-      [this](ipc_pkg::nbre_nr_req *req) {
-        neb::core::ipc_pkg::nbre_nr_ack *ack =
-            m_ipc_conn->construct<neb::core::ipc_pkg::nbre_nr_ack>(
+  m_client->add_handler<ipc_pkg::nbre_nr_handler_req>(
+      [this](ipc_pkg::nbre_nr_handler_req *req) {
+        neb::core::ipc_pkg::nbre_nr_handler_ack *ack =
+            m_ipc_conn->construct<neb::core::ipc_pkg::nbre_nr_handler_ack>(
                 req->m_holder, m_ipc_conn->default_allocator());
         if (ack == nullptr) {
           return;
         }
 
+        if (!neb::rt::nr::nr_handler::instance().get_nr_handler_id().empty()) {
+          ack->set<neb::core::ipc_pkg::nr_handler_id>(
+              std::string("nr handler not available").c_str());
+          m_ipc_conn->push_back(ack);
+          return;
+        }
+
         uint64_t start_block = req->get<ipc_pkg::start_block>();
         uint64_t end_block = req->get<ipc_pkg::end_block>();
-
-        std::string nr_name = "nr";
         uint64_t nr_version = req->get<ipc_pkg::nr_version>();
-        std::vector<std::unique_ptr<nbre::NBREIR>> irs;
-        auto ir = neb::core::ir_warden::instance().get_ir_by_name_version(
-            nr_name, nr_version);
-        irs.push_back(std::move(ir));
 
-        jit_driver &jd = jit_driver::instance();
         std::stringstream ss;
-        ss << nr_name << nr_version;
+        ss << neb::util::number_to_byte<neb::util::bytes>(start_block).to_hex()
+           << neb::util::number_to_byte<neb::util::bytes>(end_block).to_hex()
+           << neb::util::number_to_byte<neb::util::bytes>(nr_version).to_hex();
 
-        //  TODO func name
-        std::string nr_result =
-            jd.run<std::string>(ss.str(), irs, "_Z14entry_point_nrB5cxx11mm",
-                                start_block, end_block);
+        neb::ipc::char_string_t cstr_handler_id(
+            ss.str().c_str(), m_ipc_conn->default_allocator());
+        ack->set<neb::core::ipc_pkg::nr_handler_id>(cstr_handler_id);
+        neb::rt::nr::nr_handler::instance().start(ss.str());
+        m_ipc_conn->push_back(ack);
 
-        ack->set<neb::core::ipc_pkg::nr_result>(nr_result.c_str());
+      });
+
+  m_client->add_handler<ipc_pkg::nbre_nr_result_req>(
+      [this](ipc_pkg::nbre_nr_result_req *req) {
+        neb::core::ipc_pkg::nbre_nr_result_ack *ack =
+            m_ipc_conn->construct<neb::core::ipc_pkg::nbre_nr_result_ack>(
+                req->m_holder, m_ipc_conn->default_allocator());
+        if (ack == nullptr) {
+          return;
+        }
+
+        std::string nr_handler_id = req->get<ipc_pkg::nr_handler_id>().c_str();
+        neb::ipc::char_string_t cstr_nr_result(
+            neb::rt::nr::nr_handler::instance()
+                .get_nr_result(nr_handler_id)
+                .c_str(),
+            m_ipc_conn->default_allocator());
+        ack->set<neb::core::ipc_pkg::nr_result>(cstr_nr_result);
         m_ipc_conn->push_back(ack);
       });
 }

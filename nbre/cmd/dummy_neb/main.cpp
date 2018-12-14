@@ -18,11 +18,10 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "common/common.h"
-
 #include "common/configuration.h"
-#include "core/neb_ipc/server/ipc_server_endpoint.h"
-
+#include "common/util/version.h"
 #include "core/neb_ipc/ipc_interface.h"
+#include "core/neb_ipc/server/ipc_server_endpoint.h"
 #include "fs/util.h"
 
 std::mutex local_mutex;
@@ -31,8 +30,7 @@ bool to_quit = false;
 
 void nbre_version_callback(ipc_status_code isc, void *handler, uint32_t major,
                            uint32_t minor, uint32_t patch) {
-  std::cout << "got version: " << major << ", " << minor << ", " << patch
-            << std::endl;
+  LOG(INFO) << "got version: " << major << ", " << minor << ", " << patch;
   std::unique_lock<std::mutex> _l(local_mutex);
   to_quit = true;
   _l.unlock();
@@ -41,7 +39,7 @@ void nbre_version_callback(ipc_status_code isc, void *handler, uint32_t major,
 
 void nbre_ir_list_callback(ipc_status_code isc, void *handler,
                            const char *ir_name_list) {
-  std::cout << ir_name_list << std::endl;
+  LOG(INFO) << ir_name_list;
   std::unique_lock<std::mutex> _l(local_mutex);
   to_quit = true;
   _l.unlock();
@@ -49,7 +47,23 @@ void nbre_ir_list_callback(ipc_status_code isc, void *handler,
 
 void nbre_ir_versions_callback(ipc_status_code isc, void *handler,
                                const char *ir_versions) {
-  std::cout << ir_versions << std::endl;
+  LOG(INFO) << ir_versions;
+  std::unique_lock<std::mutex> _l(local_mutex);
+  to_quit = true;
+  _l.unlock();
+}
+
+void nbre_nr_handler_callback(ipc_status_code isc, void *holder,
+                              const char *nr_handler_id) {
+  LOG(INFO) << nr_handler_id;
+  std::unique_lock<std::mutex> _l(local_mutex);
+  to_quit = true;
+  _l.unlock();
+}
+
+void nbre_nr_result_callback(ipc_status_code isc, void *holder,
+                             const char *nr_result) {
+  LOG(INFO) << nr_result;
   std::unique_lock<std::mutex> _l(local_mutex);
   to_quit = true;
   _l.unlock();
@@ -63,9 +77,11 @@ int main(int argc, char *argv[]) {
   const char *root_dir = neb::configuration::instance().nbre_root_dir().c_str();
   std::string nbre_path = neb::fs::join_path(root_dir, "bin/nbre");
 
-  // set_recv_nbre_version_callback(nbre_version_callback);
-  // set_recv_nbre_ir_list_callback(nbre_ir_list_callback);
+  set_recv_nbre_version_callback(nbre_version_callback);
+  set_recv_nbre_ir_list_callback(nbre_ir_list_callback);
   set_recv_nbre_ir_versions_callback(nbre_ir_versions_callback);
+  set_recv_nbre_nr_handler_callback(nbre_nr_handler_callback);
+  set_recv_nbre_nr_result_callback(nbre_nr_result_callback);
 
   nbre_params_t params{root_dir,
                        nbre_path.c_str(),
@@ -79,9 +95,17 @@ int main(int argc, char *argv[]) {
 
   uint64_t height = 100;
 
-  // ipc_nbre_version(&local_mutex, height);
-  // ipc_nbre_ir_list(&local_mutex);
-  ipc_nbre_ir_versions(&local_mutex, "dip");
+  ipc_nbre_version(&local_mutex, height);
+  ipc_nbre_ir_list(&local_mutex);
+  // ipc_nbre_ir_versions(&local_mutex, "dip");
+
+  ipc_nbre_nr_handler(&local_mutex, 10000, 11000,
+                      neb::util::version(0, 1, 0).data());
+  while (true) {
+    ipc_nbre_nr_result(&local_mutex,
+                       "00000000000027100000000000002af80000000100000000");
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
 
   std::unique_lock<std::mutex> _l(local_mutex);
   if (to_quit)
