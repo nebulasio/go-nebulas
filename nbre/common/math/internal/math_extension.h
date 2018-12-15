@@ -266,6 +266,9 @@ template <typename T> T sqrt(const T &x) {
   return one / sqrt_x;
 }
 
+template <typename T> T min(const T &x, const T &y) { return x < y ? x : y; }
+template <typename T> T max(const T &x, const T &y) { return x > y ? x : y; }
+
 } // namespace math
 
 } // namespace neb

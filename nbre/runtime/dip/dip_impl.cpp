@@ -21,28 +21,28 @@
 #include "runtime/dip/dip_impl.h"
 #include "common/common.h"
 #include "common/configuration.h"
+#include "runtime/dip/dip_reward.h"
 #include "runtime/nr/impl/nebulas_rank.h"
 
 namespace neb {
 namespace rt {
 namespace dip {
 
-std::string entry_point_dip_impl(uint64_t height) {
-
-  neb::block_height_t start_block = 1111780;
-  neb::block_height_t end_block = 1117539;
+std::string entry_point_dip_impl(uint64_t start_block, uint64_t end_block,
+                                 uint64_t height, const std::string &nr_result,
+                                 dip_float_t alpha, dip_float_t beta) {
 
   std::string neb_db_path = neb::configuration::instance().neb_db_dir();
   neb::fs::blockchain bc(neb_db_path);
   neb::fs::blockchain_api ba(&bc);
   neb::rt::nr::transaction_db_ptr_t tdb_ptr =
       std::make_shared<neb::fs::transaction_db>(&ba);
+  neb::rt::nr::account_db_ptr_t adb_ptr =
+      std::make_shared<neb::fs::account_db>(&ba);
 
-  auto it_txs =
-      tdb_ptr->read_transactions_from_db_with_duration(start_block, end_block);
-  auto it_account_call_contract_txs =
-      tdb_ptr->read_transactions_with_address_type(*it_txs, 0x57, 0x58);
-  return std::string();
+  auto ret = dip_reward::get_dip_reward(
+      start_block, end_block, height, nr_result, tdb_ptr, adb_ptr, alpha, beta);
+  return dip_reward::dip_info_to_json(*ret);
 }
 
 } // namespace dip

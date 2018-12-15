@@ -1,0 +1,31 @@
+{
+
+  "name": "dip",
+  "version_major": 0,
+  "version_minor": 1,
+  "version_patch": 0,
+  "depends": [
+    {
+      "name": "nr",
+      "version_major": 0,
+      "version_minor": 1,
+      "version_patch": 0
+    }
+  ],
+  "available_height": 900,
+  "cpp_files": [
+    "dip_release_v1.cpp"
+  ],
+  "include_header_files":[
+    "../../",
+    "../../lib/include"
+  ],
+  "link_path":[
+    "../../lib"
+  ],
+  "link_files":[
+  ],
+  "flags": [
+  ]
+
+}

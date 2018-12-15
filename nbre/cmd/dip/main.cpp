@@ -18,19 +18,18 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#pragma once
+#include "runtime/dip/dip_impl.h"
+#include "runtime/dip/dip_reward.h"
+#include <vector>
 
-#include "common/math/softfloat.hpp"
-#include <string>
+int main(int argc, char *argv[]) {
 
-namespace neb {
-namespace rt {
-namespace dip {
+  using dip_info_t = neb::rt::dip::dip_info_t;
+  using floatxx_t = neb::floatxx_t;
+  std::vector<dip_info_t> v;
+  v.push_back(dip_info_t{"addr1", floatxx_t(1.1)});
+  v.push_back(dip_info_t{"addr2", floatxx_t(2.1)});
 
-using dip_float_t = float32;
-std::string entry_point_dip_impl(uint64_t start_block, uint64_t end_block,
-                                 uint64_t height, const std::string &nr_result,
-                                 dip_float_t alpha, dip_float_t beta);
-} // namespace dip
-} // namespace rt
-} // namespace neb
+  std::cout << neb::rt::dip::dip_reward::dip_info_to_json(v) << std::endl;
+  return 0;
+}
