@@ -135,7 +135,6 @@ void ipc_server_endpoint::add_all_callbacks() {
   m_callbacks = &(ipc_callback_holder::instance());
   m_ipc_server->add_handler<ipc_pkg::nbre_version_ack>(
       [p, this](ipc_pkg::nbre_version_ack *msg) {
-        LOG(INFO) << "alloc: " << (void *)p;
         m_request_timer->remove_api(msg->m_holder);
         ipc_callback_holder::instance().m_nbre_version_callback(
             ipc_status_succ, msg->m_holder, msg->get<ipc_pkg::major>(),
@@ -158,7 +157,6 @@ void ipc_server_endpoint::add_all_callbacks() {
 
   m_ipc_server->add_handler<ipc_pkg::nbre_ir_list_ack>(
       [p, this](ipc_pkg::nbre_ir_list_ack *msg) {
-        LOG(INFO) << "alloc: " << (void *)p;
         m_request_timer->remove_api(msg->m_holder);
 
         auto ir_name_list = msg->get<ipc_pkg::ir_name_list>();
@@ -180,7 +178,6 @@ void ipc_server_endpoint::add_all_callbacks() {
 
   m_ipc_server->add_handler<ipc_pkg::nbre_ir_versions_ack>(
       [p, this](ipc_pkg::nbre_ir_versions_ack *msg) {
-        LOG(INFO) << "alloc: " << (void *)p;
         m_request_timer->remove_api(msg->m_holder);
 
         auto ir_name = msg->get<ipc_pkg::ir_name>();
@@ -203,7 +200,6 @@ void ipc_server_endpoint::add_all_callbacks() {
 
   m_ipc_server->add_handler<ipc_pkg::nbre_nr_handler_ack>(
       [p, this](ipc_pkg::nbre_nr_handler_ack *msg) {
-        LOG(INFO) << "alloc: " << (void *)p;
         m_request_timer->remove_api(msg->m_holder);
         ipc_callback_holder::instance().m_nbre_nr_handler_callback(
             ipc_status_succ, msg->m_holder,
@@ -212,7 +208,6 @@ void ipc_server_endpoint::add_all_callbacks() {
 
   m_ipc_server->add_handler<ipc_pkg::nbre_nr_result_ack>(
       [p, this](ipc_pkg::nbre_nr_result_ack *msg) {
-        LOG(INFO) << "alloc: " << (void *)p;
         m_request_timer->remove_api(msg->m_holder);
         ipc_callback_holder::instance().m_nbre_nr_result_callback(
             ipc_status_succ, msg->m_holder,
