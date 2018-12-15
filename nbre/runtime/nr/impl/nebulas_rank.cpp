@@ -20,7 +20,11 @@
 
 #include "runtime/nr/impl/nebulas_rank.h"
 #include "common/util/conversion.h"
+#include <boost/foreach.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <chrono>
 #include <ff/ff.h>
+#include <thread>
 
 namespace neb {
 namespace rt {
@@ -159,7 +163,8 @@ nebulas_rank::get_account_balance_median(
     }
 
     floatxx_t normalized_median = db_ptr->get_normalized_value(median);
-    ret.insert(std::make_pair(it->first, max(floatxx_t(0), normalized_median)));
+    ret.insert(std::make_pair(it->first,
+                              neb::math::max(floatxx_t(0), normalized_median)));
   }
 
   return std::make_shared<std::unordered_map<std::string, floatxx_t>>(ret);
@@ -277,16 +282,20 @@ nebulas_rank::get_account_rank(
   return std::make_shared<std::unordered_map<std::string, floatxx_t>>(ret);
 }
 
-std::shared_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
+std::unique_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
     const transaction_db_ptr_t &tdb_ptr, const account_db_ptr_t &adb_ptr,
-    const std::vector<neb::fs::transaction_info_t> &txs,
     const rank_params_t &rp, neb::block_height_t start_block,
     neb::block_height_t end_block) {
 
   auto start_time = std::chrono::high_resolution_clock::now();
+  auto it_txs =
+      tdb_ptr->read_transactions_from_db_with_duration(start_block, end_block);
+  auto txs = *it_txs;
+
   // account inter transactions
   auto it_account_inter_txs =
-      tdb_ptr->read_transactions_with_address_type(txs, 0x57, 0x57);
+      neb::fs::transaction_db::read_transactions_with_address_type(txs, 0x57,
+                                                                   0x57);
   auto account_inter_txs = *it_account_inter_txs;
   LOG(INFO) << "account to account: " << account_inter_txs.size();
 
@@ -302,7 +311,7 @@ std::shared_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
   std::vector<neb::rt::nr::transaction_graph_ptr_t> tgs =
       build_transaction_graphs(txs_v);
   if (tgs.empty()) {
-    return std::make_shared<std::vector<nr_info_t>>();
+    return std::make_unique<std::vector<nr_info_t>>();
   }
   LOG(INFO) << "we have " << tgs.size() << " subgraphs.";
   for (auto it = tgs.begin(); it != tgs.end(); it++) {
@@ -398,7 +407,104 @@ std::shared_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
                                                                 start_time)
                    .count()
             << " seconds";
-  return std::make_shared<std::vector<nr_info_t>>(infos);
+  return std::make_unique<std::vector<nr_info_t>>(infos);
+}
+
+void nebulas_rank::convert_nr_info_to_ptree(const nr_info_t &info,
+                                            boost::property_tree::ptree &p) {
+
+  neb::util::bytes addr_bytes = neb::util::string_to_byte(info.m_address);
+
+  uint32_t in_degree = info.m_in_degree;
+  uint32_t out_degree = info.m_out_degree;
+  uint32_t degrees = info.m_degrees;
+
+  floatxx_t f_in_val = info.m_in_val;
+  floatxx_t f_out_val = info.m_out_val;
+  floatxx_t f_in_outs = info.m_in_outs;
+
+  floatxx_t f_median = info.m_median;
+  floatxx_t f_weight = info.m_weight;
+  floatxx_t f_nr_score = info.m_nr_score;
+
+  uintxx_t int_in_val =
+      softfloat_cast<floatxx_t::value_type, uintxx_t>(f_in_val.round_to_int());
+  uintxx_t int_out_val =
+      softfloat_cast<floatxx_t::value_type, uintxx_t>(f_out_val.round_to_int());
+  uintxx_t int_in_outs =
+      softfloat_cast<floatxx_t::value_type, uintxx_t>(f_in_outs.round_to_int());
+
+  uintxx_t int_median =
+      softfloat_cast<floatxx_t::value_type, uintxx_t>(f_median.round_to_int());
+  uintxx_t int_weight =
+      softfloat_cast<floatxx_t::value_type, uintxx_t>(f_weight.round_to_int());
+  uintxx_t int_score = softfloat_cast<floatxx_t::value_type, uintxx_t>(
+      f_nr_score.round_to_int());
+
+  std::vector<std::pair<std::string, std::string>> kv_pair(
+      {{"address", addr_bytes.to_base58()},
+       {"in_degree", internal::to_string(in_degree)},
+       {"out_degree", internal::to_string(out_degree)},
+       {"degrees", internal::to_string(degrees)},
+       {"in_val", internal::to_string(int_in_val)},
+       {"out_val", internal::to_string(int_out_val)},
+       {"in_outs", internal::to_string(int_in_outs)},
+       {"median", internal::to_string(int_median)},
+       {"weight", internal::to_string(int_weight)},
+       {"score", internal::to_string(int_score)}});
+
+  for (auto &ele : kv_pair) {
+    p.put(ele.first, ele.second);
+  }
+}
+
+std::string nebulas_rank::nr_info_to_json(const std::vector<nr_info_t> &rs) {
+  boost::property_tree::ptree root;
+  boost::property_tree::ptree arr;
+
+  for (auto it = rs.begin(); it != rs.end(); it++) {
+    const neb::rt::nr::nr_info_t &info = *it;
+    boost::property_tree::ptree p;
+    convert_nr_info_to_ptree(info, p);
+    arr.push_back(std::make_pair(std::string(), p));
+  }
+  root.add_child("nrs", arr);
+
+  std::stringstream ss;
+  boost::property_tree::json_parser::write_json(ss, root, false);
+  return ss.str();
+}
+
+std::unique_ptr<std::vector<nr_info_t>>
+nebulas_rank::json_to_nr_info(const std::string &nr_result) {
+
+  boost::property_tree::ptree pt;
+  std::stringstream ss(nr_result);
+  boost::property_tree::json_parser::read_json(ss, pt);
+
+  boost::property_tree::ptree nrs = pt.get_child("nrs");
+  std::vector<nr_info_t> infos;
+
+  BOOST_FOREACH (boost::property_tree::ptree::value_type &v, nrs) {
+    boost::property_tree::ptree nr = v.second;
+    nr_info_t info;
+    neb::util::bytes addr_bytes =
+        neb::util::bytes::from_base58(nr.get<std::string>("address"));
+    info.m_address = neb::util::byte_to_string(addr_bytes);
+
+    info.m_in_degree = nr.get<uint32_t>("in_degree");
+    info.m_out_degree = nr.get<uint32_t>("out_degree");
+    info.m_degrees = nr.get<uint32_t>("degrees");
+    info.m_in_val = nr.get<uintxx_t>("in_val");
+    info.m_out_val = nr.get<uintxx_t>("out_val");
+    info.m_in_outs = nr.get<uintxx_t>("in_outs");
+    info.m_median = nr.get<uintxx_t>("median");
+    info.m_weight = nr.get<uintxx_t>("weight");
+    info.m_nr_score = nr.get<uintxx_t>("score");
+    infos.push_back(info);
+  }
+
+  return std::make_unique<std::vector<nr_info_t>>(infos);
 }
 
 } // namespace nr

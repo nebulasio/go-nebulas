@@ -21,9 +21,7 @@
 #pragma once
 
 #include "common/math/softfloat.hpp"
-#include "runtime/stdrt.h"
 #include <string>
-#include <vector>
 
 namespace neb {
 namespace rt {

@@ -25,71 +25,9 @@
 #include "fs/blockchain/nebulas_currency.h"
 #include "runtime/nr/impl/nebulas_rank.h"
 
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <chrono>
-#include <thread>
-
 namespace neb {
 namespace rt {
 namespace nr {
-
-template <typename T> std::string to_string(const T &val) {
-  std::stringstream ss;
-  ss << val;
-  return ss.str();
-}
-
-void convert_nr_info_to_ptree(const neb::rt::nr::nr_info_t &info,
-                              boost::property_tree::ptree &p) {
-
-  neb::util::bytes addr_bytes = neb::util::string_to_byte(info.m_address);
-
-  uint32_t in_degree = info.m_in_degree;
-  uint32_t out_degree = info.m_out_degree;
-  uint32_t degrees = info.m_degrees;
-
-  neb::floatxx_t in_val = info.m_in_val;
-  neb::floatxx_t out_val = info.m_out_val;
-  neb::floatxx_t in_outs = info.m_in_outs;
-
-  neb::floatxx_t median = info.m_median;
-  neb::floatxx_t weight = info.m_weight;
-  neb::floatxx_t score = info.m_nr_score;
-
-  std::vector<std::pair<std::string, std::string>> kv_pair(
-      {{"address", addr_bytes.to_base58()},
-       {"in_degree", to_string(in_degree)},
-       {"out_degree", to_string(out_degree)},
-       {"degrees", to_string(degrees)},
-       {"in_val", to_string(in_val)},
-       {"out_val", to_string(out_val)},
-       {"in_outs", to_string(in_outs)},
-       {"median", to_string(median)},
-       {"weight", to_string(weight)},
-       {"score", to_string(score)}});
-
-  for (auto &ele : kv_pair) {
-    p.put(ele.first, ele.second);
-  }
-}
-
-std::string to_json(const std::vector<neb::rt::nr::nr_info_t> &rs) {
-  boost::property_tree::ptree root;
-  boost::property_tree::ptree arr;
-
-  for (auto it = rs.begin(); it != rs.end(); it++) {
-    const neb::rt::nr::nr_info_t &info = *it;
-    boost::property_tree::ptree p;
-    convert_nr_info_to_ptree(info, p);
-    arr.push_back(std::make_pair(std::string(), p));
-  }
-  root.add_child("nrs", arr);
-
-  std::stringstream ss;
-  boost::property_tree::json_parser::write_json(ss, root, false);
-  return ss.str();
-}
 
 std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
                                 nr_float_t a, nr_float_t b, nr_float_t c,
@@ -106,12 +44,9 @@ std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
   LOG(INFO) << "start block: " << start_block << " , end block: " << end_block;
   neb::rt::nr::rank_params_t rp{a, b, c, d, mu, lambda};
 
-  auto it_txs =
-      tdb_ptr->read_transactions_from_db_with_duration(start_block, end_block);
-
-  auto ret = neb::rt::nr::nebulas_rank::get_nr_score(
-      tdb_ptr, adb_ptr, *it_txs, rp, start_block, end_block);
-  return to_json(*ret);
+  auto ret =
+      nebulas_rank::get_nr_score(tdb_ptr, adb_ptr, rp, start_block, end_block);
+  return nebulas_rank::nr_info_to_json(*ret);
 }
 } // namespace nr
 } // namespace rt
