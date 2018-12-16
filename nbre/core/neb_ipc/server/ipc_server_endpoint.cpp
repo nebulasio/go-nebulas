@@ -213,6 +213,14 @@ void ipc_server_endpoint::add_all_callbacks() {
             ipc_status_succ, msg->m_holder,
             msg->get<ipc_pkg::nr_result>().c_str());
       });
+
+  m_ipc_server->add_handler<ipc_pkg::nbre_dip_reward_ack>(
+      [p, this](ipc_pkg::nbre_dip_reward_ack *msg) {
+        m_request_timer->remove_api(msg->m_holder);
+        ipc_callback_holder::instance().m_nbre_dip_reward_callback(
+            ipc_status_succ, msg->m_holder,
+            msg->get<ipc_pkg::dip_reward>().c_str());
+      });
 }
 
 int ipc_server_endpoint::send_nbre_version_req(void *holder, uint64_t height) {
@@ -319,6 +327,28 @@ int ipc_server_endpoint::send_nbre_nr_result_req(
         m_ipc_server->push_back(req);
       },
       m_callbacks->m_nbre_nr_result_callback);
+
+  return ipc_status_succ;
+}
+
+int ipc_server_endpoint::send_nbre_dip_reward_req(void *holder,
+                                                  uint64_t height) {
+  CHECK_NBRE_STATUS(m_callbacks->m_nbre_dip_reward_callback);
+
+  m_request_timer->issue_api(
+      holder,
+      [holder, height, this]() {
+        ipc_pkg::nbre_dip_reward_req *req =
+            m_ipc_server->construct<ipc_pkg::nbre_dip_reward_req>(
+                holder, m_ipc_server->default_allocator());
+        if (req == nullptr) {
+          return;
+        }
+
+        req->set<ipc_pkg::height>(height);
+        m_ipc_server->push_back(req);
+      },
+      m_callbacks->m_nbre_dip_reward_callback);
 
   return ipc_status_succ;
 }

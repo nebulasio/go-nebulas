@@ -21,6 +21,7 @@
 #include "core/ir_warden.h"
 #include "fs/nbre/api/nbre_api.h"
 #include "jit/jit_driver.h"
+#include "runtime/dip/dip_handler.h"
 #include "runtime/nr/impl/nr_handler.h"
 #include "runtime/version.h"
 #include <ff/ff.h>
@@ -272,6 +273,25 @@ void driver::add_handlers() {
                 .c_str(),
             m_ipc_conn->default_allocator());
         ack->set<neb::core::ipc_pkg::nr_result>(cstr_nr_result);
+        m_ipc_conn->push_back(ack);
+      });
+
+  m_client->add_handler<ipc_pkg::nbre_dip_reward_req>(
+      [this](ipc_pkg::nbre_dip_reward_req *req) {
+        neb::core::ipc_pkg::nbre_dip_reward_ack *ack =
+            m_ipc_conn->construct<neb::core::ipc_pkg::nbre_dip_reward_ack>(
+                req->m_holder, m_ipc_conn->default_allocator());
+        if (ack == nullptr) {
+          return;
+        }
+
+        auto height = req->get<ipc_pkg::height>();
+        neb::ipc::char_string_t cstr_dip_reward(
+            neb::rt::dip::dip_handler::instance()
+                .get_dip_reward(height)
+                .c_str(),
+            m_ipc_conn->default_allocator());
+        ack->set<neb::core::ipc_pkg::dip_reward>(cstr_dip_reward);
         m_ipc_conn->push_back(ack);
       });
 }

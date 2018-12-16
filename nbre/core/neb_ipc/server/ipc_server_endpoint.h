@@ -43,6 +43,7 @@ public:
   int send_nbre_nr_handler_req(void *holder, uint64_t start_block,
                                uint64_t end_block, uint64_t nr_version);
   int send_nbre_nr_result_req(void *holder, const std::string &nr_handler_id);
+  int send_nbre_dip_reward_req(void *holder, uint64_t height);
 
   void shutdown();
 

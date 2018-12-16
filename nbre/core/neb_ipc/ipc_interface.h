@@ -68,6 +68,13 @@ typedef void (*nbre_nr_result_callback_t)(enum ipc_status_code isc,
                                           void *holder, const char *nr_result);
 void set_recv_nbre_nr_result_callback(nbre_nr_result_callback_t func);
 
+// interface get dip reward
+int ipc_nbre_dip_reward(void *holder, uint64_t height);
+typedef void (*nbre_dip_reward_callback_t)(enum ipc_status_code isc,
+                                           void *holder,
+                                           const char *dip_reward);
+void set_recv_nbre_dip_reward_callback(nbre_dip_reward_callback_t func);
+
 typedef struct {
   const char *m_nbre_root_dir;
   const char *m_nbre_exe_name;

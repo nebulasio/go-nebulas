@@ -37,6 +37,8 @@ enum {
   ipc_pkg_nbre_nr_handler_ack,
   ipc_pkg_nbre_nr_result_req,
   ipc_pkg_nbre_nr_result_ack,
+  ipc_pkg_nbre_dip_reward_req,
+  ipc_pkg_nbre_dip_reward_ack,
 };
 namespace ipc_pkg {
 using namespace internal;
@@ -85,6 +87,11 @@ using nbre_nr_result_req =
 using nr_result = ipc_elem_base<17, neb::ipc::char_string_t>;
 using nbre_nr_result_ack =
     define_ipc_pkg<ipc_pkg_nbre_nr_result_ack, nr_result>;
+
+using nbre_dip_reward_req = define_ipc_pkg<ipc_pkg_nbre_dip_reward_req, height>;
+using dip_reward = ipc_elem_base<18, neb::ipc::char_string_t>;
+using nbre_dip_reward_ack =
+    define_ipc_pkg<ipc_pkg_nbre_dip_reward_ack, dip_reward>;
 
 } // namespace ipc_pkg
 } // namespace core
