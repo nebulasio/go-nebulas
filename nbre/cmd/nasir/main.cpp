@@ -75,8 +75,9 @@ void make_ir_bitcode(neb::ir_conf_reader &reader, std::string &ir_bc_file, bool 
   int result = -1;
 
   std::string current_path = neb::fs::cur_dir();
-  std::string command_string(neb::fs::join_path(current_path, "lib/bin/clang") +
-                             " -O2 -emit-llvm ");
+  std::string command_string(
+      neb::fs::join_path(current_path, "lib_llvm/bin/clang") +
+      " -O2 -emit-llvm ");
 
   clang_flags flags;
 
