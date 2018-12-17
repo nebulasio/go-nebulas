@@ -49,6 +49,7 @@ type DIPData struct {
 	End uint64			`json:"end"`
 	Version string		`json:"version"`
 	Dips []*DIPItem		`json:"dips"`
+	Err string			`json:"err"`
 }
 
 // ToBytes serialize data

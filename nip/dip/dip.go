@@ -27,6 +27,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"time"
 	"github.com/nebulasio/go-nebulas/nf/nbre"
+	"errors"
 )
 
 type Dip struct {
@@ -197,6 +198,9 @@ func (d *Dip) GetDipList(height uint64) (core.Data, error) {
 		data = &DIPData{}
 		if err := data.FromBytes(dipData); err != nil {
 			return nil, err
+		}
+		if len(data.Err) > 0 {
+			return nil, errors.New(data.Err)
 		}
 		key := append(byteutils.FromUint64(data.Start), byteutils.FromUint64(data.End)...)
 		d.cache.Add(byteutils.Hex(key), data)
