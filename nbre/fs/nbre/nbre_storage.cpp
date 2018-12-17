@@ -297,7 +297,7 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
 void nbre_storage::update_ir_list_to_db(const std::string &nbre_ir_list_name,
                                         const boost::property_tree::ptree &pt) {
   std::stringstream ss;
-  boost::property_tree::json_parser::write_json(ss, pt);
+  boost::property_tree::json_parser::write_json(ss, pt, false);
   m_storage->put(nbre_ir_list_name, neb::util::string_to_byte(ss.str()));
 }
 
@@ -311,7 +311,7 @@ void nbre_storage::update_ir_list(const std::string &nbre_ir_list_name,
     boost::property_tree::ptree ele, arr, root;
     ele.put("", ir_name);
     arr.push_back(std::make_pair("", ele));
-    root.add_child(ir_list_name, root);
+    root.add_child(ir_list_name, arr);
     update_ir_list_to_db(nbre_ir_list_name, root);
     return;
   }
