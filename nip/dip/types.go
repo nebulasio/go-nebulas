@@ -40,15 +40,15 @@ const (
 )
 
 type DIPItem struct {
-	Addr  string
-	Value string
+	Address  string		`json:"address"`
+	Reward string		`json:"reward"`
 }
 
 type DIPData struct {
-	Start uint64
-	End uint64
-	Version string
-	Data []*DIPItem
+	Start uint64		`json:"start"`
+	End uint64			`json:"end"`
+	Version string		`json:"version"`
+	Dips []*DIPItem		`json:"dips"`
 }
 
 // ToBytes serialize data
