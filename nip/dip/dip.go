@@ -199,7 +199,7 @@ func (d *Dip) GetDipList(height uint64) (core.Data, error) {
 			return nil, err
 		}
 		key := append(byteutils.FromUint64(data.Start), byteutils.FromUint64(data.End)...)
-		d.cache.Add(key, data)
+		d.cache.Add(byteutils.Hex(key), data)
 	}
 	return data, nil
 }
@@ -207,9 +207,14 @@ func (d *Dip) GetDipList(height uint64) (core.Data, error) {
 func (d *Dip) checkCache(height uint64) (*DIPData, bool) {
 	keys:= d.cache.Keys()
 	for _, v := range keys {
-		v := v.([]byte)
-		start := byteutils.Uint64(v[:8])
-		end := byteutils.Uint64(v[8:])
+		bytes, err := byteutils.FromHex(v.(string))
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err": err,
+			}).Fatal("Failed to parse dip cache.")
+		}
+		start := byteutils.Uint64(bytes[:8])
+		end := byteutils.Uint64(bytes[8:])
 		if height >= start && height <= end {
 			data, _ := d.cache.Get(v)
 			return data.(*DIPData), true

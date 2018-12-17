@@ -254,7 +254,7 @@ func (n *Nbre) handleNbreCommand(handler *handler, command string, params []byte
 	}).Debug("run nbre command")
 	switch command {
 	case CommandVersion:
-		height := n.neb.BlockChain().TailBlock().Height()
+		height := byteutils.Uint64(params)
 		C.ipc_nbre_version(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height))
 	case CommandIRList:
 		C.ipc_nbre_ir_list(unsafe.Pointer(uintptr(handlerId)))
@@ -286,7 +286,7 @@ func getNbreHandler(id uint64) (*handler, error) {
 	return handler, nil
 }
 
-func nbreHandled(code int, holder unsafe.Pointer, result []byte, handleErr error) {
+func nbreHandled(code C.int, holder unsafe.Pointer, result []byte, handleErr error) {
 	handlerId := uint64(uintptr(holder))
 	handler, err := getNbreHandler(handlerId)
 	if err != nil {
@@ -318,11 +318,6 @@ func nbreHandled(code int, holder unsafe.Pointer, result []byte, handleErr error
 		handler.err = err
 	}
 	handler.done <- true
-	logging.VLog().WithFields(logrus.Fields{
-		"handler":   handler,
-		"resultStr": string(result),
-		"err":       handler.err,
-	}).Debug("nbre callback")
 }
 
 // Shutdown shutdown nbre
