@@ -93,7 +93,7 @@ int ipc_nbre_nr_result(void *holder, const char *nr_handler) {
   return _ipc->send_nbre_nr_result_req(holder, nr_handler);
 }
 
-void set_recv_nbre_dip_callback(nbre_dip_reward_callback_t func) {
+void set_recv_nbre_dip_reward_callback(nbre_dip_reward_callback_t func) {
   neb::core::ipc_callback_holder::instance().m_nbre_dip_reward_callback = func;
 }
 

@@ -40,6 +40,7 @@ public:
   std::string get_dip_reward(neb::block_height_t height);
 
 private:
+  mutable std::mutex m_sync_mutex;
   std::unique_ptr<std::thread> m_thread;
   std::unordered_map<neb::block_height_t, std::string> m_dip_reward;
 };

@@ -69,6 +69,14 @@ void nbre_nr_result_callback(ipc_status_code isc, void *holder,
   _l.unlock();
 }
 
+void nbre_dip_reward_callback(ipc_status_code isc, void *holder,
+                              const char *dip_reward) {
+  LOG(INFO) << dip_reward;
+  std::unique_lock<std::mutex> _l(local_mutex);
+  to_quit = true;
+  _l.unlock();
+}
+
 int main(int argc, char *argv[]) {
   FLAGS_logtostderr = true;
 
@@ -82,6 +90,7 @@ int main(int argc, char *argv[]) {
   set_recv_nbre_ir_versions_callback(nbre_ir_versions_callback);
   set_recv_nbre_nr_handler_callback(nbre_nr_handler_callback);
   set_recv_nbre_nr_result_callback(nbre_nr_result_callback);
+  set_recv_nbre_dip_reward_callback(nbre_dip_reward_callback);
 
   nbre_params_t params{root_dir,
                        nbre_path.c_str(),
@@ -90,8 +99,9 @@ int main(int argc, char *argv[]) {
                        neb::configuration::instance().nbre_log_dir().c_str(),
                        "auth address here!"};
   auto ret = start_nbre_ipc(params);
-  if (ret != ipc_status_succ)
+  if (ret != ipc_status_succ) {
     to_quit = false;
+  }
 
   uint64_t height = 100;
 
@@ -107,9 +117,14 @@ int main(int argc, char *argv[]) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }
 
+  // while (true) {
+  // ipc_nbre_dip_reward(&local_mutex, 60000);
+  // std::this_thread::sleep_for(std::chrono::seconds(1));
+  //}
   std::unique_lock<std::mutex> _l(local_mutex);
-  if (to_quit)
+  if (to_quit) {
     return 0;
+  }
   local_cond_var.wait(_l);
 
   return 0;

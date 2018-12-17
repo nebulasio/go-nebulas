@@ -30,6 +30,7 @@ namespace dip {
 
 void dip_handler::start(neb::block_height_t nbre_max_height,
                         neb::block_height_t lib_height) {
+  std::unique_lock<std::mutex> _l(m_sync_mutex);
   if (nbre_max_height < dip_start_block + dip_block_interval - 1) {
     return;
   }
@@ -41,6 +42,10 @@ void dip_handler::start(neb::block_height_t nbre_max_height,
 
   uint64_t height = (nbre_max_height - dip_start_block + 1) /
                     dip_block_interval * dip_block_interval;
+
+  if (m_dip_reward.find(height) != m_dip_reward.end()) {
+    return;
+  }
 
   m_thread = std::make_unique<std::thread>([height, this]() {
     std::string dip_name = "dip";
@@ -55,6 +60,7 @@ void dip_handler::start(neb::block_height_t nbre_max_height,
 }
 
 std::string dip_handler::get_dip_reward(neb::block_height_t height) {
+  std::unique_lock<std::mutex> _l(m_sync_mutex);
 
   auto dip_reward = m_dip_reward.find(height);
   if (dip_reward == m_dip_reward.end()) {

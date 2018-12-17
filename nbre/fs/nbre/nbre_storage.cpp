@@ -24,6 +24,7 @@
 #include "common/util/version.h"
 #include "fs/nbre/flag_storage.h"
 #include "jit/jit_driver.h"
+#include "runtime/dip/dip_handler.h"
 #include "runtime/version.h"
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -171,6 +172,7 @@ void nbre_storage::write_nbre() {
             << end_height;
 
   set_auth_table();
+  neb::rt::dip::dip_handler::instance().start(start_height, end_height);
 
   flag_storage fs(m_storage.get());
   std::string failed_flag =
