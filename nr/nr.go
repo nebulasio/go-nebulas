@@ -25,13 +25,15 @@ import (
 
 type NR struct {
 	nbre core.Nbre
-	// TODO(larry): add cache for nr calculate results
+
+	chain *core.BlockChain
 }
 
 // NewNR create nr
 func NewNR(neb core.Neblet) *NR {
 	nr := &NR{
 		nbre: neb.Nbre(),
+		chain:neb.BlockChain(),
 	}
 	return nr
 }
@@ -40,6 +42,12 @@ func NewNR(neb core.Neblet) *NR {
 func (n *NR) GetNRHandler(start, end, version uint64) ([]byte, error) {
 	if version == 0 {
 		version = DefaultNRVersion
+	}
+	if start >= end {
+		return nil, ErrInvalidHeightInterval
+	}
+	if end <= 0 || end > n.chain.TailBlock().Height()  {
+		return nil, ErrInvalidEndHeight
 	}
 	params := &nbre.Params{
 		StartBlock:start,

@@ -26,6 +26,7 @@ import (
 // Error types
 var (
 	ErrInvalidStartHeight = errors.New("invalid nr start height")
+	ErrInvalidEndHeight = errors.New("invalid nr end height")
 	ErrInvalidHeightInterval   = errors.New("invalid nr height interval")
 )
 

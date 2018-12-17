@@ -33,7 +33,7 @@ import (
 type Dip struct {
 
 	accountManager core.AccountManager
-	blockchain *core.BlockChain
+	chain *core.BlockChain
 	nbre core.Nbre
 
 	cache *lru.Cache
@@ -52,7 +52,7 @@ func NewDIP(neb core.Neblet) (*Dip, error) {
 	}
 	dip := &Dip{
 		accountManager:neb.AccountManager(),
-		blockchain:neb.BlockChain(),
+		chain:neb.BlockChain(),
 		nbre: neb.Nbre(),
 		cache:cache,
 		quitCh:make(chan int, 1),
@@ -102,7 +102,7 @@ func (d *Dip) loop() {
 
 // publishReward generate dip transactions and push to tx pool
 func (d *Dip) publishReward()  {
-	height := d.blockchain.TailBlock().Height() - uint64(DipDelayRewardHeight)
+	height := d.chain.TailBlock().Height() - uint64(DipDelayRewardHeight)
 	if height < 1 {
 		return
 	}
@@ -115,7 +115,7 @@ func (d *Dip) publishReward()  {
 	}
 
 	dipData := data.(*DIPData)
-	endBlock := d.blockchain.GetBlockOnCanonicalChainByHeight(dipData.End)
+	endBlock := d.chain.GetBlockOnCanonicalChainByHeight(dipData.End)
 	endAccount, err := endBlock.GetAccount(d.RewardAddress().Bytes())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -124,7 +124,7 @@ func (d *Dip) publishReward()  {
 		return
 	}
 
-	tailAccount, err := d.blockchain.TailBlock().GetAccount(d.RewardAddress().Bytes())
+	tailAccount, err := d.chain.TailBlock().GetAccount(d.RewardAddress().Bytes())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
@@ -144,7 +144,7 @@ func (d *Dip) publishReward()  {
 				continue
 			}
 
-			d.blockchain.TransactionPool().Push(tx)
+			d.chain.TransactionPool().Push(tx)
 		}
 	}
 }
@@ -189,6 +189,9 @@ func (d *Dip) generateRewardTx(item *DIPItem, nonce uint64, block *core.Block) (
 
 // GetDipList returns dip info list
 func (d *Dip) GetDipList(height uint64) (core.Data, error) {
+	if height <= 0 || height > d.chain.TailBlock().Height()  {
+		return nil, ErrInvalidHeight
+	}
 	data, ok := d.checkCache(height)
 	if !ok {
 		dipData, err := d.nbre.Execute(nbre.CommandDIPList, byteutils.FromUint64(height))
