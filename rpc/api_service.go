@@ -699,11 +699,11 @@ func (s *APIService) GetDIPList(ctx context.Context, req *rpcpb.NonParamsRequest
 		return nil, err
 	}
 	dipData := data.(*dip.DIPData)
-	dipItems := make([]*rpcpb.NData, len(dipData.Data))
-	for idx, v := range dipData.Data {
+	dipItems := make([]*rpcpb.NData, len(dipData.Dips))
+	for idx, v := range dipData.Dips {
 		item := &rpcpb.NData{
-			Address: v.Addr,
-			Value:   v.Value,
+			Address: v.Address,
+			Value:   v.Reward,
 		}
 		dipItems[idx] = item
 	}

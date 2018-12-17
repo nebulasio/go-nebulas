@@ -131,7 +131,7 @@ func (d *Dip) publishReward()  {
 		return
 	}
 
-	for idx, v := range dipData.Data {
+	for idx, v := range dipData.Dips {
 		nonce := endAccount.Nonce()+uint64(idx)+1
 		// only not reward tx can be pushed to tx pool.
 		if nonce > tailAccount.Nonce() {
@@ -155,10 +155,10 @@ func (d *Dip) generateRewardTx(item *DIPItem, nonce uint64, block *core.Block) (
 		payload []byte
 		err error
 	)
-	if to, err = core.AddressParse(item.Addr); err != nil {
+	if to, err = core.AddressParse(item.Address); err != nil {
 		return nil, err
 	}
-	if value, err = util.NewUint128FromString(item.Value); err != nil {
+	if value, err = util.NewUint128FromString(item.Reward); err != nil {
 		return nil, err
 	}
 	if payload, err = core.NewDipPayload(nil).ToBytes(); err != nil {
@@ -224,8 +224,8 @@ func (d *Dip) CheckReward(height uint64, addr string, value *util.Uint128) error
 		return err
 	}
 	dip := data.(*DIPData)
-	for _, v := range dip.Data {
-		if v.Addr == addr && value.String() == v.Value {
+	for _, v := range dip.Dips {
+		if v.Address == addr && value.String() == v.Reward {
 			return nil
 		}
 	}
