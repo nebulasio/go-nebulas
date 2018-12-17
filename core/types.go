@@ -336,7 +336,7 @@ type Nbre interface {
 }
 
 type Nr interface {
-	GetNRHash(start, end uint64) ([]byte, error)
+	GetNRHandler(start, end, version uint64) ([]byte, error)
 	GetNRList(hash []byte) (Data, error)
 }
 

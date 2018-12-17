@@ -29,11 +29,18 @@ var (
 	ErrInvalidHeightInterval   = errors.New("invalid nr height interval")
 )
 
+// const
+const (
+	DefaultNRVersion = 4294967296
+)
+
+// NRItem nr item
 type NRItem struct {
 	Address string		`json:"address"`
 	Score string		`json:"score"`
 }
 
+// NRData nr data
 type NRData struct {
 	Start uint64		`json:"start"`
 	End uint64			`json:"end"`
