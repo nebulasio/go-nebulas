@@ -283,7 +283,7 @@ func (n *Neblet) Start() {
 		}
 
 		// start dip
-		n.dip.Start()
+		//n.dip.Start()
 	}
 
 	// first sync
