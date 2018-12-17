@@ -27,6 +27,7 @@ void NbreIrListFunc(int isc, void *holder, const char *ir_name_list);
 void NbreIrVersionsFunc(int isc, void *holder, const char *ir_versions);
 void NbreNrHandlerFunc(int isc, void *holder, const char *nr_handler);
 void NbreNrResultFunc(int isc, void *holder, const char *nr_result);
+void NbreDipRewardFunc(int isc, void *holder, const char *dip_reward);
 
 void NbreVersionFunc_cgo(int isc, void *holder, uint32_t major, uint32_t minor,uint32_t patch) {
 	NbreVersionFunc(isc, holder, major, minor, patch);
@@ -46,6 +47,10 @@ void NbreNrHandlerFunc_cgo(int isc, void *holder, const char *nr_handler) {
 
 void NbreNrResultFunc_cgo(int isc, void *holder, const char *nr_result) {
 	NbreNrResultFunc(isc, holder, nr_result);
+};
+
+void NbreDipRewardFunc_cgo(int isc, void *holder, const char *dip_reward) {
+	NbreDipRewardFunc(isc, holder, dip_reward);
 };
 
 */

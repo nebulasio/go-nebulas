@@ -26,6 +26,7 @@ import (
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 	"time"
+	"github.com/nebulasio/go-nebulas/nf/nbre"
 )
 
 type Dip struct {
@@ -189,7 +190,14 @@ func (d *Dip) generateRewardTx(item *DIPItem, nonce uint64, block *core.Block) (
 func (d *Dip) GetDipList(height uint64) (core.Data, error) {
 	data, ok := d.checkCache(height)
 	if !ok {
-		// TODO(larry): query from nbre and cache
+		dipData, err := d.nbre.Execute(nbre.CommandDIPList, byteutils.FromUint64(height))
+		if err != nil {
+			return nil, err
+		}
+		data = &DIPData{}
+		if err := data.FromBytes(dipData); err != nil {
+			return nil, err
+		}
 		key := append(byteutils.FromUint64(data.Start), byteutils.FromUint64(data.End)...)
 		d.cache.Add(key, data)
 	}

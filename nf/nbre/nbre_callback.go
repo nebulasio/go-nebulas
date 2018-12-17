@@ -117,3 +117,20 @@ func NbreNrResultFunc(code C.int, holder unsafe.Pointer, nr_result *C.char) {
 		nbreHandled(handler, []byte(result), nil)
 	}
 }
+
+// NbreDipRewardFunc returns nbre dip list
+//export NbreDipRewardFunc
+func NbreDipRewardFunc(code C.int, holder unsafe.Pointer, dip_reward *C.char) {
+	handlerId := uint64(uintptr(holder))
+	handler, _ := getNbreHandler(handlerId)
+	if handler != nil {
+		result := C.GoString(dip_reward)
+
+		logging.VLog().WithFields(logrus.Fields{
+			"handlerId": handlerId,
+			"handler":   handler,
+			"dip":       result,
+		}).Debug("nbre dip callback")
+		nbreHandled(handler, []byte(result), nil)
+	}
+}

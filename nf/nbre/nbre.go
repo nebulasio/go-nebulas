@@ -29,6 +29,7 @@ void NbreIrListFunc_cgo(int isc, void *holder, const char *ir_name_list);
 void NbreIrVersionsFunc_cgo(int isc, void *holder, const char *ir_versions);
 void NbreNrHandlerFunc_cgo(int isc, void *holder, const char *nr_handler);
 void NbreNrResultFunc_cgo(int isc, void *holder, const char *nr_result);
+void NbreDipRewardFunc_cgo(int isc, void *holder, const char *dip_reward);
 */
 import "C"
 import (
@@ -40,6 +41,7 @@ import (
 	"path/filepath"
 
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -190,6 +192,7 @@ func InitializeNbre() {
 	C.set_recv_nbre_ir_versions_callback((C.nbre_ir_versions_callback_t)(unsafe.Pointer(C.NbreIrVersionsFunc_cgo)))
 	C.set_recv_nbre_nr_handler_callback((C.nbre_nr_handler_callback_t)(unsafe.Pointer(C.NbreNrHandlerFunc_cgo)))
 	C.set_recv_nbre_nr_result_callback((C.nbre_nr_result_callback_t)(unsafe.Pointer(C.NbreNrResultFunc_cgo)))
+	C.set_recv_nbre_dip_reward_callback((C.nbre_dip_reward_callback_t)(unsafe.Pointer(C.NbreDipRewardFunc_cgo)))
 }
 
 // Execute execute command
@@ -244,7 +247,6 @@ func deleteHandler(handler *handler) {
 }
 
 func (n *Nbre) handleNbreCommand(handler *handler, command string, params []byte) {
-	height := n.neb.BlockChain().TailBlock().Height()
 	handlerId := handler.id
 
 	logging.CLog().WithFields(logrus.Fields{
@@ -253,6 +255,7 @@ func (n *Nbre) handleNbreCommand(handler *handler, command string, params []byte
 	}).Debug("run nbre command")
 	switch command {
 	case CommandVersion:
+		height := n.neb.BlockChain().TailBlock().Height()
 		C.ipc_nbre_version(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height))
 	case CommandIRList:
 		C.ipc_nbre_ir_list(unsafe.Pointer(uintptr(handlerId)))
@@ -265,6 +268,8 @@ func (n *Nbre) handleNbreCommand(handler *handler, command string, params []byte
 	case CommandNRList:
 		C.ipc_nbre_nr_result(unsafe.Pointer(uintptr(handlerId)), C.CString(string(params)))
 	case CommandDIPList:
+		height := byteutils.Uint64(params)
+		C.ipc_nbre_dip_reward(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height))
 	default:
 		handler.err = ErrCommandNotFound
 		handler.done <- true
