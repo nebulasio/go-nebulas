@@ -50,7 +50,7 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
 
   // bonus pool in total
   std::string admin_addr = neb::configuration::instance().admin_pub_addr();
-  neb::util::bytes addr_bytes = neb::util::bytes::from_base58(admin_addr);
+  neb::util::bytes addr_bytes = neb::util::string_to_byte(admin_addr);
   wei_t balance =
       adb_ptr->get_balance(neb::util::byte_to_string(addr_bytes), height);
   floatxx_t bonus_total = int128_conversion(balance).to_float<floatxx_t>();
@@ -66,10 +66,14 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
     dip_info_t info;
     info.m_address = v.first;
 
-    info.m_reward =
+    floatxx_t reward_in_nas =
         v.second * v.second *
         participate_lambda(alpha, beta, *it_acc_to_contract_txs, *it_nr_infos) *
         bonus_total / sum_votes;
+
+    uint64_t ratio = 1000000000000000000ULL;
+    floatxx_t reward_in_wei = reward_in_nas * ratio;
+    info.m_reward = neb::math::to_string(reward_in_wei.round_to_int());
     dip_infos.push_back(info);
   }
   return std::make_unique<std::vector<dip_info_t>>(dip_infos);
@@ -77,6 +81,11 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
 
 std::string
 dip_reward::dip_info_to_json(const std::vector<dip_info_t> &dip_infos) {
+
+  if (dip_infos.empty()) {
+    return std::string("{\"dips\":[]}");
+  }
+
   boost::property_tree::ptree root;
   boost::property_tree::ptree arr;
 
@@ -84,19 +93,15 @@ dip_reward::dip_info_to_json(const std::vector<dip_info_t> &dip_infos) {
     boost::property_tree::ptree p;
     auto dip_info_to_ptree = [&info, &p]() -> void {
       neb::util::bytes addr_bytes = neb::util::string_to_byte(info.m_address);
-      floatxx_t f_reward = info.m_reward;
-      nr::uintxx_t int_reward =
-          softfloat_cast<floatxx_t::value_type, nr::uintxx_t>(
-              f_reward.round_to_int());
 
       std::vector<std::pair<std::string, std::string>> kv_pair(
-          {{"address", addr_bytes.to_base58()},
-           {"reward", nr::internal::to_string(int_reward)}});
+          {{"address", addr_bytes.to_base58()}, {"reward", info.m_reward}});
       for (auto &ele : kv_pair) {
         p.put(ele.first, ele.second);
       }
       return;
     };
+
     dip_info_to_ptree();
     arr.push_back(std::make_pair(std::string(), p));
   }

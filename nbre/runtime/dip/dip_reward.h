@@ -28,7 +28,7 @@ namespace dip {
 
 struct dip_info_t {
   std::string m_address;
-  floatxx_t m_reward;
+  std::string m_reward;
 };
 
 class dip_reward {

@@ -122,13 +122,6 @@ private:
                                        boost::property_tree::ptree &pt);
 
 }; // class nebulas_rank
-namespace internal {
-template <typename T> std::string to_string(const T &val) {
-  std::stringstream ss;
-  ss << val;
-  return ss.str();
-}
-} // namespace internal
 } // namespace nr
 } // namespace rt
 } // namespace neb

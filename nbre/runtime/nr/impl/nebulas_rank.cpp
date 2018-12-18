@@ -427,31 +427,17 @@ void nebulas_rank::convert_nr_info_to_ptree(const nr_info_t &info,
   floatxx_t f_weight = info.m_weight;
   floatxx_t f_nr_score = info.m_nr_score;
 
-  uintxx_t int_in_val =
-      softfloat_cast<floatxx_t::value_type, uintxx_t>(f_in_val.round_to_int());
-  uintxx_t int_out_val =
-      softfloat_cast<floatxx_t::value_type, uintxx_t>(f_out_val.round_to_int());
-  uintxx_t int_in_outs =
-      softfloat_cast<floatxx_t::value_type, uintxx_t>(f_in_outs.round_to_int());
-
-  uintxx_t int_median =
-      softfloat_cast<floatxx_t::value_type, uintxx_t>(f_median.round_to_int());
-  uintxx_t int_weight =
-      softfloat_cast<floatxx_t::value_type, uintxx_t>(f_weight.round_to_int());
-  uintxx_t int_score = softfloat_cast<floatxx_t::value_type, uintxx_t>(
-      f_nr_score.round_to_int());
-
   std::vector<std::pair<std::string, std::string>> kv_pair(
       {{"address", addr_bytes.to_base58()},
-       {"in_degree", internal::to_string(in_degree)},
-       {"out_degree", internal::to_string(out_degree)},
-       {"degrees", internal::to_string(degrees)},
-       {"in_val", internal::to_string(int_in_val)},
-       {"out_val", internal::to_string(int_out_val)},
-       {"in_outs", internal::to_string(int_in_outs)},
-       {"median", internal::to_string(int_median)},
-       {"weight", internal::to_string(int_weight)},
-       {"score", internal::to_string(int_score)}});
+       {"in_degree", neb::math::to_string(in_degree)},
+       {"out_degree", neb::math::to_string(out_degree)},
+       {"degrees", neb::math::to_string(degrees)},
+       {"in_val", neb::math::to_string(f_in_val)},
+       {"out_val", neb::math::to_string(f_out_val)},
+       {"in_outs", neb::math::to_string(f_in_outs)},
+       {"median", neb::math::to_string(f_median)},
+       {"weight", neb::math::to_string(f_weight)},
+       {"score", neb::math::to_string(f_nr_score)}});
 
   for (auto &ele : kv_pair) {
     p.put(ele.first, ele.second);
@@ -459,6 +445,11 @@ void nebulas_rank::convert_nr_info_to_ptree(const nr_info_t &info,
 }
 
 std::string nebulas_rank::nr_info_to_json(const std::vector<nr_info_t> &rs) {
+
+  if (rs.empty()) {
+    return std::string("{\"nrs\":[]}");
+  }
+
   boost::property_tree::ptree root;
   boost::property_tree::ptree arr;
 
@@ -495,12 +486,20 @@ nebulas_rank::json_to_nr_info(const std::string &nr_result) {
     info.m_in_degree = nr.get<uint32_t>("in_degree");
     info.m_out_degree = nr.get<uint32_t>("out_degree");
     info.m_degrees = nr.get<uint32_t>("degrees");
-    info.m_in_val = nr.get<uintxx_t>("in_val");
-    info.m_out_val = nr.get<uintxx_t>("out_val");
-    info.m_in_outs = nr.get<uintxx_t>("in_outs");
-    info.m_median = nr.get<uintxx_t>("median");
-    info.m_weight = nr.get<uintxx_t>("weight");
-    info.m_nr_score = nr.get<uintxx_t>("score");
+
+    info.m_in_val =
+        neb::math::from_string<floatxx_t>(nr.get<std::string>("in_val"));
+    info.m_out_val =
+        neb::math::from_string<floatxx_t>(nr.get<std::string>("out_val"));
+    info.m_in_outs =
+        neb::math::from_string<floatxx_t>(nr.get<std::string>("in_outs"));
+
+    info.m_median =
+        neb::math::from_string<floatxx_t>(nr.get<std::string>("median"));
+    info.m_weight =
+        neb::math::from_string<floatxx_t>(nr.get<std::string>("weight"));
+    info.m_nr_score =
+        neb::math::from_string<floatxx_t>(nr.get<std::string>("score"));
     infos.push_back(info);
   }
 
