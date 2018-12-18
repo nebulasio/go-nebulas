@@ -27,12 +27,13 @@ import (
 	"github.com/sirupsen/logrus"
 	"time"
 	"github.com/nebulasio/go-nebulas/nf/nbre"
+	"errors"
 )
 
 type Dip struct {
 
 	accountManager core.AccountManager
-	blockchain *core.BlockChain
+	chain *core.BlockChain
 	nbre core.Nbre
 
 	cache *lru.Cache
@@ -51,7 +52,7 @@ func NewDIP(neb core.Neblet) (*Dip, error) {
 	}
 	dip := &Dip{
 		accountManager:neb.AccountManager(),
-		blockchain:neb.BlockChain(),
+		chain:neb.BlockChain(),
 		nbre: neb.Nbre(),
 		cache:cache,
 		quitCh:make(chan int, 1),
@@ -101,7 +102,7 @@ func (d *Dip) loop() {
 
 // publishReward generate dip transactions and push to tx pool
 func (d *Dip) publishReward()  {
-	height := d.blockchain.TailBlock().Height() - uint64(DipDelayRewardHeight)
+	height := d.chain.TailBlock().Height() - uint64(DipDelayRewardHeight)
 	if height < 1 {
 		return
 	}
@@ -114,7 +115,7 @@ func (d *Dip) publishReward()  {
 	}
 
 	dipData := data.(*DIPData)
-	endBlock := d.blockchain.GetBlockOnCanonicalChainByHeight(dipData.End)
+	endBlock := d.chain.GetBlockOnCanonicalChainByHeight(dipData.End)
 	endAccount, err := endBlock.GetAccount(d.RewardAddress().Bytes())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -123,7 +124,7 @@ func (d *Dip) publishReward()  {
 		return
 	}
 
-	tailAccount, err := d.blockchain.TailBlock().GetAccount(d.RewardAddress().Bytes())
+	tailAccount, err := d.chain.TailBlock().GetAccount(d.RewardAddress().Bytes())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
@@ -143,7 +144,7 @@ func (d *Dip) publishReward()  {
 				continue
 			}
 
-			d.blockchain.TransactionPool().Push(tx)
+			d.chain.TransactionPool().Push(tx)
 		}
 	}
 }
@@ -188,6 +189,9 @@ func (d *Dip) generateRewardTx(item *DIPItem, nonce uint64, block *core.Block) (
 
 // GetDipList returns dip info list
 func (d *Dip) GetDipList(height uint64) (core.Data, error) {
+	if height <= 0 || height > d.chain.TailBlock().Height()  {
+		return nil, ErrInvalidHeight
+	}
 	data, ok := d.checkCache(height)
 	if !ok {
 		dipData, err := d.nbre.Execute(nbre.CommandDIPList, byteutils.FromUint64(height))
@@ -198,8 +202,11 @@ func (d *Dip) GetDipList(height uint64) (core.Data, error) {
 		if err := data.FromBytes(dipData); err != nil {
 			return nil, err
 		}
+		if len(data.Err) > 0 {
+			return nil, errors.New(data.Err)
+		}
 		key := append(byteutils.FromUint64(data.Start), byteutils.FromUint64(data.End)...)
-		d.cache.Add(key, data)
+		d.cache.Add(byteutils.Hex(key), data)
 	}
 	return data, nil
 }
@@ -207,9 +214,14 @@ func (d *Dip) GetDipList(height uint64) (core.Data, error) {
 func (d *Dip) checkCache(height uint64) (*DIPData, bool) {
 	keys:= d.cache.Keys()
 	for _, v := range keys {
-		v := v.([]byte)
-		start := byteutils.Uint64(v[:8])
-		end := byteutils.Uint64(v[8:])
+		bytes, err := byteutils.FromHex(v.(string))
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"err": err,
+			}).Fatal("Failed to parse dip cache.")
+		}
+		start := byteutils.Uint64(bytes[:8])
+		end := byteutils.Uint64(bytes[8:])
 		if height >= start && height <= end {
 			data, _ := d.cache.Get(v)
 			return data.(*DIPData), true

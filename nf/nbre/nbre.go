@@ -251,11 +251,10 @@ func (n *Nbre) handleNbreCommand(handler *handler, command string, params []byte
 
 	logging.CLog().WithFields(logrus.Fields{
 		"command": command,
-		"params":  string(params),
 	}).Debug("run nbre command")
 	switch command {
 	case CommandVersion:
-		height := n.neb.BlockChain().TailBlock().Height()
+		height := byteutils.Uint64(params)
 		C.ipc_nbre_version(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height))
 	case CommandIRList:
 		C.ipc_nbre_ir_list(unsafe.Pointer(uintptr(handlerId)))
@@ -287,11 +286,37 @@ func getNbreHandler(id uint64) (*handler, error) {
 	return handler, nil
 }
 
-func nbreHandled(handler *handler, result []byte, err error) {
+func nbreHandled(code C.int, holder unsafe.Pointer, result []byte, handleErr error) {
+	handlerId := uint64(uintptr(holder))
+	handler, err := getNbreHandler(handlerId)
+	if err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to handle nbre callback")
+		return
+	}
+
+	switch code {
+	case C.ipc_status_succ:
+		err = nil
+	case C.ipc_status_fail:
+		err = ErrNbreCallbackFailed
+	case C.ipc_status_timeout:
+		err = ErrExecutionTimeout
+	case C.ipc_status_exception:
+		err = ErrNbreCallbackException
+	case C.ipc_status_nbre_not_ready:
+		err = ErrNbreCallbackNotReady
+	default:
+		err = ErrNbreCallbackCodeErr
+	}
+
 	if err == nil {
 		handler.result = result
+		handler.err = handleErr
+	} else {
+		handler.err = err
 	}
-	handler.err = err
 	handler.done <- true
 }
 

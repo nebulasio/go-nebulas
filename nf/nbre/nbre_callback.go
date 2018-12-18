@@ -25,112 +25,51 @@ import "C"
 import (
 	"encoding/json"
 	"unsafe"
-
-	"github.com/nebulasio/go-nebulas/util/logging"
-	"github.com/sirupsen/logrus"
 )
 
 // NbreVersionFunc returns nbre version
 //export NbreVersionFunc
 func NbreVersionFunc(code C.int, holder unsafe.Pointer, major C.uint32_t, minor C.uint32_t, patch C.uint32_t) {
-	handlerId := uint64(uintptr(holder))
-	handler, _ := getNbreHandler(handlerId)
-	logging.VLog().WithFields(logrus.Fields{
-		"handlerId": handlerId,
-		"handler":   handler,
-	}).Debug("nbre versions callback")
-	if handler != nil {
-		version := &Version{
-			Major: uint64(major),
-			Minor: uint64(minor),
-			Patch: uint64(patch),
-		}
-		result, err := json.Marshal(version)
-		nbreHandled(handler, result, err)
+	version := &Version{
+		Major: uint64(major),
+		Minor: uint64(minor),
+		Patch: uint64(patch),
 	}
+	result, err := json.Marshal(version)
+	nbreHandled(code, holder, result, err)
 }
 
 // NbreIrListFunc returns nbre ir list
 //export NbreIrListFunc
 func NbreIrListFunc(code C.int, holder unsafe.Pointer, ir_name_list *C.char) {
-	handlerId := uint64(uintptr(holder))
-	handler, _ := getNbreHandler(handlerId)
-	if handler != nil {
-		result := C.GoString(ir_name_list)
-
-		logging.VLog().WithFields(logrus.Fields{
-			"handlerId": handlerId,
-			"handler":   handler,
-			"ir":        result,
-		}).Debug("nbre ir list callback")
-		nbreHandled(handler, []byte(result), nil)
-	}
+	result := C.GoString(ir_name_list)
+	nbreHandled(code, holder, []byte(result), nil)
 }
 
 // NbreIrVersionsFunc returns nbre ir versions
 //export NbreIrVersionsFunc
 func NbreIrVersionsFunc(code C.int, holder unsafe.Pointer, ir_versions *C.char) {
-	handlerId := uint64(uintptr(holder))
-	handler, _ := getNbreHandler(handlerId)
-	if handler != nil {
-		result := C.GoString(ir_versions)
-
-		logging.VLog().WithFields(logrus.Fields{
-			"handlerId": handlerId,
-			"handler":   handler,
-			"versions":  result,
-		}).Debug("nbre ir version callback")
-		nbreHandled(handler, []byte(result), nil)
-	}
+	result := C.GoString(ir_versions)
+	nbreHandled(code, holder, []byte(result), nil)
 }
 
 // NbreNrHandlerFunc returns nbre nr handler
 //export NbreNrHandlerFunc
 func NbreNrHandlerFunc(code C.int, holder unsafe.Pointer, nr_handler *C.char) {
-	handlerId := uint64(uintptr(holder))
-	handler, _ := getNbreHandler(handlerId)
-	if handler != nil {
-		result := C.GoString(nr_handler)
-
-		logging.VLog().WithFields(logrus.Fields{
-			"handlerId":  handlerId,
-			"handler":    handler,
-			"nr_handler": result,
-		}).Debug("nbre nr callback")
-		nbreHandled(handler, []byte(result), nil)
-	}
+	result := C.GoString(nr_handler)
+	nbreHandled(code, holder, []byte(result), nil)
 }
 
 // NbreNrResultFunc returns nbre nr list
 //export NbreNrResultFunc
 func NbreNrResultFunc(code C.int, holder unsafe.Pointer, nr_result *C.char) {
-	handlerId := uint64(uintptr(holder))
-	handler, _ := getNbreHandler(handlerId)
-	if handler != nil {
-		result := C.GoString(nr_result)
-
-		logging.VLog().WithFields(logrus.Fields{
-			"handlerId": handlerId,
-			"handler":   handler,
-			"nr":        result,
-		}).Debug("nbre nr callback")
-		nbreHandled(handler, []byte(result), nil)
-	}
+	result := C.GoString(nr_result)
+	nbreHandled(code, holder, []byte(result), nil)
 }
 
 // NbreDipRewardFunc returns nbre dip list
 //export NbreDipRewardFunc
 func NbreDipRewardFunc(code C.int, holder unsafe.Pointer, dip_reward *C.char) {
-	handlerId := uint64(uintptr(holder))
-	handler, _ := getNbreHandler(handlerId)
-	if handler != nil {
-		result := C.GoString(dip_reward)
-
-		logging.VLog().WithFields(logrus.Fields{
-			"handlerId": handlerId,
-			"handler":   handler,
-			"dip":       result,
-		}).Debug("nbre dip callback")
-		nbreHandled(handler, []byte(result), nil)
-	}
+	result := C.GoString(dip_reward)
+	nbreHandled(code, holder, []byte(result), nil)
 }

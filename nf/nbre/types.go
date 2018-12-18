@@ -29,11 +29,16 @@ import (
 
 // Error types
 var (
-	ErrConfigNotFound   = errors.New("nbre config not found")
-	ErrNbreStartFailed  = errors.New("nbre start failed")
-	ErrCommandNotFound  = errors.New("nbre command not found")
-	ErrExecutionTimeout = errors.New("nbre execute timeout")
-	ErrHandlerNotFound  = errors.New("nbre handler not found")
+	ErrConfigNotFound        = errors.New("nbre config not found")
+	ErrNbreStartFailed       = errors.New("nbre start failed")
+	ErrCommandNotFound       = errors.New("nbre command not found")
+	ErrExecutionTimeout      = errors.New("nbre execute timeout")
+	ErrHandlerNotFound       = errors.New("nbre handler not found")
+	ErrNbreCallbackFailed    = errors.New("nbre callback failed")
+	ErrNbreCallbackTimeout   = errors.New("nbre callback timeout")
+	ErrNbreCallbackException = errors.New("nbre callback exception")
+	ErrNbreCallbackNotReady  = errors.New("nbre callback not ready")
+	ErrNbreCallbackCodeErr   = errors.New("nbre callback code not found")
 )
 
 // Command types
