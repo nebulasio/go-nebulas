@@ -18,18 +18,18 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "runtime/dip/dip_impl.h"
-#include "runtime/dip/dip_reward.h"
-#include <vector>
+#include <ff/ff.h>
+#include <iostream>
 
-int main(int argc, char *argv[]) {
+void f() {}
 
-  using dip_info_t = neb::rt::dip::dip_info_t;
-  using floatxx_t = neb::floatxx_t;
-  std::vector<dip_info_t> v;
-  v.push_back(dip_info_t{"addr1", "1.1"});
-  v.push_back(dip_info_t{"addr2", "2.1"});
-
-  std::cout << neb::rt::dip::dip_reward::dip_info_to_json(v) << std::endl;
+int main() {
+  ff::para<> a;
+  a([]() {
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    std::cout << "this is ff" << std::endl;
+  });
+  std::cout << "ret" << std::endl;
+  std::this_thread::sleep_for(std::chrono::seconds(10));
   return 0;
 }
