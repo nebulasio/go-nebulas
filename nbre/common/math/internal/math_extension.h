@@ -269,6 +269,17 @@ template <typename T> T sqrt(const T &x) {
 template <typename T> T min(const T &x, const T &y) { return x < y ? x : y; }
 template <typename T> T max(const T &x, const T &y) { return x > y ? x : y; }
 
+template <typename T> std::string to_string(const T &val) {
+  std::stringstream ss;
+  ss << val;
+  return ss.str();
+}
+template <typename T> T from_string(const std::string &str) {
+  std::stringstream ss(str);
+  T val;
+  ss >> val;
+  return val;
+}
 } // namespace math
 
 } // namespace neb

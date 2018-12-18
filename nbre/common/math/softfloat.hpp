@@ -1111,10 +1111,18 @@ public:
     {
       static_assert(sizeof(long double) == 16, "long double is too short");
       auto t = softfloat_cast<T, float64_t>(obj.v);
-        os << *(double*)(&t);
-        return os;
+      os << *(double*)(&t);
+      return os;
     }
 
+    friend std::istream& operator>>(std::istream& is, softfloat& obj)
+    {
+      static_assert(sizeof(long double) == 16, "long double is too short");
+      float64_t t;
+      is >> *(double*)(&t);
+      obj.v = softfloat_cast<float64_t, T>(t);
+      return is;
+    }
 };
 
 
