@@ -50,13 +50,16 @@ void dip_handler::start(neb::block_height_t nbre_max_height,
 
   ff::para<> p;
   p([this, height]() {
-    std::string dip_name = "dip";
+    try {
+      std::string dip_name = "dip";
+      jit_driver &jd = jit_driver::instance();
+      auto dip_reward = jd.run_ir<std::string>(
+          dip_name, height, "_Z15entry_point_dipB5cxx11m", height);
 
-    jit_driver &jd = jit_driver::instance();
-    auto dip_reward = jd.run_ir<std::string>(
-        dip_name, height, "_Z15entry_point_dipB5cxx11m", height);
-
-    m_dip_reward.insert(std::make_pair(height, dip_reward));
+      m_dip_reward.insert(std::make_pair(height, dip_reward));
+    } catch (const std::exception &e) {
+      LOG(INFO) << e.what();
+    }
   });
 }
 

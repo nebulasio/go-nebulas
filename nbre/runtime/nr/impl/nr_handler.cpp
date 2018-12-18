@@ -58,22 +58,27 @@ void nr_handler::start(std::string nr_handler_id) {
     uint64_t nr_version = neb::util::byte_to_number<uint64_t>(
         neb::util::bytes(nr_handler_bytes.value() + 2 * bytes, bytes));
 
-    std::string nr_name = "nr";
-    std::vector<std::unique_ptr<nbre::NBREIR>> irs;
-    auto ir = neb::core::ir_warden::instance().get_ir_by_name_version(
-        nr_name, nr_version);
-    irs.push_back(std::move(ir));
+    try {
+      std::string nr_name = "nr";
+      std::vector<std::unique_ptr<nbre::NBREIR>> irs;
+      auto ir = neb::core::ir_warden::instance().get_ir_by_name_version(
+          nr_name, nr_version);
+      irs.push_back(std::move(ir));
 
-    jit_driver &jd = jit_driver::instance();
-    std::stringstream ss;
-    ss << nr_name << nr_version;
+      jit_driver &jd = jit_driver::instance();
+      std::stringstream ss;
+      ss << nr_name << nr_version;
 
-    //  TODO func name
-    std::string nr_result = jd.run<std::string>(
-        ss.str(), irs, "_Z14entry_point_nrB5cxx11mm", start_block, end_block);
+      //  TODO func name
+      std::string nr_result = jd.run<std::string>(
+          ss.str(), irs, "_Z14entry_point_nrB5cxx11mm", start_block, end_block);
 
-    m_nr_result.insert(std::make_pair(m_nr_handler_id, nr_result));
-    m_nr_handler_id.clear();
+      m_nr_result.insert(std::make_pair(m_nr_handler_id, nr_result));
+      m_nr_handler_id.clear();
+    } catch (const std::exception &e) {
+      LOG(INFO) << e.what();
+    }
+
   });
 }
 
