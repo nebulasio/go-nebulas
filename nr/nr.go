@@ -21,6 +21,7 @@ package nr
 import (
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/nf/nbre"
+	"errors"
 )
 
 type NR struct {
@@ -70,6 +71,9 @@ func (n *NR) GetNRList(hash []byte) (core.Data, error) {
 	nrData := &NRData{}
 	if err := nrData.FromBytes(data); err != nil {
 		return nil, err
+	}
+	if len(nrData.Err) > 0 {
+		return nil, errors.New(nrData.Err)
 	}
 	return nrData, nil
 }

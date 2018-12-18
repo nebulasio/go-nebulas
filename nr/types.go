@@ -47,6 +47,7 @@ type NRData struct {
 	End uint64			`json:"end"`
 	Version string		`json:"version"`
 	Nrs []*NRItem		`json:"nrs"`
+	Err string			`json:"err"`
 }
 
 // ToBytes serialize data
