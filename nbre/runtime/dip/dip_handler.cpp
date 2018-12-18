@@ -32,17 +32,17 @@ namespace dip {
 void dip_handler::start(neb::block_height_t nbre_max_height,
                         neb::block_height_t lib_height) {
   std::unique_lock<std::mutex> _l(m_sync_mutex);
-  if (nbre_max_height < dip_start_block + dip_block_interval - 1) {
+  if (nbre_max_height < s_dip_start_block + s_dip_block_interval - 1) {
     return;
   }
 
   assert(nbre_max_height <= lib_height);
-  if (nbre_max_height + dip_block_interval < lib_height) {
+  if (nbre_max_height + s_dip_block_interval < lib_height) {
     return;
   }
 
-  uint64_t height = (nbre_max_height - dip_start_block + 1) /
-                    dip_block_interval * dip_block_interval;
+  uint64_t height = (nbre_max_height - s_dip_start_block + 1) /
+                    s_dip_block_interval * s_dip_block_interval;
 
   if (m_dip_reward.find(height) != m_dip_reward.end()) {
     return;

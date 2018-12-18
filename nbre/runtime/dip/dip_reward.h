@@ -40,7 +40,12 @@ public:
                  const neb::rt::nr::account_db_ptr_t &adb_ptr, floatxx_t alpha,
                  floatxx_t beta) -> std::unique_ptr<std::vector<dip_info_t>>;
 
-  static std::string dip_info_to_json(const std::vector<dip_info_t> &dip_infos);
+  static std::string dip_info_to_json(
+      const std::vector<dip_info_t> &dip_infos,
+      const std::vector<std::pair<std::string, uint64_t>> &meta = {});
+
+  static auto json_to_dip_info(const std::string &dip_reward)
+      -> std::unique_ptr<std::vector<dip_info_t>>;
 
 private:
   static auto account_call_contract_count(
@@ -64,6 +69,10 @@ private:
   participate_lambda(floatxx_t alpha, floatxx_t beta,
                      const std::vector<neb::fs::transaction_info_t> &txs,
                      const std::vector<neb::rt::nr::nr_info_t> &nr_infos);
+
+  static void
+  full_fill_meta_info(const std::vector<std::pair<std::string, uint64_t>> &meta,
+                      boost::property_tree::ptree &root);
 };
 
 } // namespace dip

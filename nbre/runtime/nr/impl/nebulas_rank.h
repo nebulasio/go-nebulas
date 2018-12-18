@@ -65,7 +65,9 @@ public:
                neb::block_height_t start_block, neb::block_height_t end_block)
       -> std::unique_ptr<std::vector<nr_info_t>>;
 
-  static std::string nr_info_to_json(const std::vector<nr_info_t> &nr_infos);
+  static std::string nr_info_to_json(
+      const std::vector<nr_info_t> &nr_infos,
+      const std::vector<std::pair<std::string, uint64_t>> &meta = {});
 
   static auto json_to_nr_info(const std::string &nr_result)
       -> std::unique_ptr<std::vector<nr_info_t>>;
@@ -120,6 +122,10 @@ private:
 
   static void convert_nr_info_to_ptree(const nr_info_t &info,
                                        boost::property_tree::ptree &pt);
+
+  static void
+  full_fill_meta_info(const std::vector<std::pair<std::string, uint64_t>> &meta,
+                      boost::property_tree::ptree &root);
 
 }; // class nebulas_rank
 } // namespace nr

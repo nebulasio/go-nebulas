@@ -21,6 +21,8 @@
 #include "runtime/dip/dip_reward.h"
 #include "common/configuration.h"
 #include "common/util/conversion.h"
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -79,37 +81,74 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
   return std::make_unique<std::vector<dip_info_t>>(dip_infos);
 }
 
-std::string
-dip_reward::dip_info_to_json(const std::vector<dip_info_t> &dip_infos) {
+void dip_reward::full_fill_meta_info(
+    const std::vector<std::pair<std::string, uint64_t>> &meta,
+    boost::property_tree::ptree &root) {
 
-  if (dip_infos.empty()) {
-    return std::string("{\"dips\":[]}");
+  assert(meta.size() == 2);
+
+  for (auto &ele : meta) {
+    root.put(ele.first, ele.second);
   }
+}
+
+std::string dip_reward::dip_info_to_json(
+    const std::vector<dip_info_t> &dip_infos,
+    const std::vector<std::pair<std::string, uint64_t>> &meta) {
 
   boost::property_tree::ptree root;
   boost::property_tree::ptree arr;
 
+  if (!meta.empty()) {
+    full_fill_meta_info(meta, root);
+  }
+
+  if (dip_infos.empty()) {
+    boost::property_tree::ptree p;
+    arr.push_back(std::make_pair(std::string(), p));
+  }
+
   for (auto &info : dip_infos) {
     boost::property_tree::ptree p;
-    auto dip_info_to_ptree = [&info, &p]() -> void {
-      neb::util::bytes addr_bytes = neb::util::string_to_byte(info.m_address);
+    neb::util::bytes addr_bytes = neb::util::string_to_byte(info.m_address);
 
-      std::vector<std::pair<std::string, std::string>> kv_pair(
-          {{"address", addr_bytes.to_base58()}, {"reward", info.m_reward}});
-      for (auto &ele : kv_pair) {
-        p.put(ele.first, ele.second);
-      }
-      return;
-    };
+    std::vector<std::pair<std::string, std::string>> kv_pair(
+        {{"address", addr_bytes.to_base58()}, {"reward", info.m_reward}});
+    for (auto &ele : kv_pair) {
+      p.put(ele.first, ele.second);
+    }
 
-    dip_info_to_ptree();
     arr.push_back(std::make_pair(std::string(), p));
   }
   root.add_child("dips", arr);
 
   std::stringstream ss;
   boost::property_tree::json_parser::write_json(ss, root, false);
-  return ss.str();
+  std::string tmp = ss.str();
+  boost::replace_all(tmp, "[\"\"]", "[]");
+  return tmp;
+}
+
+std::unique_ptr<std::vector<dip_info_t>>
+dip_reward::json_to_dip_info(const std::string &dip_reward) {
+
+  boost::property_tree::ptree pt;
+  std::stringstream ss(dip_reward);
+  boost::property_tree::json_parser::read_json(ss, pt);
+
+  boost::property_tree::ptree dips = pt.get_child("dips");
+  std::vector<dip_info_t> infos;
+
+  BOOST_FOREACH (boost::property_tree::ptree::value_type &v, dips) {
+    boost::property_tree::ptree nr = v.second;
+    dip_info_t info;
+    neb::util::bytes addr_bytes =
+        neb::util::bytes::from_base58(nr.get<std::string>("address"));
+    info.m_address = neb::util::byte_to_string(addr_bytes);
+    info.m_reward = nr.get<std::string>("reward");
+    infos.push_back(info);
+  }
+  return std::make_unique<std::vector<dip_info_t>>(infos);
 }
 
 std::unique_ptr<

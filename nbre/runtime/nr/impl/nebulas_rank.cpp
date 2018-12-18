@@ -20,6 +20,8 @@
 
 #include "runtime/nr/impl/nebulas_rank.h"
 #include "common/util/conversion.h"
+#include "common/util/version.h"
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <chrono>
@@ -444,14 +446,45 @@ void nebulas_rank::convert_nr_info_to_ptree(const nr_info_t &info,
   }
 }
 
-std::string nebulas_rank::nr_info_to_json(const std::vector<nr_info_t> &rs) {
+void nebulas_rank::full_fill_meta_info(
+    const std::vector<std::pair<std::string, uint64_t>> &meta,
+    boost::property_tree::ptree &root) {
 
-  if (rs.empty()) {
-    return std::string("{\"nrs\":[]}");
+  assert(meta.size() == 3);
+
+  for (auto ele = meta.begin(); ele < meta.end() - 1; ele++) {
+    root.put(ele->first, ele->second);
   }
+
+  std::pair<std::string, uint64_t> nr_version = meta.back();
+  neb::util::version v(nr_version.second);
+  uint32_t major_v = v.major_version();
+  uint16_t minor_v = v.minor_version();
+  uint16_t patch_v = v.patch_version();
+
+  boost::property_tree::ptree pt;
+  pt.put("version_major", major_v);
+  pt.put("version_minor", minor_v);
+  pt.put("version_patch", patch_v);
+
+  root.add_child(nr_version.first, pt);
+}
+
+std::string nebulas_rank::nr_info_to_json(
+    const std::vector<nr_info_t> &rs,
+    const std::vector<std::pair<std::string, uint64_t>> &meta) {
 
   boost::property_tree::ptree root;
   boost::property_tree::ptree arr;
+
+  if (!meta.empty()) {
+    full_fill_meta_info(meta, root);
+  }
+
+  if (rs.empty()) {
+    boost::property_tree::ptree p;
+    arr.push_back(std::make_pair(std::string(), p));
+  }
 
   for (auto it = rs.begin(); it != rs.end(); it++) {
     const neb::rt::nr::nr_info_t &info = *it;
@@ -463,7 +496,9 @@ std::string nebulas_rank::nr_info_to_json(const std::vector<nr_info_t> &rs) {
 
   std::stringstream ss;
   boost::property_tree::json_parser::write_json(ss, root, false);
-  return ss.str();
+  std::string tmp = ss.str();
+  boost::replace_all(tmp, "[\"\"]", "[]");
+  return tmp;
 }
 
 std::unique_ptr<std::vector<nr_info_t>>
