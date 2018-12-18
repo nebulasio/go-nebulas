@@ -40,7 +40,6 @@ public:
 private:
   mutable std::mutex m_sync_mutex;
   std::string m_nr_handler_id;
-  std::unique_ptr<std::thread> m_thread;
   std::unordered_map<std::string, std::string> m_nr_result;
 };
 } // namespace nr

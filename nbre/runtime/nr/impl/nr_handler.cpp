@@ -22,6 +22,7 @@
 #include "core/ir_warden.h"
 #include "fs/proto/ir.pb.h"
 #include "jit/jit_driver.h"
+#include <ff/ff.h>
 
 namespace neb {
 namespace rt {
@@ -42,8 +43,8 @@ void nr_handler::start(std::string nr_handler_id) {
     return;
   }
 
-  m_thread = std::make_unique<std::thread>([this]() {
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+  ff::para<> p;
+  p([this]() {
     neb::util::bytes nr_handler_bytes =
         neb::util::bytes::from_hex(m_nr_handler_id);
 
@@ -74,7 +75,6 @@ void nr_handler::start(std::string nr_handler_id) {
     m_nr_result.insert(std::make_pair(m_nr_handler_id, nr_result));
     m_nr_handler_id.clear();
   });
-  m_thread->detach();
 }
 
 std::string nr_handler::get_nr_result(const std::string &nr_handler_id) {

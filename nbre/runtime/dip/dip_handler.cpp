@@ -23,6 +23,7 @@
 #include "jit/jit_driver.h"
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <ff/ff.h>
 
 namespace neb {
 namespace rt {
@@ -47,7 +48,8 @@ void dip_handler::start(neb::block_height_t nbre_max_height,
     return;
   }
 
-  m_thread = std::make_unique<std::thread>([height, this]() {
+  ff::para<> p;
+  p([this, height]() {
     std::string dip_name = "dip";
 
     jit_driver &jd = jit_driver::instance();
@@ -56,7 +58,6 @@ void dip_handler::start(neb::block_height_t nbre_max_height,
 
     m_dip_reward.insert(std::make_pair(height, dip_reward));
   });
-  m_thread->detach();
 }
 
 std::string dip_handler::get_dip_reward(neb::block_height_t height) {

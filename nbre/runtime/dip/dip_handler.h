@@ -29,8 +29,8 @@ namespace dip {
 
 class dip_handler : public util::singleton<dip_handler> {
 public:
-  static const uint64_t block_nums_of_a_day = 24 * 3600 / 15;
-  static const uint64_t days = 7;
+  static const uint64_t block_nums_of_a_day = 100;
+  static const uint64_t days = 3;
   static const uint64_t dip_start_block = 1;
   static const uint64_t dip_block_interval = days * block_nums_of_a_day;
 
@@ -41,7 +41,6 @@ public:
 
 private:
   mutable std::mutex m_sync_mutex;
-  std::unique_ptr<std::thread> m_thread;
   std::unordered_map<neb::block_height_t, std::string> m_dip_reward;
 };
 } // namespace dip
