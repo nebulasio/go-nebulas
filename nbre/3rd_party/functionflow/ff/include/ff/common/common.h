@@ -50,7 +50,7 @@ exe_state exe_state_and(exe_state e1, exe_state e2);
 exe_state exe_state_or(exe_state e1, exe_state e2);
 
 typedef int32_t thrd_id_t;
-const thrd_id_t invalid_thrd_id = -1;
+constexpr thrd_id_t invalid_thrd_id = -1;
 
 }  // end namespace ff
 

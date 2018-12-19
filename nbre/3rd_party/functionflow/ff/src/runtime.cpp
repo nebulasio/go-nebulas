@@ -84,8 +84,21 @@ void runtime::init() {
   g_initialized_flag = true;
 }
 
+void runtime::init_for_no_ff_thread() {
+  m_queue_mutex.lock();
+  m_oWQueues.push_back(std::unique_ptr<simo_queue_t>(new simo_queue_t()));
+  m_oQueues.push_back(
+      std::unique_ptr<work_stealing_queue>(new work_stealing_queue()));
+  m_queue_mutex.unlock();
+  size_t t = std::atomic_fetch_add(&s_current_concurrency, (size_t)1);
+  set_local_thrd_id(t);
+}
 void runtime::schedule(task_base_ptr p) {
   thread_local static int i = get_thrd_id();
+  if (i == invalid_thrd_id) {
+    init_for_no_ff_thread();
+    i = get_thrd_id();
+  }
   if (!m_oQueues[i]->push_back(p)) {
     run_task(p);
   } else if (m_sleep_counter > 1) {
@@ -126,8 +139,8 @@ void runtime::thread_run() {
   thread_local static int cur_id = get_thrd_id();
   task_base_ptr pTask;
   size_t dis = 1;
-  size_t ts = m_oQueues.size();
   while (!m_bAllThreadsQuit) {
+    size_t ts = m_oQueues.size();
     int8_t retry_counter = 3;
     while (retry_counter > 0) {
       flag = take_one_task(pTask);

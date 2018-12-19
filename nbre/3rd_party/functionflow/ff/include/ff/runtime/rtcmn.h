@@ -30,7 +30,7 @@ inline bool is_initialized() { return g_initialized_flag; }
 namespace rt {
 
 extern size_t s_hardware_concurrency;
-extern size_t s_current_concurrency;
+extern std::atomic<size_t> s_current_concurrency;
 
 inline size_t hardware_concurrency() { return s_hardware_concurrency; }
 

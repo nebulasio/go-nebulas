@@ -27,7 +27,7 @@ namespace ff {
 bool g_initialized_flag = false;
 namespace rt {
 size_t s_hardware_concurrency = std::thread::hardware_concurrency();
-size_t s_current_concurrency = 0;
+std::atomic<size_t> s_current_concurrency(0);
 
 thread_local thrd_id_t s_id = -1;
 size_t max_concurrency = std::thread::hardware_concurrency();

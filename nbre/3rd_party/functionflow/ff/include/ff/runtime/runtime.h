@@ -61,6 +61,7 @@ class runtime {
 
  protected:
   void thread_run();
+  void init_for_no_ff_thread();
   static void init();
 
  protected:
@@ -76,6 +77,7 @@ class runtime {
   std::atomic_int m_sleep_counter;
   std::mutex m_wakeup_mutex;
   std::condition_variable m_wakeup;
+  std::mutex m_queue_mutex;
 };  // end class runtime
 
 class runtime_deletor {
