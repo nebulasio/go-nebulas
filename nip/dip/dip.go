@@ -32,9 +32,7 @@ import (
 
 type Dip struct {
 
-	accountManager core.AccountManager
-	chain *core.BlockChain
-	nbre core.Nbre
+	neb core.Neblet
 
 	cache *lru.Cache
 
@@ -64,9 +62,7 @@ func NewDIP(neb core.Neblet) (*Dip, error) {
 	}
 
 	dip := &Dip{
-		accountManager:neb.AccountManager(),
-		chain:neb.BlockChain(),
-		nbre: neb.Nbre(),
+		neb: neb,
 		cache:cache,
 		quitCh:make(chan int, 1),
 		rewardAddress: addr,
@@ -117,7 +113,7 @@ func (d *Dip) loop() {
 
 // publishReward generate dip transactions and push to tx pool
 func (d *Dip) publishReward()  {
-	height := d.chain.TailBlock().Height() - uint64(DipDelayRewardHeight)
+	height := d.neb.BlockChain().TailBlock().Height() - uint64(DipDelayRewardHeight)
 	if height < 1 {
 		return
 	}
@@ -130,7 +126,7 @@ func (d *Dip) publishReward()  {
 	}
 
 	dipData := data.(*DIPData)
-	endBlock := d.chain.GetBlockOnCanonicalChainByHeight(dipData.End)
+	endBlock := d.neb.BlockChain().GetBlockOnCanonicalChainByHeight(dipData.End)
 	endAccount, err := endBlock.GetAccount(d.RewardAddress().Bytes())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -139,7 +135,7 @@ func (d *Dip) publishReward()  {
 		return
 	}
 
-	tailAccount, err := d.chain.TailBlock().GetAccount(d.RewardAddress().Bytes())
+	tailAccount, err := d.neb.BlockChain().TailBlock().GetAccount(d.RewardAddress().Bytes())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
@@ -159,7 +155,7 @@ func (d *Dip) publishReward()  {
 				continue
 			}
 
-			d.chain.TransactionPool().Push(tx)
+			d.neb.BlockChain().TransactionPool().Push(tx)
 		}
 	}
 }
@@ -196,7 +192,7 @@ func (d *Dip) generateRewardTx(item *DIPItem, nonce uint64, block *core.Block) (
 	}
 	// update all reward timestamp to last calculated block timestamp, generate hash equal every loop.
 	tx.SetTimestamp(block.Timestamp())
-	if err = d.accountManager.SignTransactionWithPassphrase(d.RewardAddress(), tx, []byte(DipRewardAddressPassphrase)); err != nil {
+	if err = d.neb.AccountManager().SignTransactionWithPassphrase(d.RewardAddress(), tx, []byte(DipRewardAddressPassphrase)); err != nil {
 		return nil, err
 	}
 	return tx, nil
@@ -204,12 +200,12 @@ func (d *Dip) generateRewardTx(item *DIPItem, nonce uint64, block *core.Block) (
 
 // GetDipList returns dip info list
 func (d *Dip) GetDipList(height uint64) (core.Data, error) {
-	if height <= 0 || height > d.chain.TailBlock().Height()  {
+	if height <= 0 || height > d.neb.BlockChain().TailBlock().Height()  {
 		return nil, ErrInvalidHeight
 	}
 	data, ok := d.checkCache(height)
 	if !ok {
-		dipData, err := d.nbre.Execute(nbre.CommandDIPList, byteutils.FromUint64(height))
+		dipData, err := d.neb.Nbre().Execute(nbre.CommandDIPList, byteutils.FromUint64(height))
 		if err != nil {
 			return nil, err
 		}
