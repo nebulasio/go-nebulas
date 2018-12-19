@@ -59,12 +59,18 @@ public:
   inline const char *nbre_ir_list_name() const { return "nbre_ir_list"; }
   inline const char *ir_list_name() const { return "ir_list"; }
 
+  // dip conf
+  inline const block_height_t &dip_start_block() const {
+    return m_dip_start_block;
+  }
+  inline block_height_t &dip_start_block() { return m_dip_start_block; }
+  inline const block_height_t &dip_block_interval() const {
+    return m_dip_block_interval;
+  }
+  inline block_height_t &dip_block_interval() { return m_dip_block_interval; }
+
 protected:
-  std::string m_nbre_root_dir;
-  std::string m_nbre_exe_name;
-  std::string m_neb_db_dir;
-  std::string m_nbre_db_dir;
-  std::string m_nbre_log_dir;
-  std::string m_admin_pub_addr;
+  block_height_t m_dip_start_block;
+  block_height_t m_dip_block_interval;
 };
 } // end namespace neb
