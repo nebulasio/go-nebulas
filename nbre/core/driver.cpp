@@ -18,7 +18,9 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "core/driver.h"
+#include "common/configuration.h"
 #include "core/ir_warden.h"
+#include "core/neb_ipc/server/ipc_configuration.h"
 #include "fs/nbre/api/nbre_api.h"
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_handler.h"
@@ -126,7 +128,7 @@ void driver_base::init_timer_thread() {
 
     m_timer_loop = std::unique_ptr<timer_loop>(new timer_loop(&io_service));
     m_timer_loop->register_timer_and_callback(
-        configuration::instance().ir_warden_time_interval(),
+        neb::configuration::instance().ir_warden_time_interval(),
         []() { ir_warden::instance().on_timer(); });
 
     m_timer_loop->register_timer_and_callback(
@@ -159,25 +161,25 @@ void driver::add_handlers() {
       [this](ipc_pkg::nbre_init_ack *ack) {
         LOG(INFO) << "get init ack";
 
-        configuration::instance().nbre_root_dir() =
+        ipc_configuration::instance().nbre_root_dir() =
             ack->get<ipc_pkg::nbre_root_dir>().c_str();
-        configuration::instance().nbre_exe_name() =
+        ipc_configuration::instance().nbre_exe_name() =
             ack->get<ipc_pkg::nbre_exe_name>().c_str();
-        configuration::instance().neb_db_dir() =
+        ipc_configuration::instance().neb_db_dir() =
             ack->get<ipc_pkg::neb_db_dir>().c_str();
-        configuration::instance().nbre_db_dir() =
+        ipc_configuration::instance().nbre_db_dir() =
             ack->get<ipc_pkg::nbre_db_dir>().c_str();
-        configuration::instance().nbre_log_dir() =
+        ipc_configuration::instance().nbre_log_dir() =
             ack->get<ipc_pkg::nbre_log_dir>().c_str();
 
         std::string addr_base58 = ack->get<ipc_pkg::admin_pub_addr>().c_str();
         neb::util::bytes addr_bytes =
             neb::util::bytes::from_base58(addr_base58);
-        configuration::instance().admin_pub_addr() =
+        ipc_configuration::instance().admin_pub_addr() =
             neb::util::byte_to_string(addr_bytes);
 
-        LOG(INFO) << configuration::instance().nbre_db_dir();
-        LOG(INFO) << configuration::instance().admin_pub_addr();
+        LOG(INFO) << ipc_configuration::instance().nbre_db_dir();
+        LOG(INFO) << ipc_configuration::instance().admin_pub_addr();
 
         init_timer_thread();
         ir_warden::instance().wait_until_sync();
@@ -193,7 +195,8 @@ void driver::add_handlers() {
         }
 
         auto irs_ptr =
-            neb::fs::nbre_api(neb::configuration::instance().nbre_db_dir())
+            neb::fs::nbre_api(
+                neb::core::ipc_configuration::instance().nbre_db_dir())
                 .get_irs();
         for (auto &ir : *irs_ptr) {
           neb::ipc::char_string_t ir_name(ir.c_str(),
@@ -216,7 +219,8 @@ void driver::add_handlers() {
         ack->set<neb::core::ipc_pkg::ir_name>(ir_name);
 
         auto ir_versions_ptr =
-            neb::fs::nbre_api(neb::configuration::instance().nbre_db_dir())
+            neb::fs::nbre_api(
+                neb::core::ipc_configuration::instance().nbre_db_dir())
                 .get_ir_versions(ir_name.c_str());
         for (auto &v : *ir_versions_ptr) {
           ack->get<neb::core::ipc_pkg::ir_versions>().push_back(v);

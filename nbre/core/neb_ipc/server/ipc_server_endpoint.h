@@ -57,7 +57,6 @@ protected:
   boost::process::child *m_client;
   std::atomic_bool m_got_exception_when_start_nbre;
 
-  nbre_params_t m_nbre_params;
   std::unique_ptr<std::thread> m_timer_thread;
   std::unique_ptr<api_request_timer> m_request_timer;
   std::unique_ptr<ipc_client_watcher> m_client_watcher;

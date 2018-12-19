@@ -18,9 +18,9 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "common/common.h"
-#include "common/configuration.h"
 #include "common/util/version.h"
 #include "core/neb_ipc/ipc_interface.h"
+#include "core/neb_ipc/server/ipc_configuration.h"
 #include "core/neb_ipc/server/ipc_server_endpoint.h"
 #include "fs/util.h"
 
@@ -82,7 +82,8 @@ int main(int argc, char *argv[]) {
 
   ::google::InitGoogleLogging(argv[0]);
 
-  const char *root_dir = neb::configuration::instance().nbre_root_dir().c_str();
+  const char *root_dir =
+      neb::core::ipc_configuration::instance().nbre_root_dir().c_str();
   std::string nbre_path = neb::fs::join_path(root_dir, "bin/nbre");
 
   set_recv_nbre_version_callback(nbre_version_callback);
@@ -92,12 +93,13 @@ int main(int argc, char *argv[]) {
   set_recv_nbre_nr_result_callback(nbre_nr_result_callback);
   set_recv_nbre_dip_reward_callback(nbre_dip_reward_callback);
 
-  nbre_params_t params{root_dir,
-                       nbre_path.c_str(),
-                       neb::configuration::instance().neb_db_dir().c_str(),
-                       neb::configuration::instance().nbre_db_dir().c_str(),
-                       neb::configuration::instance().nbre_log_dir().c_str(),
-                       "auth address here!"};
+  nbre_params_t params{
+      root_dir,
+      nbre_path.c_str(),
+      neb::core::ipc_configuration::instance().neb_db_dir().c_str(),
+      neb::core::ipc_configuration::instance().nbre_db_dir().c_str(),
+      neb::core::ipc_configuration::instance().nbre_log_dir().c_str(),
+      "auth address here!"};
   auto ret = start_nbre_ipc(params);
   if (ret != ipc_status_succ) {
     to_quit = false;
@@ -109,11 +111,11 @@ int main(int argc, char *argv[]) {
   ipc_nbre_ir_list(&local_mutex);
   // ipc_nbre_ir_versions(&local_mutex, "dip");
 
-  ipc_nbre_nr_handler(&local_mutex, 10000, 11000,
+  ipc_nbre_nr_handler(&local_mutex, 6600, 6650,
                       neb::util::version(0, 1, 0).data());
   while (true) {
     ipc_nbre_nr_result(&local_mutex,
-                       "00000000000027100000000000002af80000000100000000");
+                       "00000000000019c800000000000019fa0000000100000000");
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }
 

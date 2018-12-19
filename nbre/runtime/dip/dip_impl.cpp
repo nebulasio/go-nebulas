@@ -20,7 +20,7 @@
 
 #include "runtime/dip/dip_impl.h"
 #include "common/common.h"
-#include "common/configuration.h"
+#include "core/neb_ipc/server/ipc_configuration.h"
 #include "runtime/dip/dip_reward.h"
 #include "runtime/nr/impl/nebulas_rank.h"
 
@@ -32,7 +32,8 @@ std::string entry_point_dip_impl(uint64_t start_block, uint64_t end_block,
                                  uint64_t height, const std::string &nr_result,
                                  dip_float_t alpha, dip_float_t beta) {
 
-  std::string neb_db_path = neb::configuration::instance().neb_db_dir();
+  std::string neb_db_path =
+      neb::core::ipc_configuration::instance().neb_db_dir();
   neb::fs::blockchain bc(neb_db_path);
   neb::fs::blockchain_api ba(&bc);
   neb::rt::nr::transaction_db_ptr_t tdb_ptr =

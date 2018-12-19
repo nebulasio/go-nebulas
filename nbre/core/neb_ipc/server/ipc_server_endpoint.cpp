@@ -20,6 +20,7 @@
 #include "core/neb_ipc/server/ipc_server_endpoint.h"
 #include "common/configuration.h"
 #include "core/neb_ipc/ipc_pkg.h"
+#include "core/neb_ipc/server/ipc_configuration.h"
 #include "fs/util.h"
 #include <atomic>
 #include <boost/property_tree/json_parser.hpp>
@@ -71,8 +72,9 @@ bool ipc_server_endpoint::start() {
       LOG(INFO) << "nbre ipc init done!";
       add_all_callbacks();
 
-      m_client_watcher = std::unique_ptr<ipc_client_watcher>(
-          new ipc_client_watcher(m_nbre_params.m_nbre_exe_name));
+      m_client_watcher =
+          std::unique_ptr<ipc_client_watcher>(new ipc_client_watcher(
+              neb::core::ipc_configuration::instance().nbre_exe_name()));
       m_client_watcher->start();
 
       local_mutex.lock();
@@ -115,17 +117,21 @@ bool ipc_server_endpoint::start() {
 }
 
 bool ipc_server_endpoint::check_path_exists() {
-  return neb::fs::exists(m_nbre_params.m_nbre_exe_name);
+  return neb::fs::exists(
+      neb::core::ipc_configuration::instance().nbre_exe_name());
 }
 
 void ipc_server_endpoint::init_params(const nbre_params_t params) {
-  m_nbre_params = params;
-  LOG(INFO) << m_nbre_params.m_nbre_root_dir;
-  LOG(INFO) << m_nbre_params.m_nbre_exe_name;
-  LOG(INFO) << m_nbre_params.m_neb_db_dir;
-  LOG(INFO) << m_nbre_params.m_nbre_db_dir;
-  LOG(INFO) << m_nbre_params.m_nbre_log_dir;
-  LOG(INFO) << m_nbre_params.m_admin_pub_addr;
+  neb::core::ipc_configuration::instance().nbre_root_dir() =
+      params.m_nbre_root_dir;
+  neb::core::ipc_configuration::instance().nbre_exe_name() =
+      params.m_nbre_exe_name;
+  neb::core::ipc_configuration::instance().neb_db_dir() = params.m_neb_db_dir;
+  neb::core::ipc_configuration::instance().nbre_db_dir() = params.m_nbre_db_dir;
+  neb::core::ipc_configuration::instance().nbre_log_dir() =
+      params.m_nbre_log_dir;
+  neb::core::ipc_configuration::instance().admin_pub_addr() =
+      params.m_admin_pub_addr;
 }
 
 void ipc_server_endpoint::add_all_callbacks() {
@@ -146,12 +152,18 @@ void ipc_server_endpoint::add_all_callbacks() {
         LOG(INFO) << "get init req ";
         ipc_pkg::nbre_init_ack *ack = p->construct<ipc_pkg::nbre_init_ack>(
             nullptr, p->default_allocator());
-        ack->set<ipc_pkg::nbre_root_dir>(m_nbre_params.m_nbre_root_dir);
-        ack->set<ipc_pkg::nbre_exe_name>(m_nbre_params.m_nbre_exe_name);
-        ack->set<ipc_pkg::neb_db_dir>(m_nbre_params.m_neb_db_dir);
-        ack->set<ipc_pkg::nbre_db_dir>(m_nbre_params.m_nbre_db_dir);
-        ack->set<ipc_pkg::nbre_log_dir>(m_nbre_params.m_nbre_log_dir);
-        ack->set<ipc_pkg::admin_pub_addr>(m_nbre_params.m_admin_pub_addr);
+        ack->set<ipc_pkg::nbre_root_dir>(
+            neb::core::ipc_configuration::instance().nbre_root_dir().c_str());
+        ack->set<ipc_pkg::nbre_exe_name>(
+            neb::core::ipc_configuration::instance().nbre_exe_name().c_str());
+        ack->set<ipc_pkg::neb_db_dir>(
+            neb::core::ipc_configuration::instance().neb_db_dir().c_str());
+        ack->set<ipc_pkg::nbre_db_dir>(
+            neb::core::ipc_configuration::instance().nbre_db_dir().c_str());
+        ack->set<ipc_pkg::nbre_log_dir>(
+            neb::core::ipc_configuration::instance().nbre_log_dir().c_str());
+        ack->set<ipc_pkg::admin_pub_addr>(
+            neb::core::ipc_configuration::instance().admin_pub_addr().c_str());
         p->push_back(ack);
       });
 

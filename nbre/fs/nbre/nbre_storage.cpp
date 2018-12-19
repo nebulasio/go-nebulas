@@ -22,6 +22,7 @@
 #include "common/configuration.h"
 #include "common/util/byte.h"
 #include "common/util/version.h"
+#include "core/neb_ipc/server/ipc_configuration.h"
 #include "fs/nbre/flag_storage.h"
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_handler.h"
@@ -219,7 +220,7 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
       std::string from_base58 = neb::util::string_to_byte(from).to_base58();
       std::string admin_base58 =
           neb::util::string_to_byte(
-              neb::configuration::instance().admin_pub_addr())
+              neb::core::ipc_configuration::instance().admin_pub_addr())
               .to_base58();
       LOG(INFO) << "from address: " << from_base58
                 << ", admin address: " << admin_base58;
@@ -227,7 +228,7 @@ void nbre_storage::write_nbre_by_height(block_height_t height) {
                 << neb::configuration::instance().auth_module_name();
 
       if (neb::configuration::instance().auth_module_name() == name &&
-          neb::configuration::instance().admin_pub_addr() == from) {
+          neb::core::ipc_configuration::instance().admin_pub_addr() == from) {
         // TODO expect auth table exceed 128k bytes size
 
         LOG(INFO) << "before set auth table by jit, auth table size: "

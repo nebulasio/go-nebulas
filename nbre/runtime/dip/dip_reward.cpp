@@ -19,8 +19,8 @@
 //
 
 #include "runtime/dip/dip_reward.h"
-#include "common/configuration.h"
 #include "common/util/conversion.h"
+#include "core/neb_ipc/server/ipc_configuration.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -51,7 +51,8 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
   auto it_dapp_votes = dapp_votes(*it_acc_to_contract_votes);
 
   // bonus pool in total
-  std::string admin_addr = neb::configuration::instance().admin_pub_addr();
+  std::string admin_addr =
+      neb::core::ipc_configuration::instance().admin_pub_addr();
   neb::util::bytes addr_bytes = neb::util::string_to_byte(admin_addr);
   wei_t balance =
       adb_ptr->get_balance(neb::util::byte_to_string(addr_bytes), height);

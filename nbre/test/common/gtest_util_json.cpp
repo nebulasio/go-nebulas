@@ -18,24 +18,25 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "common/ir_conf_reader.h"
-#include <gtest/gtest.h>
-#include "common/configuration.h"
+#include "core/neb_ipc/server/ipc_configuration.h"
 #include "fs/util.h"
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <gtest/gtest.h>
 
 TEST(test_boost_read_json, simple) {
   std::string fp = neb::fs::join_path(
-      neb::configuration::instance().nbre_root_dir(), "test/data/nasir.json");
+      neb::core::ipc_configuration::instance().nbre_root_dir(),
+      "test/data/nasir.json");
 
   boost::property_tree::ptree json_root;
   boost::property_tree::read_json(fp, json_root);
 }
 
 TEST(test_common_json_util, read_json) {
-  std::string fp =
-      neb::fs::join_path(neb::configuration::instance().nbre_root_dir(),
-                         "test/data/json_util.json");
+  std::string fp = neb::fs::join_path(
+      neb::core::ipc_configuration::instance().nbre_root_dir(),
+      "test/data/json_util.json");
   neb::ir_conf_reader json_reader(fp);
   EXPECT_EQ(json_reader.self_ref().name(), "nr");
   EXPECT_EQ(json_reader.self_ref().version().major_version(), 0);

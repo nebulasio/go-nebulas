@@ -17,28 +17,20 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "common/configuration.h"
 
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/ini_parser.hpp>
-#include <boost/format.hpp>
-#include <boost/program_options.hpp>
-#include <string>
-#include <set>
-#include <exception>
-#include <iostream>
+#include "core/neb_ipc/server/ipc_configuration.h"
 
 namespace neb {
-namespace pt = boost::property_tree;
-namespace po = boost::program_options;
+namespace core {
 
-#define KTS(v) #v
-#define STR(v) KTS(v)
-configuration::configuration() {}
-#undef STR
-#undef KTS
+ipc_configuration::ipc_configuration() {
+  // m_nbre_root_dir = std::getenv("NBRE_ROOT_DIR");
+  // m_nbre_exe_name = std::getenv("NBRE_EXE_NAME");
+  // m_neb_db_dir = std::getenv("NEB_DB_DIR");
+  // m_nbre_db_dir = std::getenv("NBRE_DB_DIR");
+  // m_nbre_log_dir = std::getenv("NBRE_LOG_DIR");
+}
 
-configuration::~configuration() = default;
-
+ipc_configuration::~ipc_configuration() = default;
+} // namespace core
 } // namespace neb
-

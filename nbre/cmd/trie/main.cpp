@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "common/configuration.h"
+#include "core/neb_ipc/server/ipc_configuration.h"
 #include "fs/blockchain.h"
 #include "fs/blockchain/blockchain_api.h"
 #include "fs/blockchain/trie/trie.h"
@@ -60,7 +60,7 @@ void trie_event(const neb::block_height_t start_block,
   std::mt19937 mt(rd());
   std::uniform_int_distribution<> dis(start_block, end_block);
 
-  std::string neb_db = neb::configuration::instance().neb_db_dir();
+  std::string neb_db = neb::core::ipc_configuration::instance().neb_db_dir();
   neb::fs::rocksdb_storage rs;
   rs.open_database(neb_db, neb::fs::storage_open_for_readonly);
   neb::fs::trie t(&rs);
@@ -204,7 +204,7 @@ void trie_balance(const neb::block_height_t start_block,
   std::mt19937 mt(rd());
   std::uniform_int_distribution<> dis(start_block, end_block);
 
-  std::string neb_db = neb::configuration::instance().neb_db_dir();
+  std::string neb_db = neb::core::ipc_configuration::instance().neb_db_dir();
   neb::fs::blockchain bc(neb_db);
   neb::fs::blockchain_api ba(&bc);
 

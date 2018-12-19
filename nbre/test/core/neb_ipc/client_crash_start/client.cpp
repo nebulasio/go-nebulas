@@ -18,13 +18,11 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "common/common.h"
-
-#include "common/configuration.h"
-#include "core/neb_ipc/server/ipc_server_endpoint.h"
-
 #include "core/driver.h"
 #include "core/ir_warden.h"
 #include "core/neb_ipc/ipc_interface.h"
+#include "core/neb_ipc/server/ipc_configuration.h"
+#include "core/neb_ipc/server/ipc_server_endpoint.h"
 #include "fs/util.h"
 #include <ff/ff.h>
 
@@ -73,7 +71,7 @@ public:
           std::string s =
               ack->get<neb::core::ipc_pkg::admin_pub_addr>().c_str();
           LOG(INFO) << "got admin_pub_addr: " << s;
-          neb::configuration::instance().admin_pub_addr() = s;
+          neb::core::ipc_configuration::instance().admin_pub_addr() = s;
         });
   }
 };

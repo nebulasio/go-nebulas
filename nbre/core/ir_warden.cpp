@@ -19,9 +19,9 @@
 //
 
 #include "core/ir_warden.h"
-#include "common/configuration.h"
 #include "common/timer_loop.h"
 #include "core/command.h"
+#include "core/neb_ipc/server/ipc_configuration.h"
 #include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -69,8 +69,8 @@ void ir_warden::on_timer() {
 
 ir_warden::ir_warden() : m_is_sync_already(false) {
   m_nbre_storage = std::make_unique<fs::nbre_storage>(
-      neb::configuration::instance().nbre_db_dir(),
-      neb::configuration::instance().neb_db_dir());
+      neb::core::ipc_configuration::instance().nbre_db_dir(),
+      neb::core::ipc_configuration::instance().neb_db_dir());
 }
 }
 } // namespace neb

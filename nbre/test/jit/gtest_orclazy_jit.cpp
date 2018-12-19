@@ -1,6 +1,26 @@
+// Copyright (C) 2018 go-nebulas authors
+//
+// This file is part of the go-nebulas library.
+//
+// the go-nebulas library is free software: you can redistribute it and/or
+// modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// the go-nebulas library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the go-nebulas library.  If not, see
+// <http://www.gnu.org/licenses/>.
+//
+
 #include "common/common.h"
-#include "common/configuration.h"
 #include "common/util/byte.h"
+#include "core/neb_ipc/server/ipc_configuration.h"
 #include "fs/util.h"
 #include "jit/OrcLazyJIT.h"
 #include "jit/jit_driver.h"
@@ -77,7 +97,8 @@ get_modules(llvm::LLVMContext &context) {
   std::vector<std::unique_ptr<llvm::Module>> modules;
   llvm::SMDiagnostic err;
   std::string path = neb::fs::join_path(
-      neb::configuration::instance().nbre_root_dir(), "test/data/test.bc");
+      neb::core::ipc_configuration::instance().nbre_root_dir(),
+      "test/data/test.bc");
   modules.push_back(llvm::parseIRFile(path, err, context));
   return modules;
 }
@@ -87,7 +108,8 @@ void run_module() {
     std::vector<std::unique_ptr<llvm::Module>> modules;
     llvm::SMDiagnostic err;
     std::string path = neb::fs::join_path(
-        neb::configuration::instance().nbre_root_dir(), "test/data/test.bc");
+        neb::core::ipc_configuration::instance().nbre_root_dir(),
+        "test/data/test.bc");
     modules.push_back(llvm::parseIRFile(path, err, context));
     neb::jit::jit_engine je;
     je.init(std::move(modules), "_Z9test_funcPN3neb4core6driverEPv");
