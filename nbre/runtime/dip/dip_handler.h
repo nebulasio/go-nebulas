@@ -29,11 +29,6 @@ namespace dip {
 
 class dip_handler : public util::singleton<dip_handler> {
 public:
-  static const uint64_t s_block_nums_of_a_day = 100;
-  static const uint64_t s_days = 3;
-  static const uint64_t s_dip_start_block = 1;
-  static const uint64_t s_dip_block_interval = s_days * s_block_nums_of_a_day;
-
   void start(neb::block_height_t nbre_max_height,
              neb::block_height_t lib_height);
 

@@ -23,8 +23,8 @@
 std::string entry_point_nr(uint64_t start_block, uint64_t end_block);
 
 std::string entry_point_dip(uint64_t height) {
-  uint64_t block_nums_of_a_day = 24 * 3600 / 15;
-  uint64_t days = 7;
+  uint64_t block_nums_of_a_day = 100;
+  uint64_t days = 3;
   uint64_t dip_start_block = 1;
   uint64_t dip_block_interval = days * block_nums_of_a_day;
 
@@ -39,6 +39,7 @@ std::string entry_point_dip(uint64_t height) {
 
   neb::rt::dip::dip_float_t alpha = 1;
   neb::rt::dip::dip_float_t beta = 1;
-  return neb::rt::dip::entry_point_dip_impl(start_block, end_block, height,
-                                            nr_result, alpha, beta);
+  return neb::rt::dip::entry_point_dip_impl(
+      start_block, end_block, height, nr_result, alpha, beta, dip_start_block,
+      dip_block_interval);
 }

@@ -30,7 +30,9 @@ namespace dip {
 using dip_float_t = float32;
 std::string entry_point_dip_impl(uint64_t start_block, uint64_t end_block,
                                  uint64_t height, const std::string &nr_result,
-                                 dip_float_t alpha, dip_float_t beta);
+                                 dip_float_t alpha, dip_float_t beta,
+                                 uint64_t dip_start_block,
+                                 uint64_t dip_block_interval);
 } // namespace dip
 } // namespace rt
 } // namespace neb
