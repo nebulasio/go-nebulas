@@ -681,8 +681,8 @@ func (s *APIService) GetNRList(ctx context.Context, req *rpcpb.GetNRListRequest)
 
 	resp := &rpcpb.GetNRListResponse{
 		Version: nrData.Version,
-		Start:   nrData.Start,
-		End:     nrData.End,
+		Start:   nrData.StartHeight,
+		End:     nrData.EndHeight,
 		Data:    nrItems,
 	}
 
@@ -710,8 +710,8 @@ func (s *APIService) GetDIPList(ctx context.Context, req *rpcpb.NonParamsRequest
 
 	resp := &rpcpb.GetDIPListResponse{
 		Version: dipData.Version,
-		Start:   dipData.Start,
-		End:     dipData.End,
+		Start:   dipData.StartHeight,
+		End:     dipData.EndHeight,
 		Data:    dipItems,
 	}
 
