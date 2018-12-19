@@ -21,12 +21,18 @@ package dip
 import (
 	"errors"
 	"encoding/json"
+	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/util"
 )
 
 // Error types
 var (
 	ErrInvalidHeight = errors.New("invalid dip height")
 	ErrDipNotFound = errors.New("dip not found")
+
+	ErrInvalidDipAddress                    = errors.New("invalid dip reward address")
+	ErrUnsupportedTransactionFromDipAddress = errors.New("unsupported transaction from dip address")
+
 )
 
 // const types
@@ -34,13 +40,21 @@ const (
 	CacheSize = 16
 	DipDelayRewardHeight = 24*60*60/15
 
-	// DipRewardAddressPrivate dip reward address
+	// DipRewardAddressPrivate dip reward rewardAddress
 	DipRewardAddressPrivate = "42f0c8b5feb72301619046ca87e6cf2c605e94dae0e24c9cb3a0101dbb60337c"
 	DipRewardAddressPassphrase = "passphrase"
+
+)
+
+var (
+	// BlockReward given to dip address
+	// rule: 0.4% of block reward
+	// value: 1.42694 * 10^18/1000*4 = 5.70776e+15
+	DipRewardValue, _ = core.BlockReward.Div(util.NewUint128FromUint(250))
 )
 
 type DIPItem struct {
-	Address  string		`json:"address"`
+	Address  string		`json:"rewardAddress"`
 	Reward string		`json:"reward"`
 }
 
