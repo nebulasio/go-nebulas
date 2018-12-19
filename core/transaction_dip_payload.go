@@ -55,11 +55,7 @@ func (payload *DipPayload) Execute(limitedGas *util.Uint128, tx *Transaction, bl
 		return util.NewUint128(), "", ErrNilArgument
 	}
 
-	if !tx.From().Equals(block.dip.RewardAddress()) {
-		return util.NewUint128(), "", ErrInvalidDipAddress
-	}
-
-	if err := block.dip.CheckReward(block.height, tx.from.String(), tx.value); err != nil {
+	if err := block.dip.CheckReward(block.height, tx); err != nil {
 		return util.NewUint128(), "", err
 	}
 	return util.NewUint128(), "", nil

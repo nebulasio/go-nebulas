@@ -181,9 +181,6 @@ var (
 
 	// unsupported keyword error in smart contract
 	ErrUnsupportedKeyword = errors.New("transaction data has unsupported keyword")
-
-	ErrInvalidDipAddress                    = errors.New("invalid dip reward address")
-	ErrUnsupportedTransactionFromDipAddress = errors.New("unsupported transaction from dip address")
 )
 
 // Default gas count
@@ -345,7 +342,8 @@ type Dip interface {
 	Stop()
 
 	RewardAddress() *Address
+	RewardValue() *util.Uint128
 
 	GetDipList(height uint64) (Data, error)
-	CheckReward(height uint64, addr string, value *util.Uint128) error
+	CheckReward(height uint64, tx *Transaction) error
 }

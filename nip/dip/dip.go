@@ -38,8 +38,9 @@ type Dip struct {
 
 	cache *lru.Cache
 
-	// reward address
-	address *core.Address
+	// reward rewardAddress
+	rewardAddress *core.Address
+	rewardValue   *util.Uint128
 
 	quitCh            chan int
 }
@@ -50,23 +51,37 @@ func NewDIP(neb core.Neblet) (*Dip, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// dip reward address.
+	priv, err := byteutils.FromHex(DipRewardAddressPrivate)
+	if err != nil {
+		return nil, err
+	}
+	//TODO(larry): The current award rewardAddress is constant and visible to all.
+	addr, err := neb.AccountManager().LoadPrivate(priv, []byte(DipRewardAddressPassphrase))
+	if err != nil {
+		return nil, err
+	}
+
 	dip := &Dip{
 		accountManager:neb.AccountManager(),
 		chain:neb.BlockChain(),
 		nbre: neb.Nbre(),
 		cache:cache,
 		quitCh:make(chan int, 1),
+		rewardAddress: addr,
+		rewardValue: DipRewardValue,
 	}
 	return dip, nil
 }
 
+// RewardAddress return dip reward rewardAddress.
 func (d *Dip)RewardAddress() *core.Address {
-	if d.address == nil {
-		//TODO(larry): The current award address is constant and visible to all.
-		priv, _ := byteutils.FromHex(DipRewardAddressPrivate)
-		d.address, _ = d.accountManager.LoadPrivate(priv, []byte(DipRewardAddressPassphrase))
-	}
-	return d.address
+	return d.rewardAddress
+}
+
+func (d *Dip)RewardValue() *util.Uint128 {
+	return d.rewardValue
 }
 
 // Start start dip.
@@ -230,16 +245,28 @@ func (d *Dip) checkCache(height uint64) (*DIPData, bool) {
 	return nil, false
 }
 
-func (d *Dip) CheckReward(height uint64, addr string, value *util.Uint128) error {
-	data, err := d.GetDipList(height)
-	if err != nil {
-		return err
+func (d *Dip) CheckReward(height uint64, tx *core.Transaction) error {
+	//if tx type is not dip, can't use the reward address send tx.
+	if tx.Type() != core.TxPayloadDipType && tx.From().Equals(d.rewardAddress) {
+		return ErrUnsupportedTransactionFromDipAddress
 	}
-	dip := data.(*DIPData)
-	for _, v := range dip.Dips {
-		if v.Address == addr && value.String() == v.Reward {
-			return nil
+
+	if tx.Type() == core.TxPayloadDipType {
+		if !tx.From().Equals(d.rewardAddress) {
+			return ErrInvalidDipAddress
 		}
+
+		data, err := d.GetDipList(height - uint64(DipDelayRewardHeight))
+		if err != nil {
+			return err
+		}
+		dip := data.(*DIPData)
+		for _, v := range dip.Dips {
+			if tx.To().String() == v.Address && tx.Value().String() == v.Reward {
+				return nil
+			}
+		}
+		return ErrDipNotFound
 	}
-	return ErrDipNotFound
+	return nil
 }

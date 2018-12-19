@@ -194,14 +194,6 @@ func (tx *Transaction) FromProto(msg proto.Message) error {
 			}
 			tx.from = from
 
-			if msg.Data.Type == TxPayloadDipType && tx.from.String() != DipRewardAddress {
-				return ErrInvalidDipAddress
-			}
-
-			if tx.from.String() == DipRewardAddress && msg.Data.Type != TxPayloadDipType {
-				return ErrUnsupportedTransactionFromDipAddress
-			}
-
 			to, err := AddressParseFromBytes(msg.To)
 			if err != nil {
 				return err
@@ -336,14 +328,6 @@ func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonc
 
 	if len(payload) > MaxDataPayLoadLength {
 		return nil, ErrTxDataPayLoadOutOfMaxLength
-	}
-
-	if payloadType == TxPayloadDipType && from.String() != DipRewardAddress {
-		return nil, ErrInvalidDipAddress
-	}
-
-	if from.String() == DipRewardAddress && payloadType != TxPayloadDipType {
-		return nil, ErrUnsupportedTransactionFromDipAddress
 	}
 
 	tx := &Transaction{
