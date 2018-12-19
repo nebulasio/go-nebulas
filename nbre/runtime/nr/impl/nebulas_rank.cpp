@@ -452,22 +452,9 @@ void nebulas_rank::full_fill_meta_info(
 
   assert(meta.size() == 3);
 
-  for (auto ele = meta.begin(); ele < meta.end() - 1; ele++) {
-    root.put(ele->first, ele->second);
+  for (auto &ele : meta) {
+    root.put(ele.first, ele.second);
   }
-
-  std::pair<std::string, uint64_t> nr_version = meta.back();
-  neb::util::version v(nr_version.second);
-  uint32_t major_v = v.major_version();
-  uint16_t minor_v = v.minor_version();
-  uint16_t patch_v = v.patch_version();
-
-  boost::property_tree::ptree pt;
-  pt.put("version_major", major_v);
-  pt.put("version_minor", minor_v);
-  pt.put("version_patch", patch_v);
-
-  root.add_child(nr_version.first, pt);
 }
 
 std::string nebulas_rank::nr_info_to_json(
