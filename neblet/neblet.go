@@ -151,6 +151,14 @@ func (n *Neblet) Setup() {
 			"err": err,
 		}).Fatal("Failed to setup V8.")
 	}
+
+	// dip
+	if n.dip, err = dip.NewDIP(n); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to setup dip.")
+	}
+
 	// core
 	n.eventEmitter = core.NewEventEmitter(40960)
 	n.consensus = dpos.NewDpos()
@@ -185,13 +193,6 @@ func (n *Neblet) Setup() {
 
 	// nr
 	n.nr = nr.NewNR(n)
-
-	// dip
-	if n.dip, err = dip.NewDIP(n); err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Fatal("Failed to setup dip.")
-	}
 
 	logging.CLog().Info("Setuped Neblet.")
 }

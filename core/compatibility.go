@@ -143,6 +143,9 @@ const (
 
 	//LocalNvmGasLimitWithoutTimeoutAtHeight
 	LocalNvmGasLimitWithoutTimeoutAtHeight uint64 = 2
+
+	//LocalNetDipRewardHeight
+	LocalNetDipRewardHeight uint64 = 20000
 )
 
 // var for local/develop
@@ -186,6 +189,9 @@ const (
 
 	//TestNetNvmGasLimitWithoutTimeoutAtHeight
 	TestNetNvmGasLimitWithoutTimeoutAtHeight uint64 = 600000
+
+	//TestNetDipRewardHeight
+	TestNetDipRewardHeight uint64 = 1800000
 )
 
 // var for TestNet
@@ -229,6 +235,9 @@ const (
 
 	//MainNetNvmGasLimitWithoutTimeoutAtHeight
 	MainNetNvmGasLimitWithoutTimeoutAtHeight uint64 = 624763
+
+	//MainNetDipRewardHeight
+	MainNetDipRewardHeight uint64 = 2000000
 )
 
 // var for MainNet
@@ -274,6 +283,9 @@ var (
 
 	//NvmGasLimitWithoutTimeoutAtHeight
 	NvmGasLimitWithoutTimeoutAtHeight = TestNetNvmGasLimitWithoutTimeoutAtHeight
+
+	//DipRewardHeight
+	DipRewardHeight = TestNetDipRewardHeight
 )
 
 // SetCompatibilityOptions set compatibility height according to chain_id
@@ -291,6 +303,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		TransferFromContractFailureEventRecordableHeight = MainNetTransferFromContractFailureEventRecordableHeight
 		NewNvmExeTimeoutConsumeGasHeight = MainNetNewNvmExeTimeoutConsumeGasHeight
 		NvmGasLimitWithoutTimeoutAtHeight = MainNetNvmGasLimitWithoutTimeoutAtHeight
+		DipRewardHeight = MainNetDipRewardHeight
 	} else if chainID == TestNetID {
 
 		TransferFromContractEventRecordableHeight = TestNetTransferFromContractEventRecordableHeight
@@ -305,6 +318,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		TransferFromContractFailureEventRecordableHeight = TestNetTransferFromContractFailureEventRecordableHeight
 		NewNvmExeTimeoutConsumeGasHeight = TestNetNewNvmExeTimeoutConsumeGasHeight
 		NvmGasLimitWithoutTimeoutAtHeight = TestNetNvmGasLimitWithoutTimeoutAtHeight
+		DipRewardHeight = TestNetDipRewardHeight
 	} else {
 
 		TransferFromContractEventRecordableHeight = LocalTransferFromContractEventRecordableHeight
@@ -319,6 +333,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		TransferFromContractFailureEventRecordableHeight = LocalTransferFromContractFailureEventRecordableHeight
 		NewNvmExeTimeoutConsumeGasHeight = LocalNewNvmExeTimeoutConsumeGasHeight
 		NvmGasLimitWithoutTimeoutAtHeight = LocalNvmGasLimitWithoutTimeoutAtHeight
+		DipRewardHeight = LocalNetDipRewardHeight
 	}
 
 	// sort V8JSLibVersionHeightSlice in descending order by height
@@ -338,6 +353,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		"TransferFromContractFailureHeight":         TransferFromContractFailureEventRecordableHeight,
 		"NewNvmExeTimeoutConsumeGasHeight":          NewNvmExeTimeoutConsumeGasHeight,
 		"NvmGasLimitWithoutTimeoutAtHeight":         NvmGasLimitWithoutTimeoutAtHeight,
+		"DipRewardHeight":                           DipRewardHeight,
 	}).Info("Set compatibility options.")
 
 	checkJSLib()
