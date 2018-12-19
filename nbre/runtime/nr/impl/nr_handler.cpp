@@ -41,6 +41,7 @@ void nr_handler::start(std::string nr_handler_id) {
   m_nr_handler_id = nr_handler_id;
   if (!m_nr_handler_id.empty() &&
       m_nr_result.find(m_nr_handler_id) != m_nr_result.end()) {
+    m_nr_handler_id.clear();
     return;
   }
 
