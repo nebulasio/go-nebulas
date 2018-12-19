@@ -500,20 +500,22 @@ func TestTransaction_VerifyExecution(t *testing.T) {
 	assert.Equal(t, ErrInsufficientBalance, result.Err)
 	executionEqualBalanceTx.gasLimit = result.GasUsed
 	t.Log("gasUsed:", result.GasUsed)
-	coinbaseBalance, err = executionInsufficientBalanceTx.gasPrice.Mul(result.GasUsed)
+	coinbaseBalance, err = executionEqualBalanceTx.gasPrice.Mul(result.GasUsed)
 	assert.Nil(t, err)
 	executionEqualBalanceTx.value = balance
 	gasCost, err := executionEqualBalanceTx.gasPrice.Mul(result.GasUsed)
 	assert.Nil(t, err)
 	fromBalance, err := gasCost.Add(balance)
 	assert.Nil(t, err)
+	afterBalance, err = util.NewUint128FromString("0")
+	assert.Nil(t, err)
 	tests = append(tests, testTx{
 		name:            "execution equal fromBalance after execution tx",
 		tx:              executionEqualBalanceTx,
 		fromBalance:     fromBalance,
 		gasUsed:         result.GasUsed,
-		afterBalance:    balance,
-		toBalance:       balance,
+		afterBalance:    afterBalance,
+		toBalance:       afterBalance,
 		coinbaseBalance: coinbaseBalance,
 		wanted:          nil,
 		eventErr:        "",

@@ -134,6 +134,15 @@ func (payload *DeployPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 		return util.NewUint128(), "", err
 	}
 
+	// Transfer value to contract
+	if fromAcc, err := ws.GetOrCreateUserAccount(tx.from.address); err != nil {
+		return util.NewUint128(), "", err
+	} else if err := fromAcc.SubBalance(tx.value); err != nil {
+		return util.NewUint128(), "", err
+	} else if err := contract.AddBalance(tx.value); err != nil {
+		return util.NewUint128(), "", err
+	}
+
 	// Deploy and Init.
 	result, exeErr := engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args)
 	gasCount := engine.ExecutionInstructions()
