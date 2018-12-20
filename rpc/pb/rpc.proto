@@ -150,7 +150,7 @@ service ApiService {
     }
 
     // get latest dip list
-    rpc GetDIPList (NonParamsRequest) returns (GetDIPListResponse) {
+    rpc GetDIPList (GetDIPListRequest) returns (GetDIPListResponse) {
         option (google.api.http) = {
             get: "/v1/user/getDipList"
 		};
@@ -707,6 +707,11 @@ message GetNRListResponse {
 
     // nr data list
     repeated NData data = 4;
+}
+
+message GetDIPListRequest {
+    // height
+    uint64 height = 1;
 }
 
 message GetDIPListResponse {
