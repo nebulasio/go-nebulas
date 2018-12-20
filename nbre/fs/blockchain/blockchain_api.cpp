@@ -34,6 +34,11 @@ blockchain_api::blockchain_api(blockchain *blockchain_ptr)
 std::unique_ptr<std::vector<transaction_info_t>>
 blockchain_api::get_block_transactions_api(block_height_t height) {
 
+  // special for  block height 1
+  if (height <= 1) {
+    return std::make_unique<std::vector<transaction_info_t>>();
+  }
+
   std::vector<transaction_info_t> txs;
   auto block = m_blockchain->load_block_with_height(height);
 
