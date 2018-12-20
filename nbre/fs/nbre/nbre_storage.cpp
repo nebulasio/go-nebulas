@@ -48,11 +48,11 @@ nbre_storage::~nbre_storage() {
   }
 }
 
-std::vector<std::unique_ptr<nbre::NBREIR>>
+std::unique_ptr<std::vector<nbre::NBREIR>>
 nbre_storage::read_nbre_by_height(const std::string &name,
                                   block_height_t height, bool depends_trace) {
 
-  std::vector<std::unique_ptr<nbre::NBREIR>> ret;
+  std::vector<nbre::NBREIR> ret;
   std::unordered_set<std::string> pkgs;
 
   std::unique_ptr<nbre::NBREIR> nbre_ir = std::make_unique<nbre::NBREIR>();
@@ -73,13 +73,13 @@ nbre_storage::read_nbre_by_height(const std::string &name,
       }
     }
   }
-  return ret;
+  return std::make_unique<std::vector<nbre::NBREIR>>(ret);
 }
 
 void nbre_storage::read_nbre_depends_recursive(
     const std::string &name, uint64_t version, block_height_t height,
     bool depends_trace, std::unordered_set<std::string> &pkg,
-    std::vector<std::unique_ptr<nbre::NBREIR>> &irs) {
+    std::vector<nbre::NBREIR> &irs) {
 
   if (name == neb::configuration::instance().rt_module_name() &&
       neb::rt::get_version() < neb::util::version(version)) {
@@ -105,7 +105,7 @@ void nbre_storage::read_nbre_depends_recursive(
                                     depends_trace, pkg, irs);
       }
     }
-    irs.push_back(std::move(nbre_ir));
+    irs.push_back(*nbre_ir);
     pkg.insert(name_version);
   }
 }
@@ -372,8 +372,8 @@ void nbre_storage::set_auth_table_by_jit(
     ss << nbre_ir->name() << nbre_ir->version();
     LOG(INFO) << "set auth table by jit " << ss.str();
 
-    std::vector<std::unique_ptr<nbre::NBREIR>> irs;
-    irs.push_back(std::move(nbre_ir));
+    std::vector<nbre::NBREIR> irs;
+    irs.push_back(*nbre_ir);
 
     auth_table_raw = jd.run<auth_table_t>(
         ss.str(), irs,

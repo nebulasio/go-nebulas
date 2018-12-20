@@ -63,10 +63,10 @@ void nr_handler::start(std::string nr_handler_id) {
 
     try {
       std::string nr_name = "nr";
-      std::vector<std::unique_ptr<nbre::NBREIR>> irs;
+      std::vector<nbre::NBREIR> irs;
       auto ir = neb::core::ir_warden::instance().get_ir_by_name_version(
           nr_name, nr_version);
-      irs.push_back(std::move(ir));
+      irs.push_back(*ir);
 
       jit_driver &jd = jit_driver::instance();
       std::stringstream ss;

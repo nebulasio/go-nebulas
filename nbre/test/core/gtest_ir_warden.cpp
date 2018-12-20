@@ -117,10 +117,11 @@ TEST(test_core, get_ir_by_name_height) {
 
   auto &instance = neb::core::ir_warden::instance();
 
-  auto ret = instance.get_ir_by_name_height("dip", 90000);
+  auto ret_ptr = instance.get_ir_by_name_height("dip", 90000);
+  auto ret = *ret_ptr;
   EXPECT_EQ(ret.size(), 1);
   auto it = ret.begin();
-  auto nbre_ir_ptr = std::move(*it);
+  auto nbre_ir_ptr = it;
   EXPECT_EQ(nbre_ir_ptr->name(), "dip");
   EXPECT_EQ(nbre_ir_ptr->version(), 1LL << 48);
   EXPECT_EQ(nbre_ir_ptr->height(), 90000);

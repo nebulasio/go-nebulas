@@ -43,26 +43,26 @@
 #include <gtest/gtest.h>
 #include <thread>
 
-std::string gen_key(const std::vector<std::unique_ptr<nbre::NBREIR>> &irs,
+std::string gen_key(const std::vector<nbre::NBREIR> &irs,
                     const std::string &func_name) {
   std::stringstream ss;
   for (auto &m : irs) {
-    ss << m->name() << m->version();
-    std::cout << "version: " << m->version() << std::endl;
+    ss << m.name() << m.version();
+    std::cout << "version: " << m.version() << std::endl;
   }
   ss << func_name;
   return ss.str();
 }
 
 void run_ir_exit(std::unique_ptr<nbre::NBREIR> &ir_ptr) {
-  std::vector<std::unique_ptr<nbre::NBREIR>> irs;
-  irs.push_back(std::move(ir_ptr));
+  std::vector<nbre::NBREIR> irs;
+  irs.push_back(*ir_ptr);
   std::string key = gen_key(irs, "_Z9test_funcPN3neb4core6driverEPv");
   neb::jit_driver::instance().run<neb::core::driver *, void *>(
       key, irs, "_Z9test_funcPN3neb4core6driverEPv", nullptr);
   for (int i = 0; i < 1000; i++) {
     neb::jit_driver::instance().run_if_exists<int, neb::core::driver *, void *>(
-        ir_ptr, "_Z9test_funcPN3neb4core6driverEPv", nullptr, nullptr);
+        *ir_ptr, "_Z9test_funcPN3neb4core6driverEPv", nullptr, nullptr);
   }
 }
 
@@ -170,15 +170,15 @@ void Run_One(const std::string &path, const std::string &func_name) {
   ir_info.set_ir(neb::util::byte_to_string(buf));
   auto ir_ptr = std::make_unique<nbre::NBREIR>(ir_info);
 
-  std::vector<std::unique_ptr<nbre::NBREIR>> irs;
-  irs.push_back(std::move(ir_ptr));
+  std::vector<nbre::NBREIR> irs;
+  irs.push_back(*ir_ptr);
   std::cout << "before gen_key" << std::endl;
   std::string key = gen_key(irs, func_name.c_str());
   std::cout << "Run_One: before run" << std::endl;
   neb::jit_driver::instance().run<neb::core::driver *, void *>(
       key, irs, func_name.c_str(), nullptr);
   neb::jit_driver::instance().run_if_exists<int, neb::core::driver *, void *>(
-      ir_ptr, func_name.c_str(), nullptr, nullptr);
+      *ir_ptr, func_name.c_str(), nullptr, nullptr);
 }
 
 TEST(test_jit, error_functionName_irs_file) {
@@ -206,15 +206,15 @@ void Run_One_1000(const std::string &path, const std::string &func_name,
   auto ir_ptr = std::make_unique<nbre::NBREIR>(ir_info);
   ir_ptr->set_name(ir_name);
 
-  std::vector<std::unique_ptr<nbre::NBREIR>> irs;
-  irs.push_back(std::move(ir_ptr));
+  std::vector<nbre::NBREIR> irs;
+  irs.push_back(*ir_ptr);
   std::string key = gen_key(irs, func_name.c_str());
   std::cout << "Run_One: before run" << std::endl;
   for (int i = 0; i < 1000; i++) {
     neb::jit_driver::instance().run<neb::core::driver *, void *>(
         key, irs, func_name.c_str(), nullptr);
     neb::jit_driver::instance().run_if_exists<int, neb::core::driver *, void *>(
-        ir_ptr, func_name.c_str(), nullptr, nullptr);
+        *ir_ptr, func_name.c_str(), nullptr, nullptr);
   }
 }
 
@@ -244,8 +244,8 @@ TEST(test_jit, multi_thread) {
       ir_ptr->set_name(ir_name);
       try {
 
-        std::vector<std::unique_ptr<nbre::NBREIR>> irs;
-        irs.push_back(std::move(ir_ptr));
+        std::vector<nbre::NBREIR> irs;
+        irs.push_back(*ir_ptr);
         std::string key = gen_key(irs, func_name.c_str());
         std::cout << "Run_One: before run" << std::endl;
         neb::jit_driver::instance().run<neb::core::driver *, void *>(
@@ -254,7 +254,7 @@ TEST(test_jit, multi_thread) {
           try {
             neb::jit_driver::instance()
                 .run_if_exists<int, neb::core::driver *, void *>(
-                    ir_ptr, func_name.c_str(), nullptr, nullptr);
+                    *ir_ptr, func_name.c_str(), nullptr, nullptr);
           } catch (const std::exception &e) {
             LOG(INFO) << e.what();
           }

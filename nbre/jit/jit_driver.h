@@ -40,8 +40,9 @@ public:
   template <typename RT, typename... ARGS>
   RT run_ir(const std::string &name, uint64_t height,
             const std::string &func_name, ARGS... args) {
-    auto irs =
+    auto irs_ptr =
         core::ir_warden::instance().get_ir_by_name_height(name, height, false);
+    auto irs = *irs_ptr;
     if (irs.size() != 1) {
       throw std::invalid_argument("no such ir");
     }
@@ -51,17 +52,18 @@ public:
       return ret.second;
     }
 
-    irs = core::ir_warden::instance().get_ir_by_name_height(name, height, true);
-    return run<RT>(key, irs, func_name, args...);
+    irs_ptr =
+        core::ir_warden::instance().get_ir_by_name_height(name, height, true);
+    return run<RT>(key, *irs_ptr, func_name, args...);
   }
 
   template <typename RT, typename... ARGS>
-  std::pair<bool, RT> run_if_exists(std::unique_ptr<nbre::NBREIR> &ir,
+  std::pair<bool, RT> run_if_exists(const nbre::NBREIR &ir,
                                     const std::string &func_name,
                                     ARGS... args) {
 
-    std::vector<std::unique_ptr<nbre::NBREIR>> irs;
-    irs.push_back(std::move(ir));
+    std::vector<nbre::NBREIR> irs;
+    irs.push_back(ir);
     std::string key = gen_key(irs, func_name);
     std::unique_lock<std::mutex> _l(m_mutex);
     auto it = m_jit_instances.find(key);
@@ -75,8 +77,7 @@ public:
   }
 
   template <typename RT, typename... ARGS>
-  RT run(const std::string &ir_key,
-         const std::vector<std::unique_ptr<nbre::NBREIR>> &irs,
+  RT run(const std::string &ir_key, const std::vector<nbre::NBREIR> &irs,
          const std::string &func_name, ARGS... args) {
     std::string key = ir_key;
     m_mutex.lock();
@@ -104,7 +105,7 @@ public:
 protected:
   void shrink_instances();
 
-  std::string gen_key(const std::vector<std::unique_ptr<nbre::NBREIR>> &irs,
+  std::string gen_key(const std::vector<nbre::NBREIR> &irs,
                       const std::string &func_name);
 
   struct jit_context {
@@ -115,7 +116,7 @@ protected:
   };
 
   std::unique_ptr<jit_driver::jit_context>
-  make_context(const std::vector<std::unique_ptr<nbre::NBREIR>> &irs,
+  make_context(const std::vector<nbre::NBREIR> &irs,
                const std::string &func_name);
 
 protected:
