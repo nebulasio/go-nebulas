@@ -43,8 +43,8 @@ type NRItem struct {
 
 // NRData nr data
 type NRData struct {
-	Start uint64		`json:"start"`
-	End uint64			`json:"end"`
+	StartHeight uint64		`json:"start_height,string"`
+	EndHeight uint64		`json:"end_height,string"`
 	Version string		`json:"version"`
 	Nrs []*NRItem		`json:"nrs"`
 	Err string			`json:"err"`

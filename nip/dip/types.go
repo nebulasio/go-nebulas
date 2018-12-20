@@ -38,7 +38,8 @@ var (
 // const types
 const (
 	CacheSize = 16
-	DipDelayRewardHeight = 24*60*60/15
+	//DipDelayRewardHeight = 24*60*60/15
+	DipDelayRewardHeight = 100
 
 	// DipRewardAddressPrivate dip reward rewardAddress
 	DipRewardAddressPrivate = "42f0c8b5feb72301619046ca87e6cf2c605e94dae0e24c9cb3a0101dbb60337c"
@@ -59,8 +60,8 @@ type DIPItem struct {
 }
 
 type DIPData struct {
-	Start uint64		`json:"start"`
-	End uint64			`json:"end"`
+	StartHeight uint64		`json:"start_height,string"`
+	EndHeight uint64		`json:"end_height,string"`
 	Version string		`json:"version"`
 	Dips []*DIPItem		`json:"dips"`
 	Err string			`json:"err"`

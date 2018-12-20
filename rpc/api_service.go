@@ -681,8 +681,8 @@ func (s *APIService) GetNRList(ctx context.Context, req *rpcpb.GetNRListRequest)
 
 	resp := &rpcpb.GetNRListResponse{
 		Version: nrData.Version,
-		Start:   nrData.Start,
-		End:     nrData.End,
+		Start:   nrData.StartHeight,
+		End:     nrData.EndHeight,
 		Data:    nrItems,
 	}
 
@@ -690,10 +690,15 @@ func (s *APIService) GetNRList(ctx context.Context, req *rpcpb.GetNRListRequest)
 }
 
 // GetDIPList return dip list.
-func (s *APIService) GetDIPList(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.GetDIPListResponse, error) {
+func (s *APIService) GetDIPList(ctx context.Context, req *rpcpb.GetDIPListRequest) (*rpcpb.GetDIPListResponse, error) {
 	neb := s.server.Neblet()
 
-	data, err := neb.Dip().GetDipList(neb.BlockChain().TailBlock().Height())
+	height := req.Height
+	if height == 0 {
+		height = neb.BlockChain().TailBlock().Height()
+	}
+
+	data, err := neb.Dip().GetDipList(height)
 
 	if err != nil {
 		return nil, err
@@ -710,8 +715,8 @@ func (s *APIService) GetDIPList(ctx context.Context, req *rpcpb.NonParamsRequest
 
 	resp := &rpcpb.GetDIPListResponse{
 		Version: dipData.Version,
-		Start:   dipData.Start,
-		End:     dipData.End,
+		Start:   dipData.StartHeight,
+		End:     dipData.EndHeight,
 		Data:    dipItems,
 	}
 

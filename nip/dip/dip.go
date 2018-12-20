@@ -126,7 +126,7 @@ func (d *Dip) publishReward()  {
 	}
 
 	dipData := data.(*DIPData)
-	endBlock := d.neb.BlockChain().GetBlockOnCanonicalChainByHeight(dipData.End)
+	endBlock := d.neb.BlockChain().GetBlockOnCanonicalChainByHeight(dipData.EndHeight)
 	endAccount, err := endBlock.GetAccount(d.RewardAddress().Bytes())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -216,7 +216,7 @@ func (d *Dip) GetDipList(height uint64) (core.Data, error) {
 		if len(data.Err) > 0 {
 			return nil, errors.New(data.Err)
 		}
-		key := append(byteutils.FromUint64(data.Start), byteutils.FromUint64(data.End)...)
+		key := append(byteutils.FromUint64(data.StartHeight), byteutils.FromUint64(data.EndHeight)...)
 		d.cache.Add(byteutils.Hex(key), data)
 	}
 	return data, nil
