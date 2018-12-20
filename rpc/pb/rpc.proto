@@ -152,7 +152,8 @@ service ApiService {
     // get latest dip list
     rpc GetDIPList (GetDIPListRequest) returns (GetDIPListResponse) {
         option (google.api.http) = {
-            get: "/v1/user/getDipList"
+            post: "/v1/user/getDipList"
+            body: "*"
 		};
     }
 }
