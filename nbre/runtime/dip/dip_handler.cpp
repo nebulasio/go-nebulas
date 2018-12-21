@@ -38,7 +38,11 @@ void dip_handler::start(neb::block_height_t nbre_max_height,
   block_height_t dip_block_interval =
       neb::configuration::instance().dip_block_interval();
 
-  if (nbre_max_height < dip_start_block + dip_block_interval - 1) {
+  if (!dip_start_block || !dip_block_interval) {
+    return;
+  }
+
+  if (nbre_max_height < dip_start_block + dip_block_interval) {
     return;
   }
 
@@ -47,8 +51,9 @@ void dip_handler::start(neb::block_height_t nbre_max_height,
     return;
   }
 
-  uint64_t height = (nbre_max_height - dip_start_block + 1) /
-                    dip_block_interval * dip_block_interval;
+  uint64_t interval_nums =
+      (nbre_max_height - dip_start_block) / dip_block_interval;
+  uint64_t height = dip_start_block + dip_block_interval * interval_nums;
 
   if (m_dip_reward.find(height) != m_dip_reward.end()) {
     return;
@@ -64,13 +69,20 @@ void dip_handler::start(neb::block_height_t nbre_max_height,
 
       m_dip_reward.insert(std::make_pair(height, dip_reward));
     } catch (const std::exception &e) {
-      LOG(INFO) << e.what();
+      LOG(INFO) << "jit driver exe failed " << e.what();
     }
   });
 }
 
 std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   std::unique_lock<std::mutex> _l(m_sync_mutex);
+
+  block_height_t dip_start_block =
+      neb::configuration::instance().dip_start_block();
+  block_height_t dip_block_interval =
+      neb::configuration::instance().dip_block_interval();
+  uint64_t interval_nums = (height - dip_start_block) / dip_block_interval;
+  height = dip_start_block + dip_block_interval * interval_nums;
 
   auto dip_reward = m_dip_reward.find(height);
   if (dip_reward == m_dip_reward.end()) {

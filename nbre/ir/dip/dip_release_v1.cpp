@@ -28,18 +28,23 @@ std::string entry_point_dip(uint64_t height) {
   uint64_t dip_start_block = 1;
   uint64_t dip_block_interval = days * block_nums_of_a_day;
 
-  if (height < dip_start_block) {
-    return std::string();
+  if (!height) {
+    neb::rt::dip::init_dip_params(dip_start_block, dip_block_interval);
+    return std::string("{\"res\":\"init dip params\"}");
+  }
+
+  if (height < dip_start_block + dip_block_interval) {
+    return std::string("{\"err\":\"invalid height\"}");
   }
   uint64_t interval_nums = (height - dip_start_block) / dip_block_interval;
   uint64_t start_block = dip_start_block + dip_block_interval * interval_nums;
-  uint64_t end_block = start_block + dip_block_interval - 1;
+  uint64_t end_block = start_block - 1;
+  start_block -= dip_block_interval;
 
   std::string nr_result = entry_point_nr(start_block, end_block);
 
   neb::rt::dip::dip_float_t alpha = 1;
   neb::rt::dip::dip_float_t beta = 1;
-  return neb::rt::dip::entry_point_dip_impl(
-      start_block, end_block, height, nr_result, alpha, beta, dip_start_block,
-      dip_block_interval);
+  return neb::rt::dip::entry_point_dip_impl(start_block, end_block, height,
+                                            nr_result, alpha, beta);
 }

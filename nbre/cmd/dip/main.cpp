@@ -22,6 +22,23 @@
 #include "runtime/dip/dip_reward.h"
 #include <vector>
 
+void height_interval(uint64_t height) {
+
+  uint64_t block_nums_of_a_day = 97;
+  uint64_t days = 3;
+  uint64_t dip_start_block = 232;
+  uint64_t dip_block_interval = days * block_nums_of_a_day;
+  assert(height >= dip_start_block + dip_block_interval);
+
+  uint64_t interval_nums = (height - dip_start_block) / dip_block_interval;
+  uint64_t start_block = dip_start_block + dip_block_interval * interval_nums;
+  uint64_t end_block = start_block - 1;
+  start_block -= dip_block_interval;
+
+  std::cout << "block interval [" << start_block << ',' << end_block << ']'
+            << std::endl;
+}
+
 int main(int argc, char *argv[]) {
 
   using dip_info_t = neb::rt::dip::dip_info_t;
@@ -31,5 +48,11 @@ int main(int argc, char *argv[]) {
   v.push_back(dip_info_t{"addr2", "2.1"});
 
   std::cout << neb::rt::dip::dip_reward::dip_info_to_json(v) << std::endl;
+
+  uint64_t height;
+
+  while (std::cin >> height) {
+    height_interval(height);
+  }
   return 0;
 }

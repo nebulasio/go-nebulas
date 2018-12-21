@@ -182,6 +182,13 @@ void driver::add_handlers() {
         LOG(INFO) << ipc_configuration::instance().admin_pub_addr();
 
         init_timer_thread();
+
+        ff::para<> p;
+        p([]() {
+          jit_driver &jd = jit_driver::instance();
+          jd.run_ir<std::string>("dip", std::numeric_limits<uint64_t>::max(),
+                                 "_Z15entry_point_dipB5cxx11m", 0);
+        });
         ir_warden::instance().wait_until_sync();
       });
 
