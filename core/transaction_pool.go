@@ -214,6 +214,11 @@ func (pool *TransactionPool) loop() {
 	}
 }
 
+// GetMinGasPrice return the minGasPrice
+func (pool *TransactionPool) GetMinGasPrice() *util.Uint128 {
+	return pool.minGasPrice
+}
+
 // GetTransaction return transaction of given hash from transaction pool.
 func (pool *TransactionPool) GetTransaction(hash byteutils.Hash) *Transaction {
 	pool.mu.Lock()
