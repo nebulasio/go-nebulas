@@ -56,7 +56,7 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
       neb::configuration::instance().dip_reward_addr();
   wei_t balance = adb_ptr->get_balance(dip_reward_addr, height);
   floatxx_t bonus_total = int128_conversion(balance).to_float<floatxx_t>();
-  bonus_total = adb_ptr->get_normalized_value(bonus_total);
+  // bonus_total = adb_ptr->get_normalized_value(bonus_total);
 
   floatxx_t sum_votes(0);
   for (auto &v : *it_dapp_votes) {
@@ -68,13 +68,14 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
     dip_info_t info;
     info.m_address = v.first;
 
-    floatxx_t reward_in_nas =
+    // floatxx_t reward_in_nas =
+    floatxx_t reward_in_wei =
         v.second * v.second *
         participate_lambda(alpha, beta, *it_acc_to_contract_txs, *it_nr_infos) *
         bonus_total / sum_votes;
 
-    uint64_t ratio = 1000000000000000000ULL;
-    floatxx_t reward_in_wei = reward_in_nas * ratio;
+    // uint64_t ratio = 1000000000000000000ULL;
+    // floatxx_t reward_in_wei = reward_in_nas * ratio;
     info.m_reward = neb::math::to_string(reward_in_wei.round_to_int());
     dip_infos.push_back(info);
   }
