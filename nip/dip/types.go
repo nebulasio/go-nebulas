@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/neblet/pb"
 )
 
 // Error types
@@ -53,6 +54,13 @@ var (
 	// value: 1.42694 * 10^18/1000*4 = 5.70776e+15
 	DipRewardValue, _ = core.BlockReward.Div(util.NewUint128FromUint(250))
 )
+
+type Neblet interface {
+	AccountManager() core.AccountManager
+	Config() *nebletpb.Config
+	BlockChain() *core.BlockChain
+	Nbre() core.Nbre
+}
 
 type DIPItem struct {
 	Address  string		`json:"rewardAddress"`

@@ -31,7 +31,7 @@ type NR struct {
 }
 
 // NewNR create nr
-func NewNR(neb core.Neblet) *NR {
+func NewNR(neb Neblet) *NR {
 	nr := &NR{
 		nbre: neb.Nbre(),
 		chain:neb.BlockChain(),

@@ -21,6 +21,7 @@ package nr
 import (
 	"encoding/json"
 	"errors"
+	"github.com/nebulasio/go-nebulas/core"
 )
 
 // Error types
@@ -34,6 +35,11 @@ var (
 const (
 	DefaultNRVersion = 4294967296
 )
+
+type Neblet interface {
+	BlockChain() *core.BlockChain
+	Nbre() core.Nbre
+}
 
 // NRItem nr item
 type NRItem struct {

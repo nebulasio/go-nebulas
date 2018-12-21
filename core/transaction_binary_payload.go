@@ -59,6 +59,10 @@ func (payload *BinaryPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 		return util.NewUint128(), "", ErrNilArgument
 	}
 
+	if err := block.dip.CheckReward(block.height, tx); err != nil {
+		return util.NewUint128(), "", err
+	}
+
 	// transfer to contract
 	if tx.to.Type() == ContractAddress && block.height >= AcceptFuncAvailableHeight {
 		// payloadGasLimit <= 0, v8 engine not limit the execution instructions
