@@ -154,8 +154,8 @@ func (n *Nbre) Start() error {
 	cDataDir := C.CString(dataDir)
 	defer C.free(unsafe.Pointer(cDataDir))
 
-	cAddr := C.CString(n.neb.Config().Nbre.AdminAddress)
-	defer C.free(unsafe.Pointer(cAddr))
+	cAdminAddr := C.CString(n.neb.Config().Nbre.AdminAddress)
+	defer C.free(unsafe.Pointer(cAdminAddr))
 
 	p := C.nbre_params_t{
 		m_nbre_root_dir:  cRootDir,
@@ -163,7 +163,7 @@ func (n *Nbre) Start() error {
 		m_neb_db_dir:     cDataDir,
 		m_nbre_db_dir:    cNbreDataDir,
 		m_nbre_log_dir:   cLogDir,
-		m_admin_pub_addr: cAddr,
+		m_admin_pub_addr: cAdminAddr,
 	}
 	//p.m_nbre_root_dir = cRootDir
 	//p.m_nbre_exe_name = cNbrePath

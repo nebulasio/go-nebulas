@@ -358,6 +358,11 @@ func (n *Neblet) Stop() {
 		n.nbre = nil
 	}
 
+	if n.dip != nil {
+		n.dip.Stop()
+		n.dip = nil
+	}
+
 	n.accountManager = nil
 
 	n.running = false

@@ -32,7 +32,7 @@ import (
 
 type Dip struct {
 
-	neb core.Neblet
+	neb Neblet
 
 	cache *lru.Cache
 
@@ -40,11 +40,12 @@ type Dip struct {
 	rewardAddress *core.Address
 	rewardValue   *util.Uint128
 
+	isLooping		bool
 	quitCh            chan int
 }
 
 // NewDIP create a dip
-func NewDIP(neb core.Neblet) (*Dip, error) {
+func NewDIP(neb Neblet) (*Dip, error) {
 	cache, err := lru.New(CacheSize)
 	if err != nil {
 		return nil, err
@@ -65,6 +66,7 @@ func NewDIP(neb core.Neblet) (*Dip, error) {
 		neb: neb,
 		cache:cache,
 		quitCh:make(chan int, 1),
+		isLooping:false,
 		rewardAddress: addr,
 		rewardValue: DipRewardValue,
 	}
@@ -82,18 +84,25 @@ func (d *Dip)RewardValue() *util.Uint128 {
 
 // Start start dip.
 func (d *Dip) Start() {
-	logging.CLog().WithFields(logrus.Fields{
-	}).Info("Starting Dip...")
+	if !d.isLooping {
+		d.isLooping = true
 
-	go d.loop()
+		logging.CLog().WithFields(logrus.Fields{
+		}).Info("Starting Dip...")
+
+		go d.loop()
+	}
 }
 
 // Stop stop dip.
 func (d *Dip) Stop() {
-	logging.CLog().WithFields(logrus.Fields{
-	}).Info("Stopping Dip...")
+	if d.isLooping {
+		logging.CLog().WithFields(logrus.Fields{
+		}).Info("Stopping Dip...")
 
-	d.quitCh <- 1
+		d.quitCh <- 1
+		d.isLooping = false
+	}
 }
 
 func (d *Dip) loop() {

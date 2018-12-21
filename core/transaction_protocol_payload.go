@@ -51,5 +51,8 @@ func (payload *ProtocolPayload) BaseGasCount() *util.Uint128 {
 
 // Execute the payload in tx
 func (payload *ProtocolPayload) Execute(limitedGas *util.Uint128, tx *Transaction, block *Block, ws WorldState) (*util.Uint128, string, error) {
+	if err := block.dip.CheckReward(block.height, tx); err != nil {
+		return util.NewUint128(), "", err
+	}
 	return util.NewUint128(), "", nil
 }

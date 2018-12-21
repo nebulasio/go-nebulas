@@ -54,6 +54,7 @@ var (
 type Neblet interface {
 	Config() *nebletpb.Config
 	BlockChain() *core.BlockChain
+	Dip() core.Dip
 }
 
 type Version struct {
