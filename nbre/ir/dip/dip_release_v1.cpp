@@ -27,9 +27,12 @@ std::string entry_point_dip(uint64_t height) {
   uint64_t days = 3;
   uint64_t dip_start_block = 1;
   uint64_t dip_block_interval = days * block_nums_of_a_day;
+  std::string dip_reward_addr =
+      std::string("n1c6y4ctkMeZk624QWBTXuywmNpCWmJZiBq");
 
   if (!height) {
-    neb::rt::dip::init_dip_params(dip_start_block, dip_block_interval);
+    neb::rt::dip::init_dip_params(dip_start_block, dip_block_interval,
+                                  dip_reward_addr);
     return std::string("{\"res\":\"init dip params\"}");
   }
 

@@ -69,8 +69,13 @@ public:
   }
   inline block_height_t &dip_block_interval() { return m_dip_block_interval; }
 
+  // dip reward address
+  const std::string &dip_reward_addr() const { return m_dip_reward_addr; }
+  std::string &dip_reward_addr() { return m_dip_reward_addr; }
+
 protected:
   block_height_t m_dip_start_block;
   block_height_t m_dip_block_interval;
+  std::string m_dip_reward_addr;
 };
 } // end namespace neb
