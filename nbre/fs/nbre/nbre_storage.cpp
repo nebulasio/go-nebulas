@@ -169,8 +169,8 @@ void nbre_storage::write_nbre() {
 
   block_height_t start_height = get_start_height();
   block_height_t end_height = get_end_height();
-  LOG(INFO) << "start height " << start_height << ',' << "end height "
-            << end_height;
+  // LOG(INFO) << "start height " << start_height << ',' << "end height "
+  //<< end_height;
 
   set_auth_table();
   neb::rt::dip::dip_handler::instance().start(start_height, end_height);
@@ -181,7 +181,7 @@ void nbre_storage::write_nbre() {
 
   //! TODO: we may consider parallel here!
   for (block_height_t h = start_height + 1; h <= end_height; h++) {
-    LOG(INFO) << h;
+    // LOG(INFO) << h;
 
     if (!fs.has_flag(failed_flag)) {
       fs.set_flag(failed_flag);

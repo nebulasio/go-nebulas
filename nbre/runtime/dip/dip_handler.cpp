@@ -40,15 +40,18 @@ void dip_handler::start(neb::block_height_t nbre_max_height,
       neb::configuration::instance().dip_block_interval();
 
   if (!dip_start_block || !dip_block_interval) {
+    LOG(INFO) << "dip params not init";
     return;
   }
 
   if (nbre_max_height < dip_start_block + dip_block_interval) {
+    LOG(INFO) << "wait to sync";
     return;
   }
 
   assert(nbre_max_height <= lib_height);
   if (nbre_max_height + dip_block_interval < lib_height) {
+    LOG(INFO) << "wait to sync";
     return;
   }
 
@@ -60,17 +63,20 @@ void dip_handler::start(neb::block_height_t nbre_max_height,
     return;
   }
 
+  LOG(INFO) << "hash height " << nbre_max_height << " to " << height;
   ff::para<> p;
   p([this, height, dip_block_interval]() {
     try {
       jit_driver &jd = jit_driver::instance();
       auto dip_reward = jd.run_ir<std::string>(
           "dip", height, "_Z15entry_point_dipB5cxx11m", height);
+      LOG(INFO) << "dip reward returned";
 
       auto it_dip_infos = dip_reward::json_to_dip_info(dip_reward);
       dip_reward = dip_reward::dip_info_to_json(
           *it_dip_infos, {{"start_height", height - dip_block_interval},
                           {"end_height", height - 1}});
+      LOG(INFO) << "dip reward meta info returned";
 
       m_dip_reward.insert(std::make_pair(height, dip_reward));
     } catch (const std::exception &e) {

@@ -35,6 +35,7 @@ namespace internal {
 driver_base::driver_base() : m_exit_flag(false) {}
 
 bool driver_base::init() {
+  ff::initialize(8);
   m_client = std::unique_ptr<ipc_client_endpoint>(new ipc_client_endpoint());
   LOG(INFO) << "ipc client construct";
   add_handlers();
@@ -184,6 +185,7 @@ void driver::add_handlers() {
         init_timer_thread();
 
         ff::para<> p;
+        LOG(INFO) << "to start dip params init";
         p([]() {
           try {
             jit_driver &jd = jit_driver::instance();
@@ -194,6 +196,7 @@ void driver::add_handlers() {
           }
         });
         ff::ff_wait(p);
+        LOG(INFO) << "done with dip params init";
         ir_warden::instance().wait_until_sync();
       });
 
