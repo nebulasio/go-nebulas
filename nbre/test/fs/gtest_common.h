@@ -20,12 +20,12 @@
 
 #pragma once
 
-#include "fs/nbre/nbre_storage.h"
+#include "fs/ir_manager/ir_manager.h"
 #include "fs/proto/block.pb.h"
 #include "fs/util.h"
 
 typedef std::shared_ptr<corepb::Block> block_ptr_t;
-typedef std::shared_ptr<neb::fs::nbre_storage> nbre_storage_ptr_t;
+typedef std::shared_ptr<neb::fs::ir_manager> nbre_storage_ptr_t;
 
 std::string get_db_path_for_read();
 std::string get_db_path_for_write();

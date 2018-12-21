@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "fs/ir_manager/api/nbre_api.h"
+#include "fs/ir_manager/api/ir_api.h"
 #include "common/configuration.h"
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -26,19 +26,18 @@
 namespace neb {
 namespace fs {
 
-nbre_api::nbre_api(const std::string &db_path,
-                   enum storage_open_flag open_flag) {
+ir_api::ir_api(const std::string &db_path, enum storage_open_flag open_flag) {
   m_storage = std::make_unique<rocksdb_storage>();
   m_storage->open_database(db_path, open_flag);
 }
 
-nbre_api::~nbre_api() {
+ir_api::~ir_api() {
   if (m_storage) {
     m_storage->close_database();
   }
 }
 
-std::unique_ptr<std::vector<std::string>> nbre_api::get_irs() {
+std::unique_ptr<std::vector<std::string>> ir_api::get_ir_list() {
 
   neb::util::bytes bytes_ir_name_list_json =
       m_storage->get(neb::configuration::instance().nbre_ir_list_name());
@@ -61,7 +60,7 @@ std::unique_ptr<std::vector<std::string>> nbre_api::get_irs() {
 }
 
 std::unique_ptr<std::vector<version_t>>
-nbre_api::get_ir_versions(const std::string &ir_name) {
+ir_api::get_ir_versions(const std::string &ir_name) {
 
   std::vector<version_t> v;
   try {

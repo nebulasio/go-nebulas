@@ -24,15 +24,15 @@
 namespace neb {
 namespace fs {
 
-class nbre_api {
+class ir_api {
 public:
-  nbre_api(const std::string &db_path,
-           enum storage_open_flag open_flag = storage_open_default);
-  ~nbre_api();
-  nbre_api(const nbre_api &na) = delete;
-  nbre_api &operator=(const nbre_api &na) = delete;
+  ir_api(const std::string &db_path,
+         enum storage_open_flag open_flag = storage_open_default);
+  ~ir_api();
+  ir_api(const ir_api &ia) = delete;
+  ir_api &operator=(const ir_api &ia) = delete;
 
-  std::unique_ptr<std::vector<std::string>> get_irs();
+  std::unique_ptr<std::vector<std::string>> get_ir_list();
 
   std::unique_ptr<std::vector<version_t>>
   get_ir_versions(const std::string &ir_name);

@@ -21,7 +21,7 @@
 #include "common/configuration.h"
 #include "core/ir_warden.h"
 #include "core/neb_ipc/server/ipc_configuration.h"
-#include "fs/ir_manager/api/nbre_api.h"
+#include "fs/ir_manager/api/ir_api.h"
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_handler.h"
 #include "runtime/nr/impl/nr_handler.h"
@@ -210,9 +210,9 @@ void driver::add_handlers() {
         }
 
         auto irs_ptr =
-            neb::fs::nbre_api(
+            neb::fs::ir_api(
                 neb::core::ipc_configuration::instance().nbre_db_dir())
-                .get_irs();
+                .get_ir_list();
         for (auto &ir : *irs_ptr) {
           neb::ipc::char_string_t ir_name(ir.c_str(),
                                           m_ipc_conn->default_allocator());
@@ -234,7 +234,7 @@ void driver::add_handlers() {
         ack->set<neb::core::ipc_pkg::ir_name>(ir_name);
 
         auto ir_versions_ptr =
-            neb::fs::nbre_api(
+            neb::fs::ir_api(
                 neb::core::ipc_configuration::instance().nbre_db_dir())
                 .get_ir_versions(ir_name.c_str());
         for (auto &v : *ir_versions_ptr) {

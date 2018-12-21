@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "fs/nbre/nbre_storage.h"
+#include "fs/ir_manager/ir_manager.h"
 #include "fs/util.h"
 #include "gtest_common.h"
 #include <gtest/gtest.h>
@@ -28,10 +28,10 @@ TEST(test_fs, write_nbre_until_sync) {
   std::string db_read = get_blockchain_path_for_read();
   std::string db_write = get_db_path_for_write();
 
-  std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
-      std::make_shared<neb::fs::nbre_storage>(db_write, db_read);
+  std::shared_ptr<neb::fs::ir_manager> nbre_ptr =
+      std::make_shared<neb::fs::ir_manager>(db_write, db_read);
 
-  nbre_ptr->write_nbre_until_sync();
+  nbre_ptr->parse_irs_till_latest();
   nbre_ptr.reset();
 
   neb::fs::rocksdb_storage rs_write;
@@ -85,10 +85,10 @@ TEST(test_fs, read_nbre_by_height_simple) {
   std::string db_read = get_blockchain_path_for_read();
   std::string db_write = get_db_path_for_write();
 
-  std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
-      std::make_shared<neb::fs::nbre_storage>(db_write, db_read);
+  std::shared_ptr<neb::fs::ir_manager> nbre_ptr =
+      std::make_shared<neb::fs::ir_manager>(db_write, db_read);
 
-  auto ret_ptr = nbre_ptr->read_nbre_by_height("nr", 90001, true);
+  auto ret_ptr = nbre_ptr->read_irs("nr", 90001, true);
   auto ret = *ret_ptr;
   EXPECT_EQ(ret.size(), 1);
   auto it = ret.begin();
@@ -98,7 +98,7 @@ TEST(test_fs, read_nbre_by_height_simple) {
   EXPECT_EQ(nbre_ir_ptr->height(), 90000);
   EXPECT_EQ(nbre_ir_ptr->depends_size(), 0);
 
-  ret_ptr = nbre_ptr->read_nbre_by_height("nr", 90000, true);
+  ret_ptr = nbre_ptr->read_irs("nr", 90000, true);
   ret = *ret_ptr;
   EXPECT_EQ(ret.size(), 1);
   it = ret.begin();
@@ -108,7 +108,7 @@ TEST(test_fs, read_nbre_by_height_simple) {
   EXPECT_EQ(nbre_ir_ptr->height(), 90000);
   EXPECT_EQ(nbre_ir_ptr->depends_size(), 0);
 
-  ret_ptr = nbre_ptr->read_nbre_by_height("nr", 89999, true);
+  ret_ptr = nbre_ptr->read_irs("nr", 89999, true);
   ret = *ret_ptr;
   EXPECT_EQ(ret.size(), 0);
 }
@@ -118,10 +118,10 @@ TEST(test_fs, read_nbre_by_height) {
   std::string db_read = get_blockchain_path_for_read();
   std::string db_write = get_db_path_for_write();
 
-  std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
-      std::make_shared<neb::fs::nbre_storage>(db_write, db_read);
+  std::shared_ptr<neb::fs::ir_manager> nbre_ptr =
+      std::make_shared<neb::fs::ir_manager>(db_write, db_read);
 
-  auto ret_ptr = nbre_ptr->read_nbre_by_height("dip", 90000, true);
+  auto ret_ptr = nbre_ptr->read_irs("dip", 90000, true);
   auto ret = *ret_ptr;
   EXPECT_EQ(ret.size(), 1);
   auto it = ret.begin();
@@ -137,12 +137,12 @@ TEST(test_fs, read_nbre_by_name_version) {
   std::string db_read = get_blockchain_path_for_read();
   std::string db_write = get_db_path_for_write();
 
-  std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
-      std::make_shared<neb::fs::nbre_storage>(db_write, db_read);
+  std::shared_ptr<neb::fs::ir_manager> nbre_ptr =
+      std::make_shared<neb::fs::ir_manager>(db_write, db_read);
 
   std::string name = "dip";
   uint64_t version = 1LL << 48;
-  auto nbreir_ptr = nbre_ptr->read_nbre_by_name_version(name, version);
+  auto nbreir_ptr = nbre_ptr->read_ir(name, version);
 
   EXPECT_EQ(nbreir_ptr->name(), "dip");
   EXPECT_EQ(nbreir_ptr->version(), 1LL << 48);
@@ -155,6 +155,6 @@ TEST(test_fs, get_auth_table) {
   std::string db_read = get_blockchain_path_for_read();
   std::string db_write = get_db_path_for_write();
 
-  std::shared_ptr<neb::fs::nbre_storage> nbre_ptr =
-      std::make_shared<neb::fs::nbre_storage>(db_write, db_read);
+  std::shared_ptr<neb::fs::ir_manager> nbre_ptr =
+      std::make_shared<neb::fs::ir_manager>(db_write, db_read);
 }
