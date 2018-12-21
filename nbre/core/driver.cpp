@@ -185,9 +185,13 @@ void driver::add_handlers() {
 
         ff::para<> p;
         p([]() {
-          jit_driver &jd = jit_driver::instance();
-          jd.run_ir<std::string>("dip", std::numeric_limits<uint64_t>::max(),
-                                 "_Z15entry_point_dipB5cxx11m", 0);
+          try {
+            jit_driver &jd = jit_driver::instance();
+            jd.run_ir<std::string>("dip", std::numeric_limits<uint64_t>::max(),
+                                   "_Z15entry_point_dipB5cxx11m", 0);
+          } catch (const std::exception &e) {
+            LOG(INFO) << "dip params init failed " << e.what();
+          }
         });
         ir_warden::instance().wait_until_sync();
       });
