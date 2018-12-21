@@ -282,9 +282,6 @@ func (n *Neblet) Start() {
 				"err": err,
 			}).Fatal("Failed to enable mining.")
 		}
-
-		// start dip
-		n.dip.Start()
 	}
 
 	// first sync
@@ -300,6 +297,11 @@ func (n *Neblet) Start() {
 		logging.CLog().WithFields(logrus.Fields{
 			"err": err,
 		}).Fatal("Failed to start nbre.")
+	}
+
+	if chainConf.StartMine {
+		// start dip
+		n.dip.Start()
 	}
 
 	metricsNebstartGauge.Update(1)

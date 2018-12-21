@@ -63,7 +63,7 @@ type Neblet interface {
 }
 
 type DIPItem struct {
-	Address  string		`json:"rewardAddress"`
+	Address  string		`json:"address"`
 	Reward string		`json:"reward"`
 }
 

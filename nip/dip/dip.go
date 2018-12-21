@@ -130,7 +130,7 @@ func (d *Dip) publishReward()  {
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Debug("Failed to get dip reward list.")
+		}).Warn("Failed to get dip reward list.")
 		return
 	}
 
@@ -140,7 +140,7 @@ func (d *Dip) publishReward()  {
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Warn("Failed to load reward account in dip end account.")
+		}).Error("Failed to load reward account in dip end account.")
 		return
 	}
 
@@ -148,7 +148,7 @@ func (d *Dip) publishReward()  {
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
-		}).Warn("Failed to load reward account in tail block.")
+		}).Error("Failed to load reward account in tail block.")
 		return
 	}
 
@@ -160,9 +160,15 @@ func (d *Dip) publishReward()  {
 			if err != nil {
 				logging.VLog().WithFields(logrus.Fields{
 					"err": err,
-				}).Warn("Failed to generate reward transaction.")
-				continue
+				}).Error("Failed to generate reward transaction.")
+				return
 			}
+
+			logging.VLog().WithFields(logrus.Fields{
+				"start": dipData.StartHeight,
+				"end": dipData.EndHeight,
+				"tx": tx,
+			}).Info("Success to push dip reward tx.")
 
 			d.neb.BlockChain().TransactionPool().Push(tx)
 		}
@@ -194,7 +200,7 @@ func (d *Dip) generateRewardTx(item *DIPItem, nonce uint64, block *core.Block) (
 		nonce,
 		core.TxPayloadDipType,
 		payload,
-		core.TransactionGasPrice,
+		d.neb.BlockChain().TransactionPool().GetMinGasPrice(),
 		core.MinGasCountPerTransaction)
 	if err != nil {
 		return nil, err
