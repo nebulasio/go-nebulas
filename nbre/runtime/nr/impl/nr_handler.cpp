@@ -47,7 +47,6 @@ void nr_handler::start(std::string nr_handler_id) {
 
   ff::para<> p;
   p([this]() {
-    std::this_thread::sleep_for(std::chrono::seconds(10));
     neb::util::bytes nr_handler_bytes =
         neb::util::bytes::from_hex(m_nr_handler_id);
 
@@ -85,7 +84,7 @@ void nr_handler::start(std::string nr_handler_id) {
       m_nr_result.insert(std::make_pair(m_nr_handler_id, nr_result));
       m_nr_handler_id.clear();
     } catch (const std::exception &e) {
-      LOG(INFO) << e.what();
+      LOG(INFO) << "jit driver execute nr failed " << e.what();
     }
 
   });

@@ -193,6 +193,7 @@ void driver::add_handlers() {
             LOG(INFO) << "dip params init failed " << e.what();
           }
         });
+        ff::ff_wait(p);
         ir_warden::instance().wait_until_sync();
       });
 
