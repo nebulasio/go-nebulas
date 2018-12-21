@@ -22,6 +22,7 @@
 #include "common/configuration.h"
 #include "fs/proto/ir.pb.h"
 #include "jit/jit_driver.h"
+#include "runtime/dip/dip_reward.h"
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <ff/ff.h>
@@ -60,16 +61,20 @@ void dip_handler::start(neb::block_height_t nbre_max_height,
   }
 
   ff::para<> p;
-  p([this, height]() {
+  p([this, height, dip_block_interval]() {
     try {
-      std::string dip_name = "dip";
       jit_driver &jd = jit_driver::instance();
       auto dip_reward = jd.run_ir<std::string>(
-          dip_name, height, "_Z15entry_point_dipB5cxx11m", height);
+          "dip", height, "_Z15entry_point_dipB5cxx11m", height);
+
+      auto it_dip_infos = dip_reward::json_to_dip_info(dip_reward);
+      dip_reward = dip_reward::dip_info_to_json(
+          *it_dip_infos, {{"start_height", height - dip_block_interval},
+                          {"end_height", height - 1}});
 
       m_dip_reward.insert(std::make_pair(height, dip_reward));
     } catch (const std::exception &e) {
-      LOG(INFO) << "jit driver exe failed " << e.what();
+      LOG(INFO) << "jit driver execute dip failed " << e.what();
     }
   });
 }
