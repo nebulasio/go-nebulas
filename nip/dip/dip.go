@@ -115,13 +115,13 @@ func (d *Dip) loop() {
 			logging.CLog().Info("Stopped Dip.")
 			return
 		case <-timerChan:
-			d.publishReward()
+			d.submitReward()
 		}
 	}
 }
 
-// publishReward generate dip transactions and push to tx pool
-func (d *Dip) publishReward()  {
+// submitReward generate dip transactions and push to tx pool
+func (d *Dip) submitReward()  {
 	height := d.neb.BlockChain().TailBlock().Height() - uint64(DipDelayRewardHeight)
 	if height < 1 {
 		return
@@ -165,6 +165,7 @@ func (d *Dip) publishReward()  {
 			}
 
 			logging.VLog().WithFields(logrus.Fields{
+				"height": d.neb.BlockChain().TailBlock().Height(),
 				"start": dipData.StartHeight,
 				"end": dipData.EndHeight,
 				"tx": tx,
@@ -274,6 +275,12 @@ func (d *Dip) CheckReward(height uint64, tx *core.Transaction) error {
 		dip := data.(*DIPData)
 		for _, v := range dip.Dips {
 			if tx.To().String() == v.Address && tx.Value().String() == v.Reward {
+				logging.VLog().WithFields(logrus.Fields{
+					"height": height,
+					"start": dip.StartHeight,
+					"end": dip.EndHeight,
+					"tx": tx,
+				}).Debug("Success to check dip reward tx.")
 				return nil
 			}
 		}

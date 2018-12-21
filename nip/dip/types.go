@@ -40,7 +40,7 @@ var (
 const (
 	CacheSize = 16
 	//DipDelayRewardHeight = 24*60*60/15
-	DipDelayRewardHeight = 100
+	DipDelayRewardHeight = 300
 
 	// DipRewardAddressPrivate dip reward rewardAddress
 	DipRewardAddressPrivate = "42f0c8b5feb72301619046ca87e6cf2c605e94dae0e24c9cb3a0101dbb60337c"
