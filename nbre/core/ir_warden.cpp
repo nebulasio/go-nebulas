@@ -33,13 +33,13 @@ ir_warden::~ir_warden() {}
 
 std::unique_ptr<nbre::NBREIR>
 ir_warden::get_ir_by_name_version(const std::string &name, uint64_t version) {
-  return m_nbre_storage->read_nbre_by_name_version(name, version);
+  return m_ir_manager->read_ir(name, version);
 }
 
 std::unique_ptr<std::vector<nbre::NBREIR>>
 ir_warden::get_ir_by_name_height(const std::string &name, uint64_t height,
-                                 bool depends_trace) {
-  return m_nbre_storage->read_nbre_by_height(name, height, depends_trace);
+                                 bool depends) {
+  return m_ir_manager->read_irs(name, height, depends);
 }
 
 bool ir_warden::is_sync_already() const {
@@ -58,7 +58,7 @@ void ir_warden::wait_until_sync() {
 }
 
 void ir_warden::on_timer() {
-  m_nbre_storage->write_nbre_until_sync();
+  m_ir_manager->parse_irs_till_latest();
   std::unique_lock<std::mutex> _l(m_sync_mutex);
   if (!m_is_sync_already) {
     m_is_sync_already = true;
@@ -68,7 +68,7 @@ void ir_warden::on_timer() {
 }
 
 ir_warden::ir_warden() : m_is_sync_already(false) {
-  m_nbre_storage = std::make_unique<fs::nbre_storage>(
+  m_ir_manager = std::make_unique<fs::ir_manager>(
       neb::core::ipc_configuration::instance().nbre_db_dir(),
       neb::core::ipc_configuration::instance().neb_db_dir());
 }

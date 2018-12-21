@@ -22,7 +22,7 @@
 #include "common/common.h"
 #include "common/quitable_thread.h"
 #include "common/util/singleton.h"
-#include "fs/nbre/nbre_storage.h"
+#include "fs/ir_manager/ir_manager.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/storage.h"
 #include <boost/asio.hpp>
@@ -42,7 +42,7 @@ public:
 
   std::unique_ptr<std::vector<nbre::NBREIR>>
   get_ir_by_name_height(const std::string &name, uint64_t height,
-                        bool depends_trace = true);
+                        bool depends = true);
   bool is_sync_already() const;
 
   void wait_until_sync();
@@ -50,7 +50,7 @@ public:
   void on_timer();
 
 private:
-  std::unique_ptr<fs::nbre_storage> m_nbre_storage;
+  std::unique_ptr<fs::ir_manager> m_ir_manager;
   bool m_is_sync_already;
   mutable std::mutex m_sync_mutex;
   std::condition_variable m_sync_cond_var;

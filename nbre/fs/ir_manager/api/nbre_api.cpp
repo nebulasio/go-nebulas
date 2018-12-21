@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "fs/nbre/api/nbre_api.h"
+#include "fs/ir_manager/api/nbre_api.h"
 #include "common/configuration.h"
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>

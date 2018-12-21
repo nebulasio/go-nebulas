@@ -21,7 +21,7 @@
 #include "common/configuration.h"
 #include "core/ir_warden.h"
 #include "core/neb_ipc/server/ipc_configuration.h"
-#include "fs/nbre/api/nbre_api.h"
+#include "fs/ir_manager/api/nbre_api.h"
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_handler.h"
 #include "runtime/nr/impl/nr_handler.h"
