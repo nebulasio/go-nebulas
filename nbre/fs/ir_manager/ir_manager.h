@@ -48,10 +48,6 @@ private:
   void parse_irs();
   void parse_irs_by_height(block_height_t height);
 
-  void deploy_auth_table(nbre::NBREIR &nbre_ir,
-                         const neb::util::bytes payload_bytes);
-  void show_auth_table();
-
 private:
   std::unique_ptr<rocksdb_storage> m_storage;
   std::unique_ptr<blockchain> m_blockchain;

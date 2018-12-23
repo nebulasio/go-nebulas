@@ -20,48 +20,23 @@
 
 #include "common/configuration.h"
 #include "common/util/version.h"
+#include "fs/ir_manager/api/ir_api.h"
 #include "fs/ir_manager/ir_manager.h"
 #include "fs/proto/block.pb.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/rocksdb_storage.h"
 #include "fs/util.h"
-#include <boost/foreach.hpp>
-#include <boost/format.hpp>
 #include <boost/program_options.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
 namespace po = boost::program_options;
 
 void display_ir_versions(neb::fs::rocksdb_storage &rs) {
-
-  neb::util::bytes bytes_ir_name_list =
-      rs.get(neb::configuration::instance().nbre_ir_list_name());
-  std::string json_ir_name_list = neb::util::byte_to_string(bytes_ir_name_list);
-
-  std::string ir_list_name = neb::configuration::instance().ir_list_name();
-
-  boost::property_tree::ptree root;
-  std::stringstream ss(json_ir_name_list);
-  boost::property_tree::json_parser::read_json(ss, root);
-
-  BOOST_FOREACH (boost::property_tree::ptree::value_type &v,
-                 root.get_child(ir_list_name)) {
-    boost::property_tree::ptree pt = v.second;
-    std::string module_name = pt.get<std::string>(std::string());
-
-    auto bytes_versions = rs.get(module_name);
-    size_t gap = sizeof(uint64_t) / sizeof(uint8_t);
-
-    std::cout << "for module " << module_name << " versions:\n";
-    for (size_t i = 0; i < bytes_versions.size(); i += gap) {
-      neb::byte_t *bytes_version =
-          bytes_versions.value() + (bytes_versions.size() - gap - i);
-
-      if (bytes_version != nullptr) {
-        uint64_t version =
-            neb::util::byte_to_number<uint64_t>(bytes_version, gap);
-        std::cout << version << ' ';
-      }
+  auto ir_list_ptr = neb::fs::ir_api::get_ir_list(&rs);
+  for (auto &name : *ir_list_ptr) {
+    auto ir_versions_ptr = neb::fs::ir_api::get_ir_versions(name, &rs);
+    std::cout << name;
+    for (auto &version : *ir_versions_ptr) {
+      std::cout << ' ' << version;
     }
     std::cout << std::endl;
   }

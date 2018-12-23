@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
     };
 
     auto json_str = f_build_json();
-    rs.put(neb::configuration::instance().nbre_ir_list_name(),
+    rs.put(neb::configuration::instance().ir_list_name(),
            neb::util::string_to_byte(json_str));
   };
   // f_set_ir_list();

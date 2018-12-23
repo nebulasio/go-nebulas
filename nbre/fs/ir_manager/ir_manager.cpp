@@ -23,6 +23,7 @@
 #include "common/util/byte.h"
 #include "common/util/version.h"
 #include "core/neb_ipc/server/ipc_configuration.h"
+#include "fs/ir_manager/api/ir_api.h"
 #include "fs/ir_manager/ir_manager_helper.h"
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_handler.h"
@@ -52,7 +53,13 @@ std::unique_ptr<nbre::NBREIR> ir_manager::read_ir(const std::string &name,
   std::stringstream ss;
   ss << name << version;
 
-  neb::util::bytes nbre_bytes = m_storage->get(ss.str());
+  neb::util::bytes nbre_bytes;
+  try {
+    nbre_bytes = m_storage->get(ss.str());
+  } catch (const std::exception &e) {
+    LOG(INFO) << "no such ir named " << name << " with version " << version
+              << ' ' << e.what();
+  }
   bool ret = nbre_ir->ParseFromArray(nbre_bytes.value(), nbre_bytes.size());
   if (!ret) {
     throw std::runtime_error("parse nbre failed");
@@ -64,10 +71,8 @@ std::unique_ptr<nbre::NBREIR> ir_manager::read_ir(const std::string &name,
 std::unique_ptr<std::vector<nbre::NBREIR>>
 ir_manager::read_irs(const std::string &name, block_height_t height,
                      bool depends) {
-
   std::vector<nbre::NBREIR> irs;
 
-  std::unique_ptr<nbre::NBREIR> nbre_ir = std::make_unique<nbre::NBREIR>();
   neb::util::bytes bytes_versions;
   try {
     bytes_versions = m_storage->get(name);
@@ -77,21 +82,9 @@ ir_manager::read_irs(const std::string &name, block_height_t height,
   }
 
   std::unordered_set<std::string> ir_set;
-  size_t gap = sizeof(uint64_t) / sizeof(uint8_t);
+  auto versions_ptr = ir_api::get_ir_versions(name, m_storage.get());
+  read_ir_depends(name, *versions_ptr->begin(), height, depends, ir_set, irs);
 
-  for (size_t i = 0; i < bytes_versions.size(); i += gap) {
-    byte_t *bytes_version =
-        bytes_versions.value() + (bytes_versions.size() - gap - i);
-
-    if (bytes_version != nullptr) {
-      uint64_t version =
-          neb::util::byte_to_number<uint64_t>(bytes_version, gap);
-      read_ir_depends(name, version, height, depends, ir_set, irs);
-      if (!irs.empty()) {
-        break;
-      }
-    }
-  }
   return std::make_unique<std::vector<nbre::NBREIR>>(irs);
 }
 
@@ -155,6 +148,12 @@ void ir_manager::parse_irs_till_latest() {
         std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
     start_time = end_time;
   } while (time_spend > time_interval);
+
+  block_height_t start_height =
+      ir_manager_helper::nbre_block_height(m_storage.get());
+  block_height_t end_height =
+      ir_manager_helper::lib_block_height(m_blockchain.get());
+  neb::rt::dip::dip_handler::instance().start(start_height, end_height);
 }
 
 void ir_manager::parse_irs() {
@@ -165,7 +164,6 @@ void ir_manager::parse_irs() {
       ir_manager_helper::lib_block_height(m_blockchain.get());
 
   ir_manager_helper::load_auth_table(m_storage.get(), m_auth_table);
-  neb::rt::dip::dip_handler::instance().start(start_height, end_height);
 
   std::string failed_flag =
       neb::configuration::instance().nbre_failed_flag_name();
@@ -186,40 +184,12 @@ void ir_manager::parse_irs() {
   }
 }
 
-void ir_manager::deploy_auth_table(nbre::NBREIR &nbre_ir,
-                                   const neb::util::bytes payload_bytes) {
-
-  // TODO expect auth table exceed 128k bytes size
-  LOG(INFO) << "before set auth table by jit, auth table size: "
-            << m_auth_table.size();
-  ir_manager_helper::run_auth_table(nbre_ir, m_auth_table);
-  m_storage->put(neb::configuration::instance().nbre_auth_table_name(),
-                 payload_bytes);
-  LOG(INFO) << "updating auth table...";
-  LOG(INFO) << "after set auth table by jit, auth table size: "
-            << m_auth_table.size();
-}
-
-void ir_manager::show_auth_table() {
-
-  LOG(INFO) << "\nshow auth table";
-  for (auto &r : m_auth_table) {
-    std::string key = boost::str(boost::format("key <%1%, %2%, %3%>, ") %
-                                 std::get<0>(r.first) % std::get<1>(r.first) %
-                                 std::get<2>(r.first));
-    std::string val = boost::str(boost::format("val <%1%, %2%>") %
-                                 std::get<0>(r.second) % std::get<1>(r.second));
-    LOG(INFO) << key << val;
-  }
-}
-
 void ir_manager::parse_irs_by_height(block_height_t height) {
   auto block = m_blockchain->load_block_with_height(height);
 
   for (auto &tx : block->transactions()) {
     auto &data = tx.data();
     const std::string &type = data.type();
-    std::string from = tx.from();
 
     // ignore transaction other than transaction `protocol`
     std::string ir_tx_type =
@@ -237,23 +207,25 @@ void ir_manager::parse_irs_by_height(block_height_t height) {
       throw std::runtime_error("parse transaction payload failed");
     }
 
+    const std::string &from = tx.from();
     const std::string &name = nbre_ir->name();
-    uint64_t version = nbre_ir->version();
 
     // deploy auth table
     if (neb::configuration::instance().auth_module_name() == name &&
         neb::core::ipc_configuration::instance().admin_pub_addr() == from) {
-      deploy_auth_table(*nbre_ir.get(), payload_bytes);
+      ir_manager_helper::deploy_auth_table(m_storage.get(), *nbre_ir.get(),
+                                           m_auth_table, payload_bytes);
       continue;
     }
 
+    uint64_t version = nbre_ir->version();
     auto it = m_auth_table.find(std::make_tuple(name, version, from));
     // ir not in auth table
     if (it == m_auth_table.end()) {
       LOG(INFO) << boost::str(
           boost::format("tuple <%1%, %2%, %3%> not in auth table") % name %
           version % from);
-      show_auth_table();
+      ir_manager_helper::show_auth_table(m_auth_table);
       continue;
     }
     const uint64_t height = nbre_ir->height();
@@ -263,35 +235,14 @@ void ir_manager::parse_irs_by_height(block_height_t height) {
       continue;
     }
 
+    // update ir list and versions
+    ir_manager_helper::update_ir_list(name, m_storage.get());
+    ir_manager_helper::update_ir_versions(name, version, m_storage.get());
+
     // deploy ir
-    try {
-      neb::util::bytes bytes_versions = m_storage->get(name);
-      bytes_versions.append_bytes(
-          neb::util::number_to_byte<neb::util::bytes>(version));
-      m_storage->put(name, bytes_versions);
-    } catch (const std::exception &e) {
-      LOG(INFO) << "no such ir, start to deploy the first one";
-      m_storage->put(name,
-                     neb::util::number_to_byte<neb::util::bytes>(version));
-    }
+    ir_manager_helper::deploy_ir(name, version, payload_bytes, m_storage.get());
 
-    std::stringstream ss;
-    ss << name << version;
-    m_storage->put(ss.str(), payload_bytes);
-    LOG(INFO) << "deploy " << name << " version " << version
-              << " successfully!";
-
-    // update ir list
-    std::string const_str_nbre_ir_list =
-        neb::configuration::instance().nbre_ir_list_name();
-    neb::util::bytes bytes_ir_list_json;
-    try {
-      bytes_ir_list_json = m_storage->get(const_str_nbre_ir_list);
-    } catch (const std::exception &e) {
-      LOG(INFO) << const_str_nbre_ir_list << " not in storage " << e.what();
-    }
-    ir_manager_helper::update_ir_list(
-        neb::util::byte_to_string(bytes_ir_list_json), name, m_storage.get());
+    ir_manager_helper::run_if_dip_deployed(name, version, *nbre_ir.get());
   }
 }
 

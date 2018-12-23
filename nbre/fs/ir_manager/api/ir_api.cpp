@@ -20,65 +20,66 @@
 
 #include "fs/ir_manager/api/ir_api.h"
 #include "common/configuration.h"
+#include "common/util/version.h"
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
 namespace neb {
 namespace fs {
 
-ir_api::ir_api(const std::string &db_path, enum storage_open_flag open_flag) {
-  m_storage = std::make_unique<rocksdb_storage>();
-  m_storage->open_database(db_path, open_flag);
-}
-
-ir_api::~ir_api() {
-  if (m_storage) {
-    m_storage->close_database();
-  }
-}
-
-std::unique_ptr<std::vector<std::string>> ir_api::get_ir_list() {
-
-  neb::util::bytes bytes_ir_name_list_json =
-      m_storage->get(neb::configuration::instance().nbre_ir_list_name());
-  std::string ir_name_list_json =
-      neb::util::byte_to_string(bytes_ir_name_list_json);
-
-  boost::property_tree::ptree root;
-  std::stringstream ss(ir_name_list_json);
-  boost::property_tree::json_parser::read_json(ss, root);
-
+std::unique_ptr<std::vector<std::string>>
+ir_api::get_ir_list(rocksdb_storage *rs) {
   std::vector<std::string> v;
 
-  BOOST_FOREACH (
-      boost::property_tree::ptree::value_type &ir_name,
-      root.get_child(neb::configuration::instance().ir_list_name())) {
-    boost::property_tree::ptree pt = ir_name.second;
+  std::string ir_list = neb::configuration::instance().ir_list_name();
+  neb::util::bytes ir_list_bytes;
+  try {
+    ir_list_bytes = rs->get(ir_list);
+  } catch (const std::exception &e) {
+    LOG(INFO) << "ir list empty, get ir list failed " << e.what();
+    return std::make_unique<std::vector<std::string>>(v);
+  }
+
+  boost::property_tree::ptree root;
+  std::stringstream ss(neb::util::byte_to_string(ir_list_bytes));
+  boost::property_tree::json_parser::read_json(ss, root);
+
+  BOOST_FOREACH (boost::property_tree::ptree::value_type &name,
+                 root.get_child(ir_list)) {
+    boost::property_tree::ptree pt = name.second;
     v.push_back(pt.get<std::string>(std::string()));
   }
   return std::make_unique<std::vector<std::string>>(v);
 }
 
 std::unique_ptr<std::vector<version_t>>
-ir_api::get_ir_versions(const std::string &ir_name) {
-
+ir_api::get_ir_versions(const std::string &name, rocksdb_storage *rs) {
   std::vector<version_t> v;
-  try {
-    neb::util::bytes bytes_versions = m_storage->get(ir_name);
-    size_t gap = sizeof(uint64_t) / sizeof(uint8_t);
 
-    for (size_t i = 0; i < bytes_versions.size(); i += gap) {
-      byte_t *bytes_version =
-          bytes_versions.value() + (bytes_versions.size() - gap - i);
-      if (bytes_version != nullptr) {
-        uint64_t version =
-            neb::util::byte_to_number<uint64_t>(bytes_version, gap);
-        v.push_back(version);
-      }
-    }
+  neb::util::bytes ir_versions_bytes;
+  try {
+    ir_versions_bytes = rs->get(name);
   } catch (const std::exception &e) {
-    LOG(INFO) << e.what();
+    LOG(INFO) << "ir with name " << name << " versions empty, get " << name
+              << " versions failed " << e.what();
+    return std::make_unique<std::vector<version_t>>(v);
   }
+
+  boost::property_tree::ptree root;
+  std::stringstream ss(neb::util::byte_to_string(ir_versions_bytes));
+  boost::property_tree::json_parser::read_json(ss, root);
+
+  BOOST_FOREACH (boost::property_tree::ptree::value_type &version,
+                 root.get_child(name)) {
+    boost::property_tree::ptree pt = version.second;
+    v.push_back(pt.get<version_t>(std::string()));
+  }
+
+  sort(v.begin(), v.end(), [](const version_t &v1, const version_t &v2) {
+    neb::util::version obj_v1(v1);
+    neb::util::version obj_v2(v2);
+    return obj_v1 > obj_v2;
+  });
   return std::make_unique<std::vector<version_t>>(v);
 }
 } // namespace fs

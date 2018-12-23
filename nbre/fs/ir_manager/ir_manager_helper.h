@@ -22,6 +22,7 @@
 #include "fs/blockchain.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/rocksdb_storage.h"
+#include <boost/property_tree/ptree.hpp>
 
 namespace neb {
 namespace fs {
@@ -43,8 +44,26 @@ public:
   static void load_auth_table(rocksdb_storage *rs,
                               std::map<auth_key_t, auth_val_t> &auth_table);
 
-  static void update_ir_list(const std::string &ir_list,
-                             const std::string &ir_name, rocksdb_storage *rs);
+  static void deploy_auth_table(rocksdb_storage *rs, nbre::NBREIR &nbre_ir,
+                                std::map<auth_key_t, auth_val_t> &auth_table,
+                                const neb::util::bytes &payload_bytes);
+  static void
+  show_auth_table(const std::map<auth_key_t, auth_val_t> &auth_table);
+
+  static void update_ir_list(const std::string &name, rocksdb_storage *rs);
+  static void update_ir_versions(const std::string &name, uint64_t version,
+                                 rocksdb_storage *rs);
+
+  static void deploy_ir(const std::string &name, uint64_t version,
+                        const neb::util::bytes payload_bytes,
+                        rocksdb_storage *rs);
+  static void run_if_dip_deployed(const std::string &name, uint64_t version,
+                                  nbre::NBREIR &nbre_ir);
+
+private:
+  static void update_to_storage(const std::string &key,
+                                const boost::property_tree::ptree &val_pt,
+                                rocksdb_storage *rs);
 };
 
 } // namespace fs

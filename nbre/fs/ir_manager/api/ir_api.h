@@ -26,19 +26,11 @@ namespace fs {
 
 class ir_api {
 public:
-  ir_api(const std::string &db_path,
-         enum storage_open_flag open_flag = storage_open_default);
-  ~ir_api();
-  ir_api(const ir_api &ia) = delete;
-  ir_api &operator=(const ir_api &ia) = delete;
+  static std::unique_ptr<std::vector<std::string>>
+  get_ir_list(rocksdb_storage *rs);
 
-  std::unique_ptr<std::vector<std::string>> get_ir_list();
-
-  std::unique_ptr<std::vector<version_t>>
-  get_ir_versions(const std::string &ir_name);
-
-private:
-  std::unique_ptr<rocksdb_storage> m_storage;
+  static std::unique_ptr<std::vector<version_t>>
+  get_ir_versions(const std::string &name, rocksdb_storage *rs);
 };
 }
 } // namespace neb

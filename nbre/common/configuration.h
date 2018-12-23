@@ -56,7 +56,6 @@ public:
   }
 
   // nbre api config
-  inline const char *nbre_ir_list_name() const { return "nbre_ir_list"; }
   inline const char *ir_list_name() const { return "ir_list"; }
 
   // dip conf

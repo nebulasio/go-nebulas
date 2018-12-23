@@ -209,10 +209,13 @@ void driver::add_handlers() {
           return;
         }
 
-        auto irs_ptr =
-            neb::fs::ir_api(
-                neb::core::ipc_configuration::instance().nbre_db_dir())
-                .get_ir_list();
+        std::unique_ptr<neb::fs::rocksdb_storage> rs =
+            std::make_unique<neb::fs::rocksdb_storage>();
+        rs->open_database(
+            neb::core::ipc_configuration::instance().nbre_db_dir(),
+            neb::fs::storage_open_for_readonly);
+        auto irs_ptr = neb::fs::ir_api::get_ir_list(rs.get());
+        rs->close_database();
         for (auto &ir : *irs_ptr) {
           neb::ipc::char_string_t ir_name(ir.c_str(),
                                           m_ipc_conn->default_allocator());
@@ -233,10 +236,15 @@ void driver::add_handlers() {
         auto ir_name = req->get<ipc_pkg::ir_name>();
         ack->set<neb::core::ipc_pkg::ir_name>(ir_name);
 
+        std::unique_ptr<neb::fs::rocksdb_storage> rs =
+            std::make_unique<neb::fs::rocksdb_storage>();
+        rs->open_database(
+            neb::core::ipc_configuration::instance().nbre_db_dir(),
+            neb::fs::storage_open_for_readonly);
         auto ir_versions_ptr =
-            neb::fs::ir_api(
-                neb::core::ipc_configuration::instance().nbre_db_dir())
-                .get_ir_versions(ir_name.c_str());
+            neb::fs::ir_api::get_ir_versions(ir_name.c_str(), rs.get());
+        rs->close_database();
+
         for (auto &v : *ir_versions_ptr) {
           ack->get<neb::core::ipc_pkg::ir_versions>().push_back(v);
         }
