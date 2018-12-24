@@ -41,7 +41,6 @@ void dip_handler::start(neb::block_height_t height) {
       neb::configuration::instance().dip_block_interval();
 
   if (!dip_start_block || !dip_block_interval) {
-    LOG(INFO) << "dip params not init";
     return;
   }
 

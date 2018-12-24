@@ -142,6 +142,7 @@ void driver_base::init_timer_thread() {
 } // end namespace internal
 
 driver::driver() : internal::driver_base() {}
+
 void driver::add_handlers() {
   m_client->add_handler<ipc_pkg::nbre_version_req>(
       [this](ipc_pkg::nbre_version_req *req) {
@@ -172,6 +173,8 @@ void driver::add_handlers() {
             ack->get<ipc_pkg::nbre_db_dir>().c_str();
         ipc_configuration::instance().nbre_log_dir() =
             ack->get<ipc_pkg::nbre_log_dir>().c_str();
+        ipc_configuration::instance().nbre_start_height() =
+            ack->get<ipc_pkg::nbre_start_height>();
 
         std::string addr_base58 = ack->get<ipc_pkg::admin_pub_addr>().c_str();
         neb::util::bytes addr_bytes =
