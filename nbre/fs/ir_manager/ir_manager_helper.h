@@ -57,8 +57,6 @@ public:
   static void deploy_ir(const std::string &name, uint64_t version,
                         const neb::util::bytes payload_bytes,
                         rocksdb_storage *rs);
-  static void run_if_dip_deployed(const std::string &name, uint64_t version,
-                                  nbre::NBREIR &nbre_ir);
 
 private:
   static void update_to_storage(const std::string &key,

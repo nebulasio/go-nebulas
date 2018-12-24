@@ -97,6 +97,8 @@ public:
       jit_context *m_jc;
     } _ul(context.get());
     context->m_using = true;
+    LOG(INFO) << "ir key " << ir_key << " irs size " << irs.size()
+              << " func_name " << func_name;
     return context->m_jit.run<RT>(args...);
   }
 
