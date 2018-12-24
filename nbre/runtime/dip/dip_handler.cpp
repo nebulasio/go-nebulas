@@ -97,7 +97,7 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
 
   auto dip_reward = m_dip_reward.find(height);
   if (dip_reward == m_dip_reward.end()) {
-    return std::string("{\"err\":\"not complete yet\"}");
+    return std::string("{\"err\":\"dip this interval not found\"}");
   }
   return dip_reward->second;
 }
