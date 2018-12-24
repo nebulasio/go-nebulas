@@ -28,7 +28,6 @@ import (
 
 // Error types
 var (
-	ErrInvalidHeight = errors.New("invalid dip height")
 	ErrDipNotFound = errors.New("dip not found")
 
 	ErrInvalidDipAddress                    = errors.New("invalid dip reward address")
@@ -40,7 +39,9 @@ var (
 const (
 	CacheSize = 16
 	//DipDelayRewardHeight = 24*60*60/15
-	DipDelayRewardHeight = 300
+	DipDelayRewardHeight = 100
+	// DipRewardHeightInterval dip reward interval
+	DipRewardHeightInterval = 300
 
 	// DipRewardAddressPrivate dip reward rewardAddress
 	DipRewardAddressPrivate = "42f0c8b5feb72301619046ca87e6cf2c605e94dae0e24c9cb3a0101dbb60337c"
