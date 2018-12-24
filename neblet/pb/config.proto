@@ -192,4 +192,6 @@ message NbreConfig {
     string nbre_path = 4;
     // Nbre admin address
     string admin_address = 5;
+    // Nbre start height
+    uint64 start_height = 6;
 }

@@ -158,12 +158,13 @@ func (n *Nbre) Start() error {
 	defer C.free(unsafe.Pointer(cAdminAddr))
 
 	p := C.nbre_params_t{
-		m_nbre_root_dir:  cRootDir,
-		m_nbre_exe_name:  cNbrePath,
-		m_neb_db_dir:     cDataDir,
-		m_nbre_db_dir:    cNbreDataDir,
-		m_nbre_log_dir:   cLogDir,
-		m_admin_pub_addr: cAdminAddr,
+		m_nbre_root_dir:     cRootDir,
+		m_nbre_exe_name:     cNbrePath,
+		m_neb_db_dir:        cDataDir,
+		m_nbre_db_dir:       cNbreDataDir,
+		m_nbre_log_dir:      cLogDir,
+		m_admin_pub_addr:    cAdminAddr,
+		m_nbre_start_height: C.uint64_t(n.neb.Config().Nbre.StartHeight),
 	}
 	//p.m_nbre_root_dir = cRootDir
 	//p.m_nbre_exe_name = cNbrePath
@@ -291,7 +292,8 @@ func nbreHandled(code C.int, holder unsafe.Pointer, result []byte, handleErr err
 	handler, err := getNbreHandler(handlerId)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
-			"err": err,
+			"handlerId": handlerId,
+			"err":       err,
 		}).Error("Failed to handle nbre callback")
 		return
 	}

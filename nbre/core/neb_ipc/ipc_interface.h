@@ -82,6 +82,7 @@ typedef struct {
   const char *m_nbre_db_dir;
   const char *m_nbre_log_dir;
   const char *m_admin_pub_addr;
+  uint64_t m_nbre_start_height;
 } nbre_params_t;
 
 // nbre ipc start and shutdown
