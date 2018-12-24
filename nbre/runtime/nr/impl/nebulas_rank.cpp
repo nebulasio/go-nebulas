@@ -166,7 +166,7 @@ nebulas_rank::get_account_balance_median(
 
     floatxx_t normalized_median = db_ptr->get_normalized_value(median);
     floatxx_t::value_type zero =
-        softfloat_cast<uint32_t, typename floatxx_t::value_type>(0);
+        softfloat_cast<uint32_t, typename floatxx_t::value_type>(uint32_t(0));
     ret.insert(std::make_pair(
         it->first, neb::math::max(floatxx_t(zero), normalized_median)));
   }
