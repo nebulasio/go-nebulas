@@ -112,7 +112,6 @@ template <> float128_t softfloat_cast<uint32_t, float128_t>(const uint32_t &v) {
     float128_t tmp;
     ui32_to_f128M(v, &tmp);
     return tmp;
-
 }
 
 /*----------------------------------------------------------------------------

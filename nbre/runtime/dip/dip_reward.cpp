@@ -88,7 +88,7 @@ void dip_reward::full_fill_meta_info(
     const std::vector<std::pair<std::string, uint64_t>> &meta,
     boost::property_tree::ptree &root) {
 
-  assert(meta.size() == 2);
+  assert(meta.size() == 3);
 
   for (auto &ele : meta) {
     root.put(ele.first, ele.second);

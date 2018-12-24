@@ -149,12 +149,6 @@ void ir_manager::parse_irs_till_latest() {
         std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
     start_time = end_time;
   } while (time_spend > time_interval);
-
-  block_height_t start_height =
-      ir_manager_helper::nbre_block_height(m_storage.get());
-  block_height_t end_height =
-      ir_manager_helper::lib_block_height(m_blockchain.get());
-  neb::rt::dip::dip_handler::instance().start(start_height, end_height);
 }
 
 void ir_manager::parse_irs() {
@@ -172,6 +166,7 @@ void ir_manager::parse_irs() {
   //! TODO: we may consider parallel here!
   for (block_height_t h = start_height + 1; h <= end_height; h++) {
     // LOG(INFO) << h;
+    neb::rt::dip::dip_handler::instance().start(h);
 
     if (!ir_manager_helper::has_failed_flag(m_storage.get(), failed_flag)) {
       ir_manager_helper::set_failed_flag(m_storage.get(), failed_flag);
