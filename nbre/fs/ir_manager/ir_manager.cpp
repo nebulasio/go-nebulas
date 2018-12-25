@@ -29,6 +29,7 @@
 #include "runtime/dip/dip_handler.h"
 #include "runtime/version.h"
 #include <boost/format.hpp>
+#include <ff/ff.h>
 
 namespace neb {
 namespace fs {
@@ -148,12 +149,6 @@ void ir_manager::parse_irs_till_latest() {
         std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
     start_time = end_time;
   } while (time_spend > time_interval);
-
-  block_height_t start_height =
-      ir_manager_helper::nbre_block_height(m_storage.get());
-  block_height_t end_height =
-      ir_manager_helper::lib_block_height(m_blockchain.get());
-  neb::rt::dip::dip_handler::instance().start(start_height, end_height);
 }
 
 void ir_manager::parse_irs() {
@@ -171,6 +166,7 @@ void ir_manager::parse_irs() {
   //! TODO: we may consider parallel here!
   for (block_height_t h = start_height + 1; h <= end_height; h++) {
     // LOG(INFO) << h;
+    neb::rt::dip::dip_handler::instance().start(h);
 
     if (!ir_manager_helper::has_failed_flag(m_storage.get(), failed_flag)) {
       ir_manager_helper::set_failed_flag(m_storage.get(), failed_flag);
@@ -197,6 +193,7 @@ void ir_manager::parse_irs_by_height(block_height_t height) {
     if (type != ir_tx_type) {
       continue;
     }
+    LOG(INFO) << height;
 
     const std::string &payload = data.payload();
     neb::util::bytes payload_bytes = neb::util::string_to_byte(payload);
@@ -228,9 +225,9 @@ void ir_manager::parse_irs_by_height(block_height_t height) {
       ir_manager_helper::show_auth_table(m_auth_table);
       continue;
     }
-    const uint64_t height = nbre_ir->height();
+    const uint64_t ht = nbre_ir->height();
     // ir in auth table but already invalid
-    if (height < std::get<0>(it->second) || height >= std::get<1>(it->second)) {
+    if (ht < std::get<0>(it->second) || ht >= std::get<1>(it->second)) {
       LOG(INFO) << "ir already becomes invalid";
       continue;
     }
@@ -242,8 +239,27 @@ void ir_manager::parse_irs_by_height(block_height_t height) {
     // deploy ir
     ir_manager_helper::deploy_ir(name, version, payload_bytes, m_storage.get());
 
-    ir_manager_helper::run_if_dip_deployed(name, version, *nbre_ir.get());
+    run_if_dip_deployed(name, height);
   }
+}
+
+void ir_manager::run_if_dip_deployed(const std::string &name,
+                                     block_height_t height) {
+  if (name != std::string("dip") || height < 6000) {
+    return;
+  }
+
+  ff::para<> p;
+  p([&name, height]() {
+    try {
+      jit_driver &jd = jit_driver::instance();
+      jd.run_ir<std::string>(name, height, "_Z15entry_point_dipB5cxx11m", 0);
+      LOG(INFO) << "dip params init done";
+    } catch (const std::exception &e) {
+      LOG(INFO) << "dip params init failed " << e.what();
+    }
+  });
+  ff::ff_wait(p);
 }
 
 } // namespace fs

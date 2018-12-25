@@ -56,6 +56,12 @@ public:
   const std::string &admin_pub_addr() const { return m_admin_pub_addr; }
   std::string &admin_pub_addr() { return m_admin_pub_addr; }
 
+  // nbre start height
+  inline const uint64_t &nbre_start_height() const {
+    return m_nbre_start_height;
+  }
+  inline uint64_t &nbre_start_height() { return m_nbre_start_height; }
+
 protected:
   std::string m_nbre_root_dir;
   std::string m_nbre_exe_name;
@@ -63,6 +69,7 @@ protected:
   std::string m_nbre_db_dir;
   std::string m_nbre_log_dir;
   std::string m_admin_pub_addr;
+  uint64_t m_nbre_start_height;
 };
 } // namespace core
 } // namespace neb

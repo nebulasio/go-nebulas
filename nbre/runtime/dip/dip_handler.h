@@ -29,8 +29,7 @@ namespace dip {
 
 class dip_handler : public util::singleton<dip_handler> {
 public:
-  void start(neb::block_height_t nbre_max_height,
-             neb::block_height_t lib_height);
+  void start(neb::block_height_t height);
 
   std::string get_dip_reward(neb::block_height_t height);
 

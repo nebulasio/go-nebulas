@@ -26,9 +26,9 @@
 #include "fs/util.h"
 
 int main(int argc, char *argv[]) {
-  FLAGS_logtostderr = true;
+  // FLAGS_logtostderr = true;
   neb::program_name = "nbre";
-  ::google::InitGoogleLogging(argv[0]);
+  //::google::InitGoogleLogging(argv[0]);
 
   neb::core::driver d;
   d.init();

@@ -48,6 +48,8 @@ private:
   void parse_irs();
   void parse_irs_by_height(block_height_t height);
 
+  void run_if_dip_deployed(const std::string &name, block_height_t height);
+
 private:
   std::unique_ptr<rocksdb_storage> m_storage;
   std::unique_ptr<blockchain> m_blockchain;

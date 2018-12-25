@@ -216,9 +216,6 @@ func (d *Dip) generateRewardTx(item *DIPItem, nonce uint64, block *core.Block) (
 
 // GetDipList returns dip info list
 func (d *Dip) GetDipList(height uint64) (core.Data, error) {
-	if height <= 0 || height > d.neb.BlockChain().TailBlock().Height()  {
-		return nil, ErrInvalidHeight
-	}
 	data, ok := d.checkCache(height)
 	if !ok {
 		dipData, err := d.neb.Nbre().Execute(nbre.CommandDIPList, byteutils.FromUint64(height))
@@ -249,7 +246,7 @@ func (d *Dip) checkCache(height uint64) (*DIPData, bool) {
 		}
 		start := byteutils.Uint64(bytes[:8])
 		end := byteutils.Uint64(bytes[8:])
-		if height >= start && height <= end {
+		if height >= start && height <= end + DipRewardHeightInterval {
 			data, _ := d.cache.Get(v)
 			return data.(*DIPData), true
 		}
@@ -268,7 +265,7 @@ func (d *Dip) CheckReward(height uint64, tx *core.Transaction) error {
 			return ErrInvalidDipAddress
 		}
 
-		data, err := d.GetDipList(height - uint64(DipDelayRewardHeight))
+		data, err := d.GetDipList(height)
 		if err != nil {
 			return err
 		}

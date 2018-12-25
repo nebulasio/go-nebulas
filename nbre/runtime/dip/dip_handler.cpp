@@ -20,6 +20,8 @@
 
 #include "runtime/dip/dip_handler.h"
 #include "common/configuration.h"
+#include "core/neb_ipc/server/ipc_configuration.h"
+#include "fs/ir_manager/api/ir_api.h"
 #include "fs/proto/ir.pb.h"
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_reward.h"
@@ -31,8 +33,7 @@ namespace neb {
 namespace rt {
 namespace dip {
 
-void dip_handler::start(neb::block_height_t nbre_max_height,
-                        neb::block_height_t lib_height) {
+void dip_handler::start(neb::block_height_t height) {
   std::unique_lock<std::mutex> _l(m_sync_mutex);
   block_height_t dip_start_block =
       neb::configuration::instance().dip_start_block();
@@ -40,45 +41,49 @@ void dip_handler::start(neb::block_height_t nbre_max_height,
       neb::configuration::instance().dip_block_interval();
 
   if (!dip_start_block || !dip_block_interval) {
-    LOG(INFO) << "dip params not init";
     return;
   }
 
-  if (nbre_max_height < dip_start_block + dip_block_interval) {
+  if (height < dip_start_block + dip_block_interval) {
     LOG(INFO) << "wait to sync";
     return;
   }
 
-  assert(nbre_max_height <= lib_height);
-  if (nbre_max_height + dip_block_interval < lib_height) {
-    LOG(INFO) << "wait to sync";
+  uint64_t interval_nums = (height - dip_start_block) / dip_block_interval;
+  uint64_t hash_height = dip_start_block + dip_block_interval * interval_nums;
+
+  if (height != hash_height) {
     return;
   }
 
-  uint64_t interval_nums =
-      (nbre_max_height - dip_start_block) / dip_block_interval;
-  uint64_t height = dip_start_block + dip_block_interval * interval_nums;
-
-  if (m_dip_reward.find(height) != m_dip_reward.end()) {
+  if (m_dip_reward.find(hash_height) != m_dip_reward.end()) {
     return;
   }
 
-  LOG(INFO) << "hash height " << nbre_max_height << " to " << height;
   ff::para<> p;
-  p([this, height, dip_block_interval]() {
+  p([this, hash_height, dip_block_interval]() {
     try {
       jit_driver &jd = jit_driver::instance();
       auto dip_reward = jd.run_ir<std::string>(
-          "dip", height, "_Z15entry_point_dipB5cxx11m", height);
+          "dip", hash_height, "_Z15entry_point_dipB5cxx11m", hash_height);
       LOG(INFO) << "dip reward returned";
+
+      std::unique_ptr<neb::fs::rocksdb_storage> rs =
+          std::make_unique<neb::fs::rocksdb_storage>();
+      rs->open_database(neb::core::ipc_configuration::instance().nbre_db_dir(),
+                        neb::fs::storage_open_for_readonly);
+      auto dip_versions_ptr = neb::fs::ir_api::get_ir_versions("dip", rs.get());
+      rs->close_database();
+      uint64_t dip_version = *dip_versions_ptr->begin();
 
       auto it_dip_infos = dip_reward::json_to_dip_info(dip_reward);
       dip_reward = dip_reward::dip_info_to_json(
-          *it_dip_infos, {{"start_height", height - dip_block_interval},
-                          {"end_height", height - 1}});
+          *it_dip_infos, {{"start_height", hash_height - dip_block_interval},
+                          {"end_height", hash_height - 1},
+                          {"version", dip_version}});
       LOG(INFO) << "dip reward meta info returned";
 
-      m_dip_reward.insert(std::make_pair(height, dip_reward));
+      m_dip_reward.insert(std::make_pair(hash_height, dip_reward));
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute dip failed " << e.what();
     }
@@ -97,7 +102,7 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
 
   auto dip_reward = m_dip_reward.find(height);
   if (dip_reward == m_dip_reward.end()) {
-    return std::string("{\"err\":\"not complete yet\"}");
+    return std::string("{\"err\":\"dip this interval not found\"}");
   }
   return dip_reward->second;
 }

@@ -19,10 +19,10 @@
 
 #include "fs/ir_manager/ir_manager_helper.h"
 #include "common/configuration.h"
+#include "core/neb_ipc//server/ipc_configuration.h"
 #include "jit/jit_driver.h"
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
-#include <ff/ff.h>
 
 namespace neb {
 namespace fs {
@@ -57,6 +57,7 @@ block_height_t ir_manager_helper::nbre_block_height(rocksdb_storage *rs) {
                     std::allocator<char>())));
   } catch (std::exception &e) {
     LOG(INFO) << "to init nbre max height " << e.what();
+    start_height = neb::core::ipc_configuration::instance().nbre_start_height();
     rs->put(std::string(neb::configuration::instance().nbre_max_height_name(),
                         std::allocator<char>()),
             neb::util::number_to_byte<neb::util::bytes>(start_height));
@@ -255,31 +256,6 @@ void ir_manager_helper::deploy_ir(const std::string &name, uint64_t version,
   ss << name << version;
   rs->put(ss.str(), payload_bytes);
   LOG(INFO) << "deploy " << name << " version " << version << " successfully!";
-}
-
-void ir_manager_helper::run_if_dip_deployed(const std::string &name,
-                                            uint64_t version,
-                                            nbre::NBREIR &nbre_ir) {
-  if (name != std::string("dip")) {
-    return;
-  }
-
-  ff::para<> p;
-  LOG(INFO) << "init dip params when deployed";
-  p([&name, version, &nbre_ir]() {
-    try {
-      std::vector<nbre::NBREIR> irs;
-      irs.push_back(nbre_ir);
-
-      jit_driver &jd = jit_driver::instance();
-      std::stringstream ss;
-      ss << name << version;
-
-      jd.run<std::string>(ss.str(), irs, "_Z15entry_point_dipB5cxx11m", 0);
-    } catch (const std::exception &e) {
-      LOG(INFO) << "dip params init failed " << e.what();
-    }
-  });
 }
 
 } // namespace fs

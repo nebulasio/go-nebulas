@@ -52,15 +52,17 @@ using nbre_version_ack =
     define_ipc_pkg<ipc_pkg_nbre_version_ack, major, minor, patch>;
 
 using nbre_init_req = define_ipc_pkg<ipc_pkg_nbre_init_req>;
-using nbre_root_dir = ipc_elem_base<4, neb::ipc::char_string_t>;
-using nbre_exe_name = ipc_elem_base<5, neb::ipc::char_string_t>;
-using neb_db_dir = ipc_elem_base<6, neb::ipc::char_string_t>;
-using nbre_db_dir = ipc_elem_base<7, neb::ipc::char_string_t>;
-using nbre_log_dir = ipc_elem_base<8, neb::ipc::char_string_t>;
-using admin_pub_addr = ipc_elem_base<9, neb::ipc::char_string_t>;
+using nbre_root_dir = ipc_elem_base<104, neb::ipc::char_string_t>;
+using nbre_exe_name = ipc_elem_base<105, neb::ipc::char_string_t>;
+using neb_db_dir = ipc_elem_base<106, neb::ipc::char_string_t>;
+using nbre_db_dir = ipc_elem_base<107, neb::ipc::char_string_t>;
+using nbre_log_dir = ipc_elem_base<108, neb::ipc::char_string_t>;
+using admin_pub_addr = ipc_elem_base<109, neb::ipc::char_string_t>;
+using nbre_start_height = ipc_elem_base<110, uint64_t>;
 using nbre_init_ack =
     define_ipc_pkg<ipc_pkg_nbre_init_ack, nbre_root_dir, nbre_exe_name,
-                   neb_db_dir, nbre_db_dir, nbre_log_dir, admin_pub_addr>;
+                   neb_db_dir, nbre_db_dir, nbre_log_dir, admin_pub_addr,
+                   nbre_start_height>;
 
 using nbre_ir_list_req = define_ipc_pkg<ipc_pkg_nbre_ir_list_req>;
 using ir_name_list =
