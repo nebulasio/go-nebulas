@@ -58,9 +58,7 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
   floatxx_t bonus_total = int128_conversion(balance).to_float<floatxx_t>();
   // bonus_total = adb_ptr->get_normalized_value(bonus_total);
 
-  floatxx_t::value_type zero =
-      softfloat_cast<uint32_t, typename floatxx_t::value_type>(uint32_t(0));
-  floatxx_t sum_votes(zero);
+  floatxx_t sum_votes(0);
   for (auto &v : *it_dapp_votes) {
     sum_votes += v.second * v.second;
   }
@@ -204,9 +202,7 @@ dip_reward::account_to_contract_votes(
       continue;
     }
 
-    floatxx_t::value_type zero =
-        softfloat_cast<uint32_t, typename floatxx_t::value_type>(uint32_t(0));
-    floatxx_t sum_votes(zero);
+    floatxx_t sum_votes(0);
     for (auto &e : it_acc->second) {
       sum_votes += e.second;
     }
@@ -248,11 +244,6 @@ floatxx_t dip_reward::participate_lambda(
     const std::vector<neb::fs::transaction_info_t> &txs,
     const std::vector<neb::rt::nr::nr_info_t> &nr_infos) {
 
-  floatxx_t::value_type zero =
-      softfloat_cast<uint32_t, typename floatxx_t::value_type>(uint32_t(0));
-  floatxx_t::value_type one =
-      softfloat_cast<uint32_t, typename floatxx_t::value_type>(uint32_t(1));
-
   std::unordered_set<std::string> addr_set;
   for (auto &tx : txs) {
     addr_set.insert(tx.m_from);
@@ -266,27 +257,27 @@ floatxx_t dip_reward::participate_lambda(
     }
   }
 
-  floatxx_t gamma_p(zero);
+  floatxx_t gamma_p(0);
   for (auto &nr : participate_nr) {
     gamma_p += nr * nr;
   }
-  floatxx_t variance(zero);
+  floatxx_t variance(0);
   size_t participate_size = participate_nr.size();
   for (auto &nr : participate_nr) {
     floatxx_t tmp = nr * nr - gamma_p / participate_size;
     variance += tmp * tmp;
   }
 
-  floatxx_t gamma_s(zero);
+  floatxx_t gamma_s(0);
   for (auto &info : nr_infos) {
     gamma_s += info.m_nr_score * info.m_nr_score;
   }
 
   return neb::math::min(
       gamma_p *
-          neb::math::min(beta * gamma_p * gamma_p / variance, floatxx_t(one)) /
+          neb::math::min(beta * gamma_p * gamma_p / variance, floatxx_t(1)) /
           (alpha * gamma_s),
-      floatxx_t(one));
+      floatxx_t(1));
 }
 } // namespace dip
 } // namespace rt

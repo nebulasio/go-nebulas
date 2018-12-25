@@ -1003,13 +1003,13 @@ public:
 
     // Constructor from softfloat types
     template <typename U> inline softfloat (const softfloat<U> &w) {
-      typedef typename infer_type_helper<U>::type TU;
-        v = softfloat_cast<TU,T>(w);
+        v = softfloat_cast<U,T>(w);
     }
 
     // Constructor from castable type
     template <typename U> inline softfloat (const U &w) {
-        v = softfloat_cast<U,T>(w);
+        typedef typename infer_type_helper<U>::type TU;
+        v = softfloat_cast<TU,T>(w);
     }
 
     inline softfloat<T> round_to_int(){
