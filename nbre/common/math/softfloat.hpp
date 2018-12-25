@@ -940,6 +940,53 @@ template <> bool softfloat_isSignalingNaN(const float128_t &a) {
 
 #include <iostream>
 
+template<typename TU>
+struct redirect_is_signed{
+  constexpr static bool value = std::is_same<TU, long>::value || std::is_same<TU, long long>::value
+    || std::is_same<TU, short>::value || std::is_same<TU, int>::value;
+};
+
+template<typename TU>
+struct redirect_is_unsigned{
+  constexpr static bool value = std::is_same<TU, unsigned long>::value || std::is_same<TU, unsigned long long>::value
+    || std::is_same<TU, unsigned short>::value || std::is_same<TU, unsigned int>::value;
+};
+
+template<typename TU, bool needs_redirect = redirect_is_signed<TU>::value || redirect_is_unsigned<TU>::value >
+struct infer_type_helper{};
+template<typename TU>
+struct infer_type_helper<TU, false>{
+  typedef TU type;
+};
+
+template <size_t L> struct sized_int_type{};
+template <> struct sized_int_type<2>{
+  typedef int16_t type;
+};
+template <> struct sized_int_type<4>{
+  typedef int32_t type;
+};
+template <> struct sized_int_type<8>{
+  typedef int64_t type;
+};
+
+template <size_t L> struct sized_uint_type{};
+template <> struct sized_uint_type<2>{
+  typedef uint16_t type;
+};
+template <> struct sized_uint_type<4>{
+  typedef uint32_t type;
+};
+template <> struct sized_uint_type<8>{
+  typedef uint64_t type;
+};
+
+template <typename TU>
+struct infer_type_helper<TU, true>{
+  typedef typename std::conditional_t<redirect_is_signed<TU>::value,
+          typename sized_int_type<sizeof(TU)>::type,
+          typename sized_uint_type<sizeof(TU)>::type> type ;
+};
 template <typename T> class softfloat {
   public:
     typedef T value_type;
@@ -957,7 +1004,8 @@ public:
 
     // Constructor from softfloat types
     template <typename U> inline softfloat (const softfloat<U> &w) {
-        v = softfloat_cast<U,T>(w);
+      typedef typename infer_type_helper<U>::type TU;
+        v = softfloat_cast<TU,T>(w);
     }
 
     // Constructor from castable type
