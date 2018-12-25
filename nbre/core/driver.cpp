@@ -184,6 +184,8 @@ void driver::add_handlers() {
 
         LOG(INFO) << ipc_configuration::instance().nbre_db_dir();
         LOG(INFO) << ipc_configuration::instance().admin_pub_addr();
+        FLAGS_log_dir = ipc_configuration::instance().nbre_log_dir();
+        google::InitGoogleLogging("nbre-client");
 
         init_timer_thread();
 
