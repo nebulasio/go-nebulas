@@ -245,7 +245,7 @@ void ir_manager::parse_irs_by_height(block_height_t height) {
 
 void ir_manager::run_if_dip_deployed(const std::string &name,
                                      block_height_t height) {
-  if (name != std::string("dip") || height < 6000) {
+  if (name != std::string("dip")) {
     return;
   }
 
