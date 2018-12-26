@@ -84,7 +84,12 @@ ir_manager::read_irs(const std::string &name, block_height_t height,
 
   std::unordered_set<std::string> ir_set;
   auto versions_ptr = ir_api::get_ir_versions(name, m_storage.get());
-  read_ir_depends(name, *versions_ptr->begin(), height, depends, ir_set, irs);
+  for (auto version : *versions_ptr) {
+    read_ir_depends(name, version, height, depends, ir_set, irs);
+    if (!irs.empty()) {
+      break;
+    }
+  }
 
   return std::make_unique<std::vector<nbre::NBREIR>>(irs);
 }
@@ -166,7 +171,6 @@ void ir_manager::parse_irs() {
   //! TODO: we may consider parallel here!
   for (block_height_t h = start_height + 1; h <= end_height; h++) {
     // LOG(INFO) << h;
-    neb::rt::dip::dip_handler::instance().start(h, m_storage.get());
 
     if (!ir_manager_helper::has_failed_flag(m_storage.get(), failed_flag)) {
       ir_manager_helper::set_failed_flag(m_storage.get(), failed_flag);
@@ -177,6 +181,8 @@ void ir_manager::parse_irs() {
                     std::allocator<char>()),
         neb::util::number_to_byte<neb::util::bytes>(h));
     ir_manager_helper::del_failed_flag(m_storage.get(), failed_flag);
+
+    neb::rt::dip::dip_handler::instance().start(h, m_storage.get());
   }
 }
 
@@ -239,27 +245,16 @@ void ir_manager::parse_irs_by_height(block_height_t height) {
     // deploy ir
     ir_manager_helper::deploy_ir(name, version, payload_bytes, m_storage.get());
 
-    run_if_dip_deployed(name, height);
+    deploy_if_dip(name, version, ht);
   }
 }
 
-void ir_manager::run_if_dip_deployed(const std::string &name,
-                                     block_height_t height) {
+void ir_manager::deploy_if_dip(const std::string &name, uint64_t version,
+                               block_height_t available_height) {
   if (name != std::string("dip")) {
     return;
   }
-
-  ff::para<> p;
-  p([&name, height]() {
-    try {
-      jit_driver &jd = jit_driver::instance();
-      jd.run_ir<std::string>(name, height, "_Z15entry_point_dipB5cxx11m", 0);
-      LOG(INFO) << "dip params init done";
-    } catch (const std::exception &e) {
-      LOG(INFO) << "dip params init failed " << e.what();
-    }
-  });
-  ff::ff_wait(p);
+  neb::rt::dip::dip_handler::instance().deploy(version, available_height);
 }
 
 } // namespace fs

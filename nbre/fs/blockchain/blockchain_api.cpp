@@ -168,7 +168,6 @@ blockchain_api::get_transaction_api(const std::string &tx_hash,
   // get trie node
   trie t(rs_ptr);
   neb::util::bytes tx_hash_bytes = neb::util::string_to_byte(tx_hash);
-  LOG(INFO) << "transaction hash " << tx_hash_bytes.to_hex();
   neb::util::bytes trie_node_bytes;
   bool ret = t.get_trie_node(txs_root_bytes, tx_hash_bytes, trie_node_bytes);
   if (!ret) {

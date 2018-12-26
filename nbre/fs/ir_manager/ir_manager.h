@@ -48,7 +48,8 @@ private:
   void parse_irs();
   void parse_irs_by_height(block_height_t height);
 
-  void run_if_dip_deployed(const std::string &name, block_height_t height);
+  void deploy_if_dip(const std::string &name, uint64_t version,
+                     block_height_t available_height);
 
 private:
   std::unique_ptr<rocksdb_storage> m_storage;

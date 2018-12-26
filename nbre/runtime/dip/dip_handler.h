@@ -30,13 +30,24 @@ namespace dip {
 
 class dip_handler : public util::singleton<dip_handler> {
 public:
+  dip_handler();
+
   void start(neb::block_height_t height, neb::fs::rocksdb_storage *rs);
+  void deploy(version_t version, block_height_t available_height);
 
   std::string get_dip_reward(neb::block_height_t height);
 
 private:
+  void check_dip_params(block_height_t height, neb::fs::rocksdb_storage *rs);
+
+private:
   mutable std::mutex m_sync_mutex;
   std::unordered_map<neb::block_height_t, std::string> m_dip_reward;
+
+  bool m_has_curr;
+  std::pair<version_t, block_height_t> m_curr;
+  // suppose version and available height are in increasing order
+  std::queue<std::pair<version_t, block_height_t>> m_incoming;
 };
 } // namespace dip
 } // namespace rt

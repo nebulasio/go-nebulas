@@ -20,6 +20,7 @@
 
 #include "runtime/dip/dip_handler.h"
 #include "common/configuration.h"
+#include "core/ir_warden.h"
 #include "core/neb_ipc/server/ipc_configuration.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "fs/proto/ir.pb.h"
@@ -33,16 +34,62 @@ namespace neb {
 namespace rt {
 namespace dip {
 
+dip_handler::dip_handler() : m_has_curr(false) {}
+
+void dip_handler::check_dip_params(block_height_t height,
+                                   neb::fs::rocksdb_storage *rs) {
+
+  if (!m_has_curr && m_incoming.empty()) {
+    auto dip_versions_ptr = neb::fs::ir_api::get_ir_versions("dip", rs);
+    if (dip_versions_ptr->empty()) {
+      return;
+    }
+
+    std::reverse(dip_versions_ptr->begin(), dip_versions_ptr->end());
+    for (auto version : *dip_versions_ptr) {
+      auto nbre_ir_ptr =
+          neb::core::ir_warden::instance().get_ir_by_name_version("dip",
+                                                                  version);
+      block_height_t available_height = nbre_ir_ptr->height();
+      m_incoming.push(std::make_pair(version, available_height));
+    }
+  }
+
+  if (!m_incoming.empty()) {
+    auto first_ele = m_incoming.front();
+    block_height_t available_height = first_ele.second;
+    if (available_height <= height) {
+      m_curr = first_ele;
+      m_has_curr = true;
+      m_incoming.pop();
+
+      try {
+        jit_driver &jd = jit_driver::instance();
+        jd.run_ir<std::string>("dip", std::numeric_limits<uint64_t>::max(),
+                               "_Z15entry_point_dipB5cxx11m", 0);
+      } catch (const std::exception &e) {
+        LOG(INFO) << "dip params init failed " << e.what();
+      }
+    }
+  }
+}
+
+void dip_handler::deploy(version_t version, block_height_t available_height) {
+  m_incoming.push(std::make_pair(version, available_height));
+}
+
 void dip_handler::start(neb::block_height_t height,
                         neb::fs::rocksdb_storage *rs) {
+  check_dip_params(height, rs);
+  if (!m_has_curr) {
+    LOG(INFO) << "dip params not init";
+    return;
+  }
+
   block_height_t dip_start_block =
       neb::configuration::instance().dip_start_block();
   block_height_t dip_block_interval =
       neb::configuration::instance().dip_block_interval();
-
-  if (!dip_start_block || !dip_block_interval) {
-    return;
-  }
 
   if (height < dip_start_block + dip_block_interval) {
     LOG(INFO) << "wait to sync";
@@ -90,13 +137,14 @@ void dip_handler::start(neb::block_height_t height,
 std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   std::unique_lock<std::mutex> _l(m_sync_mutex);
 
+  if (!m_has_curr) {
+    return std::string("{\"err\":\"dip params not init yet\"}");
+  }
+
   block_height_t dip_start_block =
       neb::configuration::instance().dip_start_block();
   block_height_t dip_block_interval =
       neb::configuration::instance().dip_block_interval();
-  if (!dip_start_block || !dip_block_interval) {
-    return std::string("{\"err\":\"dip params not init yet\"}");
-  }
 
   uint64_t interval_nums = (height - dip_start_block) / dip_block_interval;
   height = dip_start_block + dip_block_interval * interval_nums;
