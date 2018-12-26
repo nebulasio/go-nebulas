@@ -21,6 +21,12 @@
 #include "runtime/nr/impl/nr_impl.h"
 
 std::string entry_point_nr(uint64_t start_block, uint64_t end_block) {
+  auto to_version_t = [](uint32_t major_version, uint16_t minor_version,
+                         uint16_t patch_version) -> neb::rt::nr::version_t {
+    return (0ULL + major_version) + ((0ULL + minor_version) << 32) +
+           ((0ULL + patch_version) << 48);
+  };
+
   neb::rt::nr::nr_float_t a = 2000.0;
   neb::rt::nr::nr_float_t b = 200000.0;
   neb::rt::nr::nr_float_t c = 100.0;
@@ -28,6 +34,6 @@ std::string entry_point_nr(uint64_t start_block, uint64_t end_block) {
   int64_t mu = 1;
   int64_t lambda = 3;
   return neb::rt::nr::entry_point_nr_impl(start_block, end_block, a, b, c, d,
-                                          mu, lambda);
+                                          mu, lambda, to_version_t(0, 1, 0));
 }
 

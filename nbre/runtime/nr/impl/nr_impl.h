@@ -28,9 +28,11 @@ namespace rt {
 namespace nr {
 
 using nr_float_t = float32;
+using version_t = uint64_t;
 std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
                                 nr_float_t a, nr_float_t b, nr_float_t c,
-                                nr_float_t d, int64_t mu, int64_t lambda);
+                                nr_float_t d, int64_t mu, int64_t lambda,
+                                version_t version);
 } // namespace nr
 } // namespace rt
 } // namespace neb

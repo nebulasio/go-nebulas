@@ -31,7 +31,8 @@ namespace dip {
 
 std::string entry_point_dip_impl(uint64_t start_block, uint64_t end_block,
                                  uint64_t height, const std::string &nr_result,
-                                 dip_float_t alpha, dip_float_t beta) {
+                                 dip_float_t alpha, dip_float_t beta,
+                                 version_t version) {
 
   std::string neb_db_path =
       neb::core::ipc_configuration::instance().neb_db_dir();
@@ -44,7 +45,12 @@ std::string entry_point_dip_impl(uint64_t start_block, uint64_t end_block,
 
   auto ret = dip_reward::get_dip_reward(
       start_block, end_block, height, nr_result, tdb_ptr, adb_ptr, alpha, beta);
-  return dip_reward::dip_info_to_json(*ret);
+  std::vector<std::pair<std::string, uint64_t>> meta_info(
+      {{"start_height", start_block},
+       {"end_height", end_block},
+       {"version", version}});
+
+  return dip_reward::dip_info_to_json(*ret, meta_info);
 }
 
 void init_dip_params(uint64_t dip_start_block, uint64_t dip_block_interval,

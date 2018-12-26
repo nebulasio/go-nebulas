@@ -31,7 +31,8 @@ namespace nr {
 
 std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
                                 nr_float_t a, nr_float_t b, nr_float_t c,
-                                nr_float_t d, int64_t mu, int64_t lambda) {
+                                nr_float_t d, int64_t mu, int64_t lambda,
+                                version_t version) {
 
   std::string neb_db_path =
       neb::core::ipc_configuration::instance().neb_db_dir();
@@ -44,10 +45,14 @@ std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
 
   LOG(INFO) << "start block: " << start_block << " , end block: " << end_block;
   neb::rt::nr::rank_params_t rp{a, b, c, d, mu, lambda};
+  std::vector<std::pair<std::string, uint64_t>> meta_info(
+      {{"start_height", start_block},
+       {"end_height", end_block},
+       {"version", version}});
 
   auto ret =
       nebulas_rank::get_nr_score(tdb_ptr, adb_ptr, rp, start_block, end_block);
-  return nebulas_rank::nr_info_to_json(*ret);
+  return nebulas_rank::nr_info_to_json(*ret, meta_info);
 }
 } // namespace nr
 } // namespace rt

@@ -75,12 +75,6 @@ void nr_handler::start(std::string nr_handler_id) {
       std::string nr_result = jd.run<std::string>(
           ss.str(), irs, "_Z14entry_point_nrB5cxx11mm", start_block, end_block);
 
-      auto it_nr_infos = nebulas_rank::json_to_nr_info(nr_result);
-      nr_result = nebulas_rank::nr_info_to_json(*it_nr_infos,
-                                                {{"start_height", start_block},
-                                                 {"end_height", end_block},
-                                                 {"version", nr_version}});
-
       m_nr_result.insert(std::make_pair(m_nr_handler_id, nr_result));
       m_nr_handler_id.clear();
     } catch (const std::exception &e) {
