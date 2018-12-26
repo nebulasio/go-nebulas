@@ -66,7 +66,7 @@ func (n *mockNeb) BlockChain() *core.BlockChain {
 }
 
 func (n *mockNeb) Nbre() core.Nbre {
-	return nil
+	return n.nbre
 }
 
 type mockNbre struct {
@@ -99,15 +99,16 @@ func (m *mockNbre) Shutdown() error {
 
 func testNeb(t *testing.T) *mockNeb {
 
-	account, err := account.NewManager(nil)
-	assert.Nil(t, err)
 	neb := &mockNeb{
 		config: &nebletpb.Config{Chain: &nebletpb.ChainConfig{ChainId: 1},
 			Nbre: &nebletpb.NbreConfig{},
 		},
-		am:   account,
 		nbre: &mockNbre{},
 	}
+
+	account, _ := account.NewManager(neb)
+	//assert.Nil(t, err)
+	neb.am = account
 	return neb
 }
 
@@ -122,6 +123,7 @@ func TestDip_CheckReward(t *testing.T) {
 		txType string
 		from   *core.Address
 		to     *core.Address
+		value  string
 		err    error
 	}{
 		{
@@ -130,6 +132,7 @@ func TestDip_CheckReward(t *testing.T) {
 			txType: core.TxPayloadBinaryType,
 			from:   mockAddress(),
 			to:     nil,
+			value:  "0",
 			err:    nil,
 		},
 		{
@@ -138,6 +141,7 @@ func TestDip_CheckReward(t *testing.T) {
 			txType: core.TxPayloadBinaryType,
 			from:   dip.RewardAddress(),
 			to:     nil,
+			value:  "0",
 			err:    ErrUnsupportedTransactionFromDipAddress,
 		},
 		{
@@ -146,6 +150,7 @@ func TestDip_CheckReward(t *testing.T) {
 			txType: core.TxPayloadDeployType,
 			from:   mockAddress(),
 			to:     nil,
+			value:  "0",
 			err:    nil,
 		},
 		{
@@ -154,6 +159,7 @@ func TestDip_CheckReward(t *testing.T) {
 			txType: core.TxPayloadDeployType,
 			from:   dip.RewardAddress(),
 			to:     nil,
+			value:  "0",
 			err:    ErrUnsupportedTransactionFromDipAddress,
 		},
 		{
@@ -162,6 +168,7 @@ func TestDip_CheckReward(t *testing.T) {
 			txType: core.TxPayloadCallType,
 			from:   mockAddress(),
 			to:     nil,
+			value:  "0",
 			err:    nil,
 		},
 		{
@@ -170,6 +177,7 @@ func TestDip_CheckReward(t *testing.T) {
 			txType: core.TxPayloadCallType,
 			from:   dip.RewardAddress(),
 			to:     nil,
+			value:  "0",
 			err:    ErrUnsupportedTransactionFromDipAddress,
 		},
 		{
@@ -178,41 +186,61 @@ func TestDip_CheckReward(t *testing.T) {
 			txType: core.TxPayloadProtocolType,
 			from:   mockAddress(),
 			to:     nil,
+			value:  "0",
 			err:    nil,
 		},
 		{
-			key:    "protocol tx",
+			key:    "protocol tx with dip from",
 			height: 1,
 			txType: core.TxPayloadProtocolType,
 			from:   dip.RewardAddress(),
 			to:     nil,
+			value:  "0",
 			err:    ErrUnsupportedTransactionFromDipAddress,
 		},
 		{
-			key:    "dip tx",
+			key:    "dip tx not form dip addr",
 			height: 1,
 			txType: core.TxPayloadDipType,
 			from:   mockAddress(),
 			to:     nil,
+			value:  "0",
 			err:    ErrInvalidDipAddress,
 		},
 		{
-			key:    "dip tx",
+			key:    "dip tx addr not found in list",
 			height: 1,
 			txType: core.TxPayloadDipType,
 			from:   dip.RewardAddress(),
 			to:     nil,
+			value:  "1",
 			err:    ErrDipNotFound,
 		},
 		{
-			key:    "dip tx",
+			key:    "dip tx value not found",
 			height: 1,
 			txType: core.TxPayloadDipType,
 			from:   dip.RewardAddress(),
 			to:     dipAddr,
+			value:  "0",
+			err:    ErrDipNotFound,
+		},
+		{
+			key:    "dip tx normal",
+			height: 1,
+			txType: core.TxPayloadDipType,
+			from:   dip.RewardAddress(),
+			to:     dipAddr,
+			value:  "1",
 			err:    nil,
 		},
 	}
+
+	//data, err := dip.GetDipList(1)
+	//assert.Nil(t, err)
+	//dipData := data.(*DIPData)
+	//println("dip addr:", dipData.Dips[0].Address)
+	//println("dip value:", dipData.Dips[0].Reward)
 
 	for _, tt := range tests {
 		t.Run(tt.key, func(t *testing.T) {
@@ -220,7 +248,9 @@ func TestDip_CheckReward(t *testing.T) {
 			if to == nil {
 				to = mockAddress()
 			}
-			tx, err := core.NewTransaction(11, tt.from, to, util.NewUint128(), 1, tt.txType, nil, core.TransactionGasPrice, core.TransactionMaxGas)
+			value, err := util.NewUint128FromString(tt.value)
+			assert.Nil(t, err)
+			tx, err := core.NewTransaction(11, tt.from, to, value, 1, tt.txType, nil, core.TransactionGasPrice, core.TransactionMaxGas)
 			assert.Nil(t, err)
 			err = dip.CheckReward(tt.height, tx)
 			assert.Equal(t, tt.err, err)

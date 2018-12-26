@@ -23,7 +23,6 @@ import (
 
 	"encoding/json"
 
-	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 )
 
@@ -53,8 +52,6 @@ var (
 
 type Neblet interface {
 	Config() *nebletpb.Config
-	BlockChain() *core.BlockChain
-	Dip() core.Dip
 }
 
 type Version struct {
