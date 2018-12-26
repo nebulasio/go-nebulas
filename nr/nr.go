@@ -19,9 +19,10 @@
 package nr
 
 import (
+	"errors"
+
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/nf/nbre"
-	"errors"
 )
 
 type NR struct {
@@ -33,8 +34,8 @@ type NR struct {
 // NewNR create nr
 func NewNR(neb Neblet) *NR {
 	nr := &NR{
-		nbre: neb.Nbre(),
-		chain:neb.BlockChain(),
+		nbre:  neb.Nbre(),
+		chain: neb.BlockChain(),
 	}
 	return nr
 }
@@ -47,13 +48,13 @@ func (n *NR) GetNRHandler(start, end, version uint64) ([]byte, error) {
 	if start >= end {
 		return nil, ErrInvalidHeightInterval
 	}
-	if end <= 0 || end > n.chain.TailBlock().Height()  {
+	if end <= 0 || end > n.chain.TailBlock().Height() {
 		return nil, ErrInvalidEndHeight
 	}
 	params := &nbre.Params{
-		StartBlock:start,
-		EndBlock:end,
-		Version: version,
+		StartBlock: start,
+		EndBlock:   end,
+		Version:    version,
 	}
 	pBytes, err := params.ToBytes()
 	if err != nil {

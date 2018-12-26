@@ -19,19 +19,19 @@
 package dip
 
 import (
-	"github.com/nebulasio/go-nebulas/core"
+	"errors"
+	"time"
+
 	"github.com/hashicorp/golang-lru"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
+	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/nf/nbre"
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
-	"time"
-	"github.com/nebulasio/go-nebulas/nf/nbre"
-	"errors"
 )
 
 type Dip struct {
-
 	neb Neblet
 
 	cache *lru.Cache
@@ -40,8 +40,8 @@ type Dip struct {
 	rewardAddress *core.Address
 	rewardValue   *util.Uint128
 
-	isLooping		bool
-	quitCh            chan int
+	isLooping bool
+	quitCh    chan int
 }
 
 // NewDIP create a dip
@@ -63,22 +63,22 @@ func NewDIP(neb Neblet) (*Dip, error) {
 	}
 
 	dip := &Dip{
-		neb: neb,
-		cache:cache,
-		quitCh:make(chan int, 1),
-		isLooping:false,
+		neb:           neb,
+		cache:         cache,
+		quitCh:        make(chan int, 1),
+		isLooping:     false,
 		rewardAddress: addr,
-		rewardValue: DipRewardValue,
+		rewardValue:   DipRewardValue,
 	}
 	return dip, nil
 }
 
 // RewardAddress return dip reward rewardAddress.
-func (d *Dip)RewardAddress() *core.Address {
+func (d *Dip) RewardAddress() *core.Address {
 	return d.rewardAddress
 }
 
-func (d *Dip)RewardValue() *util.Uint128 {
+func (d *Dip) RewardValue() *util.Uint128 {
 	return d.rewardValue
 }
 
@@ -87,8 +87,7 @@ func (d *Dip) Start() {
 	if !d.isLooping {
 		d.isLooping = true
 
-		logging.CLog().WithFields(logrus.Fields{
-		}).Info("Starting Dip...")
+		logging.CLog().WithFields(logrus.Fields{}).Info("Starting Dip...")
 
 		go d.loop()
 	}
@@ -97,8 +96,7 @@ func (d *Dip) Start() {
 // Stop stop dip.
 func (d *Dip) Stop() {
 	if d.isLooping {
-		logging.CLog().WithFields(logrus.Fields{
-		}).Info("Stopping Dip...")
+		logging.CLog().WithFields(logrus.Fields{}).Info("Stopping Dip...")
 
 		d.quitCh <- 1
 		d.isLooping = false
@@ -121,11 +119,14 @@ func (d *Dip) loop() {
 }
 
 // submitReward generate dip transactions and push to tx pool
-func (d *Dip) submitReward()  {
+func (d *Dip) submitReward() {
 	height := d.neb.BlockChain().TailBlock().Height() - uint64(DipDelayRewardHeight)
 	if height < 1 {
 		return
 	}
+	logging.VLog().WithFields(logrus.Fields{
+		"height": height,
+	}).Debug("loop  to query dip for submit.")
 	data, err := d.GetDipList(height)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -153,7 +154,7 @@ func (d *Dip) submitReward()  {
 	}
 
 	for idx, v := range dipData.Dips {
-		nonce := endAccount.Nonce()+uint64(idx)+1
+		nonce := endAccount.Nonce() + uint64(idx) + 1
 		// only not reward tx can be pushed to tx pool.
 		if nonce > tailAccount.Nonce() {
 			tx, err := d.generateRewardTx(v, nonce, endBlock)
@@ -166,9 +167,9 @@ func (d *Dip) submitReward()  {
 
 			logging.VLog().WithFields(logrus.Fields{
 				"height": d.neb.BlockChain().TailBlock().Height(),
-				"start": dipData.StartHeight,
-				"end": dipData.EndHeight,
-				"tx": tx,
+				"start":  dipData.StartHeight,
+				"end":    dipData.EndHeight,
+				"tx":     tx,
 			}).Info("Success to push dip reward tx.")
 
 			d.neb.BlockChain().TransactionPool().Push(tx)
@@ -178,10 +179,10 @@ func (d *Dip) submitReward()  {
 
 func (d *Dip) generateRewardTx(item *DIPItem, nonce uint64, block *core.Block) (*core.Transaction, error) {
 	var (
-		to *core.Address
-		value *util.Uint128
+		to      *core.Address
+		value   *util.Uint128
 		payload []byte
-		err error
+		err     error
 	)
 	if to, err = core.AddressParse(item.Address); err != nil {
 		return nil, err
@@ -236,7 +237,7 @@ func (d *Dip) GetDipList(height uint64) (core.Data, error) {
 }
 
 func (d *Dip) checkCache(height uint64) (*DIPData, bool) {
-	keys:= d.cache.Keys()
+	keys := d.cache.Keys()
 	for _, v := range keys {
 		bytes, err := byteutils.FromHex(v.(string))
 		if err != nil {
@@ -246,8 +247,14 @@ func (d *Dip) checkCache(height uint64) (*DIPData, bool) {
 		}
 		start := byteutils.Uint64(bytes[:8])
 		end := byteutils.Uint64(bytes[8:])
-		if height >= start && height <= end + DipRewardHeightInterval {
+		if height > end && height <= end+end-start {
 			data, _ := d.cache.Get(v)
+			logging.VLog().WithFields(logrus.Fields{
+				"height": height,
+				"start":  data.(*DIPData).StartHeight,
+				"end":    data.(*DIPData).EndHeight,
+				"data":   data.(*DIPData).Dips,
+			}).Debug("Success to find dip list in cache.")
 			return data.(*DIPData), true
 		}
 	}
@@ -274,9 +281,9 @@ func (d *Dip) CheckReward(height uint64, tx *core.Transaction) error {
 			if tx.To().String() == v.Address && tx.Value().String() == v.Reward {
 				logging.VLog().WithFields(logrus.Fields{
 					"height": height,
-					"start": dip.StartHeight,
-					"end": dip.EndHeight,
-					"tx": tx,
+					"start":  dip.StartHeight,
+					"end":    dip.EndHeight,
+					"tx":     tx,
 				}).Debug("Success to check dip reward tx.")
 				return nil
 			}

@@ -21,14 +21,15 @@ package nr
 import (
 	"encoding/json"
 	"errors"
+
 	"github.com/nebulasio/go-nebulas/core"
 )
 
 // Error types
 var (
-	ErrInvalidStartHeight = errors.New("invalid nr start height")
-	ErrInvalidEndHeight = errors.New("invalid nr end height")
-	ErrInvalidHeightInterval   = errors.New("invalid nr height interval")
+	ErrInvalidStartHeight    = errors.New("invalid nr start height")
+	ErrInvalidEndHeight      = errors.New("invalid nr end height")
+	ErrInvalidHeightInterval = errors.New("invalid nr height interval")
 )
 
 // const
@@ -43,17 +44,17 @@ type Neblet interface {
 
 // NRItem nr item
 type NRItem struct {
-	Address string		`json:"address"`
-	Score string		`json:"score"`
+	Address string `json:"address"`
+	Score   string `json:"score"`
 }
 
 // NRData nr data
 type NRData struct {
-	StartHeight uint64		`json:"start_height,string"`
-	EndHeight uint64		`json:"end_height,string"`
-	Version string		`json:"version"`
-	Nrs []*NRItem		`json:"nrs"`
-	Err string			`json:"err"`
+	StartHeight uint64    `json:"start_height,string"`
+	EndHeight   uint64    `json:"end_height,string"`
+	Version     string    `json:"version"`
+	Nrs         []*NRItem `json:"nrs"`
+	Err         string    `json:"err"`
 }
 
 // ToBytes serialize data

@@ -271,6 +271,8 @@ type mockNeb struct {
 	consensus Consensus
 	emitter   *EventEmitter
 	nvm       NVM
+	dip       Dip
+	nbre      Nbre
 }
 
 func (n *mockNeb) Genesis() *corepb.Genesis {
@@ -317,6 +319,14 @@ func (n *mockNeb) Nbre() Nbre {
 	return nil
 }
 
+func (n *mockNeb) Dip() Dip {
+	return n.dip
+}
+
+func (n *mockNeb) Nr() Nr {
+	return nil
+}
+
 func (n *mockNeb) StartPprof(string) error {
 	return nil
 }
@@ -351,12 +361,39 @@ func (nvm *mockEngine) ExecutionInstructions() uint64 {
 	return uint64(100)
 }
 
+type mockDip struct {
+	addr *Address
+}
+
+func (m *mockDip) Start() {}
+func (m *mockDip) Stop()  {}
+
+func (m *mockDip) RewardAddress() *Address {
+	if m.addr == nil {
+		m.addr = mockAddress()
+	}
+	return m.addr
+}
+
+func (m *mockDip) RewardValue() *util.Uint128 {
+	return util.NewUint128()
+}
+
+func (m *mockDip) GetDipList(height uint64) (Data, error) {
+	return nil, nil
+}
+
+func (m *mockDip) CheckReward(height uint64, tx *Transaction) error {
+	return nil
+}
+
 func testNeb(t *testing.T) *mockNeb {
 	storage, err := storage.NewMemoryStorage()
 	assert.Nil(t, err)
 	eventEmitter := NewEventEmitter(1024)
 	consensus := new(mockConsensus)
 	nvm := &mockNvm{}
+	dip := &mockDip{}
 	var am mockManager
 	var ns mockNetService
 	neb := &mockNeb{
@@ -368,6 +405,7 @@ func testNeb(t *testing.T) *mockNeb {
 		am:        am,
 		ns:        ns,
 		nvm:       nvm,
+		dip:       dip,
 	}
 	chain, err := NewBlockChain(neb)
 	assert.Nil(t, err)

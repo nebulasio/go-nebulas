@@ -19,11 +19,12 @@
 package dip
 
 import (
-	"errors"
 	"encoding/json"
+	"errors"
+
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
+	"github.com/nebulasio/go-nebulas/util"
 )
 
 // Error types
@@ -32,21 +33,17 @@ var (
 
 	ErrInvalidDipAddress                    = errors.New("invalid dip reward address")
 	ErrUnsupportedTransactionFromDipAddress = errors.New("unsupported transaction from dip address")
-
 )
 
 // const types
 const (
 	CacheSize = 16
 	//DipDelayRewardHeight = 24*60*60/15
-	DipDelayRewardHeight = 100
-	// DipRewardHeightInterval dip reward interval
-	DipRewardHeightInterval = 300
+	DipDelayRewardHeight = 1
 
 	// DipRewardAddressPrivate dip reward rewardAddress
-	DipRewardAddressPrivate = "42f0c8b5feb72301619046ca87e6cf2c605e94dae0e24c9cb3a0101dbb60337c"
+	DipRewardAddressPrivate    = "42f0c8b5feb72301619046ca87e6cf2c605e94dae0e24c9cb3a0101dbb60337c"
 	DipRewardAddressPassphrase = "passphrase"
-
 )
 
 var (
@@ -57,23 +54,23 @@ var (
 )
 
 type Neblet interface {
-	AccountManager() core.AccountManager
 	Config() *nebletpb.Config
+	AccountManager() core.AccountManager
 	BlockChain() *core.BlockChain
 	Nbre() core.Nbre
 }
 
 type DIPItem struct {
-	Address  string		`json:"address"`
-	Reward string		`json:"reward"`
+	Address string `json:"address"`
+	Reward  string `json:"reward"`
 }
 
 type DIPData struct {
-	StartHeight uint64		`json:"start_height,string"`
-	EndHeight uint64		`json:"end_height,string"`
-	Version string		`json:"version"`
-	Dips []*DIPItem		`json:"dips"`
-	Err string			`json:"err"`
+	StartHeight uint64     `json:"start_height,string"`
+	EndHeight   uint64     `json:"end_height,string"`
+	Version     string     `json:"version"`
+	Dips        []*DIPItem `json:"dips"`
+	Err         string     `json:"err"`
 }
 
 // ToBytes serialize data
