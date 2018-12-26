@@ -33,8 +33,8 @@ namespace neb {
 namespace rt {
 namespace dip {
 
-void dip_handler::start(neb::block_height_t height) {
-  std::unique_lock<std::mutex> _l(m_sync_mutex);
+void dip_handler::start(neb::block_height_t height,
+                        neb::fs::rocksdb_storage *rs) {
   block_height_t dip_start_block =
       neb::configuration::instance().dip_start_block();
   block_height_t dip_block_interval =
@@ -60,21 +60,17 @@ void dip_handler::start(neb::block_height_t height) {
     return;
   }
 
+  auto dip_versions_ptr = neb::fs::ir_api::get_ir_versions("dip", rs);
+  uint64_t dip_version = *dip_versions_ptr->begin();
+
   ff::para<> p;
-  p([this, hash_height, dip_block_interval]() {
+  p([this, hash_height, dip_block_interval, dip_version]() {
     try {
+      std::unique_lock<std::mutex> _l(m_sync_mutex);
       jit_driver &jd = jit_driver::instance();
       auto dip_reward = jd.run_ir<std::string>(
           "dip", hash_height, "_Z15entry_point_dipB5cxx11m", hash_height);
       LOG(INFO) << "dip reward returned";
-
-      std::unique_ptr<neb::fs::rocksdb_storage> rs =
-          std::make_unique<neb::fs::rocksdb_storage>();
-      rs->open_database(neb::core::ipc_configuration::instance().nbre_db_dir(),
-                        neb::fs::storage_open_for_readonly);
-      auto dip_versions_ptr = neb::fs::ir_api::get_ir_versions("dip", rs.get());
-      rs->close_database();
-      uint64_t dip_version = *dip_versions_ptr->begin();
 
       auto it_dip_infos = dip_reward::json_to_dip_info(dip_reward);
       dip_reward = dip_reward::dip_info_to_json(
@@ -97,6 +93,10 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
       neb::configuration::instance().dip_start_block();
   block_height_t dip_block_interval =
       neb::configuration::instance().dip_block_interval();
+  if (!dip_start_block || !dip_block_interval) {
+    return std::string("{\"err\":\"dip params not init yet\"}");
+  }
+
   uint64_t interval_nums = (height - dip_start_block) / dip_block_interval;
   height = dip_start_block + dip_block_interval * interval_nums;
 

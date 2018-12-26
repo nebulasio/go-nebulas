@@ -166,7 +166,7 @@ void ir_manager::parse_irs() {
   //! TODO: we may consider parallel here!
   for (block_height_t h = start_height + 1; h <= end_height; h++) {
     // LOG(INFO) << h;
-    neb::rt::dip::dip_handler::instance().start(h);
+    neb::rt::dip::dip_handler::instance().start(h, m_storage.get());
 
     if (!ir_manager_helper::has_failed_flag(m_storage.get(), failed_flag)) {
       ir_manager_helper::set_failed_flag(m_storage.get(), failed_flag);
