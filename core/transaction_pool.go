@@ -305,7 +305,7 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 	}
 
 	// check dip reward
-	if err := pool.bc.dip.CheckReward(pool.bc.tailBlock.height, tx); err != nil {
+	if err := pool.bc.dip.CheckReward(tx); err != nil {
 		return err
 	}
 

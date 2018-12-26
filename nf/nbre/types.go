@@ -70,20 +70,3 @@ func (v *Version) FromBytes(data []byte) error {
 	}
 	return nil
 }
-
-type Params struct {
-	StartBlock uint64 `json:"start_block"`
-	EndBlock   uint64 `json:"end_block"`
-	Version    uint64 `json:"version"`
-}
-
-func (p *Params) ToBytes() ([]byte, error) {
-	return json.Marshal(p)
-}
-
-func (p *Params) FromBytes(data []byte) error {
-	if err := json.Unmarshal(data, p); err != nil {
-		return err
-	}
-	return nil
-}

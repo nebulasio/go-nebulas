@@ -203,7 +203,11 @@ func parseTransactionPayload(reqTx *rpcpb.TransactionRequest) (payloadType strin
 		case core.TxPayloadProtocolType:
 			{
 				payloadType = core.TxPayloadProtocolType
-				if payload, err = core.NewProtocolPayload(reqTx.Protocol).ToBytes(); err != nil {
+				protocolPayload, err := core.NewProtocolPayload(reqTx.Protocol)
+				if err != nil {
+					return "", nil, err
+				}
+				if payload, err = protocolPayload.ToBytes(); err != nil {
 					return "", nil, err
 				}
 			}
@@ -240,7 +244,11 @@ func parseTransactionPayload(reqTx *rpcpb.TransactionRequest) (payloadType strin
 			}
 		} else if reqTx.Protocol != nil {
 			payloadType = core.TxPayloadProtocolType
-			if payload, err = core.NewProtocolPayload(reqTx.Protocol).ToBytes(); err != nil {
+			protocolPayload, err := core.NewProtocolPayload(reqTx.Protocol)
+			if err != nil {
+				return "", nil, err
+			}
+			if payload, err = protocolPayload.ToBytes(); err != nil {
 				return "", nil, err
 			}
 		} else {
@@ -698,7 +706,7 @@ func (s *APIService) GetDIPList(ctx context.Context, req *rpcpb.GetDIPListReques
 		height = neb.BlockChain().TailBlock().Height()
 	}
 
-	data, err := neb.Dip().GetDipList(height)
+	data, err := neb.Dip().GetDipList(height, 0)
 
 	if err != nil {
 		return nil, err

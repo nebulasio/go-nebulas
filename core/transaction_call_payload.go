@@ -105,10 +105,6 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 		return util.NewUint128(), "", ErrNilArgument
 	}
 
-	if err := block.dip.CheckReward(block.height, tx); err != nil {
-		return util.NewUint128(), "", err
-	}
-
 	// payloadGasLimit <= 0, v8 engine not limit the execution instructions
 	if limitedGas.Cmp(util.NewUint128()) <= 0 {
 		return util.NewUint128(), "", ErrOutOfGasLimit

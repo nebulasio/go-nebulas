@@ -119,7 +119,6 @@ func TestDip_CheckReward(t *testing.T) {
 
 	tests := []struct {
 		key    string
-		height uint64
 		txType string
 		from   *core.Address
 		to     *core.Address
@@ -128,7 +127,6 @@ func TestDip_CheckReward(t *testing.T) {
 	}{
 		{
 			key:    "binary tx",
-			height: 1,
 			txType: core.TxPayloadBinaryType,
 			from:   mockAddress(),
 			to:     nil,
@@ -137,7 +135,6 @@ func TestDip_CheckReward(t *testing.T) {
 		},
 		{
 			key:    "binary tx with dip from",
-			height: 1,
 			txType: core.TxPayloadBinaryType,
 			from:   dip.RewardAddress(),
 			to:     nil,
@@ -146,7 +143,6 @@ func TestDip_CheckReward(t *testing.T) {
 		},
 		{
 			key:    "deploy tx",
-			height: 1,
 			txType: core.TxPayloadDeployType,
 			from:   mockAddress(),
 			to:     nil,
@@ -155,7 +151,6 @@ func TestDip_CheckReward(t *testing.T) {
 		},
 		{
 			key:    "deploy tx with dip from",
-			height: 1,
 			txType: core.TxPayloadDeployType,
 			from:   dip.RewardAddress(),
 			to:     nil,
@@ -164,7 +159,6 @@ func TestDip_CheckReward(t *testing.T) {
 		},
 		{
 			key:    "call tx",
-			height: 1,
 			txType: core.TxPayloadCallType,
 			from:   mockAddress(),
 			to:     nil,
@@ -173,7 +167,6 @@ func TestDip_CheckReward(t *testing.T) {
 		},
 		{
 			key:    "call tx with dip from",
-			height: 1,
 			txType: core.TxPayloadCallType,
 			from:   dip.RewardAddress(),
 			to:     nil,
@@ -182,7 +175,6 @@ func TestDip_CheckReward(t *testing.T) {
 		},
 		{
 			key:    "protocol tx",
-			height: 1,
 			txType: core.TxPayloadProtocolType,
 			from:   mockAddress(),
 			to:     nil,
@@ -191,7 +183,6 @@ func TestDip_CheckReward(t *testing.T) {
 		},
 		{
 			key:    "protocol tx with dip from",
-			height: 1,
 			txType: core.TxPayloadProtocolType,
 			from:   dip.RewardAddress(),
 			to:     nil,
@@ -200,7 +191,6 @@ func TestDip_CheckReward(t *testing.T) {
 		},
 		{
 			key:    "dip tx not form dip addr",
-			height: 1,
 			txType: core.TxPayloadDipType,
 			from:   mockAddress(),
 			to:     nil,
@@ -209,7 +199,6 @@ func TestDip_CheckReward(t *testing.T) {
 		},
 		{
 			key:    "dip tx addr not found in list",
-			height: 1,
 			txType: core.TxPayloadDipType,
 			from:   dip.RewardAddress(),
 			to:     nil,
@@ -218,7 +207,6 @@ func TestDip_CheckReward(t *testing.T) {
 		},
 		{
 			key:    "dip tx value not found",
-			height: 1,
 			txType: core.TxPayloadDipType,
 			from:   dip.RewardAddress(),
 			to:     dipAddr,
@@ -227,7 +215,6 @@ func TestDip_CheckReward(t *testing.T) {
 		},
 		{
 			key:    "dip tx normal",
-			height: 1,
 			txType: core.TxPayloadDipType,
 			from:   dip.RewardAddress(),
 			to:     dipAddr,
@@ -252,7 +239,7 @@ func TestDip_CheckReward(t *testing.T) {
 			assert.Nil(t, err)
 			tx, err := core.NewTransaction(11, tt.from, to, value, 1, tt.txType, nil, core.TransactionGasPrice, core.TransactionMaxGas)
 			assert.Nil(t, err)
-			err = dip.CheckReward(tt.height, tx)
+			err = dip.CheckReward(tx)
 			assert.Equal(t, tt.err, err)
 		})
 	}

@@ -127,7 +127,7 @@ func (d *Dip) submitReward() {
 	logging.VLog().WithFields(logrus.Fields{
 		"height": height,
 	}).Debug("loop  to query dip for submit.")
-	data, err := d.GetDipList(height)
+	data, err := d.GetDipList(height, 0)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
@@ -157,7 +157,7 @@ func (d *Dip) submitReward() {
 		nonce := endAccount.Nonce() + uint64(idx) + 1
 		// only not reward tx can be pushed to tx pool.
 		if nonce > tailAccount.Nonce() {
-			tx, err := d.generateRewardTx(v, nonce, endBlock)
+			tx, err := d.generateRewardTx(dipData.StartHeight, dipData.EndHeight, dipData.Version, v, nonce, endBlock)
 			if err != nil {
 				logging.VLog().WithFields(logrus.Fields{
 					"err": err,
@@ -177,12 +177,13 @@ func (d *Dip) submitReward() {
 	}
 }
 
-func (d *Dip) generateRewardTx(item *DIPItem, nonce uint64, block *core.Block) (*core.Transaction, error) {
+func (d *Dip) generateRewardTx(start uint64, end uint64, version uint64, item *DIPItem, nonce uint64, block *core.Block) (*core.Transaction, error) {
 	var (
-		to      *core.Address
-		value   *util.Uint128
-		payload []byte
-		err     error
+		to           *core.Address
+		value        *util.Uint128
+		payload      *core.DipPayload
+		payloadBytes []byte
+		err          error
 	)
 	if to, err = core.AddressParse(item.Address); err != nil {
 		return nil, err
@@ -190,7 +191,10 @@ func (d *Dip) generateRewardTx(item *DIPItem, nonce uint64, block *core.Block) (
 	if value, err = util.NewUint128FromString(item.Reward); err != nil {
 		return nil, err
 	}
-	if payload, err = core.NewDipPayload(nil).ToBytes(); err != nil {
+	if payload, err = core.NewDipPayload(start, end, version); err != nil {
+		return nil, err
+	}
+	if payloadBytes, err = payload.ToBytes(); err != nil {
 		return nil, err
 	}
 
@@ -201,7 +205,7 @@ func (d *Dip) generateRewardTx(item *DIPItem, nonce uint64, block *core.Block) (
 		value,
 		nonce,
 		core.TxPayloadDipType,
-		payload,
+		payloadBytes,
 		d.neb.BlockChain().TransactionPool().GetMinGasPrice(),
 		core.MinGasCountPerTransaction)
 	if err != nil {
@@ -216,10 +220,10 @@ func (d *Dip) generateRewardTx(item *DIPItem, nonce uint64, block *core.Block) (
 }
 
 // GetDipList returns dip info list
-func (d *Dip) GetDipList(height uint64) (core.Data, error) {
+func (d *Dip) GetDipList(height, version uint64) (core.Data, error) {
 	data, ok := d.checkCache(height)
 	if !ok {
-		dipData, err := d.neb.Nbre().Execute(nbre.CommandDIPList, byteutils.FromUint64(height))
+		dipData, err := d.neb.Nbre().Execute(nbre.CommandDIPList, height, version)
 		if err != nil {
 			return nil, err
 		}
@@ -262,7 +266,7 @@ func (d *Dip) checkCache(height uint64) (*DIPData, bool) {
 	return nil, false
 }
 
-func (d *Dip) CheckReward(height uint64, tx *core.Transaction) error {
+func (d *Dip) CheckReward(tx *core.Transaction) error {
 	//if tx type is not dip, can't use the reward address send tx.
 	if tx.Type() != core.TxPayloadDipType && tx.From().Equals(d.rewardAddress) {
 		return ErrUnsupportedTransactionFromDipAddress
@@ -273,7 +277,14 @@ func (d *Dip) CheckReward(height uint64, tx *core.Transaction) error {
 			return ErrInvalidDipAddress
 		}
 
-		data, err := d.GetDipList(height)
+		payload, err := tx.LoadPayload()
+		if err != nil {
+			return err
+		}
+
+		dipPayload := payload.(*core.DipPayload)
+		height := dipPayload.EndHeight + dipPayload.EndHeight - dipPayload.StartHeight
+		data, err := d.GetDipList(height, dipPayload.Version)
 		if err != nil {
 			return err
 		}

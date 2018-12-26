@@ -328,7 +328,7 @@ type Data interface {
 // Nbre interface
 type Nbre interface {
 	Start() error
-	Execute(command string, params []byte) ([]byte, error)
+	Execute(command string, args ...interface{}) ([]byte, error)
 	Shutdown() error
 }
 
@@ -344,6 +344,6 @@ type Dip interface {
 	RewardAddress() *Address
 	RewardValue() *util.Uint128
 
-	GetDipList(height uint64) (Data, error)
-	CheckReward(height uint64, tx *Transaction) error
+	GetDipList(height, version uint64) (Data, error)
+	CheckReward(tx *Transaction) error
 }

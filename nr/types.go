@@ -32,11 +32,6 @@ var (
 	ErrInvalidHeightInterval = errors.New("invalid nr height interval")
 )
 
-// const
-const (
-	DefaultNRVersion = 4294967296
-)
-
 type Neblet interface {
 	BlockChain() *core.BlockChain
 	Nbre() core.Nbre
@@ -52,7 +47,7 @@ type NRItem struct {
 type NRData struct {
 	StartHeight uint64    `json:"start_height,string"`
 	EndHeight   uint64    `json:"end_height,string"`
-	Version     string    `json:"version"`
+	Version     uint64    `json:"version,string"`
 	Nrs         []*NRItem `json:"nrs"`
 	Err         string    `json:"err"`
 }

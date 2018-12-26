@@ -19,29 +19,42 @@
 package core
 
 import (
+	"encoding/json"
+
 	"github.com/nebulasio/go-nebulas/util"
 )
 
 // DipPayload carry ir data
 type DipPayload struct {
-	Data []byte
+	StartHeight uint64
+	EndHeight   uint64
+	Version     uint64
 }
 
 // LoadDipPayload from bytes
 func LoadDipPayload(bytes []byte) (*DipPayload, error) {
-	return NewDipPayload(bytes), nil
+	payload := &DipPayload{}
+	if err := json.Unmarshal(bytes, payload); err != nil {
+		return nil, ErrInvalidArgument
+	}
+	return NewDipPayload(payload.StartHeight, payload.EndHeight, payload.Version)
 }
 
 // NewDipPayload with data
-func NewDipPayload(data []byte) *DipPayload {
-	return &DipPayload{
-		Data: data,
+func NewDipPayload(start, end, version uint64) (*DipPayload, error) {
+	if end < start {
+		return nil, ErrInvalidArgument
 	}
+	return &DipPayload{
+		StartHeight: start,
+		EndHeight:   end,
+		Version:     version,
+	}, nil
 }
 
 // ToBytes serialize payload
 func (payload *DipPayload) ToBytes() ([]byte, error) {
-	return payload.Data, nil
+	return json.Marshal(payload)
 }
 
 // BaseGasCount returns base gas count
@@ -55,8 +68,5 @@ func (payload *DipPayload) Execute(limitedGas *util.Uint128, tx *Transaction, bl
 		return util.NewUint128(), "", ErrNilArgument
 	}
 
-	if err := block.dip.CheckReward(block.height, tx); err != nil {
-		return util.NewUint128(), "", err
-	}
 	return util.NewUint128(), "", nil
 }
