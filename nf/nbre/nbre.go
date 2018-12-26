@@ -166,12 +166,6 @@ func (n *Nbre) Start() error {
 		m_admin_pub_addr:    cAdminAddr,
 		m_nbre_start_height: C.uint64_t(n.neb.Config().Nbre.StartHeight),
 	}
-	//p.m_nbre_root_dir = cRootDir
-	//p.m_nbre_exe_name = cNbrePath
-	//p.m_neb_db_dir = cDataDir
-	//p.m_nbre_db_dir = cNbreDataDir
-	//p.m_nbre_log_dir = cLogDir
-	//p.m_admin_pub_addr = cAddr
 
 	logging.CLog().WithFields(logrus.Fields{
 		"data":  nbreDataDir,

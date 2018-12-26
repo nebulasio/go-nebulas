@@ -247,15 +247,16 @@ func (d *Dip) checkCache(height uint64) (*DIPData, bool) {
 		}
 		start := byteutils.Uint64(bytes[:8])
 		end := byteutils.Uint64(bytes[8:])
-		if height > end && height <= end+end-start {
+		if height > end && height <= end+end-start+1 {
 			data, _ := d.cache.Get(v)
+			dipData := data.(*DIPData)
 			logging.VLog().WithFields(logrus.Fields{
-				"height": height,
-				"start":  data.(*DIPData).StartHeight,
-				"end":    data.(*DIPData).EndHeight,
-				"data":   data.(*DIPData).Dips,
+				"height":   height,
+				"start":    dipData.StartHeight,
+				"end":      dipData.EndHeight,
+				"dataSize": len(dipData.Dips),
 			}).Debug("Success to find dip list in cache.")
-			return data.(*DIPData), true
+			return dipData, true
 		}
 	}
 	return nil, false

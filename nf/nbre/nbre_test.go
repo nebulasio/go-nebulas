@@ -34,8 +34,26 @@ func (n *mockNeb) Config() *nebletpb.Config {
 	return n.config
 }
 
+func newMockNeb() *mockNeb {
+	neb := &mockNeb{
+		&nebletpb.Config{
+			Chain: &nebletpb.ChainConfig{
+				Datadir: "data.db",
+			},
+			Nbre: &nebletpb.NbreConfig{
+				RootDir:      "nbre",
+				LogDir:       "nbre/logs",
+				DataDir:      "nbre/nbre.db",
+				NbrePath:     "nbre/nbre",
+				AdminAddress: "n1cYKNHTeVW9v1NQRWuhZZn9ETbqAYozckh",
+			},
+		},
+	}
+	return neb
+}
+
 func TestNbre_Start(t *testing.T) {
-	nbre := NewNbre(nil)
+	nbre := NewNbre(newMockNeb())
 	err := nbre.Start()
 	assert.NoError(t, err, "nbre start failed")
 	err = nbre.Shutdown()
@@ -69,7 +87,7 @@ func TestNbre_Execute(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	wg.Add(2)
 
-	nbre := NewNbre(nil)
+	nbre := NewNbre(newMockNeb())
 	err := nbre.Start()
 	assert.NoError(t, err, "nbre start failed")
 
