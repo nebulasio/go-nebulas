@@ -32,6 +32,8 @@ public:
   account_db(blockchain_api *blockchain_ptr);
 
   wei_t get_balance(const address_t &addr, block_height_t height);
+  address_t get_contract_deployer(const address_t &address_t,
+                                  block_height_t height);
 
   void set_height_address_val_internal(
       const std::vector<transaction_info_t> &txs,

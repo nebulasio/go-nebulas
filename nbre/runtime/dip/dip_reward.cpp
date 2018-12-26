@@ -66,7 +66,7 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
   std::vector<dip_info_t> dip_infos;
   for (auto &v : *it_dapp_votes) {
     dip_info_t info;
-    info.m_address = v.first;
+    info.m_address = adb_ptr->get_contract_deployer(v.first, end_block);
 
     // floatxx_t reward_in_nas =
     floatxx_t reward_in_wei =

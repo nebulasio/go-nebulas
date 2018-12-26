@@ -52,8 +52,10 @@ public:
   std::unique_ptr<std::vector<transaction_info_t>>
   get_block_transactions_api(block_height_t height);
 
-  std::unique_ptr<account_info_t> get_account_api(const address_t &addr,
-                                                  block_height_t height);
+  std::unique_ptr<corepb::Account> get_account_api(const address_t &addr,
+                                                   block_height_t height);
+  std::unique_ptr<corepb::Transaction>
+  get_transaction_api(const std::string &tx_hash, block_height_t height);
 
 private:
   std::unique_ptr<event_info_t>

@@ -120,7 +120,7 @@ blockchain_api::json_parse_event(const std::string &json) {
   return std::make_unique<event_info_t>(event_info_t{status, gas_used});
 }
 
-std::unique_ptr<account_info_t>
+std::unique_ptr<corepb::Account>
 blockchain_api::get_account_api(const address_t &addr, block_height_t height) {
 
   auto rs_ptr = m_blockchain->get_blockchain_storage();
@@ -148,15 +148,39 @@ blockchain_api::get_account_api(const address_t &addr, block_height_t height) {
   if (!ret) {
     throw std::runtime_error("parse corepb Account failed");
   }
+  return std::move(corepb_account_ptr);
+}
 
-  // get balance from pb Account
-  std::string balance_str = corepb_account_ptr->balance();
-  std::string hex_str = neb::util::string_to_byte(balance_str).to_hex();
+std::unique_ptr<corepb::Transaction>
+blockchain_api::get_transaction_api(const std::string &tx_hash,
+                                    block_height_t height) {
+  std::unique_ptr<corepb::Transaction> corepb_txs_ptr =
+      std::make_unique<corepb::Transaction>();
 
-  std::string address = corepb_account_ptr->address();
+  auto rs_ptr = m_blockchain->get_blockchain_storage();
+  // suppose height is the latest block height
+  auto block = m_blockchain->load_block_with_height(height);
 
-  return std::make_unique<account_info_t>(
-      account_info_t{address, to_wei(hex_str)});
+  // get block header transaction root
+  std::string txs_root_str = block->header().txs_root();
+  neb::util::bytes txs_root_bytes = neb::util::string_to_byte(txs_root_str);
+
+  // get trie node
+  trie t(rs_ptr);
+  neb::util::bytes tx_hash_bytes = neb::util::string_to_byte(tx_hash);
+  LOG(INFO) << "transaction hash " << tx_hash_bytes.to_hex();
+  neb::util::bytes trie_node_bytes;
+  bool ret = t.get_trie_node(txs_root_bytes, tx_hash_bytes, trie_node_bytes);
+  if (!ret) {
+    return std::move(corepb_txs_ptr);
+  }
+
+  ret = corepb_txs_ptr->ParseFromArray(trie_node_bytes.value(),
+                                       trie_node_bytes.size());
+  if (!ret) {
+    throw std::runtime_error("parse corepb Transaction failed");
+  }
+  return std::move(corepb_txs_ptr);
 }
 } // namespace fs
 } // namespace neb

@@ -20,6 +20,7 @@
 
 #include "core/neb_ipc/server/ipc_configuration.h"
 #include "fs/blockchain.h"
+#include "fs/blockchain/account/account_db.h"
 #include "fs/blockchain/blockchain_api.h"
 #include "fs/blockchain/trie/trie.h"
 #include "fs/util.h"
@@ -219,7 +220,10 @@ void trie_balance(const neb::block_height_t start_block,
 
       neb::util::bytes addr_bytes = neb::util::bytes::from_base58(addr);
       std::string addr_str = neb::util::byte_to_string(addr_bytes);
-      neb::wei_t balance_actual = ba.get_account_api(addr_str, h)->m_balance;
+      auto corepb_account_ptr = ba.get_account_api(addr_str, h);
+      std::string balance_str = corepb_account_ptr->balance();
+      std::string hex_str = neb::util::string_to_byte(balance_str).to_hex();
+      neb::wei_t balance_actual = neb::to_wei(hex_str);
 
       LOG(INFO) << addr << ',' << h << " expect:" << balance_expect
                 << " actual:" << balance_actual;
@@ -228,8 +232,26 @@ void trie_balance(const neb::block_height_t start_block,
   }
 }
 
+void trie_contract_deployer() {
+
+  std::string neb_db = std::getenv("NEB_DB_DIR");
+  neb::fs::blockchain bc(neb_db);
+  neb::fs::blockchain_api ba(&bc);
+  neb::fs::account_db ad(&ba);
+
+  std::vector<std::string> v{"n1g6JZsQS1uRUySdwvuFJ7FYT4dFoyoSN5q"};
+  for (auto &addr : v) {
+    neb::util::bytes contract_bytes = neb::util::bytes::from_base58(addr);
+    std::string addr_str = ad.get_contract_deployer(
+        neb::util::byte_to_string(contract_bytes), 1000000);
+    neb::util::bytes addr_bytes = neb::util::string_to_byte(addr_str);
+    LOG(INFO) << addr_bytes.to_base58();
+  }
+}
+
 int main(int argc, char *argv[]) {
   // trie_balance(std::stoll(argv[1]), std::stoll(argv[2]));
-  trie_event(std::stoll(argv[1]), std::stoll(argv[2]));
+  // trie_event(std::stoll(argv[1]), std::stoll(argv[2]));
+  trie_contract_deployer();
   return 0;
 }

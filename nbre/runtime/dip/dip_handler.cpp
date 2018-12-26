@@ -73,10 +73,11 @@ void dip_handler::start(neb::block_height_t height,
       LOG(INFO) << "dip reward returned";
 
       auto it_dip_infos = dip_reward::json_to_dip_info(dip_reward);
-      dip_reward = dip_reward::dip_info_to_json(
-          *it_dip_infos, {{"start_height", hash_height - dip_block_interval},
-                          {"end_height", hash_height - 1},
-                          {"version", dip_version}});
+      std::vector<std::pair<std::string, uint64_t>> meta_info(
+          {{"start_height", hash_height - dip_block_interval},
+           {"end_height", hash_height - 1},
+           {"version", dip_version}});
+      dip_reward = dip_reward::dip_info_to_json(*it_dip_infos, meta_info);
       LOG(INFO) << "dip reward meta info returned";
 
       m_dip_reward.insert(std::make_pair(hash_height, dip_reward));

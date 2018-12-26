@@ -21,6 +21,7 @@
 #include "fs/blockchain/account/account_db.h"
 #include "fs/blockchain/nebulas_currency.h"
 #include "fs/blockchain/trie/trie.h"
+#include "fs/util.h"
 
 namespace neb {
 namespace fs {
@@ -29,7 +30,18 @@ account_db::account_db(blockchain_api *blockchain_ptr)
     : m_blockchain(blockchain_ptr) {}
 
 wei_t account_db::get_balance(const address_t &addr, block_height_t height) {
-  return m_blockchain->get_account_api(addr, height)->m_balance;
+  auto corepb_account_ptr = m_blockchain->get_account_api(addr, height);
+  std::string balance_str = corepb_account_ptr->balance();
+  std::string hex_str = neb::util::string_to_byte(balance_str).to_hex();
+  return to_wei(hex_str);
+}
+
+address_t account_db::get_contract_deployer(const address_t &addr,
+                                            block_height_t height) {
+  auto corepb_account_ptr = m_blockchain->get_account_api(addr, height);
+  std::string birth_place = corepb_account_ptr->birth_place();
+  auto corepb_txs_ptr = m_blockchain->get_transaction_api(birth_place, height);
+  return corepb_txs_ptr->from();
 }
 
 void account_db::set_height_address_val_internal(
