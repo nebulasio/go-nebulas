@@ -219,6 +219,11 @@ func (pool *TransactionPool) GetMinGasPrice() *util.Uint128 {
 	return pool.minGasPrice
 }
 
+// GetMaxGasLimit return the maxGasLimit
+func (pool *TransactionPool) GetMaxGasLimit() *util.Uint128 {
+	return pool.maxGasLimit
+}
+
 // GetTransaction return transaction of given hash from transaction pool.
 func (pool *TransactionPool) GetTransaction(hash byteutils.Hash) *Transaction {
 	pool.mu.Lock()

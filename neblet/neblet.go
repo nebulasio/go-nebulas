@@ -355,14 +355,14 @@ func (n *Neblet) Stop() {
 		metrics.Stop()
 	}
 
-	if n.nbre != nil {
-		n.nbre.Shutdown()
-		n.nbre = nil
-	}
-
 	if n.dip != nil {
 		n.dip.Stop()
 		n.dip = nil
+	}
+
+	if n.nbre != nil {
+		n.nbre.Shutdown()
+		n.nbre = nil
 	}
 
 	n.accountManager = nil
