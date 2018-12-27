@@ -199,12 +199,14 @@ nebulas_rank::get_account_weight(
   return std::make_shared<std::unordered_map<std::string, floatxx_t>>(ret);
 }
 
-floatxx_t nebulas_rank::f_account_rank(floatxx_t a, floatxx_t b, floatxx_t c,
-                                       floatxx_t d, int64_t mu, int64_t lambda,
-                                       floatxx_t S, floatxx_t R) {
-
-  auto ret =
-      math::pow(S * a / (S + b), mu) * math::pow(R * c / (R + d), lambda);
+floatxx_t nebulas_rank::f_account_rank(int64_t a, int64_t b, int64_t c,
+                                       int64_t d, floatxx_t theta, floatxx_t mu,
+                                       floatxx_t lambda, floatxx_t S,
+                                       floatxx_t R) {
+  floatxx_t one = softfloat_cast<uint32_t, typename floatxx_t::value_type>(1);
+  auto gamma = math::pow(theta * R / (R + mu), lambda);
+  auto ret = (S / (one + math::exp(a + b * S))) *
+             (gamma / (one + math::exp(c + d * gamma)));
   return ret;
 }
 
@@ -221,8 +223,8 @@ nebulas_rank::get_account_rank(
     auto it_w = account_weight.find(it_m->first);
     if (it_w != account_weight.end()) {
       floatxx_t rank_val =
-          f_account_rank(rp.m_a, rp.m_b, rp.m_c, rp.m_d, rp.m_mu, rp.m_lambda,
-                         it_m->second, it_w->second);
+          f_account_rank(rp.m_a, rp.m_b, rp.m_c, rp.m_d, rp.m_theta, rp.m_mu,
+                         rp.m_lambda, it_m->second, it_w->second);
       ret.insert(std::make_pair(it_m->first, rank_val));
     }
   }
