@@ -184,15 +184,16 @@ void driver::add_handlers() {
 
         LOG(INFO) << ipc_configuration::instance().nbre_db_dir();
         LOG(INFO) << ipc_configuration::instance().admin_pub_addr();
-        // FLAGS_log_dir = ipc_configuration::instance().nbre_log_dir();
-        // google::InitGoogleLogging("nbre-client");
+        FLAGS_log_dir = ipc_configuration::instance().nbre_log_dir();
+        google::InitGoogleLogging("nbre-client");
 
         {
           std::unique_ptr<neb::fs::rocksdb_storage> rs =
               std::make_unique<neb::fs::rocksdb_storage>();
+          // open flag readwrite for initing rocksdb CURRNET file
           rs->open_database(
               neb::core::ipc_configuration::instance().nbre_db_dir(),
-              neb::fs::storage_open_for_readonly);
+              neb::fs::storage_open_for_readwrite);
           neb::rt::dip::dip_handler::instance().read_dip_reward_from_storage(
               rs.get());
           rs->close_database();
