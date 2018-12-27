@@ -30,9 +30,9 @@ namespace rt {
 namespace nr {
 
 std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
-                                nr_float_t a, nr_float_t b, nr_float_t c,
-                                nr_float_t d, int64_t mu, int64_t lambda,
-                                version_t version) {
+                                version_t version, int64_t a, int64_t b,
+                                int64_t c, int64_t d, nr_float_t theta,
+                                nr_float_t mu, nr_float_t lambda) {
 
   std::string neb_db_path =
       neb::core::ipc_configuration::instance().neb_db_dir();
@@ -44,7 +44,7 @@ std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
       std::make_shared<neb::fs::account_db>(&ba);
 
   LOG(INFO) << "start block: " << start_block << " , end block: " << end_block;
-  neb::rt::nr::rank_params_t rp{a, b, c, d, mu, lambda};
+  neb::rt::nr::rank_params_t rp{a, b, c, d, theta, mu, lambda};
   std::vector<std::pair<std::string, uint64_t>> meta_info(
       {{"start_height", start_block},
        {"end_height", end_block},

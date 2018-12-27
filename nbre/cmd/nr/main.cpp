@@ -27,12 +27,13 @@ namespace po = boost::program_options;
 
 int main(int argc, char *argv[]) {
 
-  neb::rt::nr::nr_float_t a = 2000.0;
-  neb::rt::nr::nr_float_t b = 200000.0;
-  neb::rt::nr::nr_float_t c = 100.0;
-  neb::rt::nr::nr_float_t d = 1000.0;
-  int64_t mu = 1;
-  int64_t lambda = 3;
+  int64_t a = 3118;
+  int64_t b = 3792;
+  int64_t c = 6034;
+  int64_t d = 4158;
+  neb::rt::nr::nr_float_t theta = 2.2;
+  neb::rt::nr::nr_float_t mu = 0.1;
+  neb::rt::nr::nr_float_t lambda = 0.3;
 
   po::options_description desc("Nr");
   desc.add_options()("help", "show help message")(
@@ -60,8 +61,8 @@ int main(int argc, char *argv[]) {
   uint64_t start_block = vm["start_block"].as<uint64_t>();
   uint64_t end_block = vm["end_block"].as<uint64_t>();
   auto ret = neb::rt::nr::entry_point_nr_impl(
-      start_block, end_block, a, b, c, d, mu, lambda,
-      neb::util::version(0, 1, 0).data());
+      start_block, end_block, neb::util::version(0, 1, 0).data(), a, b, c, d,
+      theta, mu, lambda);
   std::cout << ret << std::endl;
   std::cout << std::endl;
 

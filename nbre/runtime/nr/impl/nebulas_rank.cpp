@@ -157,11 +157,10 @@ nebulas_rank::get_account_balance_median(
     std::vector<wei_t> v = it->second;
     sort(v.begin(), v.end());
     size_t v_len = v.size();
-    floatxx_t median = int128_conversion(v[v_len >> 1]).to_float<floatxx_t>();
+    floatxx_t median = conversion(v[v_len >> 1]).to_float<floatxx_t>();
     if ((v_len & 0x1) == 0) {
-      median = (median +
-                int128_conversion(v[(v_len >> 1) - 1]).to_float<floatxx_t>()) /
-               2;
+      median =
+          (median + conversion(v[(v_len >> 1) - 1]).to_float<floatxx_t>()) / 2;
     }
 
     floatxx_t normalized_median = db_ptr->get_normalized_value(median);
@@ -190,22 +189,24 @@ nebulas_rank::get_account_weight(
     wei_t in_val = it->second.m_in_val;
     wei_t out_val = it->second.m_out_val;
 
-    floatxx_t normalized_in_val = db_ptr->get_normalized_value(
-        int128_conversion(in_val).to_float<floatxx_t>());
-    floatxx_t normalized_out_val = db_ptr->get_normalized_value(
-        int128_conversion(out_val).to_float<floatxx_t>());
+    floatxx_t normalized_in_val =
+        db_ptr->get_normalized_value(conversion(in_val).to_float<floatxx_t>());
+    floatxx_t normalized_out_val =
+        db_ptr->get_normalized_value(conversion(out_val).to_float<floatxx_t>());
     ret.insert(std::make_pair(
         it->first, f_account_weight(normalized_in_val, normalized_out_val)));
   }
   return std::make_shared<std::unordered_map<std::string, floatxx_t>>(ret);
 }
 
-floatxx_t nebulas_rank::f_account_rank(floatxx_t a, floatxx_t b, floatxx_t c,
-                                       floatxx_t d, int64_t mu, int64_t lambda,
-                                       floatxx_t S, floatxx_t R) {
-
-  auto ret =
-      math::pow(S * a / (S + b), mu) * math::pow(R * c / (R + d), lambda);
+floatxx_t nebulas_rank::f_account_rank(int64_t a, int64_t b, int64_t c,
+                                       int64_t d, floatxx_t theta, floatxx_t mu,
+                                       floatxx_t lambda, floatxx_t S,
+                                       floatxx_t R) {
+  floatxx_t one = softfloat_cast<uint32_t, typename floatxx_t::value_type>(1);
+  auto gamma = math::pow(theta * R / (R + mu), lambda);
+  auto ret = (S / (one + math::exp(a + b * S))) *
+             (gamma / (one + math::exp(c + d * gamma)));
   return ret;
 }
 
@@ -222,8 +223,8 @@ nebulas_rank::get_account_rank(
     auto it_w = account_weight.find(it_m->first);
     if (it_w != account_weight.end()) {
       floatxx_t rank_val =
-          f_account_rank(rp.m_a, rp.m_b, rp.m_c, rp.m_d, rp.m_mu, rp.m_lambda,
-                         it_m->second, it_w->second);
+          f_account_rank(rp.m_a, rp.m_b, rp.m_c, rp.m_d, rp.m_theta, rp.m_mu,
+                         rp.m_lambda, it_m->second, it_w->second);
       ret.insert(std::make_pair(it_m->first, rank_val));
     }
   }
@@ -381,14 +382,13 @@ std::unique_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
     }
 
     neb::floatxx_t nas_in_val = adb_ptr->get_normalized_value(
-        neb::int128_conversion(in_out_vals.find(addr)->second.m_in_val)
+        neb::conversion(in_out_vals.find(addr)->second.m_in_val)
             .to_float<neb::floatxx_t>());
     neb::floatxx_t nas_out_val = adb_ptr->get_normalized_value(
-        neb::int128_conversion(in_out_vals.find(addr)->second.m_out_val)
+        neb::conversion(in_out_vals.find(addr)->second.m_out_val)
             .to_float<neb::floatxx_t>());
     neb::floatxx_t nas_stake = adb_ptr->get_normalized_value(
-        neb::int128_conversion(stakes.find(addr)->second)
-            .to_float<neb::floatxx_t>());
+        neb::conversion(stakes.find(addr)->second).to_float<neb::floatxx_t>());
 
     nr_info_t info{addr,
                    in_out_degrees[addr].m_in_degree,

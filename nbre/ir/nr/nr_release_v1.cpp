@@ -27,13 +27,15 @@ std::string entry_point_nr(uint64_t start_block, uint64_t end_block) {
            ((0ULL + patch_version) << 48);
   };
 
-  neb::rt::nr::nr_float_t a = 2000.0;
-  neb::rt::nr::nr_float_t b = 200000.0;
-  neb::rt::nr::nr_float_t c = 100.0;
-  neb::rt::nr::nr_float_t d = 1000.0;
-  int64_t mu = 1;
-  int64_t lambda = 3;
-  return neb::rt::nr::entry_point_nr_impl(start_block, end_block, a, b, c, d,
-                                          mu, lambda, to_version_t(0, 1, 0));
+  int64_t a = 3118;
+  int64_t b = 3792;
+  int64_t c = 6034;
+  int64_t d = 4158;
+  neb::rt::nr::nr_float_t theta = 2.2;
+  neb::rt::nr::nr_float_t mu = 0.1;
+  neb::rt::nr::nr_float_t lambda = 0.3;
+  return neb::rt::nr::entry_point_nr_impl(start_block, end_block,
+                                          to_version_t(0, 1, 0), a, b, c, d,
+                                          theta, mu, lambda);
 }
 

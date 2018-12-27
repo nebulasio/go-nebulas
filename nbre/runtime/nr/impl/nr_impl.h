@@ -30,9 +30,9 @@ namespace nr {
 using nr_float_t = float32;
 using version_t = uint64_t;
 std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
-                                nr_float_t a, nr_float_t b, nr_float_t c,
-                                nr_float_t d, int64_t mu, int64_t lambda,
-                                version_t version);
+                                version_t version, int64_t a, int64_t b,
+                                int64_t c, int64_t d, nr_float_t theta,
+                                nr_float_t mu, nr_float_t lambda);
 } // namespace nr
 } // namespace rt
 } // namespace neb
