@@ -35,6 +35,10 @@ public:
 
   void start(std::string nr_handler_id);
 
+  void run_if_default(block_height_t start_block, block_height_t end_block);
+  void run_if_specify(block_height_t start_block, block_height_t end_block,
+                      uint64_t nr_version);
+
   std::string get_nr_result(const std::string &nr_handler_id);
 
 private:

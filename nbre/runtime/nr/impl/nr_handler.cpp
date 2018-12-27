@@ -36,8 +36,57 @@ std::string nr_handler::get_nr_handler_id() {
   return m_nr_handler_id;
 }
 
+void nr_handler::run_if_default(block_height_t start_block,
+                                block_height_t end_block) {
+
+  ff::para<> p;
+  p([this, start_block, end_block]() {
+    try {
+      std::unique_lock<std::mutex> _l(m_sync_mutex);
+      jit_driver &jd = jit_driver::instance();
+      auto nr_result = jd.run_ir<std::string>("nr", start_block,
+                                              "_Z14entry_point_nrB5cxx11mm",
+                                              start_block, end_block);
+      m_nr_result.insert(std::make_pair(m_nr_handler_id, nr_result));
+      m_nr_handler_id.clear();
+    } catch (const std::exception &e) {
+      LOG(INFO) << "jit driver execute nr failed " << e.what();
+    }
+  });
+}
+
+void nr_handler::run_if_specify(block_height_t start_block,
+                                block_height_t end_block, uint64_t nr_version) {
+
+  std::string nr_name = "nr";
+  std::vector<nbre::NBREIR> irs;
+  auto ir = neb::core::ir_warden::instance().get_ir_by_name_version(nr_name,
+                                                                    nr_version);
+  irs.push_back(*ir);
+
+  std::stringstream ss;
+  ss << nr_name << nr_version;
+  std::string name_version = ss.str();
+
+  ff::para<> p;
+  p([this, &name_version, &irs, start_block, end_block]() {
+    try {
+      std::unique_lock<std::mutex> _l(m_sync_mutex);
+
+      jit_driver &jd = jit_driver::instance();
+      std::string nr_result =
+          jd.run<std::string>(name_version, irs, "_Z14entry_point_nrB5cxx11mm",
+                              start_block, end_block);
+
+      m_nr_result.insert(std::make_pair(m_nr_handler_id, nr_result));
+      m_nr_handler_id.clear();
+    } catch (const std::exception &e) {
+      LOG(INFO) << "jit driver execute nr failed " << e.what();
+    }
+  });
+}
+
 void nr_handler::start(std::string nr_handler_id) {
-  std::unique_lock<std::mutex> _l(m_sync_mutex);
   m_nr_handler_id = nr_handler_id;
   if (!m_nr_handler_id.empty() &&
       m_nr_result.find(m_nr_handler_id) != m_nr_result.end()) {
@@ -45,43 +94,25 @@ void nr_handler::start(std::string nr_handler_id) {
     return;
   }
 
-  ff::para<> p;
-  p([this]() {
-    neb::util::bytes nr_handler_bytes =
-        neb::util::bytes::from_hex(m_nr_handler_id);
+  neb::util::bytes nr_handler_bytes =
+      neb::util::bytes::from_hex(m_nr_handler_id);
 
-    size_t bytes = sizeof(uint64_t) / sizeof(byte_t);
-    assert(nr_handler_bytes.size() == 3 * bytes);
+  size_t bytes = sizeof(uint64_t) / sizeof(byte_t);
+  assert(nr_handler_bytes.size() == 3 * bytes);
 
-    uint64_t start_block = neb::util::byte_to_number<uint64_t>(
-        neb::util::bytes(nr_handler_bytes.value(), bytes));
-    uint64_t end_block = neb::util::byte_to_number<uint64_t>(
-        neb::util::bytes(nr_handler_bytes.value() + bytes, bytes));
-    uint64_t nr_version = neb::util::byte_to_number<uint64_t>(
-        neb::util::bytes(nr_handler_bytes.value() + 2 * bytes, bytes));
+  uint64_t start_block = neb::util::byte_to_number<uint64_t>(
+      neb::util::bytes(nr_handler_bytes.value(), bytes));
+  uint64_t end_block = neb::util::byte_to_number<uint64_t>(
+      neb::util::bytes(nr_handler_bytes.value() + bytes, bytes));
+  uint64_t nr_version = neb::util::byte_to_number<uint64_t>(
+      neb::util::bytes(nr_handler_bytes.value() + 2 * bytes, bytes));
 
-    try {
-      std::string nr_name = "nr";
-      std::vector<nbre::NBREIR> irs;
-      auto ir = neb::core::ir_warden::instance().get_ir_by_name_version(
-          nr_name, nr_version);
-      irs.push_back(*ir);
+  if (!nr_version) {
+    run_if_default(start_block, end_block);
+    return;
+  }
 
-      jit_driver &jd = jit_driver::instance();
-      std::stringstream ss;
-      ss << nr_name << nr_version;
-
-      //  TODO func name
-      std::string nr_result = jd.run<std::string>(
-          ss.str(), irs, "_Z14entry_point_nrB5cxx11mm", start_block, end_block);
-
-      m_nr_result.insert(std::make_pair(m_nr_handler_id, nr_result));
-      m_nr_handler_id.clear();
-    } catch (const std::exception &e) {
-      LOG(INFO) << "jit driver execute nr failed " << e.what();
-    }
-
-  });
+  run_if_specify(start_block, end_block, nr_version);
 }
 
 std::string nr_handler::get_nr_result(const std::string &nr_handler_id) {
