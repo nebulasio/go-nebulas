@@ -75,7 +75,7 @@ type mockNbre struct {
 func (m *mockNbre) Start() error {
 	return nil
 }
-func (m *mockNbre) Execute(command string, params []byte) ([]byte, error) {
+func (m *mockNbre) Execute(command string, args ...interface{}) ([]byte, error) {
 	if command == nbre.CommandDIPList {
 		data := &DIPData{
 			StartHeight: 1,
@@ -237,7 +237,16 @@ func TestDip_CheckReward(t *testing.T) {
 			}
 			value, err := util.NewUint128FromString(tt.value)
 			assert.Nil(t, err)
-			tx, err := core.NewTransaction(11, tt.from, to, value, 1, tt.txType, nil, core.TransactionGasPrice, core.TransactionMaxGas)
+			var (
+				payloadBytes []byte
+			)
+			if tt.txType == core.TxPayloadDipType {
+				payload, err := core.NewDipPayload(1, 1, 1)
+				assert.Nil(t, err)
+				payloadBytes, err = payload.ToBytes()
+				assert.Nil(t, err)
+			}
+			tx, err := core.NewTransaction(11, tt.from, to, value, 1, tt.txType, payloadBytes, core.TransactionGasPrice, core.TransactionMaxGas)
 			assert.Nil(t, err)
 			err = dip.CheckReward(tx)
 			assert.Equal(t, tt.err, err)

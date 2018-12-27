@@ -58,11 +58,6 @@ const (
 	ContractAcceptFunc = "accept"
 )
 
-const (
-	// DipRewardAddress dip reward address
-	DipRewardAddress = "n1c6y4ctkMeZk624QWBTXuywmNpCWmJZiBq"
-)
-
 var (
 	// PublicFuncNameChecker     in smart contract
 	PublicFuncNameChecker = regexp.MustCompile("^[a-zA-Z$][A-Za-z0-9_$]*$")
@@ -328,7 +323,7 @@ type Data interface {
 // Nbre interface
 type Nbre interface {
 	Start() error
-	Execute(command string, args ...interface{}) ([]byte, error)
+	Execute(command string, args ...interface{}) (interface{}, error)
 	Shutdown() error
 }
 

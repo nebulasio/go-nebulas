@@ -1200,7 +1200,7 @@ func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, er
 			"tx":  tx,
 			"err": err,
 		}).Info("Failed to check transaction dip reward.")
-		return false, nil
+		return false, err
 	}
 
 	if giveback, err := VerifyExecution(tx, block, ws); err != nil {

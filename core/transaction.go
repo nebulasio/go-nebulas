@@ -594,6 +594,11 @@ func (tx *Transaction) simulateExecution(block *Block) (*SimulateResult, error) 
 	}
 	tx.hash = hash
 
+	// check dip reward
+	if err := block.dip.CheckReward(tx); err != nil {
+		return nil, err
+	}
+
 	// Generate world state
 	ws := block.WorldState()
 
