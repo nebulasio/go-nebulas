@@ -50,7 +50,7 @@ func LoadDynastyConf(filePath string, genesis *corepb.Genesis) {
 		logging.CLog().WithFields(logrus.Fields{
 			"err":      err,
 			"filePath": filePath,
-		}).Fatal("File doesn't exist.")
+		}).Fatal("Failed to load dynasty file.")
 	}
 	content := string(b)
 

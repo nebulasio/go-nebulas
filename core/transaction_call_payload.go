@@ -158,11 +158,22 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 		}).Error("Unexpected error when executing call")
 		return util.NewUint128(), "", ErrUnexpected
 	}
+
 	if IsCompatibleStack(block.header.chainID, tx.hash) {
 		instructions = limitedGas
 	}
 	if exeErr == ErrExecutionFailed && len(result) > 0 {
 		exeErr = fmt.Errorf("Call: %s", result)
 	}
+	// if exeErr == ErrInnerExecutionFailed && len(result) > 0 {
+	// 	exeErr = fmt.Errorf("Inner Call: %s", result)
+	// }
+
+	logging.VLog().WithFields(logrus.Fields{
+		"tx.hash":      tx.Hash(),
+		"instructions": instructions,
+		"limitedGas":   limitedGas,
+	}).Debug("record gas of v8")
+
 	return instructions, result, exeErr
 }

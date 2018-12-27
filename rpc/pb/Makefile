@@ -25,4 +25,4 @@ all: $(GO)
 	sed 's/grpc-ecosystem/nebulasio/g' rpc.pb.gw.go > tmp
 	mv tmp rpc.pb.gw.go
 clean:
-	rm *.go
+	rm -rf *.go

@@ -76,6 +76,7 @@ type BlockChain struct {
 
 	superNode bool
 
+	// deprecated
 	unsupportedKeyword string
 }
 
@@ -92,6 +93,9 @@ const (
 
 	// LIB (latest irreversible block) in storage
 	LIB = "blockchain_lib"
+
+	// transaction's block height
+	TxBlockHeight = "height"
 )
 
 // NewBlockChain create new #BlockChain instance.
@@ -135,6 +139,11 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		return nil, err
 	}
 	txPool.RegisterInNetwork(neb.NetService())
+	access, err := NewAccess(neb.Config().Chain.Access)
+	if err != nil {
+		return nil, err
+	}
+	txPool.setAccess(access)
 
 	var bc = &BlockChain{
 		chainID:            neb.Config().Chain.ChainId,
@@ -340,7 +349,7 @@ func (bc *BlockChain) dropTxsInBlockFromTxPool(block *Block) {
 	}
 }
 
-func (bc *BlockChain) triggerNewTailEvent(blocks []*Block) {
+func (bc *BlockChain) triggerNewTailInfo(blocks []*Block) {
 	for i := len(blocks) - 1; i >= 0; i-- {
 		block := blocks[i]
 		bc.eventEmitter.Trigger(&state.Event{
@@ -349,6 +358,7 @@ func (bc *BlockChain) triggerNewTailEvent(blocks []*Block) {
 		})
 
 		for _, v := range block.transactions {
+			bc.storage.Put(append(v.hash, []byte(TxBlockHeight)...), byteutils.FromUint64(block.height))
 			events, err := block.FetchEvents(v.hash)
 			if err == nil {
 				for _, e := range events {
@@ -373,7 +383,7 @@ func (bc *BlockChain) buildIndexByBlockHeight(from *Block, to *Block) error {
 			return ErrMissingParentBlock
 		}
 	}
-	go bc.triggerNewTailEvent(blocks)
+	go bc.triggerNewTailInfo(blocks)
 	return nil
 }
 
@@ -471,7 +481,7 @@ func (bc *BlockChain) GetBlockOnCanonicalChainByHash(blockHash byteutils.Hash) *
 
 // GetInputForVRFSigner returns [ getBlock(block.height - 2 * dynasty.size).hash, block.parent.seed ]
 func (bc *BlockChain) GetInputForVRFSigner(parentHash byteutils.Hash, height uint64) (ancestorHash, parentSeed []byte, err error) {
-	if parentHash == nil || height < RandomAvailableHeight {
+	if parentHash == nil || !RandomAvailableAtHeight(height) {
 		return nil, nil, ErrInvalidArgument
 	}
 
@@ -496,7 +506,7 @@ func (bc *BlockChain) GetInputForVRFSigner(parentHash byteutils.Hash, height uin
 		return nil, nil, ErrInvalidBlockHash
 	}
 
-	if parent.height >= RandomAvailableHeight {
+	if RandomAvailableAtHeight(parent.height) {
 		if !parent.HasRandomSeed() {
 			logging.VLog().WithFields(logrus.Fields{
 				"parent": parent,
@@ -667,6 +677,19 @@ func (bc *BlockChain) GetBlock(hash byteutils.Hash) *Block {
 	return block
 }
 
+// GetContract return contract of given address
+func (bc *BlockChain) GetContract(addr *Address) (state.Account, error) {
+	worldState, err := bc.TailBlock().WorldState().Clone()
+	if err != nil {
+		return nil, err
+	}
+	contract, err := CheckContract(addr, worldState)
+	if err != nil {
+		return nil, err
+	}
+	return contract, nil
+}
+
 // GetTransaction return transaction of given hash from local storage.
 func (bc *BlockChain) GetTransaction(hash byteutils.Hash) (*Transaction, error) {
 	worldState, err := bc.TailBlock().WorldState().Clone()
@@ -680,17 +703,19 @@ func (bc *BlockChain) GetTransaction(hash byteutils.Hash) (*Transaction, error) 
 	return tx, nil
 }
 
-// GetContract return contract of given address
-func (bc *BlockChain) GetContract(addr *Address) (state.Account, error) {
-	worldState, err := bc.TailBlock().WorldState().Clone()
-	if err != nil {
-		return nil, err
+// GetTransactionHeight return transaction's block height
+func (bc *BlockChain) GetTransactionHeight(hash byteutils.Hash) (uint64, error) {
+	bytes, err := bc.storage.Get(append(hash, []byte(TxBlockHeight)...))
+	if err != nil && err != storage.ErrKeyNotFound {
+		return 0, err
 	}
-	contract, err := CheckContract(addr, worldState)
-	if err != nil {
-		return nil, err
+
+	if len(bytes) == 0 {
+		// for empty value (history txs), height = 0
+		return 0, nil
 	}
-	return contract, nil
+
+	return byteutils.Uint64(bytes), nil
 }
 
 // GasPrice returns the lowest transaction gas price.

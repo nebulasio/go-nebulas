@@ -92,6 +92,9 @@ message ChainConfig {
     string unsupported_keyword = 31;
 
     string dynasty = 32;
+
+    // access control config path
+    string access = 33;
 }
 
 message RPCConfig {

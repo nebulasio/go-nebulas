@@ -48,6 +48,10 @@ char *Ripemd160Func_cgo(const char *data, size_t *gasCnt);
 char *RecoverAddressFunc_cgo(int alg, const char *data, const char *sign, size_t *gasCnt);
 char *Md5Func_cgo(const char *data, size_t *gasCnt);
 char *Base64Func_cgo(const char *data, size_t *gasCnt);
+char *GetContractSourceFunc_cgo(void *handler, const char *address);
+char *InnerContractFunc_cgo(void *handler, const char *address, const char *funcName, const char * v, const char *args, size_t *gasCnt);
+
+char *GetTxRandomFunc_cgo(void *handler, size_t *gasCnt, char **result, char **exceptionInfo);
 
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt);
 
@@ -73,11 +77,17 @@ const (
 	ExecutionFailedErr  = 1
 	ExecutionTimeOutErr = 2
 
-	// ExecutionTimeoutInSeconds max v8 execution timeout.
+	// ExecutionTimeout max v8 execution timeout.
 	ExecutionTimeout                 = 15 * 1000 * 1000
 	TimeoutGasLimitCost              = 100000000
-	MaxLimitsOfExecutionInstructions = 10000000 // 10,000,000
+	MaxLimitsOfExecutionInstructions = 10000000 // TODO: set max gasLimit with execution 5s *0.8
 )
+
+// const (
+// 	ExecutionFailedErr   = 1
+// 	ExecutionInnerNvmErr = 2
+// 	ExecutionTimeOutErr  = 3
+// )
 
 //engine_v8 private data
 var (
@@ -105,6 +115,8 @@ type V8Engine struct {
 	actualTotalMemorySize                   uint64
 	lcsHandler                              uint64
 	gcsHandler                              uint64
+	innerErrMsg                             string
+	innerErr                                error
 }
 
 type sourceModuleItem struct {
@@ -128,7 +140,9 @@ func InitV8Engine() {
 	C.InitializeExecutionEnvDelegate((C.AttachLibVersionDelegate)(unsafe.Pointer(C.AttachLibVersionDelegateFunc_cgo)))
 
 	// Storage.
-	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
+	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)),
+		(C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)),
+		(C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
 
 	// Blockchain.
 	C.InitializeBlockchain((C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)),
@@ -137,8 +151,10 @@ func InitV8Engine() {
 		(C.VerifyAddressFunc)(unsafe.Pointer(C.VerifyAddressFunc_cgo)),
 		(C.GetPreBlockHashFunc)(unsafe.Pointer(C.GetPreBlockHashFunc_cgo)),
 		(C.GetPreBlockSeedFunc)(unsafe.Pointer(C.GetPreBlockSeedFunc_cgo)),
-	)
-
+		(C.GetContractSourceFunc)(unsafe.Pointer(C.GetContractSourceFunc_cgo)),
+		(C.InnerContractFunc)(unsafe.Pointer(C.InnerContractFunc_cgo)))
+	// random.
+	C.InitializeRandom((C.GetTxRandomFunc)(unsafe.Pointer(C.GetTxRandomFunc_cgo)))
 	// Event.
 	C.InitializeEvent((C.EventTriggerFunc)(unsafe.Pointer(C.EventTriggerFunc_cgo)))
 
@@ -194,10 +210,13 @@ func NewV8Engine(ctx *Context) *V8Engine {
 	})()
 	// engine.v8engine.lcs = C.uintptr_t(engine.lcsHandler)
 	// engine.v8engine.gcs = C.uintptr_t(engine.gcsHandler)
-	if ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
+	if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
 		engine.SetTimeOut(ExecutionTimeout)
 	}
 
+	if core.EnableInnerContractAtHeight(ctx.block.Height()) {
+		engine.EnableInnerContract()
+	}
 	return engine
 }
 
@@ -235,12 +254,17 @@ func (e *V8Engine) SetTestingFlag(flag bool) {
 	}*/
 }
 
+// SetTimeOut set nvm timeout, if not set, the default is 5*1000*1000
 func (e *V8Engine) SetTimeOut(timeout uint64) {
 	e.v8engine.timeout = C.int(timeout) //TODO:
+}
+func (e *V8Engine) EnableInnerContract() {
+	C.EnableInnerContract(e.v8engine)
 }
 
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
 func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTotalMemorySize uint64) error {
+
 	e.v8engine.limits_of_executed_instructions = C.size_t(limitsOfExecutionInstructions)
 	e.v8engine.limits_of_total_memory_size = C.size_t(limitsOfTotalMemorySize)
 
@@ -310,9 +334,24 @@ func (e *V8Engine) CollectTracingStats() {
 	e.actualTotalMemorySize = uint64(e.v8engine.stats.total_memory_size)
 }
 
+// GetNVMLeftResources return current NVM verb total resource
+func (e *V8Engine) GetNVMLeftResources() (uint64, uint64) {
+	e.CollectTracingStats()
+	instruction := uint64(0)
+	mem := uint64(0)
+	if e.limitsOfExecutionInstructions >= e.actualCountOfExecutionInstructions {
+		instruction = e.limitsOfExecutionInstructions - e.actualCountOfExecutionInstructions
+	}
+
+	if e.limitsOfTotalMemorySize >= e.actualTotalMemorySize {
+		mem = e.limitsOfTotalMemorySize - e.actualTotalMemorySize
+	}
+
+	return instruction, mem
+}
+
 // RunScriptSource run js source.
 func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string, error) {
-
 	cSource := C.CString(source)
 	defer C.free(unsafe.Pointer(cSource))
 
@@ -322,7 +361,6 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		ret     C.int
 		cResult *C.char
 	)
-
 	ctx := e.Context()
 	if ctx == nil || ctx.block == nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -331,23 +369,38 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		err = core.ErrUnexpected
 		return "", err
 	}
-
 	// done := make(chan bool, 1)
 	// go func() {
 	// 	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 	// 		C.uintptr_t(e.gcsHandler))
 	// 	done <- true
 	// }()
+
 	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
 	e.CollectTracingStats()
 
-	//set err
-	if ret == C.NVM_EXE_TIMEOUT_ERR {
+	if e.innerErr != nil {
+		if e.innerErrMsg == "" { //the first call of muti-nvm
+			result = "Inner Contract: \"\""
+		} else {
+			result = "Inner Contract: " + e.innerErrMsg
+		}
+		err := e.innerErr
+		if cResult != nil {
+			C.free(unsafe.Pointer(cResult))
+		}
+		if e.actualCountOfExecutionInstructions > e.limitsOfExecutionInstructions {
+			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+		}
+		return result, err
+	}
+
+	if ret == C.NVM_EXE_TIMEOUT_ERR { //TODO: errcode in v8
 		err = ErrExecutionTimeout
-		if ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
+		if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
 			err = core.ErrUnexpected
-		} else if ctx.block.Height() >= core.NewNvmExeTimeoutConsumeGasHeight {
+		} else if core.NewNvmExeTimeoutConsumeGasAtHeight(ctx.block.Height()) {
 			if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
 				e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
 			} else {
@@ -356,6 +409,14 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 		}
 	} else if ret == C.NVM_UNEXPECTED_ERR {
 		err = core.ErrUnexpected
+	} else if ret == C.NVM_INNER_EXE_ERR {
+		err = core.ErrInnerExecutionFailed
+		if e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
+			logging.VLog().WithFields(logrus.Fields{
+				"actualGas": e.actualCountOfExecutionInstructions,
+				"limitGas":  e.limitsOfExecutionInstructions,
+			}).Error("Unexpected error: actual gas exceed the limit")
+		}
 	} else {
 		if ret != C.NVM_SUCCESS {
 			err = core.ErrExecutionFailed
@@ -423,7 +484,7 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 	if err != nil {
 		return "", err
 	}
-	if e.ctx.block.Height() >= core.NvmMemoryLimitWithoutInjectHeight {
+	if core.NvmMemoryLimitWithoutInjectAtHeight(e.ctx.block.Height()) {
 		e.CollectTracingStats()
 		mem := e.actualTotalMemorySize + core.DefaultLimitsOfTotalMemorySize
 		logging.VLog().WithFields(logrus.Fields{
@@ -436,20 +497,25 @@ func (e *V8Engine) RunContractScript(source, sourceType, function, args string) 
 		}
 	}
 
-	if e.ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
+	if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
 		if e.limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
 			e.SetExecutionLimits(MaxLimitsOfExecutionInstructions, e.limitsOfTotalMemorySize)
 		}
 	}
 	result, err := e.RunScriptSource(runnableSource, sourceLineOffset)
 
-	if e.ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
+	if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
 		if e.limitsOfExecutionInstructions == MaxLimitsOfExecutionInstructions && err == ErrInsufficientGas {
 			err = ErrExecutionTimeout
 			result = "\"null\""
 		}
 	}
 	return result, err
+}
+
+// ClearModuleCache ..
+func ClearSourceModuleCache() {
+	sourceModuleCache.Purge()
 }
 
 // AddModule add module.
@@ -488,7 +554,6 @@ func (e *V8Engine) AddModule(id, source string, sourceLineOffset int) error {
 		source = item.traceableSource
 		sourceLineOffset = item.traceableSourceLineOffset
 	}
-
 	e.modules.Add(NewModule(id, source, sourceLineOffset))
 	return nil
 }
@@ -534,7 +599,7 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 									var __instance = new __contract();
 									__instance["%s"].apply(__instance, JSON.parse("%s"));`,
 		formatArgs(string(blockJSON)), formatArgs(string(txJSON)),
-		ModuleID, function, formatArgs(string(argsInput)))
+		ModuleID, function, formatArgs(string(argsInput))) //TODO: freeze?
 	return runnableSource, 0, nil
 }
 

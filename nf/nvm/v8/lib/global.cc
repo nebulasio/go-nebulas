@@ -25,6 +25,7 @@
 #include "require_callback.h"
 #include "storage_object.h"
 #include "crypto.h"
+#include "random.h"
 
 Local<ObjectTemplate> CreateGlobalObjectTemplate(Isolate *isolate) {
   Local<ObjectTemplate> globalTpl = ObjectTemplate::New(isolate);
@@ -33,6 +34,7 @@ Local<ObjectTemplate> CreateGlobalObjectTemplate(Isolate *isolate) {
   NewNativeRequireFunction(isolate, globalTpl);
   NewNativeLogFunction(isolate, globalTpl);
   NewNativeEventFunction(isolate, globalTpl);
+  // NewNativeRandomFunction(isolate, globalTpl);
 
   NewStorageType(isolate, globalTpl);
 
@@ -49,7 +51,14 @@ void SetGlobalObjectProperties(Isolate *isolate, Local<Context> context,
   NewStorageTypeInstance(isolate, context, lcsHandler, gcsHandler);
   NewInstructionCounterInstance(isolate, context,
                                 &(e->stats.count_of_executed_instructions), e);
-  NewBlockchainInstance(isolate, context, lcsHandler);
+  uint64_t build_flag = e->ver;
+  if (BUILD_MATH == (build_flag & BUILD_MATH)) {
+    NewRandomInstance(isolate, context, lcsHandler);
+  }
+  if (BUILD_BLOCKCHAIN == (build_flag & BUILD_BLOCKCHAIN)) {
+    NewBlockchainInstance(isolate, context, lcsHandler, build_flag);
+  }
+  
   NewCryptoInstance(isolate, context);
 }
 

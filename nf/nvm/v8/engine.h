@@ -49,6 +49,15 @@ enum OptType {
   INSTRUCTIONTS  = 2,
   RUNSCRIPT       = 3,
 };
+#define BUILD_FUNC_MASK         0x00
+#define BUILD_ALL             0xFFFFFFFFFFFFFFFF
+#define BUILD_MATH            0x0000000000000001
+#define BUILD_MATH_RANDOM       0x0000000000000002
+#define BUILD_BLOCKCHAIN        0x0000000000000004
+#define BUILD_BLOCKCHAIN_GET_RUN_SOURCE     0x0000000000000008
+#define BUILD_BLOCKCHAIN_RUN_CONTRACT   0x0000000000000010
+#define BUILD_DEFAULT_VER (BUILD_MATH | BUILD_BLOCKCHAIN)
+#define BUILD_INNER_VER  (BUILD_MATH | BUILD_MATH_RANDOM | BUILD_BLOCKCHAIN | BUILD_BLOCKCHAIN_GET_RUN_SOURCE | BUILD_BLOCKCHAIN_RUN_CONTRACT)
 
 // log
 typedef void (*LogFunc)(int level, const char *msg);
@@ -85,12 +94,19 @@ typedef int (*GetPreBlockSeedFunc)(void *handler, unsigned long long offset, siz
 
 
 
+typedef char *(*GetContractSourceFunc)(void *handler, const char *address,
+                                 size_t *counterVal);
+typedef char *(*InnerContractFunc)(void *handler, const char *address, const char *funcName, const char * v,
+		const char *args, size_t *gasCnt);
+
 EXPORT void InitializeBlockchain(GetTxByHashFunc getTx,
                                  GetAccountStateFunc getAccount,
                                  TransferFunc transfer,
                                  VerifyAddressFunc verifyAddress,
                                  GetPreBlockHashFunc getPreBlockHash,
-                                 GetPreBlockSeedFunc getPreBlockSeed);
+                                 GetPreBlockSeedFunc getPreBlockSeed,
+                                 GetContractSourceFunc contractSource,
+                                 InnerContractFunc rMultContract);
 
 // crypto
 typedef char *(*Sha256Func)(const char *data, size_t *counterVal);
@@ -107,6 +123,7 @@ EXPORT void InitializeCrypto(Sha256Func sha256,
                                  RecoverAddressFunc recoverAddress,
                                  Md5Func md5,
                                  Base64Func base64);
+                                 
 
 // version
 EXPORT char *GetV8Version();
@@ -119,6 +136,9 @@ typedef char *(*AttachLibVersionDelegate)(void *handler, const char *libname);
 EXPORT void InitializeRequireDelegate(RequireDelegate delegate, AttachLibVersionDelegate libDelegate);
 
 EXPORT void InitializeExecutionEnvDelegate(AttachLibVersionDelegate libDelegate);
+// random callback
+typedef int(*GetTxRandomFunc)(void *handler, size_t *gasCnt, char **result, char **exceptionInfo);
+EXPORT void InitializeRandom(GetTxRandomFunc delegate);
 
 typedef struct V8EngineStats {
   size_t count_of_executed_instructions;
@@ -143,9 +163,10 @@ typedef struct V8Engine {
   size_t limits_of_total_memory_size;
   bool is_requested_terminate_execution;
   bool is_unexpected_error_happen;
+  bool is_inner_nvm_error_happen;
   int testing;
   int timeout;
-  
+  uint64_t ver;
   V8EngineStats stats;
  
 } V8Engine;
@@ -203,6 +224,9 @@ EXPORT char *TranspileTypeScriptModuleThread(V8Engine *e, const char *source,
 EXPORT int RunScriptSourceThread(char **result, V8Engine *e, const char *source,
                     int source_line_offset, uintptr_t lcs_handler,
                     uintptr_t gcs_handler);
+EXPORT void EnableInnerContract(V8Engine *e);
+
+void SetInnerContractErrFlag(V8Engine *e);
 
 bool CreateScriptThread(v8ThreadContext *pc);
 void SetRunScriptArgs(v8ThreadContext *pc, V8Engine *e, int opt, const char *source, int line_offset, int allow_usage);

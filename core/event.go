@@ -49,6 +49,9 @@ const (
 
 	// TopicTransferFromContract transfer from contract
 	TopicTransferFromContract = "chain.transferFromContract"
+
+	// TopicInnerTransferContract inner transfer
+	TopicInnerContract = "chain.innerContract"
 )
 
 // EventSubscriber subscriber object

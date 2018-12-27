@@ -74,6 +74,11 @@ const (
 	TxExecutionPendding = 2
 )
 
+const (
+	//InnerTransactionNonce inner tx nonce
+	InnerTransactionNonce = 0
+)
+
 // Error Types
 var (
 	ErrInvalidBlockOnCanonicalChain                      = errors.New("invalid block, it's not on canonical chain")
@@ -173,9 +178,15 @@ var (
 	// nvm error
 	ErrExecutionFailed = errors.New("execution failed")
 	ErrUnexpected      = errors.New("Unexpected sys error")
+	// multi nvm error
+	ErrInnerExecutionFailed = errors.New("multi execution failed")
+	ErrCreateInnerTx        = errors.New("Failed to create inner transaction")
 
-	// unsupported keyword error in smart contract
-	ErrUnsupportedKeyword = errors.New("transaction data has unsupported keyword")
+	// access control
+	ErrUnsupportedKeyword    = errors.New("transaction data has unsupported keyword")
+	ErrUnsupportedFunction   = errors.New("transaction payload has unsupported function")
+	ErrRestrictedFromAddress = errors.New("transaction from address is restricted")
+	ErrRestrictedToAddress   = errors.New("transaction to address is restricted")
 )
 
 // Default gas count
@@ -310,7 +321,7 @@ type WorldState interface {
 
 	RecordGas(from string, gas *util.Uint128) error
 
-	Reset(addr byteutils.Hash) error
+	Reset(addr byteutils.Hash, isResetChangeLog bool) error
 	GetBlockHashByHeight(height uint64) ([]byte, error)
 	GetBlock(txHash byteutils.Hash) ([]byte, error)
 }

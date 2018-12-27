@@ -25,4 +25,4 @@ all: $(GO)
 	sed 's/,omitempty//g' config.pb.go > tmp
 	mv tmp  config.pb.go
 clean:
-	rm *.pb.go
+	rm -rf *.pb.go

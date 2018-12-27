@@ -40,6 +40,12 @@ int TransferFunc(void *handler, const char *to, const char *value, size_t *gasCn
 int VerifyAddressFunc(void *handler, const char *address, size_t *gasCnt);
 int GetPreBlockHashFunc(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info);
 int GetPreBlockSeedFunc(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info);
+char *GetContractSourceFunc(void *handler, const char *address, size_t *gasCnt);
+char *InnerContractFunc(void *handler, const char *address, const char *funcName, const char * v,
+		const char *args, size_t *gasCnt);
+
+//random.
+int GetTxRandomFunc(void *handler, size_t *gasCnt, char **result, char **exceptionInfo);
 
 // event.
 void EventTriggerFunc(void *handler, const char *topic, const char *data, size_t *gasCnt);
@@ -96,6 +102,15 @@ int GetPreBlockSeedFunc_cgo(void *handler, unsigned long long offset, size_t *ga
 	return GetPreBlockSeedFunc(handler, offset, gasCnt, result, info);
 }
 
+char *GetContractSourceFunc_cgo(void *handler, const char *address, size_t *gasCnt) {
+	return GetContractSourceFunc(handler, address, gasCnt);
+};
+char *InnerContractFunc_cgo(void *handler, const char *address, const char *funcName, const char * v, const char *args, size_t *gasCnt) {
+	return InnerContractFunc(handler, address, funcName, v, args, gasCnt);
+};
+int GetTxRandomFunc_cgo(void *handler, size_t *gasCnt, char **result, char **exceptionInfo) {
+	return GetTxRandomFunc(handler, gasCnt, result, exceptionInfo);
+};
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt) {
 	EventTriggerFunc(handler, topic, data, gasCnt);
 };

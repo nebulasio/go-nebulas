@@ -395,10 +395,10 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	}
 
 	// check block random
-	if block.Height() >= core.RandomAvailableHeight && !block.HasRandomSeed() {
+	if core.RandomAvailableAtHeight(block.Height()) && !block.HasRandomSeed() {
 		logging.VLog().WithFields(logrus.Fields{
 			"blockHeight":      block.Height(),
-			"compatibleHeight": core.RandomAvailableHeight,
+			"compatibleHeight": core.NebCompatibility.RandomAvailableHeight(),
 		}).Debug("No random found in block header.")
 		return core.ErrInvalidBlockRandom
 	}
@@ -498,7 +498,7 @@ func (dpos *Dpos) newBlock(tail *core.Block, consensusState state.ConsensusState
 		adminService = rpcpb.NewAdminServiceClient(conn)
 	}
 
-	if block.Height() >= core.RandomAvailableHeight {
+	if core.RandomAvailableAtHeight(block.Height()) {
 		err := dpos.generateRandomSeed(block, adminService)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{

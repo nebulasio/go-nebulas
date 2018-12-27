@@ -58,6 +58,7 @@ enum nvmErrno {
   NVM_GAS_LIMIT_ERR = -3,
   NVM_UNEXPECTED_ERR = -4,
   NVM_EXE_TIMEOUT_ERR = -5,
+  NVM_INNER_EXE_ERR = -6,
 };
 
 #endif //_NEBULAS_NF_NVM_V8_ENGINE_ERROR_H_

@@ -24,6 +24,8 @@ import (
 	"sync"
 	"time"
 
+	"runtime"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
@@ -46,7 +48,9 @@ var (
 	BlockHashLength = 32
 
 	// ParallelNum num
-	ParallelNum = 1
+	PackedParallelNum = 1
+
+	VerifyParallelNum = runtime.NumCPU() * 2
 
 	// VerifyExecutionTimeout 0 means unlimited
 	VerifyExecutionTimeout = 0
@@ -196,10 +200,10 @@ func (block *Block) FromProto(msg proto.Message) error {
 			if err := block.header.FromProto(msg.Header); err != nil {
 				return err
 			}
-			if msg.Height >= RandomAvailableHeight && !block.HasRandomSeed() {
+			if RandomAvailableAtHeight(msg.Height) && !block.HasRandomSeed() {
 				logging.VLog().WithFields(logrus.Fields{
 					"blockHeight":      msg.Height,
-					"compatibleHeight": RandomAvailableHeight,
+					"compatibleHeight": NebCompatibility.RandomAvailableHeight(),
 				}).Info("No random found in block header.")
 				return ErrInvalidProtoToBlockHeader
 			}
@@ -386,7 +390,7 @@ func (block *Block) Transactions() Transactions {
 
 // RandomSeed block random seed (VRF)
 func (block *Block) RandomSeed() string {
-	if block.height >= RandomAvailableHeight {
+	if RandomAvailableAtHeight(block.height) {
 		return byteutils.Hex(block.header.random.VrfSeed)
 	}
 	return ""
@@ -394,7 +398,7 @@ func (block *Block) RandomSeed() string {
 
 // RandomProof block random proof (VRF)
 func (block *Block) RandomProof() string {
-	if block.height >= RandomAvailableHeight {
+	if RandomAvailableAtHeight(block.height) {
 		return byteutils.Hex(block.header.random.VrfProof)
 	}
 	return ""
@@ -402,12 +406,12 @@ func (block *Block) RandomProof() string {
 
 // RandomAvailable check if Math.random available in contract
 func (block *Block) RandomAvailable() bool {
-	return block.height >= RandomAvailableHeight
+	return RandomAvailableAtHeight(block.height)
 }
 
 // DateAvailable check if date available in contract
 func (block *Block) DateAvailable() bool {
-	return block.height >= DateAvailableHeight
+	return DateAvailableAtHeight(block.height)
 }
 
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
@@ -501,7 +505,7 @@ func (block *Block) CollectTransactions(deadlineInMs int64) {
 	toBlacklist := new(sync.Map)
 
 	// parallelCh is used as access tokens here
-	parallelCh := make(chan bool, ParallelNum)
+	parallelCh := make(chan bool, PackedParallelNum)
 	// mergeCh is used as lock here
 	mergeCh := make(chan bool, 1)
 	over := false
@@ -813,7 +817,16 @@ func (block *Block) Seal() error {
 }
 
 func (block *Block) String() string {
-	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "acc_root": "%s", "timestamp": %d, "tx": %d, "miner": "%s"}`,
+	random := ""
+	if RandomAvailableAtHeight(block.height) && block.header.random != nil {
+		if block.header.random.VrfSeed != nil {
+			random += "/vrf_seed/" + byteutils.Hex(block.header.random.VrfSeed)
+		}
+		if block.header.random.VrfProof != nil {
+			random += "/vrf_proof/" + byteutils.Hex(block.header.random.VrfProof)
+		}
+	}
+	return fmt.Sprintf(`{"height": %d, "hash": "%s", "parent_hash": "%s", "acc_root": "%s", "timestamp": %d, "tx": %d, "miner": "%s", "random": "%s"}`,
 		block.height,
 		block.header.hash,
 		block.header.parentHash,
@@ -821,6 +834,7 @@ func (block *Block) String() string {
 		block.header.timestamp,
 		len(block.transactions),
 		byteutils.Hash(block.header.consensusRoot.Proposer).Base58(),
+		random,
 	)
 }
 
@@ -982,7 +996,20 @@ func (block *Block) execute() error {
 		mergeCh: make(chan bool, 1),
 		block:   block,
 	}
-	dispatcher := dag.NewDispatcher(block.dependency, ParallelNum, int64(VerifyExecutionTimeout), context, func(node *dag.Node, context interface{}) error { // TODO: if system occurs, the block won't be retried any more
+	parallelNum := VerifyParallelNum
+
+	if !WsResetRecordDependencyAtHeight(block.Height()) && len(block.transactions) > 0 {
+		addrs := make(map[byteutils.HexHash]bool)
+		for _, tx := range block.transactions {
+			if _, ok := addrs[tx.to.address.Hex()]; ok {
+				parallelNum = 1
+				break
+			}
+			addrs[tx.to.address.Hex()] = true
+		}
+	}
+
+	dispatcher := dag.NewDispatcher(block.dependency, parallelNum, int64(VerifyExecutionTimeout), context, func(node *dag.Node, context interface{}) error { // TODO: if system occurs, the block won't be retried any more
 		ctx := context.(*verifyCtx)
 		block := ctx.block
 		mergeCh := ctx.mergeCh
@@ -1110,15 +1137,8 @@ func (block *Block) FetchExecutionResultEvent(txHash byteutils.Hash) (*state.Eve
 }
 
 func (block *Block) rewardCoinbaseForMint() error {
-	//before DipRewardHeight, reward only give to coinbase
-	if block.height < DipRewardHeight {
-		coinbaseAddr := block.Coinbase().Bytes()
-		coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
-		if err != nil {
-			return err
-		}
-		return coinbaseAcc.AddBalance(BlockReward)
-	} else {
+	//after NbreAvailableHeight, reward give to coinbase and dip reward address.
+	if NbreAvailableHeight(block.height) {
 		// reward dip to dip address.
 		dipAddr := block.dip.RewardAddress().Bytes()
 		dipAcc, err := block.WorldState().GetOrCreateUserAccount(dipAddr)
@@ -1141,6 +1161,13 @@ func (block *Block) rewardCoinbaseForMint() error {
 			return err
 		}
 		return coinbaseAcc.AddBalance(left)
+	} else {
+		coinbaseAddr := block.Coinbase().Bytes()
+		coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
+		if err != nil {
+			return err
+		}
+		return coinbaseAcc.AddBalance(BlockReward)
 	}
 }
 
@@ -1360,4 +1387,43 @@ func MockBlock(header *BlockHeader, height uint64) *Block {
 		header: header,
 		height: height,
 	}
+}
+
+// MockBlockEx return new block to inner nvm unit test
+func MockBlockEx(chainID uint32, coinbase *Address, parent *Block, height uint64) (*Block, error) { // ToCheck: check args. // ToCheck: check full-functional block.
+	worldState, err := parent.worldState.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	block := &Block{
+		header: &BlockHeader{
+			chainID:       chainID,
+			parentHash:    parent.Hash(),
+			coinbase:      coinbase,
+			timestamp:     time.Now().Unix(),
+			consensusRoot: &consensuspb.ConsensusRoot{},
+			random:        &corepb.Random{},
+		},
+		transactions: make(Transactions, 0),
+		dependency:   dag.NewDag(),
+
+		worldState: worldState,
+		height:     height,
+		sealed:     false,
+
+		txPool:       parent.txPool,
+		eventEmitter: parent.eventEmitter,
+		nvm:          parent.nvm,
+		storage:      parent.storage,
+	}
+
+	if err := block.Begin(); err != nil {
+		return nil, err
+	}
+	if err := block.rewardCoinbaseForMint(); err != nil {
+		return nil, err
+	}
+
+	return block, nil
 }

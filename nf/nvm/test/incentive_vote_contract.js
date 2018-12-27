@@ -176,6 +176,15 @@ IncentiveVoteContract.prototype = {
         }
         return false;
     },
+    updateEndHeight: function(height) {
+        if (this.owner !== Blockchain.transaction.from) {
+            throw new Error("only contract owner can update the end height");
+        }
+        this.endHeight = height;
+    },
+    getEndHeight: function() {
+        return this.endHeight;
+    },
     updateVoter: function(oldAddr, newAddr) {
         if (this.owner !== Blockchain.transaction.from) {
             throw new Error("only contract owner can update the voter");
@@ -228,11 +237,14 @@ IncentiveVoteContract.prototype = {
         return this.voteMap.get(addr);
     },
     getAddrVotesList: function() {
-        var count = this.voteCount;
+        var count = this.addressCount;
         var dappVotes = {};
         for(var i = 0; i < count; i++) {
-            var addr = this.voteAddrArray.get(i);
+            var addr = this.addressArray.get(i);
             var dappVote = this.voteMap.get(addr);
+            if (dappVote === null) {
+                dappVote = new DappVote();
+            }
             dappVotes[addr] = dappVote;
         }
         return dappVotes;

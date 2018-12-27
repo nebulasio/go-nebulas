@@ -16,6 +16,8 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+//The protobuf golang code is generated with protoc-gen-gogo v1.0.0
+
 syntax = "proto3";
 
 import "google/api/annotations.proto";
@@ -131,6 +133,14 @@ service ApiService {
             post: "/v1/user/dynasty"
             body: "*"
 		};
+    }
+
+    // Verify Signature.
+    rpc VerifySignature (VerifySignatureRequest) returns (VerifySignatureResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/verifySignature"
+            body: "*"
+        };
     }
 
     // get nr hash with height interval
@@ -560,6 +570,9 @@ message TransactionResponse {
 
     // contract execute result
     string execute_result = 16;
+
+    // transaction's block height
+    uint64 block_height = 17;
 }
 
 message NewAccountRequest {
@@ -673,6 +686,18 @@ message PprofResponse {
 message GetConfigResponse {
     // Config
     nebletpb.Config config = 1;
+}
+
+message VerifySignatureRequest {
+    string msg = 1;
+    string signature = 2;
+    string address = 3;
+    uint32 alg = 4;
+}
+
+message VerifySignatureResponse {
+    bool result = 1;
+    string address = 2;
 }
 
 message GetNRHashRequest {

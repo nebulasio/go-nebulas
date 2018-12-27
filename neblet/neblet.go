@@ -49,7 +49,7 @@ var (
 	metricsNebstartGauge = m.GetOrRegisterGauge("neb.start", nil)
 )
 
-// Neblet manages ldife cycle of blockchain services.
+// Neblet manages life cycle of blockchain services.
 type Neblet struct {
 	config *nebletpb.Config
 
