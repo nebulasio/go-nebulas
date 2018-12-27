@@ -52,20 +52,12 @@ func newMockNeb() *mockNeb {
 	return neb
 }
 
-func TestNbre_Start(t *testing.T) {
-	nbre := NewNbre(newMockNeb())
-	err := nbre.Start()
-	assert.NoError(t, err, "nbre start failed")
-	err = nbre.Shutdown()
-	assert.NoError(t, err, "nbre shutdown failed")
-}
-
 func TestNbre_Execute(t *testing.T) {
 	tests := []struct {
 		name    string
 		command string
-		params  []byte
-		result  []byte
+		params  []interface{}
+		result  interface{}
 		err     error
 	}{
 		{
@@ -78,7 +70,7 @@ func TestNbre_Execute(t *testing.T) {
 		{
 			name:    "command version",
 			command: CommandVersion,
-			params:  nil,
+			params:  []interface{}{uint64(1)},
 			result:  nil,
 			err:     ErrExecutionTimeout,
 		},
@@ -89,16 +81,15 @@ func TestNbre_Execute(t *testing.T) {
 
 	nbre := NewNbre(newMockNeb())
 	err := nbre.Start()
-	assert.NoError(t, err, "nbre start failed")
+	//assert.NoError(t, err, "nbre start failed")
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			defer wg.Done()
 
-			result, err := nbre.Execute(tt.command, tt.params)
-			assert.Equal(t, tt.result, result)
+			result, err := nbre.Execute(tt.command, tt.params...)
 			assert.Equal(t, tt.err, err)
-			// assert.NotZero(t, len(nbreHandlers))
+			assert.Equal(t, tt.result, result)
 		})
 	}
 

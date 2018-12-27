@@ -68,7 +68,7 @@ var (
 
 type handler struct {
 	id     uint64
-	result []byte
+	result interface{}
 	err    error
 	done   chan bool
 }
@@ -190,7 +190,7 @@ func InitializeNbre() {
 }
 
 // Execute execute command
-func (n *Nbre) Execute(command string, args ...interface{}) ([]byte, error) {
+func (n *Nbre) Execute(command string, args ...interface{}) (interface{}, error) {
 	handlerIdx++
 	handler := &handler{
 		id:     handlerIdx,
@@ -207,7 +207,7 @@ func (n *Nbre) Execute(command string, args ...interface{}) ([]byte, error) {
 
 	go func() {
 		// handle nbre command
-		n.handleNbreCommand(handler, command, args)
+		n.handleNbreCommand(handler, command, args...)
 	}()
 
 	select {
@@ -228,7 +228,7 @@ func (n *Nbre) Execute(command string, args ...interface{}) ([]byte, error) {
 	logging.CLog().WithFields(logrus.Fields{
 		"command": command,
 		"params":  args,
-		"result":  string(handler.result),
+		"result":  handler.result,
 		"error":   handler.err,
 	}).Debug("nbre command response")
 	return handler.result, handler.err
@@ -273,6 +273,7 @@ func (n *Nbre) handleNbreCommand(handler *handler, command string, args ...inter
 		version := args[1].(uint64)
 		C.ipc_nbre_dip_reward(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height), C.uint64_t(version))
 	default:
+		handler.result = nil
 		handler.err = ErrCommandNotFound
 		handler.done <- true
 	}
@@ -289,7 +290,7 @@ func getNbreHandler(id uint64) (*handler, error) {
 	return handler, nil
 }
 
-func nbreHandled(code C.int, holder unsafe.Pointer, result []byte, handleErr error) {
+func nbreHandled(code C.int, holder unsafe.Pointer, result interface{}, handleErr error) {
 	handlerId := uint64(uintptr(holder))
 	handler, err := getNbreHandler(handlerId)
 	if err != nil {

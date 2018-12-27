@@ -23,7 +23,6 @@ package nbre
 */
 import "C"
 import (
-	"encoding/json"
 	"unsafe"
 )
 
@@ -35,8 +34,7 @@ func NbreVersionFunc(code C.int, holder unsafe.Pointer, major C.uint32_t, minor 
 		Minor: uint64(minor),
 		Patch: uint64(patch),
 	}
-	result, err := json.Marshal(version)
-	nbreHandled(code, holder, result, err)
+	nbreHandled(code, holder, version, nil)
 }
 
 // NbreIrListFunc returns nbre ir list

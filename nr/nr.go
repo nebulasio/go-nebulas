@@ -48,17 +48,21 @@ func (n *NR) GetNRHandler(start, end, version uint64) ([]byte, error) {
 	if end <= 0 || end > n.chain.TailBlock().Height() {
 		return nil, ErrInvalidEndHeight
 	}
-	return n.nbre.Execute(nbre.CommandNRHandler, start, end, version)
+	data, err := n.nbre.Execute(nbre.CommandNRHandler, start, end, version)
+	if err != nil {
+		return nil, err
+	}
+	return data.([]byte), nil
 }
 
 // GetNRList returns the nr list
 func (n *NR) GetNRList(hash []byte) (core.Data, error) {
-	data, err := n.nbre.Execute(nbre.CommandNRList, hash)
+	data, err := n.nbre.Execute(nbre.CommandNRList, string(hash))
 	if err != nil {
 		return nil, err
 	}
 	nrData := &NRData{}
-	if err := nrData.FromBytes(data); err != nil {
+	if err := nrData.FromBytes(data.([]byte)); err != nil {
 		return nil, err
 	}
 	if len(nrData.Err) > 0 {

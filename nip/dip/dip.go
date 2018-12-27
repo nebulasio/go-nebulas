@@ -228,7 +228,7 @@ func (d *Dip) GetDipList(height, version uint64) (core.Data, error) {
 			return nil, err
 		}
 		data = &DIPData{}
-		if err := data.FromBytes(dipData); err != nil {
+		if err := data.FromBytes(dipData.([]byte)); err != nil {
 			return nil, err
 		}
 		if len(data.Err) > 0 {
