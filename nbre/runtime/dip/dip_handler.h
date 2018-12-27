@@ -37,6 +37,10 @@ public:
 
   std::string get_dip_reward(neb::block_height_t height);
 
+  void read_dip_reward_from_storage(neb::fs::rocksdb_storage *rs);
+  void write_dip_reward_to_storage(const std::string &dip_reward,
+                                   neb::fs::rocksdb_storage *rs);
+
 private:
   void check_dip_params(block_height_t height, neb::fs::rocksdb_storage *rs);
 

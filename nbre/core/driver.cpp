@@ -184,24 +184,20 @@ void driver::add_handlers() {
 
         LOG(INFO) << ipc_configuration::instance().nbre_db_dir();
         LOG(INFO) << ipc_configuration::instance().admin_pub_addr();
-        FLAGS_log_dir = ipc_configuration::instance().nbre_log_dir();
-        google::InitGoogleLogging("nbre-client");
+        // FLAGS_log_dir = ipc_configuration::instance().nbre_log_dir();
+        // google::InitGoogleLogging("nbre-client");
 
+        {
+          std::unique_ptr<neb::fs::rocksdb_storage> rs =
+              std::make_unique<neb::fs::rocksdb_storage>();
+          rs->open_database(
+              neb::core::ipc_configuration::instance().nbre_db_dir(),
+              neb::fs::storage_open_for_readonly);
+          neb::rt::dip::dip_handler::instance().read_dip_reward_from_storage(
+              rs.get());
+          rs->close_database();
+        }
         init_timer_thread();
-
-        ff::para<> p;
-        LOG(INFO) << "to start dip params init";
-        p([]() {
-          try {
-            jit_driver &jd = jit_driver::instance();
-            jd.run_ir<std::string>("dip", std::numeric_limits<uint64_t>::max(),
-                                   "_Z15entry_point_dipB5cxx11m", 0);
-          } catch (const std::exception &e) {
-            LOG(INFO) << "dip params init failed " << e.what();
-          }
-        });
-        ff::ff_wait(p);
-        LOG(INFO) << "done with dip params init";
         ir_warden::instance().wait_until_sync();
       });
 

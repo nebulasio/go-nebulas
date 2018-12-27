@@ -26,6 +26,7 @@
 #include "fs/proto/ir.pb.h"
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_reward.h"
+#include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <ff/ff.h>
@@ -111,13 +112,16 @@ void dip_handler::start(neb::block_height_t height,
   uint64_t dip_version = *dip_versions_ptr->begin();
 
   ff::para<> p;
-  p([this, hash_height, dip_block_interval, dip_version]() {
+  p([this, hash_height, dip_block_interval, dip_version, rs]() {
     try {
       std::unique_lock<std::mutex> _l(m_sync_mutex);
       jit_driver &jd = jit_driver::instance();
       auto dip_reward = jd.run_ir<std::string>(
           "dip", hash_height, "_Z15entry_point_dipB5cxx11m", hash_height);
       LOG(INFO) << "dip reward returned";
+
+      write_dip_reward_to_storage(dip_reward, rs);
+      LOG(INFO) << "write dip reward to storage";
 
       m_dip_reward.insert(std::make_pair(hash_height, dip_reward));
     } catch (const std::exception &e) {
@@ -147,6 +151,70 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   }
   return dip_reward->second;
 }
+
+void dip_handler::write_dip_reward_to_storage(const std::string &dip_reward,
+                                              neb::fs::rocksdb_storage *rs) {
+  auto update_to_storage = [](const std::string &key,
+                              const boost::property_tree::ptree &val_pt,
+                              neb::fs::rocksdb_storage *rs) {
+    std::stringstream ss;
+    boost::property_tree::json_parser::write_json(ss, val_pt, false);
+    rs->put(key, neb::util::string_to_byte(ss.str()));
+  };
+
+  neb::util::bytes dip_rewards_bytes;
+  std::string key = "dip_rewards";
+  try {
+    dip_rewards_bytes = rs->get(key);
+  } catch (const std::exception &e) {
+    LOG(INFO) << "dip reward empty " << e.what();
+
+    boost::property_tree::ptree ele, arr, root;
+    ele.put("", dip_reward);
+    arr.push_back(std::make_pair("", ele));
+    root.add_child(key, arr);
+    update_to_storage(key, root, rs);
+  }
+
+  boost::property_tree::ptree root;
+  std::stringstream ss(neb::util::byte_to_string(dip_rewards_bytes));
+  boost::property_tree::json_parser::read_json(ss, root);
+
+  boost::property_tree::ptree &arr = root.get_child(key);
+  boost::property_tree::ptree ele;
+  ele.put("", dip_reward);
+  arr.push_back(std::make_pair("", ele));
+  update_to_storage(key, root, rs);
+}
+
+void dip_handler::read_dip_reward_from_storage(neb::fs::rocksdb_storage *rs) {
+
+  std::string key = "dip_rewards";
+  neb::util::bytes dip_rewards_bytes;
+  try {
+    dip_rewards_bytes = rs->get(key);
+  } catch (const std::exception &e) {
+    LOG(INFO) << "dip reward empty " << e.what();
+    return;
+  }
+
+  boost::property_tree::ptree root;
+  std::stringstream ss(neb::util::byte_to_string(dip_rewards_bytes));
+  boost::property_tree::json_parser::read_json(ss, root);
+
+  BOOST_FOREACH (boost::property_tree::ptree::value_type &v,
+                 root.get_child(key)) {
+    boost::property_tree::ptree pt = v.second;
+    std::string dip_reward = pt.get<std::string>(std::string());
+
+    boost::property_tree::ptree reward_pt;
+    std::stringstream ss(dip_reward);
+    boost::property_tree::json_parser::read_json(ss, reward_pt);
+    block_height_t end_height = reward_pt.get<block_height_t>("end_height");
+    m_dip_reward.insert(std::make_pair(end_height + 1, dip_reward));
+  }
+}
+
 } // namespace dip
 } // namespace rt
 } // namespace neb
