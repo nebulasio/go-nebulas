@@ -174,6 +174,7 @@ void dip_handler::write_dip_reward_to_storage(const std::string &dip_reward,
     arr.push_back(std::make_pair("", ele));
     root.add_child(key, arr);
     update_to_storage(key, root, rs);
+    return;
   }
 
   boost::property_tree::ptree root;
