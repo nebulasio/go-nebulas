@@ -21,6 +21,7 @@
 #include "fs/ir_manager/ir_manager.h"
 #include "common/configuration.h"
 #include "common/util/byte.h"
+#include "common/util/json_parser.h"
 #include "common/util/version.h"
 #include "core/neb_ipc/server/ipc_configuration.h"
 #include "fs/ir_manager/api/ir_api.h"
@@ -201,8 +202,10 @@ void ir_manager::parse_irs_by_height(block_height_t height) {
     }
     LOG(INFO) << height;
 
-    const std::string &payload = data.payload();
-    neb::util::bytes payload_bytes = neb::util::string_to_byte(payload);
+    boost::property_tree::ptree pt;
+    neb::util::json_parser::read_json(data.payload(), pt);
+    neb::util::bytes payload_bytes =
+        neb::util::bytes::from_base64(pt.get<std::string>("Data"));
     std::unique_ptr<nbre::NBREIR> nbre_ir = std::make_unique<nbre::NBREIR>();
     bool ret =
         nbre_ir->ParseFromArray(payload_bytes.value(), payload_bytes.size());
