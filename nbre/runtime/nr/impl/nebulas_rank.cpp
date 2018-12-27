@@ -157,11 +157,10 @@ nebulas_rank::get_account_balance_median(
     std::vector<wei_t> v = it->second;
     sort(v.begin(), v.end());
     size_t v_len = v.size();
-    floatxx_t median = int128_conversion(v[v_len >> 1]).to_float<floatxx_t>();
+    floatxx_t median = conversion(v[v_len >> 1]).to_float<floatxx_t>();
     if ((v_len & 0x1) == 0) {
-      median = (median +
-                int128_conversion(v[(v_len >> 1) - 1]).to_float<floatxx_t>()) /
-               2;
+      median =
+          (median + conversion(v[(v_len >> 1) - 1]).to_float<floatxx_t>()) / 2;
     }
 
     floatxx_t normalized_median = db_ptr->get_normalized_value(median);
@@ -190,10 +189,10 @@ nebulas_rank::get_account_weight(
     wei_t in_val = it->second.m_in_val;
     wei_t out_val = it->second.m_out_val;
 
-    floatxx_t normalized_in_val = db_ptr->get_normalized_value(
-        int128_conversion(in_val).to_float<floatxx_t>());
-    floatxx_t normalized_out_val = db_ptr->get_normalized_value(
-        int128_conversion(out_val).to_float<floatxx_t>());
+    floatxx_t normalized_in_val =
+        db_ptr->get_normalized_value(conversion(in_val).to_float<floatxx_t>());
+    floatxx_t normalized_out_val =
+        db_ptr->get_normalized_value(conversion(out_val).to_float<floatxx_t>());
     ret.insert(std::make_pair(
         it->first, f_account_weight(normalized_in_val, normalized_out_val)));
   }
@@ -381,14 +380,13 @@ std::unique_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
     }
 
     neb::floatxx_t nas_in_val = adb_ptr->get_normalized_value(
-        neb::int128_conversion(in_out_vals.find(addr)->second.m_in_val)
+        neb::conversion(in_out_vals.find(addr)->second.m_in_val)
             .to_float<neb::floatxx_t>());
     neb::floatxx_t nas_out_val = adb_ptr->get_normalized_value(
-        neb::int128_conversion(in_out_vals.find(addr)->second.m_out_val)
+        neb::conversion(in_out_vals.find(addr)->second.m_out_val)
             .to_float<neb::floatxx_t>());
     neb::floatxx_t nas_stake = adb_ptr->get_normalized_value(
-        neb::int128_conversion(stakes.find(addr)->second)
-            .to_float<neb::floatxx_t>());
+        neb::conversion(stakes.find(addr)->second).to_float<neb::floatxx_t>());
 
     nr_info_t info{addr,
                    in_out_degrees[addr].m_in_degree,

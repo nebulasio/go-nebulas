@@ -24,15 +24,40 @@
 
 namespace neb {
 
-class int128_conversion {
+class conversion {
 public:
-  inline int128_conversion() { m_data.m_data = 0; }
-  inline int128_conversion(int128_t data) { m_data.m_data = data; }
+  inline conversion() { m_data.m_data = 0; }
+  inline conversion(int128_t data) { m_data.m_data = data; }
 
   template <typename T> inline T to_float() {
-    uint64_t tmp = 1ULL << 63;
-    return T(low()) + T(high()) * T(tmp) * 2;
+    T one = softfloat_cast<uint32_t, typename T::value_type>(1);
+    T limits = softfloat_cast<uint64_t, typename T::value_type>(
+        std::numeric_limits<uint64_t>::max());
+
+    return T(m_data.m_detail.m_low) +
+           T(m_data.m_detail.m_high) * (limits + one);
   }
+
+  template <typename T> inline int128_t from_float(const T &x) {
+    T one = softfloat_cast<uint32_t, typename T::value_type>(1);
+    T limits = softfloat_cast<uint64_t, typename T::value_type>(
+        std::numeric_limits<uint64_t>::max());
+
+    if (x < limits) {
+      m_data.m_detail.m_low =
+          softfloat_cast<typename T::value_type, uint64_t>(x);
+      m_data.m_detail.m_high = 0;
+      return m_data.m_data;
+    }
+
+    m_data.m_detail.m_high =
+        softfloat_cast<typename T::value_type, int64_t>(x / (limits + one));
+    m_data.m_detail.m_low = softfloat_cast<typename T::value_type, uint64_t>(
+        x - m_data.m_detail.m_high * (limits + one));
+    return m_data.m_data;
+  }
+
+  inline const int128_t &data() const { return m_data.m_data; }
 
   inline uint64_t low() { return m_data.m_detail.m_low; }
   inline int64_t high() { return m_data.m_detail.m_high; }
