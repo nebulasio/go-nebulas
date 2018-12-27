@@ -44,12 +44,13 @@ struct nr_info_t {
 };
 
 struct rank_params_t {
-  floatxx_t m_a;
-  floatxx_t m_b;
-  floatxx_t m_c;
-  floatxx_t m_d;
-  int64_t m_mu;
-  int64_t m_lambda;
+  int64_t m_a;
+  int64_t m_b;
+  int64_t m_c;
+  int64_t m_d;
+  floatxx_t m_theta;
+  floatxx_t m_mu;
+  floatxx_t m_lambda;
 };
 
 using uintxx_t = uint64_t;
@@ -116,9 +117,9 @@ private:
 
   static floatxx_t f_account_weight(floatxx_t in_val, floatxx_t out_val);
 
-  static floatxx_t f_account_rank(floatxx_t a, floatxx_t b, floatxx_t c,
-                                  floatxx_t d, int64_t mu, int64_t lambda,
-                                  floatxx_t S, floatxx_t R);
+  static floatxx_t f_account_rank(int64_t a, int64_t b, int64_t c, int64_t d,
+                                  floatxx_t theta, floatxx_t mu,
+                                  floatxx_t lambda, floatxx_t S, floatxx_t R);
 
   static void convert_nr_info_to_ptree(const nr_info_t &info,
                                        boost::property_tree::ptree &pt);

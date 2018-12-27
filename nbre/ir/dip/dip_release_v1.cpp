@@ -55,7 +55,7 @@ std::string entry_point_dip(uint64_t height) {
 
   neb::rt::dip::dip_float_t alpha = 1;
   neb::rt::dip::dip_float_t beta = 1;
-  return neb::rt::dip::entry_point_dip_impl(start_block, end_block, height,
-                                            nr_result, alpha, beta,
-                                            to_version_t(0, 0, 1));
+  return neb::rt::dip::entry_point_dip_impl(start_block, end_block,
+                                            to_version_t(0, 0, 1), height,
+                                            nr_result, alpha, beta);
 }

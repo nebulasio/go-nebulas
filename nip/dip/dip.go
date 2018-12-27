@@ -207,7 +207,7 @@ func (d *Dip) generateRewardTx(start uint64, end uint64, version uint64, item *D
 		core.TxPayloadDipType,
 		payloadBytes,
 		d.neb.BlockChain().TransactionPool().GetMinGasPrice(),
-		core.MinGasCountPerTransaction)
+		d.neb.BlockChain().TransactionPool().GetMaxGasLimit())
 	if err != nil {
 		return nil, err
 	}

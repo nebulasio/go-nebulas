@@ -30,9 +30,9 @@ namespace rt {
 namespace dip {
 
 std::string entry_point_dip_impl(uint64_t start_block, uint64_t end_block,
-                                 uint64_t height, const std::string &nr_result,
-                                 dip_float_t alpha, dip_float_t beta,
-                                 version_t version) {
+                                 version_t version, uint64_t height,
+                                 const std::string &nr_result,
+                                 dip_float_t alpha, dip_float_t beta) {
 
   std::string neb_db_path =
       neb::core::ipc_configuration::instance().neb_db_dir();
