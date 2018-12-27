@@ -41,7 +41,6 @@ import (
 	"path/filepath"
 
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -191,7 +190,7 @@ func InitializeNbre() {
 }
 
 // Execute execute command
-func (n *Nbre) Execute(command string, params []byte) ([]byte, error) {
+func (n *Nbre) Execute(command string, args ...interface{}) ([]byte, error) {
 	handlerIdx++
 	handler := &handler{
 		id:     handlerIdx,
@@ -208,7 +207,7 @@ func (n *Nbre) Execute(command string, params []byte) ([]byte, error) {
 
 	go func() {
 		// handle nbre command
-		n.handleNbreCommand(handler, command, params)
+		n.handleNbreCommand(handler, command, args)
 	}()
 
 	select {
@@ -222,13 +221,13 @@ func (n *Nbre) Execute(command string, params []byte) ([]byte, error) {
 		deleteHandler(handler)
 		logging.CLog().WithFields(logrus.Fields{
 			"command": command,
-			"params":  string(params),
+			"params":  args,
 		}).Debug("nbre response timeout.")
 	}
 
 	logging.CLog().WithFields(logrus.Fields{
 		"command": command,
-		"params":  string(params),
+		"params":  args,
 		"result":  string(handler.result),
 		"error":   handler.err,
 	}).Debug("nbre command response")
@@ -241,29 +240,38 @@ func deleteHandler(handler *handler) {
 	delete(nbreHandlers, handler.id)
 }
 
-func (n *Nbre) handleNbreCommand(handler *handler, command string, params []byte) {
+func (n *Nbre) handleNbreCommand(handler *handler, command string, args ...interface{}) {
 	handlerId := handler.id
 
 	logging.CLog().WithFields(logrus.Fields{
 		"command": command,
+		"args":    args,
 	}).Debug("run nbre command")
 	switch command {
 	case CommandVersion:
-		height := byteutils.Uint64(params)
+		height := args[0].(uint64)
 		C.ipc_nbre_version(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height))
 	case CommandIRList:
 		C.ipc_nbre_ir_list(unsafe.Pointer(uintptr(handlerId)))
 	case CommandIRVersions:
-		C.ipc_nbre_ir_versions(unsafe.Pointer(uintptr(handlerId)), C.CString(string(params)))
+		irName := args[0].(string)
+		cIrName := C.CString(irName)
+		defer C.free(unsafe.Pointer(cIrName))
+		C.ipc_nbre_ir_versions(unsafe.Pointer(uintptr(handlerId)), cIrName)
 	case CommandNRHandler:
-		pStr := &Params{}
-		pStr.FromBytes(params)
-		C.ipc_nbre_nr_handler(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(pStr.StartBlock), C.uint64_t(pStr.EndBlock), C.uint64_t(pStr.Version))
+		start := args[0].(uint64)
+		end := args[1].(uint64)
+		version := args[2].(uint64)
+		C.ipc_nbre_nr_handler(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(start), C.uint64_t(end), C.uint64_t(version))
 	case CommandNRList:
-		C.ipc_nbre_nr_result(unsafe.Pointer(uintptr(handlerId)), C.CString(string(params)))
+		holder := args[0].(string)
+		cHolder := C.CString(holder)
+		defer C.free(unsafe.Pointer(cHolder))
+		C.ipc_nbre_nr_result(unsafe.Pointer(uintptr(handlerId)), cHolder)
 	case CommandDIPList:
-		height := byteutils.Uint64(params)
-		C.ipc_nbre_dip_reward(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height))
+		height := args[0].(uint64)
+		version := args[1].(uint64)
+		C.ipc_nbre_dip_reward(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height), C.uint64_t(version))
 	default:
 		handler.err = ErrCommandNotFound
 		handler.done <- true

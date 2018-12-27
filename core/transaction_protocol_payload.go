@@ -19,6 +19,8 @@
 package core
 
 import (
+	"encoding/json"
+
 	"github.com/nebulasio/go-nebulas/util"
 )
 
@@ -29,19 +31,24 @@ type ProtocolPayload struct {
 
 // LoadProtocolPayload from bytes
 func LoadProtocolPayload(bytes []byte) (*ProtocolPayload, error) {
-	return NewProtocolPayload(bytes), nil
+	payload := &ProtocolPayload{}
+	if err := json.Unmarshal(bytes, payload); err != nil {
+		return nil, ErrInvalidArgument
+	}
+	return NewProtocolPayload(payload.Data)
 }
 
 // NewProtocolPayload with data
-func NewProtocolPayload(data []byte) *ProtocolPayload {
+func NewProtocolPayload(data []byte) (*ProtocolPayload, error) {
+	//TODO(larry): payload check add here.
 	return &ProtocolPayload{
 		Data: data,
-	}
+	}, nil
 }
 
 // ToBytes serialize payload
 func (payload *ProtocolPayload) ToBytes() ([]byte, error) {
-	return payload.Data, nil
+	return json.Marshal(payload)
 }
 
 // BaseGasCount returns base gas count
@@ -51,8 +58,5 @@ func (payload *ProtocolPayload) BaseGasCount() *util.Uint128 {
 
 // Execute the payload in tx
 func (payload *ProtocolPayload) Execute(limitedGas *util.Uint128, tx *Transaction, block *Block, ws WorldState) (*util.Uint128, string, error) {
-	if err := block.dip.CheckReward(block.height, tx); err != nil {
-		return util.NewUint128(), "", err
-	}
 	return util.NewUint128(), "", nil
 }

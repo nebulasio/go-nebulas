@@ -68,7 +68,7 @@ type DIPItem struct {
 type DIPData struct {
 	StartHeight uint64     `json:"start_height,string"`
 	EndHeight   uint64     `json:"end_height,string"`
-	Version     string     `json:"version"`
+	Version     uint64     `json:"version,string"`
 	Dips        []*DIPItem `json:"dips"`
 	Err         string     `json:"err"`
 }

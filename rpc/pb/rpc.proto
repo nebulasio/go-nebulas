@@ -698,7 +698,7 @@ message GetNRListRequest {
 message GetNRListResponse {
 
     // nr algorithm version
-    string version = 1;
+    uint64 version = 1;
 
     // start block height of nr calculate interval
     uint64 start = 2;
@@ -717,7 +717,7 @@ message GetDIPListRequest {
 
 message GetDIPListResponse {
     // dip algorithm version
-    string version = 1;
+    uint64 version = 1;
 
     // start block height of dip calculate interval
     uint64 start = 2;

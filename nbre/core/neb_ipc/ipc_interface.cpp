@@ -100,6 +100,6 @@ void set_recv_nbre_dip_reward_callback(nbre_dip_reward_callback_t func) {
   neb::core::ipc_callback_holder::instance().m_nbre_dip_reward_callback = func;
 }
 
-int ipc_nbre_dip_reward(void *holder, uint64_t height) {
+int ipc_nbre_dip_reward(void *holder, uint64_t height, uint64_t version) {
   return _ipc->send_nbre_dip_reward_req(holder, height);
 }

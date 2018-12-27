@@ -95,10 +95,6 @@ func (payload *DeployPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 		return util.NewUint128(), "", ErrNilArgument
 	}
 
-	if err := block.dip.CheckReward(block.height, tx); err != nil {
-		return util.NewUint128(), "", err
-	}
-
 	if !tx.From().Equals(tx.To()) {
 		return util.NewUint128(), "", ErrContractTransactionAddressNotEqual
 	}

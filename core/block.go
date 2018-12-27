@@ -1195,6 +1195,14 @@ func (block *Block) ExecuteTransaction(tx *Transaction, ws WorldState) (bool, er
 		return giveback, err
 	}
 
+	if err := block.dip.CheckReward(tx); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"tx":  tx,
+			"err": err,
+		}).Info("Failed to check transaction dip reward.")
+		return false, nil
+	}
+
 	if giveback, err := VerifyExecution(tx, block, ws); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"tx":  tx,
