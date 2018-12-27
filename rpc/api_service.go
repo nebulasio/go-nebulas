@@ -664,7 +664,7 @@ func (s *APIService) GetNRHash(ctx context.Context, req *rpcpb.GetNRHashRequest)
 		return nil, err
 	}
 
-	return &rpcpb.GetNRHashResponse{Hash: string(data)}, nil
+	return &rpcpb.GetNRHashResponse{Hash: data}, nil
 }
 
 // GetNRList return nr data.

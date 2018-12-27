@@ -41,33 +41,33 @@ func NbreVersionFunc(code C.int, holder unsafe.Pointer, major C.uint32_t, minor 
 //export NbreIrListFunc
 func NbreIrListFunc(code C.int, holder unsafe.Pointer, ir_name_list *C.char) {
 	result := C.GoString(ir_name_list)
-	nbreHandled(code, holder, []byte(result), nil)
+	nbreHandled(code, holder, result, nil)
 }
 
 // NbreIrVersionsFunc returns nbre ir versions
 //export NbreIrVersionsFunc
 func NbreIrVersionsFunc(code C.int, holder unsafe.Pointer, ir_versions *C.char) {
 	result := C.GoString(ir_versions)
-	nbreHandled(code, holder, []byte(result), nil)
+	nbreHandled(code, holder, result, nil)
 }
 
 // NbreNrHandlerFunc returns nbre nr handler
 //export NbreNrHandlerFunc
 func NbreNrHandlerFunc(code C.int, holder unsafe.Pointer, nr_handler *C.char) {
 	result := C.GoString(nr_handler)
-	nbreHandled(code, holder, []byte(result), nil)
+	nbreHandled(code, holder, result, nil)
 }
 
 // NbreNrResultFunc returns nbre nr list
 //export NbreNrResultFunc
 func NbreNrResultFunc(code C.int, holder unsafe.Pointer, nr_result *C.char) {
 	result := C.GoString(nr_result)
-	nbreHandled(code, holder, []byte(result), nil)
+	nbreHandled(code, holder, result, nil)
 }
 
 // NbreDipRewardFunc returns nbre dip list
 //export NbreDipRewardFunc
 func NbreDipRewardFunc(code C.int, holder unsafe.Pointer, dip_reward *C.char) {
 	result := C.GoString(dip_reward)
-	nbreHandled(code, holder, []byte(result), nil)
+	nbreHandled(code, holder, result, nil)
 }

@@ -41,18 +41,18 @@ func NewNR(neb Neblet) *NR {
 }
 
 // GetNRHandler returns the nr query handler
-func (n *NR) GetNRHandler(start, end, version uint64) ([]byte, error) {
+func (n *NR) GetNRHandler(start, end, version uint64) (string, error) {
 	if start >= end {
-		return nil, ErrInvalidHeightInterval
+		return "", ErrInvalidHeightInterval
 	}
 	if end <= 0 || end > n.chain.TailBlock().Height() {
-		return nil, ErrInvalidEndHeight
+		return "", ErrInvalidEndHeight
 	}
 	data, err := n.nbre.Execute(nbre.CommandNRHandler, start, end, version)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return data.([]byte), nil
+	return data.(string), nil
 }
 
 // GetNRList returns the nr list
@@ -62,7 +62,7 @@ func (n *NR) GetNRList(hash []byte) (core.Data, error) {
 		return nil, err
 	}
 	nrData := &NRData{}
-	if err := nrData.FromBytes(data.([]byte)); err != nil {
+	if err := nrData.FromBytes([]byte(data.(string))); err != nil {
 		return nil, err
 	}
 	if len(nrData.Err) > 0 {
