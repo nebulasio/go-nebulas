@@ -219,13 +219,13 @@ func (n *Nbre) Execute(command string, args ...interface{}) (interface{}, error)
 		handler.err = ErrExecutionTimeout
 		// handler.done <- true
 		deleteHandler(handler)
-		logging.CLog().WithFields(logrus.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"command": command,
 			"params":  args,
 		}).Debug("nbre response timeout.")
 	}
 
-	logging.CLog().WithFields(logrus.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"command": command,
 		"params":  args,
 		"result":  handler.result,
@@ -243,7 +243,7 @@ func deleteHandler(handler *handler) {
 func (n *Nbre) handleNbreCommand(handler *handler, command string, args ...interface{}) {
 	handlerId := handler.id
 
-	logging.CLog().WithFields(logrus.Fields{
+	logging.VLog().WithFields(logrus.Fields{
 		"command": command,
 		"args":    args,
 	}).Debug("run nbre command")
@@ -294,7 +294,7 @@ func nbreHandled(code C.int, holder unsafe.Pointer, result interface{}, handleEr
 	handlerId := uint64(uintptr(holder))
 	handler, err := getNbreHandler(handlerId)
 	if err != nil {
-		logging.CLog().WithFields(logrus.Fields{
+		logging.VLog().WithFields(logrus.Fields{
 			"handlerId": handlerId,
 			"err":       err,
 		}).Error("Failed to handle nbre callback")
