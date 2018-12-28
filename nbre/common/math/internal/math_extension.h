@@ -39,9 +39,14 @@ template <typename T> T from_string(const std::string &str) {
 }
 
 template <typename T> T exp(const T &x) {
+  T zero = softfloat_cast<uint32_t, typename T::value_type>(0);
   T one = softfloat_cast<uint32_t, typename T::value_type>(1);
-  T ret = one;
 
+  if (x < zero) {
+    return one / exp(-x);
+  }
+
+  T ret = one;
   T i = one;
   T prev = one;
   T px = x;
@@ -53,17 +58,11 @@ template <typename T> T exp(const T &x) {
     if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
       break;
     }
-
-    // limits max
     if (to_string(tmp).compare("inf") == 0 &&
         to_string(ret).compare("inf") == 0) {
       break;
     }
-    // limits min
-    if (to_string(tmp).compare("-nan") == 0 &&
-        to_string(ret).compare("-nan") == 0) {
-      break;
-    }
+
     ret = tmp;
     i += one;
     px = px * x;
