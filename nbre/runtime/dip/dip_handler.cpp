@@ -37,8 +37,8 @@ namespace dip {
 
 dip_handler::dip_handler() : m_has_curr(false) {}
 
-void dip_handler::check_dip_params(block_height_t height,
-                                   neb::fs::rocksdb_storage *rs) {
+void dip_handler::init_dip_params(block_height_t height,
+                                  neb::fs::rocksdb_storage *rs) {
 
   if (!m_has_curr && m_incoming.empty()) {
     auto dip_versions_ptr = neb::fs::ir_api::get_ir_versions("dip", rs);
@@ -81,7 +81,7 @@ void dip_handler::deploy(version_t version, block_height_t available_height) {
 
 void dip_handler::start(neb::block_height_t height,
                         neb::fs::rocksdb_storage *rs) {
-  check_dip_params(height, rs);
+  init_dip_params(height, rs);
   if (!m_has_curr) {
     LOG(INFO) << "dip params not init";
     return;
