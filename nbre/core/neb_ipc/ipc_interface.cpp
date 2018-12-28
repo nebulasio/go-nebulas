@@ -25,8 +25,8 @@ std::shared_ptr<neb::core::ipc_server_endpoint> _ipc;
 
 int start_nbre_ipc(const nbre_params_t params) {
   try {
-    FLAGS_log_dir = params.m_nbre_log_dir;
-    google::InitGoogleLogging("nbre-server");
+    // FLAGS_log_dir = params.m_nbre_log_dir;
+    // google::InitGoogleLogging("nbre-server");
 
     _ipc = std::make_shared<neb::core::ipc_server_endpoint>();
     LOG(INFO) << "ipc server construct";

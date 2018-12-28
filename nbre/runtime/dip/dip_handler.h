@@ -41,8 +41,7 @@ public:
   void write_dip_reward_to_storage(const std::string &dip_reward,
                                    neb::fs::rocksdb_storage *rs);
 
-private:
-  void check_dip_params(block_height_t height, neb::fs::rocksdb_storage *rs);
+  void init_dip_params(block_height_t height, neb::fs::rocksdb_storage *rs);
 
 private:
   mutable std::mutex m_sync_mutex;
