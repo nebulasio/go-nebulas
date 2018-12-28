@@ -22,6 +22,22 @@
 
 namespace neb {
 namespace math {
+
+template <typename T> T min(const T &x, const T &y) { return x < y ? x : y; }
+template <typename T> T max(const T &x, const T &y) { return x > y ? x : y; }
+
+template <typename T> std::string to_string(const T &val) {
+  std::stringstream ss;
+  ss << val;
+  return ss.str();
+}
+template <typename T> T from_string(const std::string &str) {
+  std::stringstream ss(str);
+  T val;
+  ss >> val;
+  return val;
+}
+
 template <typename T> T exp(const T &x) {
   T one = softfloat_cast<uint32_t, typename T::value_type>(1);
   T ret = one;
@@ -34,7 +50,11 @@ template <typename T> T exp(const T &x) {
     T tmp;
 
     tmp = ret + px / prev;
-    if (tmp - ret < MATH_MIN || ret - tmp < MATH_MIN) {
+    if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
+      break;
+    }
+    if (to_string(tmp).compare("inf") == 0 &&
+        to_string(ret).compare("inf") == 0) {
       break;
     }
     ret = tmp;
@@ -70,7 +90,7 @@ template <typename T> T arctan(const T &x) {
     } else {
       tmp = ret + s / i;
     }
-    if (tmp - ret < MATH_MIN || ret - tmp < MATH_MIN) {
+    if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
       break;
     }
     ret = tmp;
@@ -99,7 +119,7 @@ template <typename T> T sin(const T &x) {
     } else {
       tmp = ret + s / ji;
     }
-    if (tmp - ret < MATH_MIN || ret - tmp < MATH_MIN) {
+    if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
       break;
     }
     ret = tmp;
@@ -132,7 +152,7 @@ template <typename T> T ln(const T &x) {
           tmp = ret - s / i;
         }
 
-        if (tmp - ret < MATH_MIN || ret - tmp < MATH_MIN) {
+        if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
           break;
         }
         ret = tmp;
@@ -266,21 +286,6 @@ template <typename T> T sqrt(const T &x) {
   sqrt_x = sqrt_x * (one_and_half - half_x * sqrt_x * sqrt_x);
   sqrt_x = sqrt_x * (one_and_half - half_x * sqrt_x * sqrt_x);
   return one / sqrt_x;
-}
-
-template <typename T> T min(const T &x, const T &y) { return x < y ? x : y; }
-template <typename T> T max(const T &x, const T &y) { return x > y ? x : y; }
-
-template <typename T> std::string to_string(const T &val) {
-  std::stringstream ss;
-  ss << val;
-  return ss.str();
-}
-template <typename T> T from_string(const std::string &str) {
-  std::stringstream ss(str);
-  T val;
-  ss >> val;
-  return val;
 }
 } // namespace math
 
