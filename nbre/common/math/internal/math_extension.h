@@ -53,8 +53,15 @@ template <typename T> T exp(const T &x) {
     if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
       break;
     }
+
+    // limits max
     if (to_string(tmp).compare("inf") == 0 &&
         to_string(ret).compare("inf") == 0) {
+      break;
+    }
+    // limits min
+    if (to_string(tmp).compare("-nan") == 0 &&
+        to_string(ret).compare("-nan") == 0) {
       break;
     }
     ret = tmp;

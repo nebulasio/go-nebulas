@@ -57,7 +57,7 @@ func NewCompatibilityTestNet() Compatibility {
 		nvmGasLimitWithoutTimeoutHeight:                   600600,
 		wsResetRecordDependencyHeight2:                    600600,
 		transferFromContractFailureEventRecordableHeight2: 600600,
-		nbreAvailableHeight:                               1550000,
+		nbreAvailableHeight:                               1600000,
 	}
 }
 
