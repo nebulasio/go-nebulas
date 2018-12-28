@@ -196,6 +196,14 @@ void driver::add_handlers() {
               neb::fs::storage_open_for_readwrite);
           neb::rt::dip::dip_handler::instance().read_dip_reward_from_storage(
               rs.get());
+
+          // init dip params when starting nbre
+          auto nbre_max_height_bytes =
+              rs->get(neb::configuration::instance().nbre_max_height_name());
+          auto nbre_max_height =
+              neb::util::byte_to_number<block_height_t>(nbre_max_height_bytes);
+          neb::rt::dip::dip_handler::instance().init_dip_params(nbre_max_height,
+                                                                rs.get());
           rs->close_database();
         }
         init_timer_thread();

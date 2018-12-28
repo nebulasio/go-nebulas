@@ -54,7 +54,7 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
   // bonus pool in total
   std::string dip_reward_addr =
       neb::configuration::instance().dip_reward_addr();
-  wei_t balance = adb_ptr->get_balance(dip_reward_addr, height);
+  wei_t balance = adb_ptr->get_balance(dip_reward_addr, end_block);
   floatxx_t bonus_total = conversion(balance).to_float<floatxx_t>();
   // bonus_total = adb_ptr->get_normalized_value(bonus_total);
 
