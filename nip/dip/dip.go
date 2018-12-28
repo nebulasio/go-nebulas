@@ -96,10 +96,10 @@ func (d *Dip) Start() {
 // Stop stop dip.
 func (d *Dip) Stop() {
 	if d.isLooping {
+		d.isLooping = false
 		logging.CLog().WithFields(logrus.Fields{}).Info("Stopping Dip...")
 
 		d.quitCh <- 1
-		d.isLooping = false
 	}
 }
 
@@ -113,14 +113,28 @@ func (d *Dip) loop() {
 			logging.CLog().Info("Stopped Dip.")
 			return
 		case <-timerChan:
-			d.submitReward()
+			if d.isLooping {
+				d.submitReward()
+			}
 		}
+	}
+}
+
+func (d *Dip) DipDelayRewardHeight() uint64 {
+	chainID := d.neb.BlockChain().ChainID()
+	// for Mainnet and Testnet, delay 1 day to submit dip reward.
+	if chainID == core.MainNetID {
+		return 24 * 60 * 60 / 15
+	} else if chainID == core.TestNetID {
+		return 24 * 60 * 60 / 15
+	} else {
+		return 1
 	}
 }
 
 // submitReward generate dip transactions and push to tx pool
 func (d *Dip) submitReward() {
-	height := d.neb.BlockChain().TailBlock().Height() - uint64(DipDelayRewardHeight)
+	height := d.neb.BlockChain().TailBlock().Height() - d.DipDelayRewardHeight()
 	if height < 1 {
 		return
 	}
@@ -183,6 +197,7 @@ func (d *Dip) generateRewardTx(start uint64, end uint64, version uint64, item *D
 		value        *util.Uint128
 		payload      *core.DipPayload
 		payloadBytes []byte
+		gasLimit     *util.Uint128
 		err          error
 	)
 	if to, err = core.AddressParse(item.Address); err != nil {
@@ -198,6 +213,10 @@ func (d *Dip) generateRewardTx(start uint64, end uint64, version uint64, item *D
 		return nil, err
 	}
 
+	if gasLimit, err = core.MinGasCountPerTransaction.Mul(util.NewUint128FromUint(10)); err != nil {
+		return nil, err
+	}
+
 	tx, err := core.NewTransaction(
 		block.ChainID(),
 		d.RewardAddress(),
@@ -207,7 +226,7 @@ func (d *Dip) generateRewardTx(start uint64, end uint64, version uint64, item *D
 		core.TxPayloadDipType,
 		payloadBytes,
 		d.neb.BlockChain().TransactionPool().GetMinGasPrice(),
-		d.neb.BlockChain().TransactionPool().GetMaxGasLimit())
+		gasLimit)
 	if err != nil {
 		return nil, err
 	}
