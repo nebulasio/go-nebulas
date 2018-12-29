@@ -6,7 +6,7 @@
   "version_patch": 1,
   "depends": [
   ],
-  "available_height": 9,
+  "available_height": 80,
   "cpp_files": [
     "auth.cpp"
   ],

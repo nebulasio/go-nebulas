@@ -37,17 +37,30 @@ std::vector<row_t> entry_point_auth() {
            ((0ULL + patch_version) << 48);
   };
 
-  auto admin_addr = {0x19, 0x57, 0x73, 0x3f, 0x7b, 0x52, 0xad, 0x3a, 0x99,
-                     0xc5, 0x56, 0x84, 0xb3, 0x9f, 0x4c, 0x31, 0xe0, 0x5c,
-                     0x35, 0x0c, 0x5d, 0xaa, 0xb0, 0x7e, 0x87, 0x5b};
+  // testnet admin address: n1UodK5h3o7yHFLHe9Vq4N3WZGUthsWm6j7
+  auto admin_addr = {0x19, 0x57, 0x9c, 0xbd, 0xfd, 0x7c, 0x04, 0xad, 0x91,
+                     0x44, 0x41, 0x5f, 0x48, 0xe1, 0xe5, 0x08, 0x54, 0x0d,
+                     0xb6, 0x99, 0x61, 0x70, 0xae, 0xd4, 0x78, 0xae};
 
   std::vector<row_t> auth_table = {
       std::make_tuple("nr", to_version_t(0, 0, 1),
-                      std::string(admin_addr.begin(), admin_addr.end()), 1ULL,
-                      200000ULL),
+                      std::string(admin_addr.begin(), admin_addr.end()),
+                      1540000ULL, 3000000ULL),
+      std::make_tuple("nr", to_version_t(0, 0, 2),
+                      std::string(admin_addr.begin(), admin_addr.end()),
+                      1540000ULL, 3000000ULL),
+      std::make_tuple("nr", to_version_t(0, 0, 3),
+                      std::string(admin_addr.begin(), admin_addr.end()),
+                      1540000ULL, 3000000ULL),
       std::make_tuple("dip", to_version_t(0, 0, 1),
-                      std::string(admin_addr.begin(), admin_addr.end()), 1ULL,
-                      200000ULL)};
+                      std::string(admin_addr.begin(), admin_addr.end()),
+                      1540000ULL, 3000000ULL),
+      std::make_tuple("dip", to_version_t(0, 0, 2),
+                      std::string(admin_addr.begin(), admin_addr.end()),
+                      1540000ULL, 3000000ULL),
+      std::make_tuple("dip", to_version_t(0, 0, 3),
+                      std::string(admin_addr.begin(), admin_addr.end()),
+                      1540000ULL, 3000000ULL)};
   return auth_table;
 }
 

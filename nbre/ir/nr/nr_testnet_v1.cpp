@@ -21,6 +21,17 @@
 #include "runtime/nr/impl/nr_impl.h"
 
 std::string entry_point_nr(uint64_t start_block, uint64_t end_block) {
+
+  if (start_block > end_block) {
+    return std::string("{\"err\":\"start height must less than end height\"}");
+  }
+  uint64_t block_nums_of_a_day = 24 * 3600 / 15;
+  uint64_t days = 7;
+  uint64_t max_nr_block_interval = days * block_nums_of_a_day;
+  if (start_block + max_nr_block_interval < end_block) {
+    return std::string("{\"err\":\"nr block interval out of range\"}");
+  }
+
   auto to_version_t = [](uint32_t major_version, uint16_t minor_version,
                          uint16_t patch_version) -> neb::rt::nr::version_t {
     return (0ULL + major_version) + ((0ULL + minor_version) << 32) +

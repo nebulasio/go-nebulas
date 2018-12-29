@@ -23,12 +23,12 @@
 std::string entry_point_nr(uint64_t start_block, uint64_t end_block);
 
 std::string entry_point_dip(uint64_t height) {
-  uint64_t block_nums_of_a_day = 10;
-  uint64_t days = 2;
-  uint64_t dip_start_block = 140;
+  uint64_t block_nums_of_a_day = 24 * 3600 / 15;
+  uint64_t days = 7;
+  uint64_t dip_start_block = 1540000;
   uint64_t dip_block_interval = days * block_nums_of_a_day;
   std::string dip_reward_addr =
-      std::string("n1c6y4ctkMeZk624QWBTXuywmNpCWmJZiBq");
+      std::string("n1YubAA3VVi2HEDw3VSaJ2ZcjzYKXL6SuQw");
 
   if (!height) {
     neb::rt::dip::init_dip_params(dip_start_block, dip_block_interval,
