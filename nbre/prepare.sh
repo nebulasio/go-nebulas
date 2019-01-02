@@ -107,7 +107,7 @@ fi
 if [ ! -d $CUR_DIR/lib/include/boost ]; then
   cd boost_1_67_0
   ./bootstrap.sh --prefix=$CUR_DIR/lib/
-  ./b2 --toolset=clang
+  ./b2 --toolset=clang -j$PARALLEL
   ./b2 install
 fi
 
