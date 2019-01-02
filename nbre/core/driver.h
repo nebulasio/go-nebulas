@@ -48,6 +48,8 @@ protected:
 
   void init_timer_thread();
 
+  void init_nbre();
+
 protected:
   std::unique_ptr<ipc_client_endpoint> m_client;
   ipc_client_t *m_ipc_conn;

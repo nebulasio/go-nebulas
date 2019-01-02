@@ -139,6 +139,35 @@ void driver_base::init_timer_thread() {
   }));
 }
 
+void driver_base::init_nbre() {
+
+  std::string nbre_db_dir =
+      neb::core::ipc_configuration::instance().nbre_db_dir();
+  neb::fs::storage_open_flag open_flag = neb::fs::storage_open_for_readonly;
+  if (!boost::filesystem::exists(
+          boost::filesystem::path(nbre_db_dir + "/CURRENT"))) {
+    // open flag readwrite for initing rocksdb CURRNET file
+    open_flag = neb::fs::storage_open_for_readwrite;
+  }
+
+  std::unique_ptr<neb::fs::rocksdb_storage> rs =
+      std::make_unique<neb::fs::rocksdb_storage>();
+  rs->open_database(nbre_db_dir, open_flag);
+  neb::rt::dip::dip_handler::instance().read_dip_reward_from_storage(rs.get());
+
+  try {
+    auto nbre_max_height_bytes =
+        rs->get(neb::configuration::instance().nbre_max_height_name());
+    auto nbre_max_height =
+        neb::util::byte_to_number<block_height_t>(nbre_max_height_bytes);
+    neb::rt::dip::dip_handler::instance().init_dip_params(nbre_max_height,
+                                                          rs.get());
+  } catch (const std::exception &e) {
+    LOG(INFO) << "nbre max height not init " << e.what();
+  }
+  rs->close_database();
+}
+
 } // end namespace internal
 
 driver::driver() : internal::driver_base() {}
@@ -187,33 +216,7 @@ void driver::add_handlers() {
         FLAGS_log_dir = ipc_configuration::instance().nbre_log_dir();
         google::InitGoogleLogging("nbre-client");
 
-        {
-          std::unique_ptr<neb::fs::rocksdb_storage> rs =
-              std::make_unique<neb::fs::rocksdb_storage>();
-          // open flag readwrite for initing rocksdb CURRNET file
-          rs->open_database(
-              neb::core::ipc_configuration::instance().nbre_db_dir(),
-              neb::fs::storage_open_for_readwrite);
-          neb::rt::dip::dip_handler::instance().read_dip_reward_from_storage(
-              rs.get());
-          rs->close_database();
-
-          // init dip params when starting nbre
-          rs->open_database(
-              neb::core::ipc_configuration::instance().nbre_db_dir(),
-              neb::fs::storage_open_for_readonly);
-          try {
-            auto nbre_max_height_bytes =
-                rs->get(neb::configuration::instance().nbre_max_height_name());
-            auto nbre_max_height = neb::util::byte_to_number<block_height_t>(
-                nbre_max_height_bytes);
-            neb::rt::dip::dip_handler::instance().init_dip_params(
-                nbre_max_height, rs.get());
-          } catch (const std::exception &e) {
-            LOG(INFO) << "nbre max height not init " << e.what();
-          }
-          rs->close_database();
-        }
+        init_nbre();
         init_timer_thread();
         ir_warden::instance().wait_until_sync();
       });
