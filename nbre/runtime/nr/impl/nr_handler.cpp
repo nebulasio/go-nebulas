@@ -51,6 +51,7 @@ void nr_handler::run_if_default(block_height_t start_block,
       m_nr_handler_id.clear();
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute nr failed " << e.what();
+      m_nr_handler_id.clear();
     }
   });
 }
@@ -82,6 +83,7 @@ void nr_handler::run_if_specify(block_height_t start_block,
       m_nr_handler_id.clear();
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute nr failed " << e.what();
+      m_nr_handler_id.clear();
     }
   });
 }
