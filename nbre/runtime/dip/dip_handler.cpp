@@ -56,21 +56,20 @@ void dip_handler::init_dip_params(block_height_t height,
     }
   }
 
-  if (!m_incoming.empty()) {
+  while (!m_incoming.empty() && m_incoming.front().second <= height) {
     auto first_ele = m_incoming.front();
     block_height_t available_height = first_ele.second;
-    if (available_height <= height) {
-      m_curr = first_ele;
-      m_has_curr = true;
-      m_incoming.pop();
 
-      try {
-        jit_driver &jd = jit_driver::instance();
-        jd.run_ir<std::string>("dip", std::numeric_limits<uint64_t>::max(),
-                               "_Z15entry_point_dipB5cxx11m", 0);
-      } catch (const std::exception &e) {
-        LOG(INFO) << "dip params init failed " << e.what();
-      }
+    m_curr = first_ele;
+    m_has_curr = true;
+    m_incoming.pop();
+
+    try {
+      jit_driver &jd = jit_driver::instance();
+      jd.run_ir<std::string>("dip", std::numeric_limits<uint64_t>::max(),
+                             "_Z15entry_point_dipB5cxx11m", 0);
+    } catch (const std::exception &e) {
+      LOG(INFO) << "dip params init failed " << e.what();
     }
   }
 }
@@ -141,6 +140,11 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
       neb::configuration::instance().dip_start_block();
   block_height_t dip_block_interval =
       neb::configuration::instance().dip_block_interval();
+
+  if (height < dip_start_block + dip_block_interval) {
+    return boost::str(boost::format("{\"err\":\"available height is %1%\"}") %
+                      (dip_start_block + dip_block_interval));
+  }
 
   uint64_t interval_nums = (height - dip_start_block) / dip_block_interval;
   height = dip_start_block + dip_block_interval * interval_nums;

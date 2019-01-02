@@ -80,11 +80,11 @@ template <typename T> T arctan(const T &x) {
 
   if (x > one) {
     return neb::math::constants<T>::pi() / 2 - arctan(one / x);
-  } else if (x < (zero - one)) {
+  } else if (x < zero - one) {
     return zero - neb::math::constants<T>::pi() / 2 - arctan(one / x);
   }
 
-  T ret = 0;
+  T ret = zero;
   T i = one;
   T s = x;
   bool odd = false;
@@ -108,11 +108,12 @@ template <typename T> T arctan(const T &x) {
 }
 
 template <typename T> T sin(const T &x) {
+  T zero = softfloat_cast<uint32_t, typename T::value_type>(0);
   T one = softfloat_cast<uint32_t, typename T::value_type>(1);
   T two = softfloat_cast<uint32_t, typename T::value_type>(2);
   T x2 = x * x;
 
-  T ret = 0;
+  T ret = zero;
   T i = one;
   T ji = one;
   T s = x;
