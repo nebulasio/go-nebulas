@@ -30,6 +30,20 @@ var (
 	ErrFileExists = errors.New("file exists")
 )
 
+// CreateDirIfNotExist create dir
+func CreateDirIfNotExist(dir string) error {
+	if exist, err := FileExists(dir); !exist || err != nil {
+		if err != nil {
+			return err
+		}
+		err = os.MkdirAll(dir, os.ModeDir|os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // FileExists check file exists
 func FileExists(path string) (bool, error) {
 	_, err := os.Stat(path)
@@ -45,8 +59,7 @@ func FileExists(path string) (bool, error) {
 // FileWrite write file to path
 func FileWrite(file string, content []byte, overwrite bool) error {
 	// Create the keystore directory with appropriate permissions
-	const dirPerm = 0700
-	if err := os.MkdirAll(filepath.Dir(file), dirPerm); err != nil {
+	if err := CreateDirIfNotExist(filepath.Dir(file)); err != nil {
 		return err
 	}
 	f, err := ioutil.TempFile(filepath.Dir(file), "."+filepath.Base(file)+".tmp")

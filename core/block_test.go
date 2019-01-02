@@ -379,11 +379,11 @@ func (m *mockDip) RewardValue() *util.Uint128 {
 	return util.NewUint128()
 }
 
-func (m *mockDip) GetDipList(height uint64) (Data, error) {
+func (m *mockDip) GetDipList(height uint64, version uint64) (Data, error) {
 	return nil, nil
 }
 
-func (m *mockDip) CheckReward(height uint64, tx *Transaction) error {
+func (m *mockDip) CheckReward(tx *Transaction) error {
 	return nil
 }
 

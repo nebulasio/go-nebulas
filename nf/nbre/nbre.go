@@ -41,6 +41,7 @@ import (
 	"path/filepath"
 
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -115,11 +116,18 @@ func (n *Nbre) Start() error {
 	if rootDir, err = filepath.Abs(rootDir); err != nil {
 		return err
 	}
+	if err := util.CreateDirIfNotExist(rootDir); err != nil {
+		return err
+	}
 
 	if len(conf.LogDir) > 0 {
 		logDir = conf.LogDir
 	}
 	if logDir, err = filepath.Abs(logDir); err != nil {
+		return err
+	}
+
+	if err := util.CreateDirIfNotExist(logDir); err != nil {
 		return err
 	}
 
@@ -325,9 +333,25 @@ func nbreHandled(code C.int, holder unsafe.Pointer, result interface{}, handleEr
 	handler.done <- true
 }
 
+// Stop stop nbre
+func (n *Nbre) Stop() {
+	select {
+	case <-n.shutdown():
+		return
+	}
+}
+
 // Shutdown shutdown nbre
-func (n *Nbre) Shutdown() error {
-	C.nbre_ipc_shutdown()
-	logging.CLog().Info("Stopped Nbre.")
-	return nil
+func (n *Nbre) shutdown() chan bool {
+	quitCh := make(chan bool, 1)
+
+	go func() {
+		C.nbre_ipc_shutdown()
+		logging.CLog().Info("Stopped Nbre.")
+
+		quitCh <- true
+		return
+	}()
+
+	return quitCh
 }

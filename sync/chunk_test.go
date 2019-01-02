@@ -36,6 +36,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"testing"
+
+	"github.com/nebulasio/go-nebulas/nip/dip"
 )
 
 type Neb struct {
@@ -48,6 +50,7 @@ type Neb struct {
 	consensus core.Consensus
 	emitter   *core.EventEmitter
 	nvm       core.NVM
+	dip       core.Dip
 }
 
 func mockNeb(t *testing.T) *Neb {
@@ -61,7 +64,8 @@ func mockNeb(t *testing.T) *Neb {
 		emitter:   eventEmitter,
 		consensus: dpos,
 		nvm:       nvm.NewNebulasVM(),
-		ns:        &mockNetService{},
+
+		ns: &mockNetService{},
 		config: &nebletpb.Config{
 			Chain: &nebletpb.ChainConfig{
 				ChainId:    genesisConf.Meta.ChainId,
@@ -75,6 +79,8 @@ func mockNeb(t *testing.T) *Neb {
 
 	am, _ := account.NewManager(neb)
 	neb.am = am
+	dip, _ := dip.NewDIP(neb)
+	neb.dip = dip
 
 	chain, err := core.NewBlockChain(neb)
 	assert.Nil(t, err)
@@ -127,6 +133,14 @@ func (n *Neb) Nvm() core.NVM {
 }
 
 func (n *Neb) Nbre() core.Nbre {
+	return nil
+}
+
+func (n *Neb) Dip() core.Dip {
+	return n.dip
+}
+
+func (n *Neb) Nr() core.Nr {
 	return nil
 }
 
