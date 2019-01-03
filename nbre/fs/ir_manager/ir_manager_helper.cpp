@@ -20,6 +20,7 @@
 #include "fs/ir_manager/ir_manager_helper.h"
 #include "common/configuration.h"
 #include "core/neb_ipc//server/ipc_configuration.h"
+#include "fs/ir_manager/api/ir_api.h"
 #include "jit/jit_driver.h"
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -132,6 +133,54 @@ void ir_manager_helper::load_auth_table(
   run_auth_table(*nbre_ir.get(), auth_table);
 }
 
+void ir_manager_helper::remove_invalid_ir(
+    rocksdb_storage *rs, const std::map<auth_key_t, auth_val_t> &auth_table) {
+
+  std::unordered_map<module_t, std::unordered_set<version_t>> name_versions;
+
+  for (auto &row : auth_table) {
+    module_t name = std::get<0>(row.first);
+    version_t version = std::get<1>(row.first);
+
+    if (name_versions.find(name) != name_versions.end()) {
+      std::unordered_set<version_t> &tmp = name_versions[name];
+      tmp.insert(version);
+    } else {
+      std::unordered_set<version_t> s({version});
+      name_versions.insert(std::make_pair(name, s));
+    }
+  }
+
+  auto remove_in_ir_list = [&rs, &name_versions]() {
+    auto ir_list_ptr = ir_api::get_ir_list(rs);
+    std::string ir_list = neb::configuration::instance().ir_list_name();
+    rs->del(ir_list);
+    for (auto &ir : *ir_list_ptr) {
+      if (name_versions.find(ir) != name_versions.end()) {
+        update_ir_list(ir, rs);
+      }
+    }
+  };
+  auto remove_in_ir_versions = [&rs, &name_versions]() {
+    for (auto &ele : name_versions) {
+      auto ir_version_ptr = ir_api::get_ir_versions(ele.first, rs);
+      rs->del(ele.first);
+      for (auto &version : *ir_version_ptr) {
+        if (ele.second.find(version) == ele.second.end()) {
+          std::stringstream ss;
+          ss << ele.first << version;
+          rs->del(ss.str());
+        } else {
+          update_ir_versions(ele.first, version, rs);
+        }
+      }
+    }
+  };
+
+  remove_in_ir_list();
+  remove_in_ir_versions();
+}
+
 void ir_manager_helper::deploy_auth_table(
     rocksdb_storage *rs, nbre::NBREIR &nbre_ir,
     std::map<auth_key_t, auth_val_t> &auth_table,
@@ -145,6 +194,8 @@ void ir_manager_helper::deploy_auth_table(
   LOG(INFO) << "updating auth table...";
   LOG(INFO) << "after set auth table by jit, auth table size: "
             << auth_table.size();
+  assert(!auth_table.empty());
+  remove_invalid_ir(rs, auth_table);
 }
 
 void ir_manager_helper::show_auth_table(

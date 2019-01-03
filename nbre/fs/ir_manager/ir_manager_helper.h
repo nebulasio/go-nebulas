@@ -62,6 +62,10 @@ private:
   static void update_to_storage(const std::string &key,
                                 const boost::property_tree::ptree &val_pt,
                                 rocksdb_storage *rs);
+
+  static void
+  remove_invalid_ir(rocksdb_storage *rs,
+                    const std::map<auth_key_t, auth_val_t> &auth_table);
 };
 
 } // namespace fs
