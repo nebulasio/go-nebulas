@@ -80,7 +80,7 @@ func TestNbre_Execute(t *testing.T) {
 	wg.Add(2)
 
 	nbre := NewNbre(newMockNeb())
-	err := nbre.Start()
+	nbre.Start()
 	//assert.NoError(t, err, "nbre start failed")
 
 	for _, tt := range tests {
@@ -97,6 +97,5 @@ func TestNbre_Execute(t *testing.T) {
 
 	assert.Zero(t, len(nbreHandlers), "handlers not delete")
 
-	err = nbre.Shutdown()
-	assert.NoError(t, err, "nbre shutdown failed")
+	nbre.Stop()
 }

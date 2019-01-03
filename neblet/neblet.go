@@ -361,7 +361,7 @@ func (n *Neblet) Stop() {
 	}
 
 	if n.nbre != nil {
-		n.nbre.Shutdown()
+		n.nbre.Stop()
 		n.nbre = nil
 	}
 
