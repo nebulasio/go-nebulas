@@ -17,8 +17,8 @@
 
 #!/bin/bash
 
-#CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" >/dev/null && pwd  )"
-CUR_DIR="$( pwd )"
+CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" >/dev/null && pwd  )"
+#CUR_DIR="$( pwd )"
 OS="$(uname -s)"
 
 if [ "$OS" = "Darwin" ]; then
@@ -136,6 +136,14 @@ build_with_cmake(){
   cd ../ && rm -rf $build
 }
 
+check_install() {
+  if [ "$OS" = "Linux" ]; then
+    echo `ldconfig -p | grep -c $1`
+    return
+  fi
+  echo 0
+}
+
 build_with_configure(){
   cd $CUR_DIR/3rd_party/$1
   ./configure --prefix=$CUR_DIR/lib/
@@ -181,7 +189,9 @@ if [ ! -f $CUR_DIR/lib/include/zlib.h ]; then
 fi
 
 if [ ! -f $CUR_DIR/lib/include/zstd.h ]; then
-  build_with_make zstd
+  if [ `check_install zstd` -eq 0 ]; then
+    build_with_make zstd
+  fi
 fi
 
 if [ ! -f $CUR_DIR/lib/include/bzlib.h ]; then
