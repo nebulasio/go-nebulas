@@ -19,6 +19,7 @@
 //
 
 #include "runtime/nr/impl/nr_handler.h"
+#include "common/configuration.h"
 #include "core/ir_warden.h"
 #include "fs/proto/ir.pb.h"
 #include "jit/jit_driver.h"
@@ -44,9 +45,9 @@ void nr_handler::run_if_default(block_height_t start_block,
     try {
       std::unique_lock<std::mutex> _l(m_sync_mutex);
       jit_driver &jd = jit_driver::instance();
-      auto nr_result = jd.run_ir<std::string>("nr", start_block,
-                                              "_Z14entry_point_nrB5cxx11mm",
-                                              start_block, end_block);
+      auto nr_result = jd.run_ir<std::string>(
+          "nr", start_block, neb::configuration::instance().nr_func_name(),
+          start_block, end_block);
       m_nr_result.insert(std::make_pair(m_nr_handler_id, nr_result));
       m_nr_handler_id.clear();
     } catch (const std::exception &e) {
@@ -75,9 +76,9 @@ void nr_handler::run_if_specify(block_height_t start_block,
       std::unique_lock<std::mutex> _l(m_sync_mutex);
 
       jit_driver &jd = jit_driver::instance();
-      std::string nr_result =
-          jd.run<std::string>(name_version, irs, "_Z14entry_point_nrB5cxx11mm",
-                              start_block, end_block);
+      std::string nr_result = jd.run<std::string>(
+          name_version, irs, neb::configuration::instance().nr_func_name(),
+          start_block, end_block);
 
       m_nr_result.insert(std::make_pair(m_nr_handler_id, nr_result));
       m_nr_handler_id.clear();

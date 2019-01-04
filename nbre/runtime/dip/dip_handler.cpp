@@ -67,7 +67,7 @@ void dip_handler::init_dip_params(block_height_t height,
     try {
       jit_driver &jd = jit_driver::instance();
       jd.run_ir<std::string>("dip", std::numeric_limits<uint64_t>::max(),
-                             "_Z15entry_point_dipB5cxx11m", 0);
+                             neb::configuration::instance().dip_func_name(), 0);
     } catch (const std::exception &e) {
       LOG(INFO) << "dip params init failed " << e.what();
     }

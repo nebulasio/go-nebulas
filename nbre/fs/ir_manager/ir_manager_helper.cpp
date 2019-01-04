@@ -86,8 +86,7 @@ void ir_manager_helper::run_auth_table(
 
     jit_driver &jd = jit_driver::instance();
     rows = jd.run<auth_table_t>(
-        ss.str(), irs,
-        neb::configuration::instance().auth_func_mangling_name());
+        ss.str(), irs, neb::configuration::instance().auth_func_name());
 
   } catch (const std::exception &e) {
     LOG(INFO) << "execute auth table failed " << e.what();

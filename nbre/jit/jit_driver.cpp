@@ -78,11 +78,39 @@ jit_driver::jit_driver() {
 
 jit_driver::~jit_driver() { llvm::llvm_shutdown(); }
 
+bool jit_driver::find_func_mangling_name(llvm::Module *M,
+                                         const std::string &func_name,
+                                         std::string &func_mangling_name) {
+  auto contains = [](const std::string &str,
+                     const std::string &substr) -> bool {
+    size_t str_len = str.size();
+    size_t substr_len = substr.size();
+
+    size_t j = 0;
+    for (size_t i = 0; i < str_len && j < substr_len; i++) {
+      if (str[i] == substr[j]) {
+        j++;
+      }
+    }
+    return j == substr_len;
+  };
+
+  for (auto &func : M->functions()) {
+    std::string name = func.getName().data();
+    if (contains(name, func_name)) {
+      func_mangling_name = name;
+      return true;
+    }
+  }
+  return false;
+}
+
 std::unique_ptr<jit_driver::jit_context>
 jit_driver::make_context(const std::vector<nbre::NBREIR> &irs,
                          const std::string &func_name) {
   std::unique_ptr<jit_context> ret = std::make_unique<jit_context>();
 
+  std::string func_mangling_name;
   std::vector<std::unique_ptr<llvm::Module>> modules;
   for (const auto &ir : irs) {
     std::string ir_str = ir.ir();
@@ -92,13 +120,14 @@ jit_driver::make_context(const std::vector<nbre::NBREIR> &irs,
 
     auto module =
         llvm::parseIR(mem_buf->getMemBufferRef(), err, ret->m_context, true);
+    find_func_mangling_name(module.get(), func_name, func_mangling_name);
     if (nullptr == module) {
       LOG(ERROR) << "Module broken";
     } else {
       modules.push_back(std::move(module));
     }
   }
-  ret->m_jit.init(std::move(modules), func_name);
+  ret->m_jit.init(std::move(modules), func_mangling_name);
   return std::move(ret);
 }
 
