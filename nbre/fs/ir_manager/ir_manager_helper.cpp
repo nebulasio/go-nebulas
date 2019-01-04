@@ -156,7 +156,15 @@ void ir_manager_helper::remove_invalid_ir(
     std::string ir_list = neb::configuration::instance().ir_list_name();
     rs->del(ir_list);
     for (auto &ir : *ir_list_ptr) {
-      if (name_versions.find(ir) != name_versions.end()) {
+      if (name_versions.find(ir) == name_versions.end()) {
+        auto ir_version_ptr = ir_api::get_ir_versions(ir, rs);
+        rs->del(ir);
+        for (auto &version : *ir_version_ptr) {
+          std::stringstream ss;
+          ss << ir << version;
+          rs->del(ss.str());
+        }
+      } else {
         update_ir_list(ir, rs);
       }
     }
