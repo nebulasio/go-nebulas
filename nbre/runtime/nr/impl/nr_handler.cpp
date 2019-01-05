@@ -48,7 +48,7 @@ void nr_handler::run_if_default(block_height_t start_block,
       auto nr_result = jd.run_ir<std::string>(
           "nr", start_block, neb::configuration::instance().nr_func_name(),
           start_block, end_block);
-      m_nr_result.insert(std::make_pair(m_nr_handler_id, nr_result));
+      m_nr_result.set(m_nr_handler_id, nr_result);
       m_nr_handler_id.clear();
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute nr failed " << e.what();
@@ -80,7 +80,7 @@ void nr_handler::run_if_specify(block_height_t start_block,
           name_version, irs, neb::configuration::instance().nr_func_name(),
           start_block, end_block);
 
-      m_nr_result.insert(std::make_pair(m_nr_handler_id, nr_result));
+      m_nr_result.set(m_nr_handler_id, nr_result);
       m_nr_handler_id.clear();
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute nr failed " << e.what();
@@ -91,8 +91,7 @@ void nr_handler::run_if_specify(block_height_t start_block,
 
 void nr_handler::start(std::string nr_handler_id) {
   m_nr_handler_id = nr_handler_id;
-  if (!m_nr_handler_id.empty() &&
-      m_nr_result.find(m_nr_handler_id) != m_nr_result.end()) {
+  if (!m_nr_handler_id.empty() && m_nr_result.exists(m_nr_handler_id)) {
     m_nr_handler_id.clear();
     return;
   }
@@ -121,11 +120,13 @@ void nr_handler::start(std::string nr_handler_id) {
 std::string nr_handler::get_nr_result(const std::string &nr_handler_id) {
   std::unique_lock<std::mutex> _l(m_sync_mutex);
 
-  auto nr_result = m_nr_result.find(nr_handler_id);
-  if (nr_result == m_nr_result.end()) {
-    return std::string("{\"err\":\"not complete yet\"}");
+  std::string nr_result;
+  auto ret = m_nr_result.get(nr_handler_id, nr_result);
+  if (!ret) {
+    return std::string(
+        "{\"err\":\"nr hash expired or nr result not complete yet\"}");
   }
-  return nr_result->second;
+  return nr_result;
 }
 } // namespace nr
 } // namespace rt
