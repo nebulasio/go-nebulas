@@ -33,7 +33,7 @@ namespace rt {
 
 namespace nr {
 
-std::shared_ptr<std::vector<std::vector<neb::fs::transaction_info_t>>>
+std::unique_ptr<std::vector<std::vector<neb::fs::transaction_info_t>>>
 nebulas_rank::split_transactions_by_block_interval(
     const std::vector<neb::fs::transaction_info_t> &txs,
     int32_t block_interval) {
@@ -41,7 +41,7 @@ nebulas_rank::split_transactions_by_block_interval(
   std::vector<std::vector<neb::fs::transaction_info_t>> ret;
 
   if (block_interval < 1 || txs.empty()) {
-    return std::make_shared<
+    return std::make_unique<
         std::vector<std::vector<neb::fs::transaction_info_t>>>(ret);
   }
 
@@ -68,7 +68,7 @@ nebulas_rank::split_transactions_by_block_interval(
       break;
     }
   }
-  return std::make_shared<
+  return std::make_unique<
       std::vector<std::vector<neb::fs::transaction_info_t>>>(ret);
 }
 
@@ -83,9 +83,10 @@ void nebulas_rank::filter_empty_transactions_this_interval(
   }
 }
 
-transaction_graph_ptr_t nebulas_rank::build_graph_from_transactions(
+transaction_graph *nebulas_rank::build_graph_from_transactions(
     const std::vector<neb::fs::transaction_info_t> &trans) {
-  transaction_graph_ptr_t ret = std::make_shared<neb::rt::transaction_graph>();
+  neb::rt::transaction_graph_ptr_t ret =
+      std::make_unique<neb::rt::transaction_graph>();
 
   for (auto ite = trans.begin(); ite != trans.end(); ite++) {
     std::string from = ite->m_from;
@@ -94,12 +95,12 @@ transaction_graph_ptr_t nebulas_rank::build_graph_from_transactions(
     int64_t timestamp = ite->m_timestamp;
     ret->add_edge(from, to, value, timestamp);
   }
-  return ret;
+  return ret.get();
 }
 
-std::vector<transaction_graph_ptr_t> nebulas_rank::build_transaction_graphs(
+std::vector<transaction_graph *> nebulas_rank::build_transaction_graphs(
     const std::vector<std::vector<neb::fs::transaction_info_t>> &txs) {
-  std::vector<transaction_graph_ptr_t> tgs;
+  std::vector<transaction_graph *> tgs;
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
     auto p = build_graph_from_transactions(*it);
@@ -116,7 +117,7 @@ block_height_t nebulas_rank::get_max_height_this_block_interval(
   return 0;
 }
 
-std::shared_ptr<std::unordered_set<std::string>>
+std::unique_ptr<std::unordered_set<std::string>>
 nebulas_rank::get_normal_accounts(
     const std::vector<neb::fs::transaction_info_t> &txs) {
 
@@ -129,14 +130,14 @@ nebulas_rank::get_normal_accounts(
     std::string to = it->m_to;
     ret.insert(to);
   }
-  return std::make_shared<std::unordered_set<std::string>>(ret);
+  return std::make_unique<std::unordered_set<std::string>>(ret);
 }
 
-std::shared_ptr<std::unordered_map<std::string, floatxx_t>>
+std::unique_ptr<std::unordered_map<std::string, floatxx_t>>
 nebulas_rank::get_account_balance_median(
     const std::unordered_set<std::string> &accounts,
     const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
-    const account_db_ptr_t db_ptr,
+    const account_db_ptr_t &db_ptr,
     std::unordered_map<address_t, wei_t> &addr_balance) {
 
   std::unordered_map<std::string, floatxx_t> ret;
@@ -168,7 +169,7 @@ nebulas_rank::get_account_balance_median(
                               neb::math::max(floatxx_t(0), normalized_median)));
   }
 
-  return std::make_shared<std::unordered_map<std::string, floatxx_t>>(ret);
+  return std::make_unique<std::unordered_map<std::string, floatxx_t>>(ret);
 }
 
 floatxx_t nebulas_rank::f_account_weight(floatxx_t in_val, floatxx_t out_val) {
@@ -178,10 +179,10 @@ floatxx_t nebulas_rank::f_account_weight(floatxx_t in_val, floatxx_t out_val) {
                                         math::sin(pi / 4.0 - atan_val));
 }
 
-std::shared_ptr<std::unordered_map<std::string, floatxx_t>>
+std::unique_ptr<std::unordered_map<std::string, floatxx_t>>
 nebulas_rank::get_account_weight(
     const std::unordered_map<std::string, neb::rt::in_out_val_t> &in_out_vals,
-    const account_db_ptr_t db_ptr) {
+    const account_db_ptr_t &db_ptr) {
 
   std::unordered_map<std::string, floatxx_t> ret;
 
@@ -196,7 +197,7 @@ nebulas_rank::get_account_weight(
     ret.insert(std::make_pair(
         it->first, f_account_weight(normalized_in_val, normalized_out_val)));
   }
-  return std::make_shared<std::unordered_map<std::string, floatxx_t>>(ret);
+  return std::make_unique<std::unordered_map<std::string, floatxx_t>>(ret);
 }
 
 floatxx_t nebulas_rank::f_account_rank(int64_t a, int64_t b, int64_t c,
@@ -210,7 +211,7 @@ floatxx_t nebulas_rank::f_account_rank(int64_t a, int64_t b, int64_t c,
   return ret;
 }
 
-std::shared_ptr<std::unordered_map<std::string, floatxx_t>>
+std::unique_ptr<std::unordered_map<std::string, floatxx_t>>
 nebulas_rank::get_account_rank(
     const std::unordered_map<std::string, floatxx_t> &account_median,
     const std::unordered_map<std::string, floatxx_t> &account_weight,
@@ -282,7 +283,7 @@ nebulas_rank::get_account_rank(
   //}
   //}
   // ff::ff_wait(ff::all(pc));
-  return std::make_shared<std::unordered_map<std::string, floatxx_t>>(ret);
+  return std::make_unique<std::unordered_map<std::string, floatxx_t>>(ret);
 }
 
 std::unique_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
@@ -307,18 +308,15 @@ std::unique_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
   auto txs_v = *it_txs_v;
   LOG(INFO) << "split by block interval: " << txs_v.size();
 
-  neb::rt::nr::transaction_graph_ptr_t tg =
-      std::make_shared<neb::rt::transaction_graph>();
-
   filter_empty_transactions_this_interval(txs_v);
-  std::vector<neb::rt::nr::transaction_graph_ptr_t> tgs =
+  std::vector<neb::rt::transaction_graph *> tgs =
       build_transaction_graphs(txs_v);
   if (tgs.empty()) {
     return std::make_unique<std::vector<nr_info_t>>();
   }
   LOG(INFO) << "we have " << tgs.size() << " subgraphs.";
   for (auto it = tgs.begin(); it != tgs.end(); it++) {
-    neb::rt::nr::transaction_graph_ptr_t ptr = *it;
+    neb::rt::transaction_graph *ptr = *it;
     neb::rt::graph_algo::remove_cycles_based_on_time_sequence(
         ptr->internal_graph());
     neb::rt::graph_algo::merge_edges_with_same_from_and_same_to(
@@ -326,7 +324,7 @@ std::unique_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
   }
   LOG(INFO) << "done with remove cycle.";
 
-  tg = neb::rt::graph_algo::merge_graphs(tgs);
+  neb::rt::transaction_graph *tg = neb::rt::graph_algo::merge_graphs(tgs);
   neb::rt::graph_algo::merge_topk_edges_with_same_from_and_same_to(
       tg->internal_graph());
   LOG(INFO) << "done with merge graphs.";

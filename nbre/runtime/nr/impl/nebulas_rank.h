@@ -54,9 +54,8 @@ struct rank_params_t {
 };
 
 using uintxx_t = uint64_t;
-using transaction_db_ptr_t = std::shared_ptr<neb::fs::transaction_db>;
-using account_db_ptr_t = std::shared_ptr<neb::fs::account_db>;
-using transaction_graph_ptr_t = std::shared_ptr<neb::rt::transaction_graph>;
+using transaction_db_ptr_t = std::unique_ptr<neb::fs::transaction_db>;
+using account_db_ptr_t = std::unique_ptr<neb::fs::account_db>;
 
 class nebulas_rank {
 public:
@@ -77,39 +76,39 @@ private:
   static auto split_transactions_by_block_interval(
       const std::vector<neb::fs::transaction_info_t> &txs,
       int32_t block_interval = 128)
-      -> std::shared_ptr<std::vector<std::vector<neb::fs::transaction_info_t>>>;
+      -> std::unique_ptr<std::vector<std::vector<neb::fs::transaction_info_t>>>;
 
   static void filter_empty_transactions_this_interval(
       std::vector<std::vector<neb::fs::transaction_info_t>> &txs);
 
   static auto build_transaction_graphs(
       const std::vector<std::vector<neb::fs::transaction_info_t>> &txs)
-      -> std::vector<transaction_graph_ptr_t>;
+      -> std::vector<transaction_graph *>;
 
   static auto
   get_normal_accounts(const std::vector<neb::fs::transaction_info_t> &txs)
-      -> std::shared_ptr<std::unordered_set<std::string>>;
+      -> std::unique_ptr<std::unordered_set<std::string>>;
 
   static auto get_account_balance_median(
       const std::unordered_set<std::string> &accounts,
       const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
-      const account_db_ptr_t db_ptr,
+      const account_db_ptr_t &db_ptr,
       std::unordered_map<address_t, wei_t> &addr_balance)
-      -> std::shared_ptr<std::unordered_map<std::string, floatxx_t>>;
+      -> std::unique_ptr<std::unordered_map<std::string, floatxx_t>>;
 
   static auto get_account_weight(
       const std::unordered_map<std::string, neb::rt::in_out_val_t> &in_out_vals,
-      const account_db_ptr_t db_ptr)
-      -> std::shared_ptr<std::unordered_map<std::string, floatxx_t>>;
+      const account_db_ptr_t &db_ptr)
+      -> std::unique_ptr<std::unordered_map<std::string, floatxx_t>>;
 
   static auto get_account_rank(
       const std::unordered_map<std::string, floatxx_t> &account_median,
       const std::unordered_map<std::string, floatxx_t> &account_weight,
       const rank_params_t &rp)
-      -> std::shared_ptr<std::unordered_map<std::string, floatxx_t>>;
+      -> std::unique_ptr<std::unordered_map<std::string, floatxx_t>>;
 
 private:
-  static transaction_graph_ptr_t build_graph_from_transactions(
+  static transaction_graph *build_graph_from_transactions(
       const std::vector<neb::fs::transaction_info_t> &trans);
 
   static block_height_t get_max_height_this_block_interval(

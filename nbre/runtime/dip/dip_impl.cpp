@@ -38,10 +38,9 @@ std::string entry_point_dip_impl(uint64_t start_block, uint64_t end_block,
       neb::core::ipc_configuration::instance().neb_db_dir();
   neb::fs::blockchain bc(neb_db_path);
   neb::fs::blockchain_api ba(&bc);
-  neb::rt::nr::transaction_db_ptr_t tdb_ptr =
-      std::make_shared<neb::fs::transaction_db>(&ba);
-  neb::rt::nr::account_db_ptr_t adb_ptr =
-      std::make_shared<neb::fs::account_db>(&ba);
+  nr::transaction_db_ptr_t tdb_ptr =
+      std::make_unique<neb::fs::transaction_db>(&ba);
+  nr::account_db_ptr_t adb_ptr = std::make_unique<neb::fs::account_db>(&ba);
 
   auto ret = dip_reward::get_dip_reward(
       start_block, end_block, height, nr_result, tdb_ptr, adb_ptr, alpha, beta);

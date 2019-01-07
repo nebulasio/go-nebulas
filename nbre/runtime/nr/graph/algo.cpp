@@ -205,9 +205,8 @@ void graph_algo::merge_edges_with_same_from_and_same_to(
   return;
 }
 
-transaction_graph_ptr_t
-graph_algo::merge_two_graphs(transaction_graph_ptr_t &tg,
-                             const transaction_graph_ptr_t &sg) {
+transaction_graph *graph_algo::merge_two_graphs(transaction_graph *tg,
+                                                const transaction_graph *sg) {
 
   transaction_graph::internal_graph_t sgi = sg->internal_graph();
 
@@ -229,12 +228,12 @@ graph_algo::merge_two_graphs(transaction_graph_ptr_t &tg,
   return tg;
 }
 
-transaction_graph_ptr_t
-graph_algo::merge_graphs(const std::vector<transaction_graph_ptr_t> &graphs) {
+transaction_graph *
+graph_algo::merge_graphs(const std::vector<transaction_graph *> &graphs) {
   if (!graphs.empty()) {
-    transaction_graph_ptr_t ret = *graphs.begin();
+    transaction_graph *ret = *graphs.begin();
     for (auto it = graphs.begin() + 1; it != graphs.end(); it++) {
-      transaction_graph_ptr_t ptr = *it;
+      transaction_graph *ptr = *it;
       ret = merge_two_graphs(ret, ptr);
     }
     return ret;

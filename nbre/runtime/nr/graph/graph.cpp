@@ -85,10 +85,10 @@ bool transaction_graph::read_from_graphviz(const std::string &filename) {
   return boost::read_graphviz(ss, m_graph, dp);
 }
 
-transaction_graph_ptr_t build_graph_from_internal(
+transaction_graph *build_graph_from_internal(
     const transaction_graph::internal_graph_t &internal_graph) {
 
-  transaction_graph_ptr_t tg_ptr = std::make_shared<transaction_graph>();
+  transaction_graph_ptr_t tg_ptr = std::make_unique<transaction_graph>();
   auto sgi = internal_graph;
 
   transaction_graph::viterator_t vi, vi_end;
@@ -106,7 +106,7 @@ transaction_graph_ptr_t build_graph_from_internal(
       tg_ptr->add_edge(from, to, w, t);
     }
   }
-  return tg_ptr;
+  return tg_ptr.get();
 }
 } // namespace rt
 

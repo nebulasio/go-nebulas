@@ -38,10 +38,8 @@ std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
       neb::core::ipc_configuration::instance().neb_db_dir();
   neb::fs::blockchain bc(neb_db_path);
   neb::fs::blockchain_api ba(&bc);
-  neb::rt::nr::transaction_db_ptr_t tdb_ptr =
-      std::make_shared<neb::fs::transaction_db>(&ba);
-  neb::rt::nr::account_db_ptr_t adb_ptr =
-      std::make_shared<neb::fs::account_db>(&ba);
+  transaction_db_ptr_t tdb_ptr = std::make_unique<neb::fs::transaction_db>(&ba);
+  account_db_ptr_t adb_ptr = std::make_unique<neb::fs::account_db>(&ba);
 
   LOG(INFO) << "start block: " << start_block << " , end block: " << end_block;
   neb::rt::nr::rank_params_t rp{a, b, c, d, theta, mu, lambda};
