@@ -56,14 +56,16 @@ void dip_handler::init_dip_params(block_height_t height,
     }
   }
 
-  while (!m_incoming.empty() && m_incoming.front().second <= height) {
-    auto first_ele = m_incoming.front();
-    block_height_t available_height = first_ele.second;
+  std::pair<version_t, block_height_t> tmp;
 
-    m_curr = first_ele;
+  while (!m_incoming.empty() && m_incoming.front().second <= height) {
+    tmp = m_incoming.front();
+    m_curr = tmp;
     m_has_curr = true;
     m_incoming.pop();
+  }
 
+  if (tmp.first && tmp.second) {
     try {
       jit_driver &jd = jit_driver::instance();
       jd.run_ir<std::string>("dip", std::numeric_limits<uint64_t>::max(),
@@ -116,7 +118,8 @@ void dip_handler::start(neb::block_height_t height,
       std::unique_lock<std::mutex> _l(m_sync_mutex);
       jit_driver &jd = jit_driver::instance();
       auto dip_reward = jd.run_ir<std::string>(
-          "dip", hash_height, "_Z15entry_point_dipB5cxx11m", hash_height);
+          "dip", hash_height, neb::configuration::instance().dip_func_name(),
+          hash_height);
       LOG(INFO) << "dip reward returned";
 
       write_dip_reward_to_storage(dip_reward, rs);
@@ -136,22 +139,18 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
     return std::string("{\"err\":\"dip params not init yet\"}");
   }
 
-  block_height_t dip_start_block =
-      neb::configuration::instance().dip_start_block();
-  block_height_t dip_block_interval =
-      neb::configuration::instance().dip_block_interval();
-
-  if (height < dip_start_block + dip_block_interval) {
+  if (!m_dip_reward.empty() && height < m_dip_reward.begin()->first) {
     return boost::str(boost::format("{\"err\":\"available height is %1%\"}") %
-                      (dip_start_block + dip_block_interval));
+                      (m_dip_reward.begin()->first));
   }
 
-  uint64_t interval_nums = (height - dip_start_block) / dip_block_interval;
-  height = dip_start_block + dip_block_interval * interval_nums;
-
-  auto dip_reward = m_dip_reward.find(height);
+  auto dip_reward = m_dip_reward.lower_bound(height);
   if (dip_reward == m_dip_reward.end()) {
     return std::string("{\"err\":\"dip this interval not found\"}");
+  }
+
+  if (dip_reward != m_dip_reward.begin()) {
+    dip_reward--;
   }
   return dip_reward->second;
 }
