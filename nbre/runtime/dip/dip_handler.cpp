@@ -144,14 +144,18 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
                       (m_dip_reward.begin()->first));
   }
 
-  auto dip_reward = m_dip_reward.lower_bound(height);
+  auto dip_reward = m_dip_reward.upper_bound(height);
   if (dip_reward == m_dip_reward.end()) {
-    return std::string("{\"err\":\"dip this interval not found\"}");
-  }
+    auto last_ele = dip_reward;
+    last_ele--;
 
-  if (dip_reward != m_dip_reward.begin()) {
-    dip_reward--;
+    if (height - last_ele->first >=
+        neb::configuration::instance().dip_block_interval()) {
+      return std::string("{\"err\":\"dip this interval not found\"}");
+    }
   }
+  dip_reward--;
+
   return dip_reward->second;
 }
 
