@@ -17,11 +17,10 @@
 #
 
 CFLAGS=-DBUILDING_DLL -g -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O3
-CXXFLAGS=-DBUILDING_DLL -g -std=c++14 -DGOOGLE_PROTOBUF_NO_RTTI -fno-rtti -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O3
-#CXXFLAGS=-DBUILDING_DLL -g -std=c++14 -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O3
+CXXFLAGS=-DBUILDING_DLL -g -std=c++14 -DGOOGLE_PROTOBUF_NO_RTTI -fno-rtti -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result
 OUTPUT_DIR=pb/
 
-LDFLAGS	= -fvisibility=hidden -lgrpc -lgrpc++ -lgrpc++_cronet -lgrpc++_error_details -lgrpc++_reflection -lgrpc++_unsecure -lgrpc_cronet -lgrpc_unsecure -lglog
+LDFLAGS	= -fvisibility=hidden -lgrpc -lgrpc++ -lgrpc++_cronet -lgrpc++_error_details -lgrpc++_reflection -lgrpc++_unsecure -lgrpc_cronet -lgrpc_unsecure -lglog -lprotobuf
 LIBS_PATH=
 LIBS=-lpthread -lv8_libbase -lv8_libplatform -licui18n -licuuc
 
@@ -61,7 +60,7 @@ all: v8_server
 engine: engine.cc.o thread_engine.cc.o allocator.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/tracing.cc.o lib/file.cc.o lib/util.cc.o lib/typescript.cc.o lib/event.cc.o lib/crypto.cc.o
 	$(LD) -shared $(LDFLAGS) $^ -o libnebulasv8$(DYLIB) $(LIBS_PATH) $(LIBS)
 
-v8_server: v8_server.cc.o pb/nvm.grpc.pb.o pb/nvm.pb.o samples/memory_storage.cc.o samples/memory_modules.cc.o engine.cc.o allocator.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/fake_blockchain.cc.o lib/tracing.cc.o lib/file.cc.o lib/util.cc.o lib/typescript.cc.o lib/event.cc.o  lib/crypto.cc.o
+v8_server: v8_server.cc.o sha256.cc.o pb/nvm.grpc.pb.o pb/nvm.pb.o samples/memory_storage.cc.o samples/memory_modules.cc.o engine.cc.o allocator.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/fake_blockchain.cc.o lib/tracing.cc.o lib/file.cc.o lib/util.cc.o lib/typescript.cc.o lib/event.cc.o  lib/crypto.cc.o
 	$(LD) $(LDFLAGS) $^ -o $@ $(LIBS_PATH) $(LIBS)
 
 main: samples/main.cc.o samples/memory_storage.cc.o samples/memory_modules.cc.o engine.cc.o allocator.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/fake_blockchain.cc.o lib/tracing.cc.o lib/file.cc.o lib/util.cc.o lib/typescript.cc.o lib/event.cc.o  lib/crypto.cc.o
@@ -84,8 +83,9 @@ v8_snapshot_bin:
 	-rm natives_blob.bin snapshot_blob.bin
 
 rpc:
-	protoc -DGOOGLE_PROTOBUF_NO_RTTI --grpc_out=$(OUTPUT_DIR) --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` nvm.proto
-	protoc -DGOOGLE_PROTOBUF_NO_RTTI --cpp_out $(OUTPUT_DIR) nvm.proto
+	protoc --grpc_out=$(OUTPUT_DIR) --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` nvm.proto
+	protoc --cpp_out $(OUTPUT_DIR) nvm.proto
 	protoc --go_out=plugins=grpc:$(OUTPUT_DIR) nvm.proto
 	cp pb/nvm.pb.go ../
+	rm -rf pb/nvm.pb.go
 
