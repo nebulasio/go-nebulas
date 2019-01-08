@@ -54,6 +54,7 @@ const (
 // Const
 const (
 	ContractAcceptFunc = "accept"
+	ContractInitFunc = "init"
 )
 
 var (
@@ -169,8 +170,11 @@ var (
 	ErrNotFoundTransactionResultEvent = errors.New("transaction result event is not found ")
 
 	// nvm error
-	ErrExecutionFailed = errors.New("execution failed")
-	ErrUnexpected      = errors.New("Unexpected sys error")
+	ErrExecutionFailed 			= errors.New("execution failed")
+	ErrUnexpected      			= errors.New("Unexpected sys error")
+	ErrRPCConnectionFailed 		= errors.New("RPC connection failed")
+	ErrRPCStreamException		= errors.New("RPC streaming exception")
+	ErrExecutionTimeout			= errors.New("contract exection timed out")
 
 	// access control
 	ErrUnsupportedKeyword    = errors.New("transaction data has unsupported keyword")
@@ -262,24 +266,21 @@ type AccountManager interface {
 // NVM interface
 type NVM interface {
 	CreateEngine(block *Block, tx *Transaction, contract state.Account, ws WorldState) (SmartContractEngine, error)
-	CheckV8Run() error
-
 	StartNebulasVM(enginePath string, listenAddr string) (int, error)
 	StopNebulasVM(enginePid int) error
 	CheckV8ServerRunning(enginePid int) bool
 	GetNVMListenAddr() string
-
-	DeployAndInit(config *NVMConfig, listenAddr string) (NVMExeResponse, error)
-	Call(config *NVMConfig, listenAddr string) (NVMExeResponse, error)
 }
 
 // SmartContractEngine interface
 type SmartContractEngine interface {
 	SetExecutionLimits(uint64, uint64) error
-	DeployAndInit(source, sourceType, args string, listenAddr string) (string, error)
-	Call(source, sourceType, function, args string, listenAddr string) (string, error)
+	DeployAndInit(config *NVMConfig, listenAddr string) (string, error)
+	Call(config *NVMConfig, listenAddr string) (string, error)
 	ExecutionInstructions() uint64
 	Dispose()
+
+	RunScriptSource(config *NVMConfig) (string, error)
 }
 
 // Neblet interface breaks cycle import dependency and hides unused services.

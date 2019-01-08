@@ -20,9 +20,8 @@ package nvm
 
 import (
 	"os"
-	"os/exec"
+	//"os/exec"
 	"syscall"
-	"errors"
 
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -48,6 +47,7 @@ func (nvm *NebulasVM) GetNVMListenAddr() string {
 // Start engine process
 func (nvm *NebulasVM) StartNebulasVM(nvmPath string, listenAddr string) (int, error) {
 
+	/*
 	cmd := exec.Command(nvmPath, listenAddr)
 
 	err := cmd.Start()
@@ -58,7 +58,11 @@ func (nvm *NebulasVM) StartNebulasVM(nvmPath string, listenAddr string) (int, er
 
 	pid := cmd.Process.Pid
 
-	logging.CLog().Info("Started NVM process.")
+	*/
+
+	logging.CLog().Info("Started NVM process with port: ", listenAddr)
+
+	pid := 37373		// for debugging purpose
 
 	nvm.listenAddr = listenAddr
 	
@@ -116,26 +120,6 @@ func (nvm *NebulasVM) CheckV8ServerRunning(enginePid int) bool {
 
 //==================== V8 specific =====================
 
-func (nvm *NebulasVM) DeployAndInit(config *core.NVMConfig, listenAddr string) (core.NVMExeResponse, error) {
-
-	engine := new(V8RPCEngine)
-
-	engine.SetListenAddr(listenAddr)
-
-	config.SetFunctionName("init")
-	
-	return engine.DeployContractByRPC(config, listenAddr)
-}
-
-
-func (nvm *NebulasVM) Call(config *core.NVMConfig, listenAddr string) (core.NVMExeResponse, error) {
-
-	engine := new(V8RPCEngine)
-
-	return engine.CallContractByRPC(config, listenAddr)
-}
-
-
 // CreateEngine start engine
 func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, contract state.Account, state core.WorldState) (core.SmartContractEngine, error) {
 
@@ -146,15 +130,60 @@ func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, cont
 	return NewV8Engine(ctx), nil
 }
 
-// CheckV8Run to check V8 env is OK
-func (nvm *NebulasVM) CheckV8Run() error {
-	engine := NewV8Engine(&Context{
-		block:    core.MockBlock(nil, 1),
-		contract: state.MockAccount("1.0.0"),
-		tx:       nil,
-		state:    nil,
-	})
-	_, err := engine.RunScriptSource("", 0)
-	engine.Dispose()
-	return err
+/*
+//func (nvm *NebulasVM) DeployAndInit(block *core.Block, tx *core.Transaction, contract state.Account, state core.WorldState, 
+func (nvm *NebulasVM) DeployAndInit(engine core.SmartContractEngine, config *core.NVMConfig, listenAddr string) (core.NVMExeResponse, error) {
+
+	res := core.NVMExeResponse{}
+
+	config.SetFunctionName("init")
+	result, exeErr := engine.RunScriptSource(config, listenAddr)
+	res.Result = result
+	res.GasCount = engine.actualCountOfExecutionInstructions
+
+	return res, exeErr
 }
+
+func (nvm *NebulasVM) Call(engine core.SmartContractEngine, config *core.NVMConfig, listenAddr string) (core.NVMExeResponse, error) {
+
+	res := core.NVMExeResponse{}
+
+	if core.PublicFuncNameChecker.MatchString(config.FunctionName) == false {
+		logging.VLog().Debugf("Invalid function: %v", config.FunctionName)
+		return res, ErrDisallowCallNotStandardFunction
+	}
+	if strings.EqualFold("init", config.FunctionName) == true {
+		return res, ErrDisallowCallPrivateFunction
+	}
+
+	result, exeErr := engine.RunScriptSource(config, listenAddr)
+	res.Result = result
+	res.GasCount = engine.actualCountOfExecutionInstructions
+
+	return res, exeErr
+}
+
+
+func (nvm *NebulasVM) CheckConfig(config *core.NVMConfig) error {
+	
+	limitsOfExeInstruction := config.LimitsExeInstruction
+	limitsTotalMemSize := config.LimitsTotalMemorySize
+
+	if limitsOfExeInstruction == 0 || limitsTotalMemSize == 0 {
+		logging.VLog().Debugf("Limit config is empty, limitsofexeinstructions: %v, limitsoftotalmemsize: %d", limitsOfExeInstruction, limitsTotalMemSize)
+		return ErrLimitHasEmpty
+	}
+
+	if limitsTotalMemSize > 0 && limitsTotalMemSize < 6000000 {
+		logging.VLog().Debugf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemSize (%d) is too low.", limitsTotalMemSize)
+		return ErrSetMemorySmall
+	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"limits_of_executed_instructions": limitsOfExeInstruction,
+		"limits_of_total_memory_size": limitsTotalMemSize,
+	}).Debug("Set execution limits")
+
+	return nil
+}
+*/

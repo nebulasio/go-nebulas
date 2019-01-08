@@ -69,5 +69,6 @@ void EventTriggerCallback(const FunctionCallbackInfo<Value> &info) {
   TRIGGER(e, *sTopic, *sData, &cnt);
 
   // record event usage.
+  // replace GetCurrentContext with context, since context is already fetched
   IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
 }

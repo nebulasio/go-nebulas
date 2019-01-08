@@ -58,19 +58,17 @@ import (
 	"strings"
 	"sync"
 	"unsafe"
-	"time"
 	"errors"
+	"time"
 
 	"encoding/json"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/crypto/hash"
-	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -81,26 +79,38 @@ const (
 	ExecutionTimeout                 = 15 * 1000 * 1000
 	TimeoutGasLimitCost              = 100000000
 	MaxLimitsOfExecutionInstructions = 10000000 // 10,000,000
+
+	NVMRequestTypeStart = "start"
+	NVMRequestTypeCallBack = "callback"
+	NVMResponseTypeFinal = "final"
+
+	NVM_SUCCESS = 0
+	NVM_EXCEPTION_ERR = -1
+	NVM_MEM_LIMIT_ERR = -2
+	NVM_GAS_LIMIT_ERR = -3
+	NVM_UNEXPECTED_ERR = -4
+	NVM_EXE_TIMEOUT_ERR = -5
 )
 
 //engine_v8 private data
 var (
-	v8engineOnce         = sync.Once{}
+//	v8engineOnce         = sync.Once{}
 	storages             = make(map[uint64]*V8Engine, 1024)
 	storagesIdx          = uint64(0)
 	storagesLock         = sync.RWMutex{}
-	engines              = make(map[*C.V8Engine]*V8Engine, 1024)
-	enginesLock          = sync.RWMutex{}
+//	engines              = make(map[*C.V8Engine]*V8Engine, 1024)
+//	enginesLock          = sync.RWMutex{}
 	sourceModuleCache, _ = lru.New(40960)
 	inject               = 0
 	hit                  = 0
+	nvmRequestIndex uint32	 = 1
 )
 
 // V8Engine v8 engine.
 type V8Engine struct {
 	ctx                                     *Context
 	modules                                 Modules
-	v8engine                                *C.V8Engine
+	//v8engine                                *C.V8Engine
 	strictDisallowUsageOfInstructionCounter int
 	enableLimits                            bool
 	limitsOfExecutionInstructions           uint64
@@ -110,6 +120,8 @@ type V8Engine struct {
 	lcsHandler                              uint64
 	gcsHandler                              uint64
 	serverListenAddr						string
+	startExeTime							time.Time
+	executionTimeOut						uint64
 }
 
 type sourceModuleItem struct {
@@ -163,27 +175,26 @@ func DisposeV8Engine() {
 
 // NewV8Engine return new V8Engine instance.
 func NewV8Engine(ctx *Context) *V8Engine {
-	v8engineOnce.Do(func() {
-		InitV8Engine()
-	})
 
 	engine := &V8Engine{
 		ctx:      ctx,
 		modules:  NewModules(),
-		v8engine: C.CreateEngine(),
 		strictDisallowUsageOfInstructionCounter: 1, // enable by default.
 		enableLimits:                            true,
 		limitsOfExecutionInstructions:           0,
 		limitsOfTotalMemorySize:                 0,
 		actualCountOfExecutionInstructions:      0,
 		actualTotalMemorySize:                   0,
+		executionTimeOut:			  			 0,
 	}
 
+	/*
 	(func() {
 		enginesLock.Lock()
 		defer enginesLock.Unlock()
 		engines[engine.v8engine] = engine
 	})()
+	*/
 
 	(func() {
 		storagesLock.Lock()
@@ -197,10 +208,9 @@ func NewV8Engine(ctx *Context) *V8Engine {
 		storages[engine.lcsHandler] = engine
 		storages[engine.gcsHandler] = engine
 	})()
-	// engine.v8engine.lcs = C.uintptr_t(engine.lcsHandler)
-	// engine.v8engine.gcs = C.uintptr_t(engine.gcsHandler)
+
 	if ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
-		engine.SetTimeOut(ExecutionTimeout)
+		engine.executionTimeOut = ExecutionTimeout		// set to max
 	}
 
 	return engine
@@ -217,12 +227,6 @@ func (e *V8Engine) Dispose() {
 	delete(storages, e.lcsHandler)
 	delete(storages, e.gcsHandler)
 	storagesLock.Unlock()
-
-	enginesLock.Lock()
-	delete(engines, e.v8engine)
-	enginesLock.Unlock()
-
-	C.DeleteEngine(e.v8engine)
 }
 
 // Context returns engine context
@@ -230,14 +234,10 @@ func (e *V8Engine) Context() *Context {
 	return e.ctx
 }
 
-func (e *V8Engine) SetTimeOut(timeout uint64) {
-	e.v8engine.timeout = C.int(timeout) //TODO:
-}
-
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
 func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTotalMemorySize uint64) error {
-	e.v8engine.limits_of_executed_instructions = C.size_t(limitsOfExecutionInstructions)
-	e.v8engine.limits_of_total_memory_size = C.size_t(limitsOfTotalMemorySize)
+	//e.v8engine.limits_of_executed_instructions = C.size_t(limitsOfExecutionInstructions)
+	//e.v8engine.limits_of_total_memory_size = C.size_t(limitsOfTotalMemorySize)
 
 	logging.VLog().WithFields(logrus.Fields{
 		"limits_of_executed_instructions": limitsOfExecutionInstructions,
@@ -264,6 +264,7 @@ func (e *V8Engine) ExecutionInstructions() uint64 {
 	return e.actualCountOfExecutionInstructions
 }
 
+/*
 // TranspileTypeScript transpile typescript to javascript and return it.
 func (e *V8Engine) TranspileTypeScript(source string) (string, int, error) {
 	cSource := C.CString(source)
@@ -277,7 +278,6 @@ func (e *V8Engine) TranspileTypeScript(source string) (string, int, error) {
 
 	defer C.free(unsafe.Pointer(jsSource))
 	return C.GoString(jsSource), int(lineOffset), nil
-
 }
 
 // InjectTracingInstructions process the source to inject tracing instructions.
@@ -493,6 +493,13 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 	// }()
 	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
 		C.uintptr_t(e.gcsHandler))
+
+	logging.CLog().WithFields(
+		logrus.Fields{
+			"cResult": C.GoString(cResult),
+			"ret": ret,
+		}).Info(">>>>The contract execution result")
+
 	e.CollectTracingStats()
 
 	//set err
@@ -535,6 +542,250 @@ func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string,
 
 	return result, err
 }
+*/
+
+func (e *V8Engine) CheckTimeout() bool {
+	elapsedTime := time.Since(e.startExeTime)
+
+	if elapsedTime.Nanoseconds()/1000 > ExecutionTimeout{
+		logging.CLog().Info("!!! NVM run out of time!!!")
+		return true
+	}
+
+	return false
+}
+
+// Call function in a script
+func (e *V8Engine) Call(config *core.NVMConfig, listenAddr string) (string, error) {
+	e.serverListenAddr = listenAddr
+
+	function := config.FunctionName
+	if core.PublicFuncNameChecker.MatchString(function) == false {
+		logging.VLog().Debugf("Invalid function: %v", function)
+		return "", ErrDisallowCallNotStandardFunction
+	}
+	if strings.EqualFold(core.ContractInitFunc, function) == true {
+		return "", ErrDisallowCallPrivateFunction
+	}
+	return e.RunScriptSource(config)
+}
+
+func (e *V8Engine) DeployAndInit(config *core.NVMConfig, listenAddr string) (string, error){
+	e.serverListenAddr = listenAddr
+	
+	config.FunctionName = core.ContractInitFunc
+	return e.RunScriptSource(config)
+}
+
+func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
+
+	// prepare for execute.
+	block := toSerializableBlock(e.ctx.block)
+	blockJSON, err := json.Marshal(block)
+	if err != nil {
+		return "", errors.New("Failed to serialize block")
+	}
+	tx := toSerializableTransaction(e.ctx.tx)
+	txJSON, err := json.Marshal(tx)
+	if err != nil {
+		return "", errors.New("Failed to serialize transaction")
+	}
+
+	//var runnableSource string
+	var argsInput []byte
+	args := config.GetContractArgs()
+	if len(args) > 0 {
+		var argsObj []interface{}
+		if err := json.Unmarshal([]byte(args), &argsObj); err != nil {
+			return "", errors.New("Arguments error")
+		}
+		if argsInput, err = json.Marshal(argsObj); err != nil {
+			return "", errors.New("Arguments error")
+		}
+	} else {
+		argsInput = []byte("[]")
+	}
+
+	moduleID := "contract.js"			// for module recognition
+	runnableSource := fmt.Sprintf(`Blockchain.blockParse("%s");
+		Blockchain.transactionParse("%s");
+		var __contract = require("%s");
+		var __instance = new __contract();
+		__instance["%s"].apply(__instance, JSON.parse("%s"));`,
+			formatArgs(string(blockJSON)), formatArgs(string(txJSON)),
+			moduleID, config.FunctionName, formatArgs(string(argsInput)))
+
+	// check height settings carefully
+	if e.ctx.block.Height() >= core.NvmMemoryLimitWithoutInjectHeight {
+		//TODO: collect tracing stats
+		mem := e.actualTotalMemorySize + core.DefaultLimitsOfTotalMemorySize
+		logging.VLog().WithFields(logrus.Fields{
+			"actualTotalMemorySize": e.actualTotalMemorySize,
+			"limit":                 core.DefaultLimitsOfTotalMemorySize,
+			"tx.hash":               e.ctx.tx.Hash(),
+		}).Debug("mem limit")
+		e.limitsOfTotalMemorySize = mem
+	}
+
+	if e.ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
+		if e.limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
+			e.limitsOfExecutionInstructions = MaxLimitsOfExecutionInstructions
+		}
+	}
+
+	// Send request
+	conn, err := grpc.Dial(e.serverListenAddr, grpc.WithInsecure())
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Error("Failed to connect with V8 server")
+
+		// try to re-launch the process
+		
+	}
+	defer conn.Close()
+
+	logging.CLog().Info("NVM client is trying to connect the server")
+	
+	v8Client := NewNVMServiceClient(conn)
+	var timeOut time.Duration = 15000   // Set execution timeout to be 15s'
+	ctx, cancel := context.WithTimeout(context.Background(), timeOut*time.Second)
+	defer cancel()
+
+	logging.CLog().Info(">>>>>>>>Script source is: ", config.GetPayloadSource())
+	logging.CLog().Info(">>>>>>>>>Now started call request!, the listener address is: ", e.serverListenAddr)
+
+	configBundle := &NVMConfigBundle{ScriptSrc:config.PayloadSource, ScriptType:config.PayloadSourceType, EnableLimits: true, RunnableSrc: runnableSource, 
+		MaxLimitsOfExecutionInstruction:MaxLimitsOfExecutionInstructions, DefaultLimitsOfTotalMemSize:core.DefaultLimitsOfTotalMemorySize,
+		LimitsExeInstruction: e.limitsOfExecutionInstructions, LimitsTotalMemSize: e.limitsOfTotalMemorySize, ExecutionTimeout: e.executionTimeOut,
+		BlockJson:formatArgs(string(blockJSON)), TxJson: formatArgs(string(txJSON)), ModuleId: moduleID, 
+		LcsHandler: e.lcsHandler, GcsHandler: e.gcsHandler}
+
+	// for call request, the metadata is nil
+	request := &NVMDataRequest{RequestType:NVMRequestTypeStart, RequestIndx:nvmRequestIndex, MetaData:"", ConfigBundle: configBundle}
+
+	stream, err := v8Client.SmartContractCall(ctx)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+			"module": "nvm",
+		}).Error("Failed to get streaming object")
+		return "", errors.New("Failed to get streaming object")
+	}
+
+	err = stream.Send(request); if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"err": err,
+			"module": "nvm",
+		}).Error("Failed to send out initial request")
+		return "", errors.New("Failed to send out initial request")
+	}
+
+	// start counting for execution
+	e.startExeTime = time.Now()
+
+	var counter uint32 = 1		// for debugging purpose
+	for {
+		dataResponse, err := stream.Recv()
+		if err != nil{
+			logging.VLog().WithFields(logrus.Fields{
+				"err": err,
+				"module": "nvm",
+			}).Error("Failed to receive data response from server")
+		}
+
+		logging.CLog().Info("Got call back from server side, with info: ", dataResponse)
+		if(dataResponse.GetResponseType() == NVMResponseTypeFinal && dataResponse.GetFinalResponse() != nil){
+			stream.CloseSend()
+
+			finalResponse := dataResponse.GetFinalResponse()
+			ret := finalResponse.Result
+			result := finalResponse.Msg
+			stats := finalResponse.StatsBundle
+
+			// check the result here
+			logging.CLog().WithFields(
+				logrus.Fields{
+					"result": result,
+					"ret": ret,
+				}).Info(">>>>The contract execution result")
+		
+			// TODO, collect tracing stats
+			//e.CollectTracingStats()
+			actualCountOfExecutionInstructions := stats.ActualCountOfExecutionInstruction
+			actualUsedMemSize := stats.ActualUsedMemSize
+
+			logging.CLog().WithFields(logrus.Fields{
+				"actualAcountOfExecutionInstructions": actualCountOfExecutionInstructions,
+				"actualUsedMemSize": actualUsedMemSize,
+			}).Info(">>>>Got stats info")
+		
+			/*
+			if e.ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
+				if e.limitsOfExecutionInstructions == MaxLimitsOfExecutionInstructions && err == ErrInsufficientGas {
+				  err = ErrExecutionTimeout
+				  result = "\"null\""
+				}
+			}
+			*/
+
+			//set err
+			if ret == NVM_EXE_TIMEOUT_ERR {
+				err = ErrExecutionTimeout
+				if e.ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
+					err = core.ErrUnexpected
+				} else if e.ctx.block.Height() >= core.NewNvmExeTimeoutConsumeGasHeight {
+					if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
+						e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+
+						//actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+
+					} else {
+						e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
+						
+						//actualCountOfExecutionInstructions = TimeoutGasLimitCost
+					}
+				}
+			} else if ret == NVM_UNEXPECTED_ERR {
+				err = core.ErrUnexpected
+			} else {
+				if ret != NVM_SUCCESS {
+					err = core.ErrExecutionFailed
+				}
+				if e.limitsOfExecutionInstructions > 0 &&
+					e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
+					// Reach instruction limits.
+					err = ErrInsufficientGas
+					e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+				} else if e.limitsOfTotalMemorySize > 0 && e.limitsOfTotalMemorySize < e.actualTotalMemorySize {
+					// reach memory limits.
+					err = ErrExceedMemoryLimits
+					e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
+				}
+
+				logging.CLog().Info("Deployed smart contract successfully!")
+			}
+			return result, nil
+
+		}else{
+			//TODO start to handle the callback and send result back to server
+			
+			// stream.Send()
+			nvmRequestIndex += 1
+			newRequest := &NVMDataRequest{RequestType:NVMRequestTypeCallBack, RequestIndx:dataResponse.GetResponseIndx(), MetaData:""}
+			stream.Send(newRequest)
+		}
+		
+		if(e.CheckTimeout()){
+			break
+		}
+
+		counter += 1
+		logging.CLog().Info("Counter is: ", counter)
+	}
+
+	return "", errors.New("Failed to execute contract")
+}
 
 func getEngineByStorageHandler(handler uint64) (*V8Engine, Account) {
 	storagesLock.RLock()
@@ -565,11 +816,14 @@ func getEngineByStorageHandler(handler uint64) (*V8Engine, Account) {
 }
 
 func getEngineByEngineHandler(handler unsafe.Pointer) *V8Engine {
+	/*
 	v8engine := (*C.V8Engine)(handler)
 	enginesLock.RLock()
 	defer enginesLock.RUnlock()
 
 	return engines[v8engine]
+	*/
+	return nil
 }
 
 func formatArgs(s string) string {
@@ -578,99 +832,4 @@ func formatArgs(s string) string {
 	s = strings.Replace(s, "\r", "\\r", -1)
 	s = strings.Replace(s, "\"", "\\\"", -1)
 	return s
-}
-
-
-
-// =================== NVM rpc ========================
-
-type V8RPCEngine struct{
-	listenAddr string
-}
-
-func (e *V8RPCEngine) SetListenAddr(listenAddr string){
-	e.listenAddr = listenAddr
-}
-
-// Get runnable source code, source offset, error
-func (e *V8RPCEngine) GetRunnableSource(origSource string, sourceType string) (string, error){
-	var runnableSource string
-	var sourceLineOffset int
-	var err error
-
-	switch sourceType {
-	case core.SourceTypeJavaScript:
-		runnableSource, sourceLineOffset, err = e.prepareRunnableContractScript(source, function, args)
-	case core.SourceTypeTypeScript:
-		// transpile to javascript.
-		jsSource, _, err := e.TranspileTypeScript(origSource)
-		if err != nil {
-			return "", err
-		}
-		runnableSource, sourceLineOffset, err = e.prepareRunnableContractScript(jsSource, function, args)
-	default:
-		return "", ErrUnsupportedSourceType
-	}
-	return 
-}
-
-// Deploy contract through RPC
-func (e *V8RPCEngine) DeployContractByRPC(config *core.NVMConfig, listenAddr string) (core.NVMExeResponse, error){
-
-	// start to dial and bulld the connection with v8 server
-	logging.CLog().Info("V8 server address is: ", e.listenAddr)
-
-	conn, err := grpc.Dial(e.listenAddr, grpc.WithInsecure())
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Error("Failed to connect with V8 server")
-	}
-	defer conn.Close()
-
-	logging.CLog().Info("NVM client is trying to connect the server")
-	
-	v8Client := NewNVMServiceClient(conn)
-
-	var timeOut time.Duration = 15000   // Set execution timeout to be 15s'
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeOut*time.Second)
-
-	defer cancel()
-
-
-
-	logging.CLog().Info("Script source is: ", config.GetPayloadSource())
-
-	request := &NVMDeployRequest{ScriptSrc:config.GetPayloadSource(), FromAddr:"xxx_addr", BlockHeight:123456, Type:"deploy"}
-
-
-	response, err := v8Client.DeploySmartContract(ctx, request)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Error("Failed to get response from V8 server")
-	}
-
-	if response.GetResult() == 0 {
-		logging.VLog().WithFields(logrus.Fields{
-			"msg": response.GetMsg(),
-		}).Error("Failed to deploy the contract")
-	}else{
-		logging.CLog().Info("Deployed smart contract successfully!")
-	}
-
-	res := core.NVMExeResponse{GasCount:128, ExeError:errors.New("simple execution error")}
-
-	return res, nil
-}
-
-
-func (e *V8RPCEngine) CallContractByRPC(config *core.NVMConfig, listenAddr string) (core.NVMExeResponse, error){
-
-	err := errors.New("Sample error msg")
-
-	res := core.NVMExeResponse{GasCount: 100, Result: "success", ExeError: err, ActualCountOfExecutionInstructions: 101, ActualTotalMemorySize: 56}
-
-	return res, err
 }

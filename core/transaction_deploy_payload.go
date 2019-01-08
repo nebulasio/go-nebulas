@@ -124,9 +124,6 @@ func (payload *DeployPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 		return util.NewUint128(), "", err
 	}
 
-
-	/*
-	//engine.DeployAndInit(block, tx, contract, ws, )
 	engine, err := block.nvm.CreateEngine(block, tx, contract, ws)
 	if err != nil {
 		return util.NewUint128(), "", err
@@ -137,41 +134,16 @@ func (payload *DeployPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 		return util.NewUint128(), "", err
 	}
 
-	// Deploy and Init.
-	result, exeErr := engine.DeployAndInit(payload.Source, payload.SourceType, payload.Args, block.nvm.GetNVMListenAddr())
-	gasCount := engine.ExecutionInstructions()
-	*/
-
-
-	// CHANGE TO THE FOLLOWING FUNCTION
 	nvmConf := &NVMConfig{
-		Block: block,
-		Tx: tx,
-		ContractAccount: contract,
-		State: ws,
-		
-		LimitedGas:limitedGas.Uint64(),
-		DefaultLimitsOfTotalMemorySize: DefaultLimitsOfTotalMemorySize,
 		PayloadSource: payload.Source,
 		PayloadSourceType: payload.SourceType,
 		ContractArgs: payload.Args,
 	}
 
-	response, derr := block.nvm.DeployAndInit(nvmConf, block.nvm.GetNVMListenAddr())
-
-	if derr != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"err": derr,
-		}).Error("Unexpected error when executing deploy ")
-	}
-	gasCount := response.GasCount
-	exeErr := response.ExeError
-	result := response.Result
-
-
+	result, exeErr := engine.DeployAndInit(nvmConf, block.nvm.GetNVMListenAddr())
+	gasCount := engine.ExecutionInstructions()
 
 	instructions, err := util.NewUint128FromInt(int64(gasCount))
-
 	if err != nil || exeErr == ErrUnexpected {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":      err,

@@ -18,59 +18,11 @@
 
 package core
 
-import (
-	"github.com/nebulasio/go-nebulas/core/state"
-)
-
 type NVMConfig struct {
-
-	// block related info
-	Block    *Block
-	Tx       *Transaction
-	ContractAccount state.Account
-	State    WorldState
-
-	// other limitations
-	LimitedGas uint64
-	DefaultLimitsOfTotalMemorySize uint64
 	PayloadSource string
 	PayloadSourceType string
 	FunctionName string
 	ContractArgs string
-}
-
-type NVMExeResponse struct {
-	GasCount int64
-	Result string
-	ExeError error
-
-	ActualCountOfExecutionInstructions uint64
-	ActualTotalMemorySize uint64
-}
-
-
-func (c *NVMConfig) GetBlock() *Block{
-	return c.Block
-}
-
-func (c *NVMConfig) GetTransaction() *Transaction{
-	return c.Tx
-}
-
-func (c *NVMConfig) GetContractAccount() state.Account{
-	return c.ContractAccount
-}
-
-func (c *NVMConfig) GetState() WorldState {
-	return c.State
-}
-
-func (c *NVMConfig) GetLimitedGas() uint64 {
-	return c.LimitedGas	
-}
-
-func (c *NVMConfig) GetDefaultLimitsOfTotalMemorySize() uint64 {
-	return c.DefaultLimitsOfTotalMemorySize
 }
 
 func (c *NVMConfig) GetPayloadSource() string {
@@ -87,13 +39,4 @@ func (c *NVMConfig) GetContractArgs() string {
 
 func (c *NVMConfig) SetFunctionName(functionName string){
 	c.FunctionName = functionName
-}
-
-
-func (response *NVMExeResponse) GetActualCountOfExecutionInstructions() uint64 {
-	return response.ActualCountOfExecutionInstructions
-}
-
-func (response *NVMExeResponse) GetActualTotalMemorySize() uint64 {
-	return response.ActualTotalMemorySize
 }

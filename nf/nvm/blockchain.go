@@ -198,7 +198,7 @@ func recordTransferFailureEvent(errNo int, from string, to string, value string,
 	}
 }
 
-// TransferFunc transfer vale to address
+// TransferFunc transfer value to address
 //export TransferFunc
 func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_t) int {
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))

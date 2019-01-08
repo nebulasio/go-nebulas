@@ -130,56 +130,33 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 		return util.NewUint128(), "", err
 	}
 
-	/*
 	engine, err := block.nvm.CreateEngine(block, tx, contract, ws)
-	if err != nil {
+	if err != nil{
 		return util.NewUint128(), "", err
 	}
 	defer engine.Dispose()
 
 	if IsCompatibleStack(block.header.chainID, tx.hash) == true {
-		if err := engine.SetExecutionLimits(2000, DefaultLimitsOfTotalMemorySize); err != nil {
+		if err := engine.SetExecutionLimits(2000, DefaultLimitsOfTotalMemorySize); err != nil{
 			return util.NewUint128(), "", err
 		}
-	} else {
-		if err := engine.SetExecutionLimits(limitedGas.Uint64(), DefaultLimitsOfTotalMemorySize); err != nil {
+	}else{
+		if err := engine.SetExecutionLimits(limitedGas.Uint64(), DefaultLimitsOfTotalMemorySize); err != nil{
 			return util.NewUint128(), "", err
 		}
 	}
 
-	result, exeErr := engine.Call(deploy.Source, deploy.SourceType, payload.Function, payload.Args, block.nvm.GetNVMListenAddr())
-	gasCount := engine.ExecutionInstructions()
-	*/
-
-	// CHANGE TO THE FOLLOWING FUNCTION
 	nvmConf := &NVMConfig{
-		Block: block,
-		Tx: tx,
-		ContractAccount: contract,
-		State: ws,
-		
-		LimitedGas:limitedGas.Uint64(),
-		DefaultLimitsOfTotalMemorySize: DefaultLimitsOfTotalMemorySize,
 		PayloadSource: deploy.Source,
 		PayloadSourceType: deploy.SourceType,
 		FunctionName: payload.Function,
 		ContractArgs: payload.Args,
 	}
 
-	response, derr := block.nvm.DeployAndInit(nvmConf, block.nvm.GetNVMListenAddr())
-
-	if derr != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"err": derr,
-		}).Error("Unexpected error when executing deploy ")
-	}
-	gasCount := response.GasCount
-	exeErr := response.ExeError
-	result := response.Result
-
+	result, exeErr := engine.Call(nvmConf, block.nvm.GetNVMListenAddr())
+	gasCount := engine.ExecutionInstructions()
 
 	instructions, err := util.NewUint128FromInt(int64(gasCount))
-
 	if err != nil || exeErr == ErrUnexpected {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":      err,

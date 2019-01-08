@@ -101,6 +101,7 @@ void IncrCounter(Isolate *isolate, Local<Context> context, size_t val) {
     return;
   }
 
+  // TODO, opt the code, get rid of unnecessary fetches
   Local<Object> global = context->Global();
   HandleScope handle_scope(isolate);
 

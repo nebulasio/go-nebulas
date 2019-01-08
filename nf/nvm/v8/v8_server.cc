@@ -16,53 +16,11 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include <unistd.h>
-#include "engine.h"
-#include "lib/blockchain.h"
-#include "lib/fake_blockchain.h"
-#include "lib/file.h"
-#include "lib/log_callback.h"
-#include "lib/logger.h"
 
-#include "pb/nvm.grpc.pb.h"
-#include "pb/nvm.pb.h"
-#include "samples/memory_modules.h"
-#include "samples/memory_storage.h"
-
-#include <thread>
-#include <vector>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <iostream>
-
-#include <grpc/grpc.h>
-#include <grpcpp/server.h>
-#include <grpcpp/server_builder.h>
-#include <grpcpp/server_context.h>
-
-#include <glog/logging.h>
-
-#include "engine.h"
-#include "engine_int.h"
-#include "lib/tracing.h"
-#include "lib/typescript.h"
-#include "lib/logger.h"
-#include "lib/nvm_error.h"
-
-#include <assert.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <thread>
-#include <sys/time.h>
-#include <unistd.h>
-
+#include "v8_server.h"
 
 #define MicroSecondDiff(newtv, oldtv) (1000000 * (unsigned long long)((newtv).tv_sec - (oldtv).tv_sec) + (newtv).tv_usec - (oldtv).tv_usec)  //milliseconds
 
-static int concurrency = 1;
 static int enable_tracer_injection = 0;
 static int strict_disallow_usage = 0;
 static size_t limits_of_executed_instructions = 0;
@@ -177,6 +135,11 @@ void Initialization(){
   InitializeStorage(StorageGet, StoragePut, StorageDel);
   InitializeBlockchain(GetTxByHash, GetAccountState, Transfer, VerifyAddress, GetPreBlockHash, GetPreBlockSeed);
   InitializeEvent(eventTriggerFunc);
+  //InitializeCrypto(Sha256Func, Sha3256Func, Ripemd160Func, RecoverAddressFunc, Md5Func, Base64Func);
+}
+
+void InitializeDataStruct(){
+  srcModuleCache = std::unique_ptr<std::map<std::string, CacheSrcItem>>(new std::map<std::string, CacheSrcItem>());
 }
 
 
@@ -221,6 +184,10 @@ char *TranspileTypeScriptModuleThread(V8Engine *e, const char *source,
 int RunScriptSourceThread(char **result, V8Engine *e, const char *source,
                     int source_line_offset, uintptr_t lcs_handler,
                     uintptr_t gcs_handler) {
+
+  std::cout<<">>>>>>>>>>>>>Result is: "<<*result<<", source is: "<<source<<", source lineoffset: "<<source_line_offset
+    <<", lcs_handler: "<<lcs_handler<<", gcs_handler: "<<gcs_handler<<std::endl;
+
   v8ThreadContext ctx;
   memset(&ctx, 0x00, sizeof(ctx));
   SetRunScriptArgs(&ctx, e, RUNSCRIPT, source, source_line_offset, 1);
@@ -262,10 +229,12 @@ void *ExecuteThread(void *args) {
   } else {
     ctx->output.ret = Execute(&ctx->output.result, ctx->e, ctx->input.source, ctx->input.line_offset, (void *)ctx->input.lcs,
                 (void *)ctx->input.gcs, ExecuteSourceDataDelegate, NULL);
-    // printf("iRtn:%d--result:%s\n", ctx->output.ret, ctx->output.result);
+    printf("iRtn:%d--result:%s\n", ctx->output.ret, ctx->output.result);
   }
 
   ctx->is_finished = true;
+  std::cout<<">>>>is_finished has been set to be true"<<std::endl;
+
   return 0x00;
 }
 // return : success return true. if hava err ,then return false. and not need to free heap
@@ -291,6 +260,8 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
   int timeout = ctx->e->timeout;
   bool is_kill = false;
 
+  std::cout<<"Now is in create script thread"<<std::endl;
+
   //thread safe
   while(1) {
     if (ctx->is_finished == true) {
@@ -298,6 +269,7 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
           ctx->output.ret = NVM_EXE_TIMEOUT_ERR; 
         }
         break;
+
     } else {
       usleep(10); //10 micro second loop .epoll_wait optimize
       rtn = gettimeofday(&tcEnd, NULL);
@@ -319,113 +291,217 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
 }
 
 
+// NVMEngine related interfaces
 
+bool NVMEngine::GetRunnableSourceCode(const std::string& sourceType, std::string& originalSource){
+  const char* jsSource;
+  uint64_t originalSourceLineOffset = 0;
 
+  if(sourceType.compare(this->TS_TYPE) == 0){
+    jsSource = TranspileTypeScriptModuleThread(this->engine, originalSource.c_str(), &this->m_src_offset);
+  }else{
+    jsSource = originalSource.c_str();
+  }
 
-class NVMEngine final: public NVMService::Service{
+  char* runnableSource;
+  std::string sourceHash = sha256(std::string(jsSource));
+  auto searchRecord = srcModuleCache->find(sourceHash);
+  if(searchRecord != srcModuleCache->end()){
+    CacheSrcItem cachedSourceItem = searchRecord->second;
+    this->m_traceable_src = cachedSourceItem.traceableSource;
+    this->m_traceale_src_line_offset = cachedSourceItem.traceableSourceLineOffset;
+    return true;
 
-  public:
+  }else{
+    char* traceableSource = InjectTracingInstructionsThread(this->engine, jsSource, &this->m_src_offset, this->m_allow_usage);
+    this->m_traceable_src = std::string(traceableSource);
+    this->m_traceale_src_line_offset = 0;
+    CacheSrcItem newItem = {originalSource, originalSourceLineOffset, traceableSource, this->m_traceale_src_line_offset};
+    srcModuleCache->insert({sourceHash, newItem});
+    return true;
+  }
 
-    explicit NVMEngine(const int concurrency){
-      //TODO: specify how many threads we should start and do Initialization
+  return false;
+}
 
-      m_concurrency_scale = concurrency;
-      m_src_offset = 0;
+int NVMEngine::StartScriptExecution(std::string& contractSource, const std::string& scriptType, 
+    const std::string& runnableSrc, const std::string& moduleID, const NVMConfigBundle& configBundle){
+
+    // create engine and inject tracing instructions
+    if(!this->engine){
+      this->engine = CreateEngine();
     }
 
-    void ConfigureEngine(){
+    this->engine->limits_of_executed_instructions = configBundle.limits_exe_instruction();
+    this->engine->limits_of_total_memory_size = configBundle.limits_total_mem_size();
+
+    std::cout<<">>>>Script type is: "<<scriptType<<", source: "<<contractSource<<std::endl;
+
+    if(this->GetRunnableSourceCode(scriptType, contractSource)){           // transpile the source code if necessary, only if the source code is ts
+      std::cout<<"Failed to get runnable source code"<<std::endl;
+    }
+
+
+    AddModule(this->engine, moduleID.c_str(), this->m_traceable_src.c_str(), this->m_traceale_src_line_offset);
+    /*
+    std::string data ("require(\"" + moduleID + "\")");
+    std::cout<<"++ Start running source code"<<std::endl;
+    RunScriptSourceDelegate(this->engine, data.c_str(), lcsHandler, gcsHandler);
+    std::cout<<"++ Finished unnign source code"<<std::endl;
+
+    /*
+    // clean up
+    DeleteEngine(this->engine);
+    this->engine = NULL;
+    std::cout<<">>>>After delete engine"<<std::endl;
+    NVMRPCResponse* new_response = new NVMRPCResponse();
+    new_response->set_result(101);
+    new_response->set_msg("Deployed successfully!");
+    */
+
+    std::cout<<">>>>Now starting script execution!!!"<<std::endl;
+
+    v8ThreadContext ctx;
+    memset(&ctx, 0x00, sizeof(ctx));
+    SetRunScriptArgs(&ctx, this->engine, RUNSCRIPT, this->m_runnable_src.c_str(), this->m_traceale_src_line_offset, 1);
+    ctx.input.lcs = this->m_lcs_handler;
+    ctx.input.gcs = this->m_gcs_handler;
+    bool btn = CreateScriptThread(&ctx);
+    if (btn == false) {
+      return NVM_UNEXPECTED_ERR;
+    }
+
+    std::cout<<">>>>>>Get result "<<std::endl;
+
+    if(ctx.output.result != NULL){
+      this->m_exe_result = (char*)calloc(strlen(ctx.output.result)+1, sizeof(char));
+      strcpy(this->m_exe_result, ctx.output.result);
+
+      std::cout<<">>>>The running result is: "<<this->m_exe_result<<std::endl;
+
+    }else{
+      this->m_exe_result = (char*)calloc(1, sizeof(char));
+      memset(this->m_exe_result, '\0', 1);
+    }
+
+    std::cout<<">>>>Finished running startscriptexecution"<<std::endl;
+
+    return ctx.output.ret;
+}
+
+void NVMEngine::ReadExeStats(NVMStatsBundle *statsBundle){
+  ReadMemoryStatistics(this->engine);
+
+  statsBundle->set_actual_count_of_execution_instruction((google::protobuf::uint64)this->engine->stats.count_of_executed_instructions);
+  statsBundle->set_actual_used_mem_size((google::protobuf::uint64)this->engine->stats.total_memory_size);
+}
+
+grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest>* stream){
+
+  this->m_stm = stream;
+
+  try{
+    bool terminate = false;
+    NVMDataRequest *request = new NVMDataRequest();
+
+    while(stream->Read(request)){
+
+      std::string requestType = request->request_type();
+      google::protobuf::uint32 requestIndx = request->request_indx();
+
+      if(requestType.compare(DATA_REQUEST_START) == 0){
+
+        NVMConfigBundle configBundle = request->config_bundle();
+        std::string scriptSrc = configBundle.script_src();
+        std::string scriptType = configBundle.script_type();
+        std::string runnableSrc = configBundle.runnable_src();
+        std::string moduleID = configBundle.module_id();
+        google::protobuf::uint64 maxLimitsOfExecutionInstructions = configBundle.max_limits_of_execution_instruction();
+        google::protobuf::uint64 defaultTotalMemSize = configBundle.default_limits_of_total_mem_size();
+        google::protobuf::uint64 limitsOfExecutionInstructions = configBundle.limits_exe_instruction();
+        google::protobuf::uint64 totalMemSize = configBundle.limits_total_mem_size();
+
+        bool enableLimits = configBundle.enable_limits();
+        std::string blockJson = configBundle.block_json();
+        std::string txJson = configBundle.tx_json();
+        google::protobuf::uint64 lcsHandler = configBundle.lcs_handler();
+        google::protobuf::uint64 gcsHandler = configBundle.gcs_handler();
+        
+        std::cout<<">>>Script source is: "<<scriptSrc<<std::endl;
+        std::cout<<">>>Script type is: "<<scriptType<<std::endl;
+        std::cout<<">>>Runnable src is: "<<runnableSrc<<std::endl;
+        std::cout<<">>>Module id is: "<<moduleID<<std::endl;
+        std::cout<<">>>blockJson is: "<<blockJson<<std::endl;
+        std::cout<<">>>>>tx json is: "<<txJson<<std::endl;
+        std::cout<<">>>>lcsHandler is: "<<lcsHandler<<", gcshandler is: "<<gcsHandler<<std::endl;
+        std::cout<<">>>>>>>The limit of exe instructions: "<<limitsOfExecutionInstructions<<std::endl;
+        std::cout<<">>>>>>>The limit of mem usage: "<<totalMemSize<<std::endl;
+
+        this->m_runnable_src = runnableSrc;
+        this->m_module_id = moduleID;
+        this->m_lcs_handler = (uintptr_t)lcsHandler;
+        this->m_gcs_handler = (uintptr_t)gcsHandler;
+        int ret = this->StartScriptExecution(scriptSrc, scriptType, runnableSrc, moduleID, configBundle);
+        
+        if(this->m_exe_result != nullptr)
+          std::cout<<">>>>Hey running is done, and running result is: "<<this->m_exe_result<<std::endl;
+        else
+          std::cout<<">>>>Hey running is done, and the running result is null!"<<std::endl;
+
+        NVMDataResponse *response = new NVMDataResponse();
+        NVMFinalResponse *finalResponse = new NVMFinalResponse();
+        finalResponse->set_result(ret);
+        finalResponse->set_msg(this->m_exe_result);
+
+        NVMStatsBundle *statsBundle = new NVMStatsBundle();
+        ReadExeStats(statsBundle);
+        finalResponse->set_allocated_stats_bundle(statsBundle);
+
+        response->set_allocated_final_response(finalResponse);
+        response->set_response_type(DATA_RESPONSE_FINAL);
+        response->set_response_indx(0);
       
-    }
+        stream->Write(*response);
 
-    char* GetRunnableSourceCode(const std::string& sourceType, std::string& originalSource){
-      const char* jsSource;
+        if(this->m_exe_result != nullptr){
+          free(this->m_exe_result);
+        }
+        
+      }else if(requestType.compare(DATA_REQUEST_CALL_BACK) == 0){
+        // get result from the request index
+        std::string metaData = request->meta_data();
 
-      if(sourceType.compare(this->TS_TYPE) == 0){
-        jsSource = TranspileTypeScriptModuleThread(this->engine, originalSource.c_str(), &this->m_src_offset);
+        
       }else{
-        jsSource = originalSource.c_str();
+        // throw exception since the request type is not allowed
+        std::cout<<"Illegal request type"<<std::endl;
       }
-
-      // prepare runnable contract source
-
-      return nullptr;
-    }
-
-    grpc::Status DeploySmartContract(grpc::ServerContext* ctx, const NVMCallRequest* request, NVMRPCResponse* response) override {
-
-      std::string scriptSrc = request->script_src();
-      std::string scriptType = request->script_type();
-      std::string functionName = request->func_name();
-
-      LOG(INFO)<<"Request script source is: "<<scriptSrc;
-      LOG(INFO)<<"Request script source type is: "<<scriptType;
-      LOG(INFO)<<"Request function name is: "<<functionName;
       
-      LOG(INFO)<<"Request address is: "<<request->from_addr();
-      LOG(INFO)<<"Request block height is: "<<request->block_height();
-
-      // create engine and inject tracing instructions
-      if(!this->engine){
-        this->engine = CreateEngine();
-      }
-      std::string contractSource = request->script_src();
-      char* runnableSourceCode = this->GetRunnableSourceCode(scriptType, scriptSrc);
-      InjectTracingInstructionsThread(this->engine, runnableSourceCode, &this->m_src_offset, this->m_allow_usage);
-
-
-
-      // clean up
-      DeleteEngine(this->engine);
-
-      NVMRPCResponse* new_response = new NVMRPCResponse();
-      new_response->set_result(101);
-      new_response->set_msg("Deployed successfully!");
-
-      return grpc::Status::OK;
     }
 
-    grpc::Status NVMDataExchange(grpc::ServerContext* ctx, grpc::ServerReaderWriter<NVMRPCResponse, NVMDataRequest> *stm) override {
+  }catch(const std::exception& e){
+    std::cout<<e.what()<<std::endl;
+  }
 
-      //read the request firstly
-      NVMDataRequest *request = new NVMDataRequest();
-      stm->Read(request);
-      LOG(INFO)<<"The request script souce "<<request->script_src()<<std::endl;
-      LOG(INFO)<<"The function name is: "<<request->function_name()<<std::endl;
-
-      //send request to client if necessary
-      NVMRPCResponse* response = new NVMRPCResponse();
-      response->set_result(202);
-      response->set_msg("Send request to client!");
-
-      stm->Write(*response);
-
-      return grpc::Status::OK;
-    }    
-
-  private:
-    int m_concurrency_scale = 1;              // default concurrency number
-    int m_src_offset = 0;                     // default source code offset
-    int m_allow_usage = 1;                    // default allow usage
-    V8Engine* engine = nullptr;              // default engine
-    
-    // constants for defining contract source type
-    const std::string TS_TYPE = "ts";
-    const std::string JS_TYPE = "js"; 
-};
-
+  return grpc::Status::OK;
+}
 
 void RunServer(const char* addr_str){
 
-    std::string engine_addr(addr_str);
-    NVMEngine* engine = new NVMEngine(1);
+  std::string engine_addr(addr_str);
 
-    grpc::ServerBuilder builder;
-    builder.AddListeningPort(engine_addr, grpc::InsecureServerCredentials());
-    builder.RegisterService(engine);
-    std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
-    LOG(INFO)<<"V8 engine is listening on: "<<engine_addr;
-    
-    server->Wait();
+  if(gNVMEngine != NULL)
+    free(gNVMEngine);
+
+  gNVMEngine = new NVMEngine(NVM_CURRENCY_LEVEL);
+
+  grpc::ServerBuilder builder;
+  builder.AddListeningPort(engine_addr, grpc::InsecureServerCredentials());
+  builder.RegisterService(gNVMEngine);
+  std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
+  //LOG(INFO)<<"V8 engine is listening on: "<<engine_addr;
+  
+  server->Wait();
 }
 
 int main(int argc, const char *argv[]) {
@@ -445,8 +521,8 @@ int main(int argc, const char *argv[]) {
 }
 
 
-// =================== Sample Program =====================
-void ExecuteScript(const char *filename, V8ExecutionDelegate delegate) {
+// =================== Original Interfaces =====================
+void ExecuteScript(const char* filename, V8ExecutionDelegate delegate) {
   void *lcsHandler = CreateStorageHandler();
   void *gcsHandler = CreateStorageHandler();
 

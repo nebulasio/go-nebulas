@@ -22,118 +22,165 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type NVMCallRequest struct {
-	ScriptSrc            string   `protobuf:"bytes,1,opt,name=script_src,json=scriptSrc,proto3" json:"script_src,omitempty"`
-	ScriptType           string   `protobuf:"bytes,2,opt,name=script_type,json=scriptType,proto3" json:"script_type,omitempty"`
-	FuncName             string   `protobuf:"bytes,3,opt,name=func_name,json=funcName,proto3" json:"func_name,omitempty"`
-	EnableLimits         bool     `protobuf:"varint,4,opt,name=enable_limits,json=enableLimits,proto3" json:"enable_limits,omitempty"`
-	LimitsExeInstruction int32    `protobuf:"varint,5,opt,name=limits_exe_instruction,json=limitsExeInstruction,proto3" json:"limits_exe_instruction,omitempty"`
-	LimitsTotalMemSize   int32    `protobuf:"varint,6,opt,name=limits_total_mem_size,json=limitsTotalMemSize,proto3" json:"limits_total_mem_size,omitempty"`
-	FromAddr             string   `protobuf:"bytes,7,opt,name=from_addr,json=fromAddr,proto3" json:"from_addr,omitempty"`
-	BlockHeight          int64    `protobuf:"varint,8,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
-	FuncArgs             []string `protobuf:"bytes,9,rep,name=func_args,json=funcArgs,proto3" json:"func_args,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+type NVMConfigBundle struct {
+	ScriptSrc                       string   `protobuf:"bytes,1,opt,name=script_src,json=scriptSrc,proto3" json:"script_src,omitempty"`
+	ScriptType                      string   `protobuf:"bytes,2,opt,name=script_type,json=scriptType,proto3" json:"script_type,omitempty"`
+	RunnableSrc                     string   `protobuf:"bytes,3,opt,name=runnable_src,json=runnableSrc,proto3" json:"runnable_src,omitempty"`
+	BlockJson                       string   `protobuf:"bytes,4,opt,name=block_json,json=blockJson,proto3" json:"block_json,omitempty"`
+	TxJson                          string   `protobuf:"bytes,5,opt,name=tx_json,json=txJson,proto3" json:"tx_json,omitempty"`
+	ModuleId                        string   `protobuf:"bytes,6,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"`
+	LcsHandler                      uint64   `protobuf:"varint,7,opt,name=lcs_handler,json=lcsHandler,proto3" json:"lcs_handler,omitempty"`
+	GcsHandler                      uint64   `protobuf:"varint,8,opt,name=gcs_handler,json=gcsHandler,proto3" json:"gcs_handler,omitempty"`
+	EnableLimits                    bool     `protobuf:"varint,9,opt,name=enable_limits,json=enableLimits,proto3" json:"enable_limits,omitempty"`
+	LimitsExeInstruction            uint64   `protobuf:"varint,10,opt,name=limits_exe_instruction,json=limitsExeInstruction,proto3" json:"limits_exe_instruction,omitempty"`
+	LimitsTotalMemSize              uint64   `protobuf:"varint,11,opt,name=limits_total_mem_size,json=limitsTotalMemSize,proto3" json:"limits_total_mem_size,omitempty"`
+	ExecutionTimeout                uint64   `protobuf:"varint,12,opt,name=execution_timeout,json=executionTimeout,proto3" json:"execution_timeout,omitempty"`
+	TimeoutGasLimitCost             uint64   `protobuf:"varint,13,opt,name=timeout_gas_limit_cost,json=timeoutGasLimitCost,proto3" json:"timeout_gas_limit_cost,omitempty"`
+	MaxLimitsOfExecutionInstruction uint64   `protobuf:"varint,14,opt,name=max_limits_of_execution_instruction,json=maxLimitsOfExecutionInstruction,proto3" json:"max_limits_of_execution_instruction,omitempty"`
+	DefaultLimitsOfTotalMemSize     uint64   `protobuf:"varint,15,opt,name=default_limits_of_total_mem_size,json=defaultLimitsOfTotalMemSize,proto3" json:"default_limits_of_total_mem_size,omitempty"`
+	XXX_NoUnkeyedLiteral            struct{} `json:"-"`
+	XXX_unrecognized                []byte   `json:"-"`
+	XXX_sizecache                   int32    `json:"-"`
 }
 
-func (m *NVMCallRequest) Reset()         { *m = NVMCallRequest{} }
-func (m *NVMCallRequest) String() string { return proto.CompactTextString(m) }
-func (*NVMCallRequest) ProtoMessage()    {}
-func (*NVMCallRequest) Descriptor() ([]byte, []int) {
+func (m *NVMConfigBundle) Reset()         { *m = NVMConfigBundle{} }
+func (m *NVMConfigBundle) String() string { return proto.CompactTextString(m) }
+func (*NVMConfigBundle) ProtoMessage()    {}
+func (*NVMConfigBundle) Descriptor() ([]byte, []int) {
 	return fileDescriptor_83a3db176960b780, []int{0}
 }
 
-func (m *NVMCallRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_NVMCallRequest.Unmarshal(m, b)
+func (m *NVMConfigBundle) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_NVMConfigBundle.Unmarshal(m, b)
 }
-func (m *NVMCallRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_NVMCallRequest.Marshal(b, m, deterministic)
+func (m *NVMConfigBundle) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_NVMConfigBundle.Marshal(b, m, deterministic)
 }
-func (m *NVMCallRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_NVMCallRequest.Merge(m, src)
+func (m *NVMConfigBundle) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NVMConfigBundle.Merge(m, src)
 }
-func (m *NVMCallRequest) XXX_Size() int {
-	return xxx_messageInfo_NVMCallRequest.Size(m)
+func (m *NVMConfigBundle) XXX_Size() int {
+	return xxx_messageInfo_NVMConfigBundle.Size(m)
 }
-func (m *NVMCallRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_NVMCallRequest.DiscardUnknown(m)
+func (m *NVMConfigBundle) XXX_DiscardUnknown() {
+	xxx_messageInfo_NVMConfigBundle.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_NVMCallRequest proto.InternalMessageInfo
+var xxx_messageInfo_NVMConfigBundle proto.InternalMessageInfo
 
-func (m *NVMCallRequest) GetScriptSrc() string {
+func (m *NVMConfigBundle) GetScriptSrc() string {
 	if m != nil {
 		return m.ScriptSrc
 	}
 	return ""
 }
 
-func (m *NVMCallRequest) GetScriptType() string {
+func (m *NVMConfigBundle) GetScriptType() string {
 	if m != nil {
 		return m.ScriptType
 	}
 	return ""
 }
 
-func (m *NVMCallRequest) GetFuncName() string {
+func (m *NVMConfigBundle) GetRunnableSrc() string {
 	if m != nil {
-		return m.FuncName
+		return m.RunnableSrc
 	}
 	return ""
 }
 
-func (m *NVMCallRequest) GetEnableLimits() bool {
+func (m *NVMConfigBundle) GetBlockJson() string {
+	if m != nil {
+		return m.BlockJson
+	}
+	return ""
+}
+
+func (m *NVMConfigBundle) GetTxJson() string {
+	if m != nil {
+		return m.TxJson
+	}
+	return ""
+}
+
+func (m *NVMConfigBundle) GetModuleId() string {
+	if m != nil {
+		return m.ModuleId
+	}
+	return ""
+}
+
+func (m *NVMConfigBundle) GetLcsHandler() uint64 {
+	if m != nil {
+		return m.LcsHandler
+	}
+	return 0
+}
+
+func (m *NVMConfigBundle) GetGcsHandler() uint64 {
+	if m != nil {
+		return m.GcsHandler
+	}
+	return 0
+}
+
+func (m *NVMConfigBundle) GetEnableLimits() bool {
 	if m != nil {
 		return m.EnableLimits
 	}
 	return false
 }
 
-func (m *NVMCallRequest) GetLimitsExeInstruction() int32 {
+func (m *NVMConfigBundle) GetLimitsExeInstruction() uint64 {
 	if m != nil {
 		return m.LimitsExeInstruction
 	}
 	return 0
 }
 
-func (m *NVMCallRequest) GetLimitsTotalMemSize() int32 {
+func (m *NVMConfigBundle) GetLimitsTotalMemSize() uint64 {
 	if m != nil {
 		return m.LimitsTotalMemSize
 	}
 	return 0
 }
 
-func (m *NVMCallRequest) GetFromAddr() string {
+func (m *NVMConfigBundle) GetExecutionTimeout() uint64 {
 	if m != nil {
-		return m.FromAddr
-	}
-	return ""
-}
-
-func (m *NVMCallRequest) GetBlockHeight() int64 {
-	if m != nil {
-		return m.BlockHeight
+		return m.ExecutionTimeout
 	}
 	return 0
 }
 
-func (m *NVMCallRequest) GetFuncArgs() []string {
+func (m *NVMConfigBundle) GetTimeoutGasLimitCost() uint64 {
 	if m != nil {
-		return m.FuncArgs
+		return m.TimeoutGasLimitCost
 	}
-	return nil
+	return 0
+}
+
+func (m *NVMConfigBundle) GetMaxLimitsOfExecutionInstruction() uint64 {
+	if m != nil {
+		return m.MaxLimitsOfExecutionInstruction
+	}
+	return 0
+}
+
+func (m *NVMConfigBundle) GetDefaultLimitsOfTotalMemSize() uint64 {
+	if m != nil {
+		return m.DefaultLimitsOfTotalMemSize
+	}
+	return 0
 }
 
 type NVMDataRequest struct {
-	ScriptSrc            string   `protobuf:"bytes,1,opt,name=script_src,json=scriptSrc,proto3" json:"script_src,omitempty"`
-	ScriptType           string   `protobuf:"bytes,2,opt,name=script_type,json=scriptType,proto3" json:"script_type,omitempty"`
-	FunctionName         string   `protobuf:"bytes,3,opt,name=function_name,json=functionName,proto3" json:"function_name,omitempty"`
-	ContractAddr         string   `protobuf:"bytes,4,opt,name=contract_addr,json=contractAddr,proto3" json:"contract_addr,omitempty"`
-	ExtraData            string   `protobuf:"bytes,5,opt,name=extra_data,json=extraData,proto3" json:"extra_data,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	RequestType          string           `protobuf:"bytes,1,opt,name=request_type,json=requestType,proto3" json:"request_type,omitempty"`
+	RequestIndx          uint32           `protobuf:"varint,2,opt,name=request_indx,json=requestIndx,proto3" json:"request_indx,omitempty"`
+	MetaData             string           `protobuf:"bytes,3,opt,name=meta_data,json=metaData,proto3" json:"meta_data,omitempty"`
+	ConfigBundle         *NVMConfigBundle `protobuf:"bytes,4,opt,name=config_bundle,json=configBundle,proto3" json:"config_bundle,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
+	XXX_unrecognized     []byte           `json:"-"`
+	XXX_sizecache        int32            `json:"-"`
 }
 
 func (m *NVMDataRequest) Reset()         { *m = NVMDataRequest{} }
@@ -161,126 +208,306 @@ func (m *NVMDataRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_NVMDataRequest proto.InternalMessageInfo
 
-func (m *NVMDataRequest) GetScriptSrc() string {
+func (m *NVMDataRequest) GetRequestType() string {
 	if m != nil {
-		return m.ScriptSrc
+		return m.RequestType
 	}
 	return ""
 }
 
-func (m *NVMDataRequest) GetScriptType() string {
+func (m *NVMDataRequest) GetRequestIndx() uint32 {
 	if m != nil {
-		return m.ScriptType
+		return m.RequestIndx
+	}
+	return 0
+}
+
+func (m *NVMDataRequest) GetMetaData() string {
+	if m != nil {
+		return m.MetaData
 	}
 	return ""
 }
 
-func (m *NVMDataRequest) GetFunctionName() string {
+func (m *NVMDataRequest) GetConfigBundle() *NVMConfigBundle {
 	if m != nil {
-		return m.FunctionName
+		return m.ConfigBundle
 	}
-	return ""
+	return nil
 }
 
-func (m *NVMDataRequest) GetContractAddr() string {
-	if m != nil {
-		return m.ContractAddr
-	}
-	return ""
+type NVMStatsBundle struct {
+	ActualCountOfExecutionInstruction uint64   `protobuf:"varint,1,opt,name=actual_count_of_execution_instruction,json=actualCountOfExecutionInstruction,proto3" json:"actual_count_of_execution_instruction,omitempty"`
+	ActualUsedMemSize                 uint64   `protobuf:"varint,2,opt,name=actual_used_mem_size,json=actualUsedMemSize,proto3" json:"actual_used_mem_size,omitempty"`
+	XXX_NoUnkeyedLiteral              struct{} `json:"-"`
+	XXX_unrecognized                  []byte   `json:"-"`
+	XXX_sizecache                     int32    `json:"-"`
 }
 
-func (m *NVMDataRequest) GetExtraData() string {
-	if m != nil {
-		return m.ExtraData
-	}
-	return ""
-}
-
-type NVMRPCResponse struct {
-	Result               int32    `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
-	Msg                  string   `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *NVMRPCResponse) Reset()         { *m = NVMRPCResponse{} }
-func (m *NVMRPCResponse) String() string { return proto.CompactTextString(m) }
-func (*NVMRPCResponse) ProtoMessage()    {}
-func (*NVMRPCResponse) Descriptor() ([]byte, []int) {
+func (m *NVMStatsBundle) Reset()         { *m = NVMStatsBundle{} }
+func (m *NVMStatsBundle) String() string { return proto.CompactTextString(m) }
+func (*NVMStatsBundle) ProtoMessage()    {}
+func (*NVMStatsBundle) Descriptor() ([]byte, []int) {
 	return fileDescriptor_83a3db176960b780, []int{2}
 }
 
-func (m *NVMRPCResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_NVMRPCResponse.Unmarshal(m, b)
+func (m *NVMStatsBundle) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_NVMStatsBundle.Unmarshal(m, b)
 }
-func (m *NVMRPCResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_NVMRPCResponse.Marshal(b, m, deterministic)
+func (m *NVMStatsBundle) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_NVMStatsBundle.Marshal(b, m, deterministic)
 }
-func (m *NVMRPCResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_NVMRPCResponse.Merge(m, src)
+func (m *NVMStatsBundle) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NVMStatsBundle.Merge(m, src)
 }
-func (m *NVMRPCResponse) XXX_Size() int {
-	return xxx_messageInfo_NVMRPCResponse.Size(m)
+func (m *NVMStatsBundle) XXX_Size() int {
+	return xxx_messageInfo_NVMStatsBundle.Size(m)
 }
-func (m *NVMRPCResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_NVMRPCResponse.DiscardUnknown(m)
+func (m *NVMStatsBundle) XXX_DiscardUnknown() {
+	xxx_messageInfo_NVMStatsBundle.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_NVMRPCResponse proto.InternalMessageInfo
+var xxx_messageInfo_NVMStatsBundle proto.InternalMessageInfo
 
-func (m *NVMRPCResponse) GetResult() int32 {
+func (m *NVMStatsBundle) GetActualCountOfExecutionInstruction() uint64 {
+	if m != nil {
+		return m.ActualCountOfExecutionInstruction
+	}
+	return 0
+}
+
+func (m *NVMStatsBundle) GetActualUsedMemSize() uint64 {
+	if m != nil {
+		return m.ActualUsedMemSize
+	}
+	return 0
+}
+
+type NVMFinalResponse struct {
+	Result               int32           `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	Msg                  string          `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`
+	StatsBundle          *NVMStatsBundle `protobuf:"bytes,3,opt,name=stats_bundle,json=statsBundle,proto3" json:"stats_bundle,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
+	XXX_unrecognized     []byte          `json:"-"`
+	XXX_sizecache        int32           `json:"-"`
+}
+
+func (m *NVMFinalResponse) Reset()         { *m = NVMFinalResponse{} }
+func (m *NVMFinalResponse) String() string { return proto.CompactTextString(m) }
+func (*NVMFinalResponse) ProtoMessage()    {}
+func (*NVMFinalResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_83a3db176960b780, []int{3}
+}
+
+func (m *NVMFinalResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_NVMFinalResponse.Unmarshal(m, b)
+}
+func (m *NVMFinalResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_NVMFinalResponse.Marshal(b, m, deterministic)
+}
+func (m *NVMFinalResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NVMFinalResponse.Merge(m, src)
+}
+func (m *NVMFinalResponse) XXX_Size() int {
+	return xxx_messageInfo_NVMFinalResponse.Size(m)
+}
+func (m *NVMFinalResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_NVMFinalResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_NVMFinalResponse proto.InternalMessageInfo
+
+func (m *NVMFinalResponse) GetResult() int32 {
 	if m != nil {
 		return m.Result
 	}
 	return 0
 }
 
-func (m *NVMRPCResponse) GetMsg() string {
+func (m *NVMFinalResponse) GetMsg() string {
 	if m != nil {
 		return m.Msg
 	}
 	return ""
 }
 
+func (m *NVMFinalResponse) GetStatsBundle() *NVMStatsBundle {
+	if m != nil {
+		return m.StatsBundle
+	}
+	return nil
+}
+
+type NVMCallbackResponse struct {
+	FuncName             string   `protobuf:"bytes,1,opt,name=func_name,json=funcName,proto3" json:"func_name,omitempty"`
+	FuncParams           string   `protobuf:"bytes,2,opt,name=func_params,json=funcParams,proto3" json:"func_params,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *NVMCallbackResponse) Reset()         { *m = NVMCallbackResponse{} }
+func (m *NVMCallbackResponse) String() string { return proto.CompactTextString(m) }
+func (*NVMCallbackResponse) ProtoMessage()    {}
+func (*NVMCallbackResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_83a3db176960b780, []int{4}
+}
+
+func (m *NVMCallbackResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_NVMCallbackResponse.Unmarshal(m, b)
+}
+func (m *NVMCallbackResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_NVMCallbackResponse.Marshal(b, m, deterministic)
+}
+func (m *NVMCallbackResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NVMCallbackResponse.Merge(m, src)
+}
+func (m *NVMCallbackResponse) XXX_Size() int {
+	return xxx_messageInfo_NVMCallbackResponse.Size(m)
+}
+func (m *NVMCallbackResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_NVMCallbackResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_NVMCallbackResponse proto.InternalMessageInfo
+
+func (m *NVMCallbackResponse) GetFuncName() string {
+	if m != nil {
+		return m.FuncName
+	}
+	return ""
+}
+
+func (m *NVMCallbackResponse) GetFuncParams() string {
+	if m != nil {
+		return m.FuncParams
+	}
+	return ""
+}
+
+type NVMDataResponse struct {
+	ResponseType         string               `protobuf:"bytes,1,opt,name=response_type,json=responseType,proto3" json:"response_type,omitempty"`
+	ResponseIndx         uint32               `protobuf:"varint,2,opt,name=response_indx,json=responseIndx,proto3" json:"response_indx,omitempty"`
+	FinalResponse        *NVMFinalResponse    `protobuf:"bytes,3,opt,name=final_response,json=finalResponse,proto3" json:"final_response,omitempty"`
+	CallbackResponse     *NVMCallbackResponse `protobuf:"bytes,4,opt,name=callback_response,json=callbackResponse,proto3" json:"callback_response,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
+}
+
+func (m *NVMDataResponse) Reset()         { *m = NVMDataResponse{} }
+func (m *NVMDataResponse) String() string { return proto.CompactTextString(m) }
+func (*NVMDataResponse) ProtoMessage()    {}
+func (*NVMDataResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_83a3db176960b780, []int{5}
+}
+
+func (m *NVMDataResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_NVMDataResponse.Unmarshal(m, b)
+}
+func (m *NVMDataResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_NVMDataResponse.Marshal(b, m, deterministic)
+}
+func (m *NVMDataResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NVMDataResponse.Merge(m, src)
+}
+func (m *NVMDataResponse) XXX_Size() int {
+	return xxx_messageInfo_NVMDataResponse.Size(m)
+}
+func (m *NVMDataResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_NVMDataResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_NVMDataResponse proto.InternalMessageInfo
+
+func (m *NVMDataResponse) GetResponseType() string {
+	if m != nil {
+		return m.ResponseType
+	}
+	return ""
+}
+
+func (m *NVMDataResponse) GetResponseIndx() uint32 {
+	if m != nil {
+		return m.ResponseIndx
+	}
+	return 0
+}
+
+func (m *NVMDataResponse) GetFinalResponse() *NVMFinalResponse {
+	if m != nil {
+		return m.FinalResponse
+	}
+	return nil
+}
+
+func (m *NVMDataResponse) GetCallbackResponse() *NVMCallbackResponse {
+	if m != nil {
+		return m.CallbackResponse
+	}
+	return nil
+}
+
 func init() {
-	proto.RegisterType((*NVMCallRequest)(nil), "NVMCallRequest")
+	proto.RegisterType((*NVMConfigBundle)(nil), "NVMConfigBundle")
 	proto.RegisterType((*NVMDataRequest)(nil), "NVMDataRequest")
-	proto.RegisterType((*NVMRPCResponse)(nil), "NVMRPCResponse")
+	proto.RegisterType((*NVMStatsBundle)(nil), "NVMStatsBundle")
+	proto.RegisterType((*NVMFinalResponse)(nil), "NVMFinalResponse")
+	proto.RegisterType((*NVMCallbackResponse)(nil), "NVMCallbackResponse")
+	proto.RegisterType((*NVMDataResponse)(nil), "NVMDataResponse")
 }
 
 func init() { proto.RegisterFile("nvm.proto", fileDescriptor_83a3db176960b780) }
 
 var fileDescriptor_83a3db176960b780 = []byte{
-	// 438 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x92, 0xcf, 0x6f, 0xd3, 0x30,
-	0x1c, 0xc5, 0xc9, 0xba, 0x96, 0xe6, 0xbb, 0x8e, 0x21, 0x03, 0x53, 0x04, 0x9a, 0x08, 0xdd, 0x25,
-	0xa7, 0x89, 0x5f, 0x97, 0x71, 0x9b, 0xba, 0x49, 0x20, 0xd1, 0x0a, 0xb9, 0xd3, 0xae, 0x96, 0xeb,
-	0x7c, 0x49, 0x2d, 0x62, 0x3b, 0xd8, 0xee, 0xd4, 0xee, 0xc8, 0x7f, 0xc5, 0x7f, 0xc2, 0x9f, 0x83,
-	0x62, 0xa7, 0x50, 0x24, 0x8e, 0xbb, 0x25, 0x9f, 0x97, 0x17, 0xbf, 0xf7, 0x64, 0x48, 0xf5, 0xad,
-	0x3a, 0x6b, 0xac, 0xf1, 0x66, 0xfc, 0x6b, 0x0f, 0x1e, 0xcd, 0x6e, 0xa6, 0x13, 0x5e, 0xd7, 0x14,
-	0xbf, 0xaf, 0xd0, 0x79, 0x72, 0x02, 0xe0, 0x84, 0x95, 0x8d, 0x67, 0xce, 0x8a, 0x2c, 0xc9, 0x93,
-	0x22, 0xa5, 0x69, 0x24, 0x73, 0x2b, 0xc8, 0x4b, 0x38, 0xe8, 0x64, 0xbf, 0x69, 0x30, 0xdb, 0x0b,
-	0x7a, 0xe7, 0xb8, 0xde, 0x34, 0x48, 0x5e, 0x40, 0xfa, 0x75, 0xa5, 0x05, 0xd3, 0x5c, 0x61, 0xd6,
-	0x0b, 0xf2, 0xb0, 0x05, 0x33, 0xae, 0x90, 0x9c, 0xc2, 0x21, 0x6a, 0xbe, 0xa8, 0x91, 0xd5, 0x52,
-	0x49, 0xef, 0xb2, 0xfd, 0x3c, 0x29, 0x86, 0x74, 0x14, 0xe1, 0xe7, 0xc0, 0xc8, 0x7b, 0x38, 0x8e,
-	0x2a, 0xc3, 0x35, 0x32, 0xa9, 0x9d, 0xb7, 0x2b, 0xe1, 0xa5, 0xd1, 0x59, 0x3f, 0x4f, 0x8a, 0x3e,
-	0x7d, 0x1a, 0xd5, 0xab, 0x35, 0x7e, 0xfa, 0xab, 0x91, 0x37, 0xf0, 0xac, 0x73, 0x79, 0xe3, 0x79,
-	0xcd, 0x14, 0x2a, 0xe6, 0xe4, 0x1d, 0x66, 0x83, 0x60, 0x22, 0x51, 0xbc, 0x6e, 0xb5, 0x29, 0xaa,
-	0xb9, 0xbc, 0x8b, 0x51, 0xad, 0x51, 0x8c, 0x97, 0xa5, 0xcd, 0x1e, 0x76, 0x51, 0xad, 0x51, 0x17,
-	0x65, 0x69, 0xc9, 0x2b, 0x18, 0x2d, 0x6a, 0x23, 0xbe, 0xb1, 0x25, 0xca, 0x6a, 0xe9, 0xb3, 0x61,
-	0x9e, 0x14, 0x3d, 0x7a, 0x10, 0xd8, 0xc7, 0x80, 0xfe, 0x54, 0xe5, 0xb6, 0x72, 0x59, 0x9a, 0xf7,
-	0xb6, 0x55, 0x2f, 0x6c, 0xe5, 0xc6, 0x3f, 0x93, 0x30, 0xed, 0x25, 0xf7, 0xfc, 0xbe, 0xa6, 0x3d,
-	0x85, 0xc3, 0xf6, 0xf7, 0x6d, 0xdd, 0xdd, 0x79, 0x47, 0x5b, 0xb8, 0x9d, 0x58, 0x18, 0xed, 0x2d,
-	0x17, 0x3e, 0x16, 0xdb, 0x8f, 0x1f, 0x6d, 0x61, 0x28, 0x77, 0x02, 0x80, 0x6b, 0x6f, 0x39, 0x2b,
-	0xb9, 0xe7, 0x61, 0xd6, 0x94, 0xa6, 0x81, 0xb4, 0x79, 0xc7, 0x1f, 0x42, 0x74, 0xfa, 0x65, 0x42,
-	0xd1, 0x35, 0x46, 0x3b, 0x24, 0xc7, 0x30, 0xb0, 0xe8, 0x56, 0xb5, 0x0f, 0xb1, 0xfb, 0xb4, 0x7b,
-	0x23, 0x8f, 0xa1, 0xa7, 0x5c, 0xd5, 0x65, 0x6d, 0x1f, 0xdf, 0xfe, 0x48, 0x00, 0x66, 0x37, 0xd3,
-	0x39, 0xda, 0x5b, 0x29, 0x90, 0x9c, 0xc3, 0x93, 0x4b, 0x6c, 0x6a, 0xb3, 0x99, 0x2b, 0x6e, 0xfd,
-	0xa4, 0x0b, 0x41, 0x8e, 0xce, 0xfe, 0xbd, 0x76, 0xcf, 0x03, 0xd8, 0x39, 0x71, 0xfc, 0x80, 0x9c,
-	0xc3, 0x51, 0x37, 0xe0, 0xd5, 0x5a, 0x2c, 0xb9, 0xae, 0x30, 0xda, 0x76, 0x26, 0xfd, 0x8f, 0xad,
-	0x48, 0x5e, 0x27, 0x8b, 0x41, 0xb8, 0xde, 0xef, 0x7e, 0x07, 0x00, 0x00, 0xff, 0xff, 0x75, 0x42,
-	0x45, 0xa8, 0xeb, 0x02, 0x00, 0x00,
+	// 749 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x54, 0xd1, 0x6e, 0xe3, 0x44,
+	0x14, 0xc5, 0xdb, 0x6d, 0x36, 0xb9, 0x49, 0xda, 0x64, 0xb6, 0x14, 0x8b, 0x6a, 0xb5, 0xd9, 0x54,
+	0x48, 0x91, 0x90, 0x02, 0xb4, 0x20, 0xf1, 0xc0, 0x0b, 0x84, 0x02, 0xad, 0x9a, 0x50, 0x39, 0xa5,
+	0xaf, 0xa3, 0xc9, 0x78, 0x12, 0x4c, 0xed, 0x99, 0xe0, 0x19, 0x57, 0x6e, 0xbf, 0x02, 0x89, 0xbf,
+	0xe0, 0x8b, 0xf8, 0x1c, 0x34, 0x77, 0xc6, 0x89, 0x1b, 0xd1, 0x37, 0xfb, 0x9c, 0x73, 0xef, 0xcc,
+	0x3d, 0x3e, 0xd7, 0xd0, 0x92, 0x0f, 0xd9, 0x78, 0x9d, 0x2b, 0xa3, 0x86, 0x7f, 0xed, 0xc3, 0xe1,
+	0xec, 0x6e, 0x3a, 0x51, 0x72, 0x99, 0xac, 0x7e, 0x28, 0x64, 0x9c, 0x0a, 0xf2, 0x0e, 0x40, 0xf3,
+	0x3c, 0x59, 0x1b, 0xaa, 0x73, 0x1e, 0x06, 0x83, 0x60, 0xd4, 0x8a, 0x5a, 0x0e, 0x99, 0xe7, 0x9c,
+	0xbc, 0x87, 0xb6, 0xa7, 0xcd, 0xe3, 0x5a, 0x84, 0xaf, 0x90, 0xf7, 0x15, 0xb7, 0x8f, 0x6b, 0x41,
+	0x3e, 0x40, 0x27, 0x2f, 0xa4, 0x64, 0x8b, 0x54, 0x60, 0x87, 0x3d, 0x54, 0xb4, 0x2b, 0xcc, 0xf6,
+	0x78, 0x07, 0xb0, 0x48, 0x15, 0xbf, 0xa7, 0x7f, 0x68, 0x25, 0xc3, 0xd7, 0xee, 0x08, 0x44, 0xae,
+	0xb4, 0x92, 0xe4, 0x13, 0x78, 0x63, 0x4a, 0xc7, 0xed, 0x23, 0xd7, 0x30, 0x25, 0x12, 0x27, 0xd0,
+	0xca, 0x54, 0x5c, 0xa4, 0x82, 0x26, 0x71, 0xd8, 0x40, 0xaa, 0xe9, 0x80, 0xcb, 0xd8, 0x5e, 0x2c,
+	0xe5, 0x9a, 0xfe, 0xce, 0xec, 0x14, 0x79, 0xf8, 0x66, 0x10, 0x8c, 0x5e, 0x47, 0x90, 0x72, 0xfd,
+	0x8b, 0x43, 0xac, 0x60, 0x55, 0x13, 0x34, 0x9d, 0x60, 0xb5, 0x15, 0x9c, 0x42, 0x57, 0xb8, 0x7b,
+	0xa7, 0x49, 0x96, 0x18, 0x1d, 0xb6, 0x06, 0xc1, 0xa8, 0x19, 0x75, 0x1c, 0x78, 0x8d, 0x18, 0xf9,
+	0x1a, 0x8e, 0x1d, 0x4b, 0x45, 0x29, 0x68, 0x22, 0xb5, 0xc9, 0x0b, 0x6e, 0x12, 0x25, 0x43, 0xc0,
+	0x86, 0x47, 0x8e, 0xbd, 0x28, 0xc5, 0xe5, 0x96, 0x23, 0x5f, 0xc1, 0xc7, 0xbe, 0xca, 0x28, 0xc3,
+	0x52, 0x9a, 0x89, 0x8c, 0xea, 0xe4, 0x49, 0x84, 0x6d, 0x2c, 0x22, 0x8e, 0xbc, 0xb5, 0xdc, 0x54,
+	0x64, 0xf3, 0xe4, 0x49, 0x90, 0xcf, 0xa1, 0x2f, 0x4a, 0xc1, 0x0b, 0x5b, 0x4f, 0x4d, 0x92, 0x09,
+	0x55, 0x98, 0xb0, 0x83, 0xf2, 0xde, 0x86, 0xb8, 0x75, 0x38, 0x39, 0x87, 0x63, 0x2f, 0xa1, 0x2b,
+	0xa6, 0xdd, 0xfd, 0x29, 0x57, 0xda, 0x84, 0x5d, 0xac, 0x78, 0xeb, 0xd9, 0x9f, 0x99, 0xc6, 0x39,
+	0x26, 0x4a, 0x1b, 0x72, 0x0d, 0xa7, 0x19, 0x2b, 0xfd, 0xb0, 0x54, 0x2d, 0xe9, 0xf6, 0xbc, 0xfa,
+	0x5c, 0x07, 0xd8, 0xe1, 0x7d, 0xc6, 0x4a, 0x67, 0xc1, 0xaf, 0xcb, 0x8b, 0x4a, 0x57, 0x1f, 0xf1,
+	0x02, 0x06, 0xb1, 0x58, 0xb2, 0x22, 0x35, 0xb5, 0x8e, 0x3b, 0xd3, 0x1e, 0x62, 0xab, 0x13, 0xaf,
+	0xab, 0xda, 0xd5, 0xc7, 0x1e, 0xfe, 0x13, 0xc0, 0xc1, 0xec, 0x6e, 0xfa, 0x23, 0x33, 0x2c, 0x12,
+	0x7f, 0x16, 0x42, 0x1b, 0x4c, 0x94, 0x7b, 0x74, 0x99, 0x0b, 0x7c, 0xa2, 0x1c, 0xb6, 0x09, 0x9d,
+	0x97, 0x24, 0x32, 0x2e, 0x31, 0x96, 0xdd, 0x8d, 0xe4, 0x52, 0xc6, 0x25, 0x86, 0x47, 0x18, 0x46,
+	0x63, 0x66, 0x98, 0x0f, 0x65, 0xd3, 0x02, 0xf6, 0x24, 0xf2, 0x0d, 0x74, 0x39, 0x2e, 0x01, 0x5d,
+	0xe0, 0x16, 0x60, 0x28, 0xdb, 0x67, 0xbd, 0xf1, 0xce, 0x76, 0x44, 0x1d, 0x5e, 0x7b, 0x1b, 0xfe,
+	0xed, 0x2e, 0x3b, 0x37, 0xcc, 0x68, 0xbf, 0x3e, 0x37, 0xf0, 0x19, 0xe3, 0xa6, 0x60, 0x29, 0xe5,
+	0xaa, 0x90, 0xe6, 0x65, 0x5b, 0x03, 0xf4, 0xe2, 0x83, 0x13, 0x4f, 0xac, 0xf6, 0x05, 0x63, 0xbf,
+	0x80, 0x23, 0xdf, 0xb1, 0xd0, 0x22, 0xde, 0x9a, 0xf9, 0x0a, 0x1b, 0xf4, 0x1d, 0xf7, 0x9b, 0x16,
+	0x71, 0x65, 0xe1, 0x1a, 0x7a, 0xb3, 0xbb, 0xe9, 0x4f, 0x89, 0x64, 0x69, 0x24, 0xf4, 0x5a, 0x49,
+	0x2d, 0xc8, 0x31, 0x34, 0x72, 0xa1, 0x8b, 0xd4, 0xe0, 0xb9, 0xfb, 0x91, 0x7f, 0x23, 0x3d, 0xd8,
+	0xcb, 0xf4, 0xca, 0xaf, 0xb1, 0x7d, 0x24, 0x67, 0xd0, 0xd1, 0x76, 0x9e, 0xca, 0x89, 0x3d, 0x74,
+	0xe2, 0x70, 0xfc, 0x7c, 0xce, 0xa8, 0xad, 0xb7, 0x2f, 0xc3, 0x39, 0xbc, 0xb5, 0x46, 0xb1, 0x34,
+	0x5d, 0x30, 0x7e, 0xbf, 0x39, 0xf4, 0x04, 0x5a, 0xcb, 0x42, 0x72, 0x2a, 0x59, 0x56, 0x7d, 0xb5,
+	0xa6, 0x05, 0x66, 0x2c, 0x13, 0x76, 0x1d, 0x91, 0x5c, 0xb3, 0x9c, 0x65, 0xba, 0xfa, 0x91, 0x58,
+	0xe8, 0x06, 0x91, 0xe1, 0xbf, 0x01, 0xfe, 0x9c, 0x5c, 0x12, 0x7c, 0xc7, 0x53, 0xe8, 0xe6, 0xfe,
+	0xb9, 0x9e, 0x85, 0x4e, 0x05, 0x62, 0x18, 0xea, 0xa2, 0x5a, 0x1a, 0x36, 0x22, 0x8c, 0xc3, 0xb7,
+	0x70, 0xb0, 0xb4, 0x0e, 0xd1, 0x0a, 0xf5, 0x83, 0xf6, 0xc7, 0xbb, 0xde, 0x45, 0xdd, 0xe5, 0x33,
+	0x2b, 0xbf, 0x87, 0x3e, 0xf7, 0x93, 0x6e, 0x8b, 0x5d, 0x5e, 0x8e, 0xc6, 0xff, 0x63, 0x43, 0xd4,
+	0xe3, 0x3b, 0xc8, 0xd9, 0x15, 0x80, 0xb5, 0x53, 0xe4, 0x0f, 0x09, 0x17, 0xe4, 0x3b, 0xe8, 0xcf,
+	0x33, 0x96, 0x9b, 0x89, 0x92, 0x26, 0x67, 0xdc, 0xd8, 0x06, 0x04, 0x0d, 0xaf, 0x6d, 0xc1, 0xa7,
+	0xbd, 0xf1, 0x8e, 0x19, 0xc3, 0x8f, 0x46, 0xc1, 0x97, 0xc1, 0xa2, 0x81, 0xbf, 0xf2, 0xf3, 0xff,
+	0x02, 0x00, 0x00, 0xff, 0xff, 0xc5, 0x6a, 0x11, 0xd3, 0xd7, 0x05, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -295,8 +522,7 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type NVMServiceClient interface {
-	DeploySmartContract(ctx context.Context, in *NVMCallRequest, opts ...grpc.CallOption) (*NVMRPCResponse, error)
-	NVMDataExchange(ctx context.Context, opts ...grpc.CallOption) (NVMService_NVMDataExchangeClient, error)
+	SmartContractCall(ctx context.Context, opts ...grpc.CallOption) (NVMService_SmartContractCallClient, error)
 }
 
 type nVMServiceClient struct {
@@ -307,40 +533,31 @@ func NewNVMServiceClient(cc *grpc.ClientConn) NVMServiceClient {
 	return &nVMServiceClient{cc}
 }
 
-func (c *nVMServiceClient) DeploySmartContract(ctx context.Context, in *NVMCallRequest, opts ...grpc.CallOption) (*NVMRPCResponse, error) {
-	out := new(NVMRPCResponse)
-	err := c.cc.Invoke(ctx, "/NVMService/DeploySmartContract", in, out, opts...)
+func (c *nVMServiceClient) SmartContractCall(ctx context.Context, opts ...grpc.CallOption) (NVMService_SmartContractCallClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_NVMService_serviceDesc.Streams[0], "/NVMService/SmartContractCall", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
-}
-
-func (c *nVMServiceClient) NVMDataExchange(ctx context.Context, opts ...grpc.CallOption) (NVMService_NVMDataExchangeClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_NVMService_serviceDesc.Streams[0], "/NVMService/NVMDataExchange", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &nVMServiceNVMDataExchangeClient{stream}
+	x := &nVMServiceSmartContractCallClient{stream}
 	return x, nil
 }
 
-type NVMService_NVMDataExchangeClient interface {
+type NVMService_SmartContractCallClient interface {
 	Send(*NVMDataRequest) error
-	Recv() (*NVMRPCResponse, error)
+	Recv() (*NVMDataResponse, error)
 	grpc.ClientStream
 }
 
-type nVMServiceNVMDataExchangeClient struct {
+type nVMServiceSmartContractCallClient struct {
 	grpc.ClientStream
 }
 
-func (x *nVMServiceNVMDataExchangeClient) Send(m *NVMDataRequest) error {
+func (x *nVMServiceSmartContractCallClient) Send(m *NVMDataRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *nVMServiceNVMDataExchangeClient) Recv() (*NVMRPCResponse, error) {
-	m := new(NVMRPCResponse)
+func (x *nVMServiceSmartContractCallClient) Recv() (*NVMDataResponse, error) {
+	m := new(NVMDataResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -349,51 +566,32 @@ func (x *nVMServiceNVMDataExchangeClient) Recv() (*NVMRPCResponse, error) {
 
 // NVMServiceServer is the server API for NVMService service.
 type NVMServiceServer interface {
-	DeploySmartContract(context.Context, *NVMCallRequest) (*NVMRPCResponse, error)
-	NVMDataExchange(NVMService_NVMDataExchangeServer) error
+	SmartContractCall(NVMService_SmartContractCallServer) error
 }
 
 func RegisterNVMServiceServer(s *grpc.Server, srv NVMServiceServer) {
 	s.RegisterService(&_NVMService_serviceDesc, srv)
 }
 
-func _NVMService_DeploySmartContract_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(NVMCallRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NVMServiceServer).DeploySmartContract(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/NVMService/DeploySmartContract",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NVMServiceServer).DeploySmartContract(ctx, req.(*NVMCallRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+func _NVMService_SmartContractCall_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(NVMServiceServer).SmartContractCall(&nVMServiceSmartContractCallServer{stream})
 }
 
-func _NVMService_NVMDataExchange_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(NVMServiceServer).NVMDataExchange(&nVMServiceNVMDataExchangeServer{stream})
-}
-
-type NVMService_NVMDataExchangeServer interface {
-	Send(*NVMRPCResponse) error
+type NVMService_SmartContractCallServer interface {
+	Send(*NVMDataResponse) error
 	Recv() (*NVMDataRequest, error)
 	grpc.ServerStream
 }
 
-type nVMServiceNVMDataExchangeServer struct {
+type nVMServiceSmartContractCallServer struct {
 	grpc.ServerStream
 }
 
-func (x *nVMServiceNVMDataExchangeServer) Send(m *NVMRPCResponse) error {
+func (x *nVMServiceSmartContractCallServer) Send(m *NVMDataResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *nVMServiceNVMDataExchangeServer) Recv() (*NVMDataRequest, error) {
+func (x *nVMServiceSmartContractCallServer) Recv() (*NVMDataRequest, error) {
 	m := new(NVMDataRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -404,16 +602,11 @@ func (x *nVMServiceNVMDataExchangeServer) Recv() (*NVMDataRequest, error) {
 var _NVMService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "NVMService",
 	HandlerType: (*NVMServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "DeploySmartContract",
-			Handler:    _NVMService_DeploySmartContract_Handler,
-		},
-	},
+	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "NVMDataExchange",
-			Handler:       _NVMService_NVMDataExchange_Handler,
+			StreamName:    "SmartContractCall",
+			Handler:       _NVMService_SmartContractCall_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

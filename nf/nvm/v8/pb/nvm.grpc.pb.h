@@ -50,58 +50,39 @@ class NVMService final {
   class StubInterface {
    public:
     virtual ~StubInterface() {}
-    virtual ::grpc::Status DeploySmartContract(::grpc::ClientContext* context, const ::NVMCallRequest& request, ::NVMRPCResponse* response) = 0;
-    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::NVMRPCResponse>> AsyncDeploySmartContract(::grpc::ClientContext* context, const ::NVMCallRequest& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::NVMRPCResponse>>(AsyncDeploySmartContractRaw(context, request, cq));
+    std::unique_ptr< ::grpc::ClientReaderWriterInterface< ::NVMDataRequest, ::NVMDataResponse>> SmartContractCall(::grpc::ClientContext* context) {
+      return std::unique_ptr< ::grpc::ClientReaderWriterInterface< ::NVMDataRequest, ::NVMDataResponse>>(SmartContractCallRaw(context));
     }
-    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::NVMRPCResponse>> PrepareAsyncDeploySmartContract(::grpc::ClientContext* context, const ::NVMCallRequest& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::NVMRPCResponse>>(PrepareAsyncDeploySmartContractRaw(context, request, cq));
+    std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::NVMDataRequest, ::NVMDataResponse>> AsyncSmartContractCall(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) {
+      return std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::NVMDataRequest, ::NVMDataResponse>>(AsyncSmartContractCallRaw(context, cq, tag));
     }
-    std::unique_ptr< ::grpc::ClientReaderWriterInterface< ::NVMDataRequest, ::NVMRPCResponse>> NVMDataExchange(::grpc::ClientContext* context) {
-      return std::unique_ptr< ::grpc::ClientReaderWriterInterface< ::NVMDataRequest, ::NVMRPCResponse>>(NVMDataExchangeRaw(context));
-    }
-    std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::NVMDataRequest, ::NVMRPCResponse>> AsyncNVMDataExchange(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) {
-      return std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::NVMDataRequest, ::NVMRPCResponse>>(AsyncNVMDataExchangeRaw(context, cq, tag));
-    }
-    std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::NVMDataRequest, ::NVMRPCResponse>> PrepareAsyncNVMDataExchange(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::NVMDataRequest, ::NVMRPCResponse>>(PrepareAsyncNVMDataExchangeRaw(context, cq));
+    std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::NVMDataRequest, ::NVMDataResponse>> PrepareAsyncSmartContractCall(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::NVMDataRequest, ::NVMDataResponse>>(PrepareAsyncSmartContractCallRaw(context, cq));
     }
   private:
-    virtual ::grpc::ClientAsyncResponseReaderInterface< ::NVMRPCResponse>* AsyncDeploySmartContractRaw(::grpc::ClientContext* context, const ::NVMCallRequest& request, ::grpc::CompletionQueue* cq) = 0;
-    virtual ::grpc::ClientAsyncResponseReaderInterface< ::NVMRPCResponse>* PrepareAsyncDeploySmartContractRaw(::grpc::ClientContext* context, const ::NVMCallRequest& request, ::grpc::CompletionQueue* cq) = 0;
-    virtual ::grpc::ClientReaderWriterInterface< ::NVMDataRequest, ::NVMRPCResponse>* NVMDataExchangeRaw(::grpc::ClientContext* context) = 0;
-    virtual ::grpc::ClientAsyncReaderWriterInterface< ::NVMDataRequest, ::NVMRPCResponse>* AsyncNVMDataExchangeRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) = 0;
-    virtual ::grpc::ClientAsyncReaderWriterInterface< ::NVMDataRequest, ::NVMRPCResponse>* PrepareAsyncNVMDataExchangeRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientReaderWriterInterface< ::NVMDataRequest, ::NVMDataResponse>* SmartContractCallRaw(::grpc::ClientContext* context) = 0;
+    virtual ::grpc::ClientAsyncReaderWriterInterface< ::NVMDataRequest, ::NVMDataResponse>* AsyncSmartContractCallRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) = 0;
+    virtual ::grpc::ClientAsyncReaderWriterInterface< ::NVMDataRequest, ::NVMDataResponse>* PrepareAsyncSmartContractCallRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) = 0;
   };
   class Stub final : public StubInterface {
    public:
     Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel);
-    ::grpc::Status DeploySmartContract(::grpc::ClientContext* context, const ::NVMCallRequest& request, ::NVMRPCResponse* response) override;
-    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::NVMRPCResponse>> AsyncDeploySmartContract(::grpc::ClientContext* context, const ::NVMCallRequest& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::NVMRPCResponse>>(AsyncDeploySmartContractRaw(context, request, cq));
+    std::unique_ptr< ::grpc::ClientReaderWriter< ::NVMDataRequest, ::NVMDataResponse>> SmartContractCall(::grpc::ClientContext* context) {
+      return std::unique_ptr< ::grpc::ClientReaderWriter< ::NVMDataRequest, ::NVMDataResponse>>(SmartContractCallRaw(context));
     }
-    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::NVMRPCResponse>> PrepareAsyncDeploySmartContract(::grpc::ClientContext* context, const ::NVMCallRequest& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::NVMRPCResponse>>(PrepareAsyncDeploySmartContractRaw(context, request, cq));
+    std::unique_ptr<  ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMDataResponse>> AsyncSmartContractCall(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) {
+      return std::unique_ptr< ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMDataResponse>>(AsyncSmartContractCallRaw(context, cq, tag));
     }
-    std::unique_ptr< ::grpc::ClientReaderWriter< ::NVMDataRequest, ::NVMRPCResponse>> NVMDataExchange(::grpc::ClientContext* context) {
-      return std::unique_ptr< ::grpc::ClientReaderWriter< ::NVMDataRequest, ::NVMRPCResponse>>(NVMDataExchangeRaw(context));
-    }
-    std::unique_ptr<  ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMRPCResponse>> AsyncNVMDataExchange(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) {
-      return std::unique_ptr< ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMRPCResponse>>(AsyncNVMDataExchangeRaw(context, cq, tag));
-    }
-    std::unique_ptr<  ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMRPCResponse>> PrepareAsyncNVMDataExchange(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMRPCResponse>>(PrepareAsyncNVMDataExchangeRaw(context, cq));
+    std::unique_ptr<  ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMDataResponse>> PrepareAsyncSmartContractCall(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMDataResponse>>(PrepareAsyncSmartContractCallRaw(context, cq));
     }
 
    private:
     std::shared_ptr< ::grpc::ChannelInterface> channel_;
-    ::grpc::ClientAsyncResponseReader< ::NVMRPCResponse>* AsyncDeploySmartContractRaw(::grpc::ClientContext* context, const ::NVMCallRequest& request, ::grpc::CompletionQueue* cq) override;
-    ::grpc::ClientAsyncResponseReader< ::NVMRPCResponse>* PrepareAsyncDeploySmartContractRaw(::grpc::ClientContext* context, const ::NVMCallRequest& request, ::grpc::CompletionQueue* cq) override;
-    ::grpc::ClientReaderWriter< ::NVMDataRequest, ::NVMRPCResponse>* NVMDataExchangeRaw(::grpc::ClientContext* context) override;
-    ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMRPCResponse>* AsyncNVMDataExchangeRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) override;
-    ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMRPCResponse>* PrepareAsyncNVMDataExchangeRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) override;
-    const ::grpc::internal::RpcMethod rpcmethod_DeploySmartContract_;
-    const ::grpc::internal::RpcMethod rpcmethod_NVMDataExchange_;
+    ::grpc::ClientReaderWriter< ::NVMDataRequest, ::NVMDataResponse>* SmartContractCallRaw(::grpc::ClientContext* context) override;
+    ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMDataResponse>* AsyncSmartContractCallRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) override;
+    ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMDataResponse>* PrepareAsyncSmartContractCallRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) override;
+    const ::grpc::internal::RpcMethod rpcmethod_SmartContractCall_;
   };
   static std::unique_ptr<Stub> NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options = ::grpc::StubOptions());
 
@@ -109,107 +90,49 @@ class NVMService final {
    public:
     Service();
     virtual ~Service();
-    virtual ::grpc::Status DeploySmartContract(::grpc::ServerContext* context, const ::NVMCallRequest* request, ::NVMRPCResponse* response);
-    virtual ::grpc::Status NVMDataExchange(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::NVMRPCResponse, ::NVMDataRequest>* stream);
+    virtual ::grpc::Status SmartContractCall(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::NVMDataResponse, ::NVMDataRequest>* stream);
   };
   template <class BaseClass>
-  class WithAsyncMethod_DeploySmartContract : public BaseClass {
+  class WithAsyncMethod_SmartContractCall : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service *service) {}
    public:
-    WithAsyncMethod_DeploySmartContract() {
+    WithAsyncMethod_SmartContractCall() {
       ::grpc::Service::MarkMethodAsync(0);
     }
-    ~WithAsyncMethod_DeploySmartContract() override {
+    ~WithAsyncMethod_SmartContractCall() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status DeploySmartContract(::grpc::ServerContext* context, const ::NVMCallRequest* request, ::NVMRPCResponse* response) final override {
+    ::grpc::Status SmartContractCall(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::NVMDataResponse, ::NVMDataRequest>* stream) final override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    void RequestDeploySmartContract(::grpc::ServerContext* context, ::NVMCallRequest* request, ::grpc::ServerAsyncResponseWriter< ::NVMRPCResponse>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(0, context, request, response, new_call_cq, notification_cq, tag);
+    void RequestSmartContractCall(::grpc::ServerContext* context, ::grpc::ServerAsyncReaderWriter< ::NVMDataResponse, ::NVMDataRequest>* stream, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncBidiStreaming(0, context, stream, new_call_cq, notification_cq, tag);
     }
   };
+  typedef WithAsyncMethod_SmartContractCall<Service > AsyncService;
   template <class BaseClass>
-  class WithAsyncMethod_NVMDataExchange : public BaseClass {
+  class WithGenericMethod_SmartContractCall : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service *service) {}
    public:
-    WithAsyncMethod_NVMDataExchange() {
-      ::grpc::Service::MarkMethodAsync(1);
-    }
-    ~WithAsyncMethod_NVMDataExchange() override {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable synchronous version of this method
-    ::grpc::Status NVMDataExchange(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::NVMRPCResponse, ::NVMDataRequest>* stream) final override {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-    void RequestNVMDataExchange(::grpc::ServerContext* context, ::grpc::ServerAsyncReaderWriter< ::NVMRPCResponse, ::NVMDataRequest>* stream, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncBidiStreaming(1, context, stream, new_call_cq, notification_cq, tag);
-    }
-  };
-  typedef WithAsyncMethod_DeploySmartContract<WithAsyncMethod_NVMDataExchange<Service > > AsyncService;
-  template <class BaseClass>
-  class WithGenericMethod_DeploySmartContract : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service *service) {}
-   public:
-    WithGenericMethod_DeploySmartContract() {
+    WithGenericMethod_SmartContractCall() {
       ::grpc::Service::MarkMethodGeneric(0);
     }
-    ~WithGenericMethod_DeploySmartContract() override {
+    ~WithGenericMethod_SmartContractCall() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status DeploySmartContract(::grpc::ServerContext* context, const ::NVMCallRequest* request, ::NVMRPCResponse* response) final override {
+    ::grpc::Status SmartContractCall(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::NVMDataResponse, ::NVMDataRequest>* stream) final override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
   };
-  template <class BaseClass>
-  class WithGenericMethod_NVMDataExchange : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service *service) {}
-   public:
-    WithGenericMethod_NVMDataExchange() {
-      ::grpc::Service::MarkMethodGeneric(1);
-    }
-    ~WithGenericMethod_NVMDataExchange() override {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable synchronous version of this method
-    ::grpc::Status NVMDataExchange(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::NVMRPCResponse, ::NVMDataRequest>* stream) final override {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-  };
-  template <class BaseClass>
-  class WithStreamedUnaryMethod_DeploySmartContract : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service *service) {}
-   public:
-    WithStreamedUnaryMethod_DeploySmartContract() {
-      ::grpc::Service::MarkMethodStreamed(0,
-        new ::grpc::internal::StreamedUnaryHandler< ::NVMCallRequest, ::NVMRPCResponse>(std::bind(&WithStreamedUnaryMethod_DeploySmartContract<BaseClass>::StreamedDeploySmartContract, this, std::placeholders::_1, std::placeholders::_2)));
-    }
-    ~WithStreamedUnaryMethod_DeploySmartContract() override {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable regular version of this method
-    ::grpc::Status DeploySmartContract(::grpc::ServerContext* context, const ::NVMCallRequest* request, ::NVMRPCResponse* response) final override {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-    // replace default version of method with streamed unary
-    virtual ::grpc::Status StreamedDeploySmartContract(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::NVMCallRequest,::NVMRPCResponse>* server_unary_streamer) = 0;
-  };
-  typedef WithStreamedUnaryMethod_DeploySmartContract<Service > StreamedUnaryService;
+  typedef Service StreamedUnaryService;
   typedef Service SplitStreamedService;
-  typedef WithStreamedUnaryMethod_DeploySmartContract<Service > StreamedService;
+  typedef Service StreamedService;
 };
 
 

@@ -15,8 +15,7 @@
 #include <grpcpp/impl/codegen/sync_stream.h>
 
 static const char* NVMService_method_names[] = {
-  "/NVMService/DeploySmartContract",
-  "/NVMService/NVMDataExchange",
+  "/NVMService/SmartContractCall",
 };
 
 std::unique_ptr< NVMService::Stub> NVMService::NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options) {
@@ -26,58 +25,33 @@ std::unique_ptr< NVMService::Stub> NVMService::NewStub(const std::shared_ptr< ::
 }
 
 NVMService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel)
-  : channel_(channel), rpcmethod_DeploySmartContract_(NVMService_method_names[0], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_NVMDataExchange_(NVMService_method_names[1], ::grpc::internal::RpcMethod::BIDI_STREAMING, channel)
+  : channel_(channel), rpcmethod_SmartContractCall_(NVMService_method_names[0], ::grpc::internal::RpcMethod::BIDI_STREAMING, channel)
   {}
 
-::grpc::Status NVMService::Stub::DeploySmartContract(::grpc::ClientContext* context, const ::NVMCallRequest& request, ::NVMRPCResponse* response) {
-  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_DeploySmartContract_, context, request, response);
+::grpc::ClientReaderWriter< ::NVMDataRequest, ::NVMDataResponse>* NVMService::Stub::SmartContractCallRaw(::grpc::ClientContext* context) {
+  return ::grpc::internal::ClientReaderWriterFactory< ::NVMDataRequest, ::NVMDataResponse>::Create(channel_.get(), rpcmethod_SmartContractCall_, context);
 }
 
-::grpc::ClientAsyncResponseReader< ::NVMRPCResponse>* NVMService::Stub::AsyncDeploySmartContractRaw(::grpc::ClientContext* context, const ::NVMCallRequest& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderFactory< ::NVMRPCResponse>::Create(channel_.get(), cq, rpcmethod_DeploySmartContract_, context, request, true);
+::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMDataResponse>* NVMService::Stub::AsyncSmartContractCallRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) {
+  return ::grpc::internal::ClientAsyncReaderWriterFactory< ::NVMDataRequest, ::NVMDataResponse>::Create(channel_.get(), cq, rpcmethod_SmartContractCall_, context, true, tag);
 }
 
-::grpc::ClientAsyncResponseReader< ::NVMRPCResponse>* NVMService::Stub::PrepareAsyncDeploySmartContractRaw(::grpc::ClientContext* context, const ::NVMCallRequest& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderFactory< ::NVMRPCResponse>::Create(channel_.get(), cq, rpcmethod_DeploySmartContract_, context, request, false);
-}
-
-::grpc::ClientReaderWriter< ::NVMDataRequest, ::NVMRPCResponse>* NVMService::Stub::NVMDataExchangeRaw(::grpc::ClientContext* context) {
-  return ::grpc::internal::ClientReaderWriterFactory< ::NVMDataRequest, ::NVMRPCResponse>::Create(channel_.get(), rpcmethod_NVMDataExchange_, context);
-}
-
-::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMRPCResponse>* NVMService::Stub::AsyncNVMDataExchangeRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) {
-  return ::grpc::internal::ClientAsyncReaderWriterFactory< ::NVMDataRequest, ::NVMRPCResponse>::Create(channel_.get(), cq, rpcmethod_NVMDataExchange_, context, true, tag);
-}
-
-::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMRPCResponse>* NVMService::Stub::PrepareAsyncNVMDataExchangeRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncReaderWriterFactory< ::NVMDataRequest, ::NVMRPCResponse>::Create(channel_.get(), cq, rpcmethod_NVMDataExchange_, context, false, nullptr);
+::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMDataResponse>* NVMService::Stub::PrepareAsyncSmartContractCallRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncReaderWriterFactory< ::NVMDataRequest, ::NVMDataResponse>::Create(channel_.get(), cq, rpcmethod_SmartContractCall_, context, false, nullptr);
 }
 
 NVMService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       NVMService_method_names[0],
-      ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< NVMService::Service, ::NVMCallRequest, ::NVMRPCResponse>(
-          std::mem_fn(&NVMService::Service::DeploySmartContract), this)));
-  AddMethod(new ::grpc::internal::RpcServiceMethod(
-      NVMService_method_names[1],
       ::grpc::internal::RpcMethod::BIDI_STREAMING,
-      new ::grpc::internal::BidiStreamingHandler< NVMService::Service, ::NVMDataRequest, ::NVMRPCResponse>(
-          std::mem_fn(&NVMService::Service::NVMDataExchange), this)));
+      new ::grpc::internal::BidiStreamingHandler< NVMService::Service, ::NVMDataRequest, ::NVMDataResponse>(
+          std::mem_fn(&NVMService::Service::SmartContractCall), this)));
 }
 
 NVMService::Service::~Service() {
 }
 
-::grpc::Status NVMService::Service::DeploySmartContract(::grpc::ServerContext* context, const ::NVMCallRequest* request, ::NVMRPCResponse* response) {
-  (void) context;
-  (void) request;
-  (void) response;
-  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-}
-
-::grpc::Status NVMService::Service::NVMDataExchange(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::NVMRPCResponse, ::NVMDataRequest>* stream) {
+::grpc::Status NVMService::Service::SmartContractCall(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::NVMDataResponse, ::NVMDataRequest>* stream) {
   (void) context;
   (void) stream;
   return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
