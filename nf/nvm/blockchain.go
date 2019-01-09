@@ -583,7 +583,7 @@ func createInnerContext(engine *V8Engine, fromAddr *core.Address, toAddr *core.A
 		return nil, err
 	}
 	parentTx := engine.ctx.tx
-	newTx, err := parentTx.NewInnerTransaction(parentTx.To(), fromAddr, value, payloadType, newPayloadHex)
+	newTx, err := parentTx.NewInnerTransaction(parentTx.To(), toAddr, value, payloadType, newPayloadHex)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"from":  fromAddr.String(),
