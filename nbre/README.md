@@ -1,7 +1,7 @@
 
 ## Overview
 
-## NBRE Structure
+## NBRE Architecture
 
 ![nbre_construct.jpg](https://github.com/nebulasio/go-nebulas/raw/feature/nbre/nbre/doc/jpg/nbre_construct.jpg)
 
@@ -13,7 +13,7 @@
 * cmd
 
 ## Build NBRE From Scratch
-* Set Up Build Environment
+* Set Up Build Environment:
   Go to directory "go-nebulas/nbre", then execute script "prepare.sh"
   This step will compile all the 3rd-party libraries that nbre depends on, and the applications used to compile NBRE source code
   Afterwards, set up environment variables accordingly
@@ -71,8 +71,8 @@ $> cmake --CMAKE_BUILD_TYPE=Release ../
 |link_files| linking file(s) |
 |flags| compiling parameters |
 
-  * Database Configuration 
-Edit file "env.set.sh" to add the following line at the end
+* Database Configuration 
+  *Edit file "env.set.sh" to add the following line at the end
 ```
 export NBRE_DB=go-nebulas/data.db
 ```
@@ -118,7 +118,7 @@ Every 15 seconds, ir_warden will query the block info, and update the ir version
 * Check the following flowchat to see the functionalities of version management and ipc
 
 
-![nbre_ipc.jpg](https://github.com/nebulasio/go-nebulas/raw/feature/nbre/nbre/doc/jpg/nbre_ipc.jpg)
+![nbre_ipc.jpg](https://github.com/nebulasio/go-nebulas/blob/feature/nbredev/nbre/doc/jpg/nbre_ipc.jpg)
 
 ## Module JIT
 NBRE JIT is based on LLVM, core protocol IR is running on it.
