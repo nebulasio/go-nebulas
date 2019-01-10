@@ -72,7 +72,7 @@ $> cmake --CMAKE_BUILD_TYPE=Release ../
 |flags| compiling parameters |
 
 * Database Configuration 
-  *Edit file "env.set.sh" to add the following line at the end
+  * Edit file "env.set.sh" to add the following line at the end
 ```
 export NBRE_DB=go-nebulas/data.db
 ```
