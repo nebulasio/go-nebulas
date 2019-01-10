@@ -41,6 +41,9 @@ void ipc_client_watcher::thread_func() {
     std::chrono::seconds delta = threshold - duration;
     if (delta >= std::chrono::seconds(0)) {
       std::this_thread::sleep_for(delta + std::chrono::seconds(1));
+      if (m_exit_flag) {
+        return;
+      }
     }
 
     LOG(INFO) << "to start nbre ";
