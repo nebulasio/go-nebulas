@@ -27,7 +27,8 @@ namespace rt {
 namespace dip {
 
 struct dip_info_t {
-  std::string m_address;
+  std::string m_deployer;
+  std::string m_contract;
   std::string m_reward;
 };
 
