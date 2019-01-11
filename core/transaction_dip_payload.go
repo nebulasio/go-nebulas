@@ -29,6 +29,7 @@ type DipPayload struct {
 	StartHeight uint64
 	EndHeight   uint64
 	Version     uint64
+	Contract    string
 }
 
 // LoadDipPayload from bytes
@@ -37,11 +38,11 @@ func LoadDipPayload(bytes []byte) (*DipPayload, error) {
 	if err := json.Unmarshal(bytes, payload); err != nil {
 		return nil, ErrInvalidArgument
 	}
-	return NewDipPayload(payload.StartHeight, payload.EndHeight, payload.Version)
+	return NewDipPayload(payload.StartHeight, payload.EndHeight, payload.Version, payload.Contract)
 }
 
 // NewDipPayload with data
-func NewDipPayload(start, end, version uint64) (*DipPayload, error) {
+func NewDipPayload(start, end, version uint64, contract string) (*DipPayload, error) {
 	if end < start {
 		return nil, ErrInvalidArgument
 	}
@@ -49,6 +50,7 @@ func NewDipPayload(start, end, version uint64) (*DipPayload, error) {
 		StartHeight: start,
 		EndHeight:   end,
 		Version:     version,
+		Contract:    contract,
 	}, nil
 }
 

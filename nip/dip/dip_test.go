@@ -241,7 +241,7 @@ func TestDip_CheckReward(t *testing.T) {
 				payloadBytes []byte
 			)
 			if tt.txType == core.TxPayloadDipType {
-				payload, err := core.NewDipPayload(1, 1, 1)
+				payload, err := core.NewDipPayload(1, 1, 1, "")
 				assert.Nil(t, err)
 				payloadBytes, err = payload.ToBytes()
 				assert.Nil(t, err)
