@@ -83,7 +83,7 @@ void nebulas_rank::filter_empty_transactions_this_interval(
   }
 }
 
-transaction_graph *nebulas_rank::build_graph_from_transactions(
+transaction_graph_ptr_t nebulas_rank::build_graph_from_transactions(
     const std::vector<neb::fs::transaction_info_t> &trans) {
   neb::rt::transaction_graph_ptr_t ret =
       std::make_unique<neb::rt::transaction_graph>();
@@ -95,16 +95,16 @@ transaction_graph *nebulas_rank::build_graph_from_transactions(
     int64_t timestamp = ite->m_timestamp;
     ret->add_edge(from, to, value, timestamp);
   }
-  return ret.get();
+  return ret;
 }
 
-std::vector<transaction_graph *> nebulas_rank::build_transaction_graphs(
+std::vector<transaction_graph_ptr_t> nebulas_rank::build_transaction_graphs(
     const std::vector<std::vector<neb::fs::transaction_info_t>> &txs) {
-  std::vector<transaction_graph *> tgs;
+  std::vector<transaction_graph_ptr_t> tgs;
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
     auto p = build_graph_from_transactions(*it);
-    tgs.push_back(p);
+    tgs.push_back(std::move(p));
   }
   return tgs;
 }
@@ -309,14 +309,14 @@ std::unique_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
   LOG(INFO) << "split by block interval: " << txs_v.size();
 
   filter_empty_transactions_this_interval(txs_v);
-  std::vector<neb::rt::transaction_graph *> tgs =
+  std::vector<neb::rt::transaction_graph_ptr_t> tgs =
       build_transaction_graphs(txs_v);
   if (tgs.empty()) {
     return std::make_unique<std::vector<nr_info_t>>();
   }
   LOG(INFO) << "we have " << tgs.size() << " subgraphs.";
   for (auto it = tgs.begin(); it != tgs.end(); it++) {
-    neb::rt::transaction_graph *ptr = *it;
+    neb::rt::transaction_graph *ptr = it->get();
     neb::rt::graph_algo::remove_cycles_based_on_time_sequence(
         ptr->internal_graph());
     neb::rt::graph_algo::merge_edges_with_same_from_and_same_to(

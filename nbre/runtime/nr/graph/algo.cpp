@@ -229,11 +229,11 @@ transaction_graph *graph_algo::merge_two_graphs(transaction_graph *tg,
 }
 
 transaction_graph *
-graph_algo::merge_graphs(const std::vector<transaction_graph *> &graphs) {
+graph_algo::merge_graphs(const std::vector<transaction_graph_ptr_t> &graphs) {
   if (!graphs.empty()) {
-    transaction_graph *ret = *graphs.begin();
+    transaction_graph *ret = graphs.begin()->get();
     for (auto it = graphs.begin() + 1; it != graphs.end(); it++) {
-      transaction_graph *ptr = *it;
+      transaction_graph *ptr = it->get();
       ret = merge_two_graphs(ret, ptr);
     }
     return ret;

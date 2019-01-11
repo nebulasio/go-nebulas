@@ -83,7 +83,7 @@ private:
 
   static auto build_transaction_graphs(
       const std::vector<std::vector<neb::fs::transaction_info_t>> &txs)
-      -> std::vector<transaction_graph *>;
+      -> std::vector<transaction_graph_ptr_t>;
 
   static auto
   get_normal_accounts(const std::vector<neb::fs::transaction_info_t> &txs)
@@ -108,7 +108,7 @@ private:
       -> std::unique_ptr<std::unordered_map<std::string, floatxx_t>>;
 
 private:
-  static transaction_graph *build_graph_from_transactions(
+  static transaction_graph_ptr_t build_graph_from_transactions(
       const std::vector<neb::fs::transaction_info_t> &trans);
 
   static block_height_t get_max_height_this_block_interval(

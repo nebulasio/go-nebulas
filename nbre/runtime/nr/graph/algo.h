@@ -43,7 +43,7 @@ public:
       transaction_graph::internal_graph_t &graph);
 
   static transaction_graph *
-  merge_graphs(const std::vector<transaction_graph *> &graphs);
+  merge_graphs(const std::vector<transaction_graph_ptr_t> &graphs);
 
   static void merge_topk_edges_with_same_from_and_same_to(
       transaction_graph::internal_graph_t &graph, uint32_t k = 3);
