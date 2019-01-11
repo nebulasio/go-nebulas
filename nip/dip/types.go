@@ -60,8 +60,9 @@ type Neblet interface {
 }
 
 type DIPItem struct {
-	Address string `json:"address"`
-	Reward  string `json:"reward"`
+	Address  string `json:"address"`
+	Contract string `json:"contract"`
+	Reward   string `json:"reward"`
 }
 
 type DIPData struct {
