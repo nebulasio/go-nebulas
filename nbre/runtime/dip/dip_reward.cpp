@@ -63,25 +63,39 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
     sum_votes += v.second * v.second;
   }
 
+  floatxx_t reward_sum(0);
   std::vector<dip_info_t> dip_infos;
   for (auto &v : *it_dapp_votes) {
     dip_info_t info;
     info.m_contract = v.first;
     info.m_deployer = adb_ptr->get_contract_deployer(v.first, end_block);
 
-    // floatxx_t reward_in_nas =
     floatxx_t reward_in_wei =
         v.second * v.second *
         participate_lambda(alpha, beta, *it_acc_to_contract_txs, *it_nr_infos) *
         bonus_total / sum_votes;
+    reward_sum += reward_in_wei;
 
-    // uint64_t ratio = 1000000000000000000ULL;
-    // floatxx_t reward_in_wei = reward_in_nas * ratio;
     info.m_reward =
         neb::math::to_string(neb::conversion().from_float(reward_in_wei));
     dip_infos.push_back(info);
   }
+  assert(reward_sum <= bonus_total);
+  back_to_coinbase(dip_infos, bonus_total - reward_sum);
   return std::make_unique<std::vector<dip_info_t>>(dip_infos);
+}
+
+void dip_reward::back_to_coinbase(std::vector<dip_info_t> &dip_infos,
+                                  floatxx_t reward_left) {
+
+  std::string coinbase_addr = neb::configuration::instance().coinbase_addr();
+  if (!coinbase_addr.empty()) {
+    dip_info_t info;
+    info.m_deployer = coinbase_addr;
+    info.m_reward =
+        neb::math::to_string(neb::conversion().from_float(reward_left));
+    dip_infos.push_back(info);
+  }
 }
 
 void dip_reward::full_fill_meta_info(

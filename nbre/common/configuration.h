@@ -73,9 +73,14 @@ public:
   const std::string &dip_reward_addr() const { return m_dip_reward_addr; }
   std::string &dip_reward_addr() { return m_dip_reward_addr; }
 
+  // coinbase address
+  const std::string &coinbase_addr() const { return m_coinbase_addr; }
+  std::string &coinbase_addr() { return m_coinbase_addr; }
+
 protected:
   block_height_t m_dip_start_block;
   block_height_t m_dip_block_interval;
   std::string m_dip_reward_addr;
+  std::string m_coinbase_addr;
 };
 } // end namespace neb
