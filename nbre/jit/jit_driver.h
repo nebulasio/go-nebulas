@@ -121,8 +121,8 @@ protected:
   make_context(const std::vector<nbre::NBREIR> &irs,
                const std::string &func_name);
 
-  bool find_func_mangling_name(llvm::Module *M, const std::string &func_name,
-                               std::string &func_mangling_name);
+  bool find_mangling(llvm::Module *M, const std::string &func_name,
+                     std::string &mangling_name);
 
 protected:
   std::mutex m_mutex;

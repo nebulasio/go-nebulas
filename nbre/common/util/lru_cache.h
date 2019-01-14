@@ -37,7 +37,7 @@ public:
   using guard_t = std::lock_guard<lock_t>;
 
   lru_cache() : m_thread_exit_flag(0) {
-    m_thread = std::make_shared<std::thread>([&]() {
+    m_thread = std::make_unique<std::thread>([&]() {
       while (!m_thread_exit_flag) {
         decrease_counter_and_clean_cache();
         std::this_thread::sleep_for(std::chrono::seconds(CacheCleanPeriod));
@@ -120,7 +120,7 @@ private:
   mutable Lock m_lock;
   map_t m_cache_map;
   std::unordered_map<Key, int32_t> m_counter;
-  std::shared_ptr<std::thread> m_thread;
+  std::unique_ptr<std::thread> m_thread;
   std::atomic_int m_thread_exit_flag;
 };
 
