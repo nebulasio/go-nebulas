@@ -90,6 +90,9 @@ if [ ! -d $CUR_DIR/lib_llvm/include/llvm ]; then
   ln -s $CUR_DIR/3rd_party/libcxx-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/projects/libcxx
   ln -s $CUR_DIR/3rd_party/libcxxabi-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/projects/libcxxabi
 
+  # update func supportsCOMDAT
+  cp $CUR_DIR/3rd_party/Triple.h $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/include/llvm/ADT
+
   cd $CUR_DIR/3rd_party
   mkdir llvm-build
   cd llvm-build
