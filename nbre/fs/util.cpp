@@ -54,14 +54,7 @@ bool is_absolute_path(const std::string &fp) {
 bool exists(const std::string &p) {
   return boost::filesystem::exists(boost::filesystem::path(p));
 }
-std::string get_user_name() {
-  auto s = std::chrono::system_clock::from_time_t(0);
-  auto e = std::chrono::system_clock::now();
-  auto cnt =
-      std::chrono::duration_cast<std::chrono::nanoseconds>(e - s).count();
-  cnt &= 0xffff;
-  return std::to_string(cnt);
-}
+std::string get_user_name() { return std::string("usr"); }
 
 } // end namespace fs
 
