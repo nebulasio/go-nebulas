@@ -55,6 +55,10 @@ bool ipc_server_endpoint::start() {
   m_got_exception_when_start_nbre = false;
   m_thread = std::unique_ptr<std::thread>(new std::thread([&, this]() {
     try {
+      auto shm_service_name_str =
+          std::string("nbre.") +
+          neb::shm_configuration::instance().shm_name_identity();
+      auto shm_service_name = shm_service_name_str.c_str();
       {
         ipc_util_t us(shm_service_name, 128, 128);
         us.reset();
@@ -134,6 +138,12 @@ void ipc_server_endpoint::init_params(const nbre_params_t params) {
       params.m_admin_pub_addr;
   neb::core::ipc_configuration::instance().nbre_start_height() =
       params.m_nbre_start_height;
+
+  auto s = std::chrono::system_clock::from_time_t(0);
+  auto e = std::chrono::system_clock::now();
+  auto cnt = std::chrono::duration_cast<std::chrono::seconds>(e - s).count();
+  cnt &= 0xffff;
+  neb::shm_configuration::instance().shm_name_identity() = std::to_string(cnt);
 }
 
 void ipc_server_endpoint::add_all_callbacks() {

@@ -39,6 +39,10 @@ bool ipc_client_endpoint::start() {
   m_thread = std::unique_ptr<std::thread>(new std::thread([&, this]() {
     try {
       got_exception_when_start_ipc = false;
+      auto shm_service_name_str =
+          std::string("nbre.") +
+          neb::shm_configuration::instance().shm_name_identity();
+      auto shm_service_name = shm_service_name_str.c_str();
       this->m_client = std::unique_ptr<ipc_client_t>(
           new ipc_client_t(shm_service_name, 128, 128));
 

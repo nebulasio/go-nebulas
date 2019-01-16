@@ -19,9 +19,6 @@
 //
 
 #include "common/common.h"
-
-#include "common/configuration.h"
-
 #include "core/driver.h"
 #include "fs/util.h"
 
@@ -29,6 +26,9 @@ int main(int argc, char *argv[]) {
   // FLAGS_logtostderr = true;
   neb::program_name = "nbre";
   //::google::InitGoogleLogging(argv[0]);
+
+  assert(argc > 1);
+  neb::shm_configuration::instance().shm_name_identity() = argv[1];
 
   neb::core::driver d;
   d.init();

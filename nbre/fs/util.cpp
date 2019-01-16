@@ -74,4 +74,7 @@ wei_t to_wei(const std::string &hex_str) {
   ss >> wei;
   return wei;
 }
+
+shm_configuration::shm_configuration() {}
+shm_configuration::~shm_configuration() = default;
 } // end namespace neb
