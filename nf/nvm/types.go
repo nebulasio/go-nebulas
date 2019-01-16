@@ -16,6 +16,7 @@ var (
 	ErrEngineRepeatedStart      = errors.New("engine repeated start")
 	ErrEngineNotStart           = errors.New("engine not start")
 	ErrContextConstructArrEmpty = errors.New("context construct err by args empty")
+	ErrRPCConnection			= errors.New("failed to communicate with V8 engine through RPC")
 
 	ErrDisallowCallPrivateFunction     = errors.New("disallow call private function")
 	ErrExecutionTimeout                = errors.New("execution timeout")
@@ -28,6 +29,7 @@ var (
 	ErrLimitHasEmpty                   = errors.New("limit args has empty")
 	ErrSetMemorySmall                  = errors.New("set memory small than v8 limit")
 	ErrDisallowCallNotStandardFunction = errors.New("disallow call not standard function")
+	ErrUnexpected					   = errors.New("unexpected error occurs")
 )
 
 //define

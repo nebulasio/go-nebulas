@@ -90,6 +90,8 @@ const (
 	NVM_GAS_LIMIT_ERR = -3
 	NVM_UNEXPECTED_ERR = -4
 	NVM_EXE_TIMEOUT_ERR = -5
+	NVM_TRANSPILE_SCRIPT_ERR = -6
+	NVM_INJECT_TRACING_INSTRUCTION_ERR = -7
 )
 
 //engine_v8 private data
@@ -641,7 +643,7 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 		}).Error("Failed to connect with V8 server")
 
 		// try to re-launch the process
-		
+
 	}
 	defer conn.Close()
 
@@ -651,8 +653,7 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 	var timeOut time.Duration = 15000   // Set execution timeout to be 15s'
 	ctx, cancel := context.WithTimeout(context.Background(), timeOut*time.Second)
 	defer cancel()
-
-	logging.CLog().Info(">>>>>>>>Script source is: ", config.GetPayloadSource())
+	
 	logging.CLog().Info(">>>>>>>>>Now started call request!, the listener address is: ", e.serverListenAddr)
 
 	configBundle := &NVMConfigBundle{ScriptSrc:config.PayloadSource, ScriptType:config.PayloadSourceType, EnableLimits: true, RunnableSrc: runnableSource, 
@@ -664,13 +665,12 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 	// for call request, the metadata is nil
 	request := &NVMDataRequest{RequestType:NVMRequestTypeStart, RequestIndx:nvmRequestIndex, MetaData:"", ConfigBundle: configBundle}
 
-	stream, err := v8Client.SmartContractCall(ctx)
-	if err != nil {
+	stream, err := v8Client.SmartContractCall(ctx); if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
 			"module": "nvm",
 		}).Error("Failed to get streaming object")
-		return "", errors.New("Failed to get streaming object")
+		return "", ErrRPCConnection
 	}
 
 	err = stream.Send(request); if err != nil {
@@ -678,12 +678,11 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			"err": err,
 			"module": "nvm",
 		}).Error("Failed to send out initial request")
-		return "", errors.New("Failed to send out initial request")
+		return "", ErrRPCConnection
 	}
 
 	// start counting for execution
 	e.startExeTime = time.Now()
-
 	var counter uint32 = 1		// for debugging purpose
 	for {
 		dataResponse, err := stream.Recv()
@@ -692,12 +691,12 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 				"err": err,
 				"module": "nvm",
 			}).Error("Failed to receive data response from server")
+			return "", ErrRPCConnection
 		}
 
-		logging.CLog().Info("Got call back from server side, with info: ", dataResponse)
 		if(dataResponse.GetResponseType() == NVMResponseTypeFinal && dataResponse.GetFinalResponse() != nil){
-			stream.CloseSend()
 
+			stream.CloseSend()
 			finalResponse := dataResponse.GetFinalResponse()
 			ret := finalResponse.Result
 			result := finalResponse.Msg
@@ -718,6 +717,7 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			logging.CLog().WithFields(logrus.Fields{
 				"actualAcountOfExecutionInstructions": actualCountOfExecutionInstructions,
 				"actualUsedMemSize": actualUsedMemSize,
+				"finalresult": ret,
 			}).Info(">>>>Got stats info")
 		
 			/*
@@ -730,7 +730,13 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			*/
 
 			//set err
-			if ret == NVM_EXE_TIMEOUT_ERR {
+			if ret == NVM_TRANSPILE_SCRIPT_ERR {
+				return result, ErrTranspileTypeScriptFailed
+
+			} else if ret == NVM_INJECT_TRACING_INSTRUCTION_ERR {
+				return result, ErrInjectTracingInstructionFailed
+
+			} else if ret == NVM_EXE_TIMEOUT_ERR {
 				err = ErrExecutionTimeout
 				if e.ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
 					err = core.ErrUnexpected
@@ -762,8 +768,6 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 					err = ErrExceedMemoryLimits
 					e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
 				}
-
-				logging.CLog().Info("Deployed smart contract successfully!")
 			}
 			return result, nil
 
@@ -777,14 +781,14 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 		}
 		
 		if(e.CheckTimeout()){
+			return "", ErrExecutionTimeout
 			break
 		}
-
 		counter += 1
 		logging.CLog().Info("Counter is: ", counter)
 	}
 
-	return "", errors.New("Failed to execute contract")
+	return "", ErrUnexpected
 }
 
 func getEngineByStorageHandler(handler uint64) (*V8Engine, Account) {

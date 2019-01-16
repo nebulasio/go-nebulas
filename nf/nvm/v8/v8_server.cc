@@ -59,16 +59,18 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
 
     char *traceableSource =
         InjectTracingInstructions(e, data, &lineOffset, strict_disallow_usage);
-    if (traceableSource == NULL) {
+    if (traceableSource == nullptr) {
       fprintf(stderr, "Inject tracing instructions failed.\n");
     } else {
-      char *out = NULL;
+      char *out = nullptr;
       int ret = RunScriptSource(&out, e, traceableSource, lineOffset,
                                 (uintptr_t)lcsHandler, (uintptr_t)gcsHandler);
-      free(traceableSource);
+      if(traceableSource != nullptr)
+        free(traceableSource);
 
       fprintf(stdout, "[V8] Execution ret = %d, out = %s\n", ret, out);
-      free(out);
+      if(out != nullptr)
+        free(out);
 
       ret = IsEngineLimitsExceeded(e);
       if (ret) {
@@ -100,11 +102,12 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
               e->stats.peak_array_buffer_size);
     }
   } else {
-    char *out = NULL;
+    char *out = nullptr;
     int ret = RunScriptSource(&out, e, data, lineOffset, (uintptr_t)lcsHandler,
                               (uintptr_t)gcsHandler);
     fprintf(stdout, "[V8] Execution ret = %d, out = %s\n", ret, out);
-    free(out);
+    if(out != nullptr)
+      free(out);
   }
 }
 
@@ -124,7 +127,8 @@ void InjectTracingInstructionsAndPrintDelegate(V8Engine *e, const char *data,
 
   char *source = GetModuleSource(e, id);
   fprintf(stdout, "%s", source);
-  free(source);
+  if(source != nullptr)
+    free(source);
 }
 
 void Initialization(){
@@ -162,7 +166,7 @@ char *InjectTracingInstructionsThread(V8Engine *e, const char *source,
 	bool btn = CreateScriptThread(&ctx);
   if (btn == false) {
     LogErrorf("Failed to create script thread");
-    return NULL;
+    return nullptr;
   }
   *source_line_offset = ctx.output.line_offset;
   return ctx.output.result;
@@ -175,32 +179,10 @@ char *TranspileTypeScriptModuleThread(V8Engine *e, const char *source,
   SetRunScriptArgs(&ctx, e, INSTRUCTIONTS, source, *source_line_offset, 1);
 	bool btn = CreateScriptThread(&ctx);
   if (btn == false) {
-    return NULL;
+    return nullptr;
   }
   *source_line_offset = ctx.output.line_offset;
   return ctx.output.result;
-}
-
-int RunScriptSourceThread(char **result, V8Engine *e, const char *source,
-                    int source_line_offset, uintptr_t lcs_handler,
-                    uintptr_t gcs_handler) {
-
-  std::cout<<">>>>>>>>>>>>>Result is: "<<*result<<", source is: "<<source<<", source lineoffset: "<<source_line_offset
-    <<", lcs_handler: "<<lcs_handler<<", gcs_handler: "<<gcs_handler<<std::endl;
-
-  v8ThreadContext ctx;
-  memset(&ctx, 0x00, sizeof(ctx));
-  SetRunScriptArgs(&ctx, e, RUNSCRIPT, source, source_line_offset, 1);
-	ctx.input.lcs = lcs_handler;
-  ctx.input.gcs = gcs_handler;  
-
-  bool btn = CreateScriptThread(&ctx);
-  if (btn == false) {
-    return NVM_UNEXPECTED_ERR;
-  }
-
-  *result = ctx.output.result;
-  return ctx.output.ret;
 }
 
 void *ExecuteThread(void *args) {
@@ -208,10 +190,10 @@ void *ExecuteThread(void *args) {
   if (ctx->input.opt == INSTRUCTION) {
     TracingContext tContext;
     tContext.source_line_offset = 0;
-    tContext.tracable_source = NULL;
+    tContext.tracable_source = nullptr;
     tContext.strictDisallowUsage = ctx->input.allow_usage;
 
-    Execute(NULL, ctx->e, ctx->input.source, 0, 0L, 0L, InjectTracingInstructionDelegate,
+    Execute(nullptr, ctx->e, ctx->input.source, 0, 0L, 0L, InjectTracingInstructionDelegate,
             (void *)&tContext);
 
     ctx->output.line_offset = tContext.source_line_offset;
@@ -219,16 +201,16 @@ void *ExecuteThread(void *args) {
   } else if (ctx->input.opt == INSTRUCTIONTS) {
     TypeScriptContext tContext;
     tContext.source_line_offset = 0;
-    tContext.js_source = NULL;
+    tContext.js_source = nullptr;
 
-    Execute(NULL, ctx->e, ctx->input.source, 0, 0L, 0L, TypeScriptTranspileDelegate,
+    Execute(nullptr, ctx->e, ctx->input.source, 0, 0L, 0L, TypeScriptTranspileDelegate,
             (void *)&tContext);
 
     ctx->output.line_offset = tContext.source_line_offset;
     ctx->output.result = static_cast<char *>(tContext.js_source);
   } else {
     ctx->output.ret = Execute(&ctx->output.result, ctx->e, ctx->input.source, ctx->input.line_offset, (void *)ctx->input.lcs,
-                (void *)ctx->input.gcs, ExecuteSourceDataDelegate, NULL);
+                (void *)ctx->input.gcs, ExecuteSourceDataDelegate, nullptr);
     printf("iRtn:%d--result:%s\n", ctx->output.ret, ctx->output.result);
   }
 
@@ -246,7 +228,7 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
   pthread_attr_setstacksize(&attribute, 2 * 1024 * 1024);
   pthread_attr_setdetachstate (&attribute, PTHREAD_CREATE_DETACHED);
   struct timeval tcBegin, tcEnd;
-  int rtn = gettimeofday(&tcBegin, NULL);
+  int rtn = gettimeofday(&tcBegin, nullptr);
   if (rtn != 0) {
     LogErrorf("CreateScriptThread get start time err:%d\n", rtn);
     return false;
@@ -265,27 +247,43 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
   //thread safe
   while(1) {
     if (ctx->is_finished == true) {
+        
+        std::cout<<"@@@@@@@@ finish flag is set to be true ONE"<<std::endl;
+
         if (is_kill == true) {
+          std::cout<<"@@@@@@@@ finish flag is set to be true TWO"<<std::endl;
           ctx->output.ret = NVM_EXE_TIMEOUT_ERR; 
+          std::cout<<"@@@@@@@@ finish flag is set to be true THREE"<<std::endl;
+
         }
         break;
 
     } else {
       usleep(10); //10 micro second loop .epoll_wait optimize
-      rtn = gettimeofday(&tcEnd, NULL);
+      rtn = gettimeofday(&tcEnd, nullptr);
       if (rtn) {
         LogErrorf("CreateScriptThread get end time err:%d\n", rtn);
         continue;
       }
       int diff = MicroSecondDiff(tcEnd, tcBegin);
   
-      if (diff >= timeout && is_kill == false) { 
+      //std::cout<<"%%%%% Hey thread safe start!!!!"<<std::endl;
+
+      if (diff >= timeout && is_kill == false) {
+                std::cout<<"%%%%%%%%%%%% checking termination condition"<<std::endl;
+
         LogErrorf("CreateScriptThread timeout timeout:%d diff:%d\n", timeout, diff);
+
         TerminateExecution(ctx->e);
         is_kill = true;
       }
+
+       //std::cout<<"%%%%% Hey thread safe finish!!!"<<std::endl;
+
     }
   }
+
+  std::cout<<"@@@@@@@@ finish flag is set to be true FOUR!!!"<<std::endl;
 
   return true;
 }
@@ -293,7 +291,7 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
 
 // NVMEngine related interfaces
 
-bool NVMEngine::GetRunnableSourceCode(const std::string& sourceType, std::string& originalSource){
+int NVMEngine::GetRunnableSourceCode(const std::string& sourceType, std::string& originalSource){
   const char* jsSource;
   uint64_t originalSourceLineOffset = 0;
 
@@ -301,6 +299,9 @@ bool NVMEngine::GetRunnableSourceCode(const std::string& sourceType, std::string
     jsSource = TranspileTypeScriptModuleThread(this->engine, originalSource.c_str(), &this->m_src_offset);
   }else{
     jsSource = originalSource.c_str();
+  }
+  if(jsSource == nullptr){
+    return NVM_TRANSPILE_SCRIPT_ERR;
   }
 
   char* runnableSource;
@@ -310,18 +311,20 @@ bool NVMEngine::GetRunnableSourceCode(const std::string& sourceType, std::string
     CacheSrcItem cachedSourceItem = searchRecord->second;
     this->m_traceable_src = cachedSourceItem.traceableSource;
     this->m_traceale_src_line_offset = cachedSourceItem.traceableSourceLineOffset;
-    return true;
+    return 0;
 
   }else{
     char* traceableSource = InjectTracingInstructionsThread(this->engine, jsSource, &this->m_src_offset, this->m_allow_usage);
-    this->m_traceable_src = std::string(traceableSource);
-    this->m_traceale_src_line_offset = 0;
-    CacheSrcItem newItem = {originalSource, originalSourceLineOffset, traceableSource, this->m_traceale_src_line_offset};
-    srcModuleCache->insert({sourceHash, newItem});
-    return true;
+    if(traceableSource != nullptr){
+      this->m_traceable_src = std::string(traceableSource);
+      this->m_traceale_src_line_offset = 0;
+      CacheSrcItem newItem = {originalSource, originalSourceLineOffset, traceableSource, this->m_traceale_src_line_offset};
+      srcModuleCache->insert({sourceHash, newItem});
+      return 0;
+    }
   }
-
-  return false;
+ 
+  return NVM_INJECT_TRACING_INSTRUCTION_ERR;
 }
 
 int NVMEngine::StartScriptExecution(std::string& contractSource, const std::string& scriptType, 
@@ -335,29 +338,14 @@ int NVMEngine::StartScriptExecution(std::string& contractSource, const std::stri
     this->engine->limits_of_executed_instructions = configBundle.limits_exe_instruction();
     this->engine->limits_of_total_memory_size = configBundle.limits_total_mem_size();
 
-    std::cout<<">>>>Script type is: "<<scriptType<<", source: "<<contractSource<<std::endl;
-
-    if(this->GetRunnableSourceCode(scriptType, contractSource)){           // transpile the source code if necessary, only if the source code is ts
-      std::cout<<"Failed to get runnable source code"<<std::endl;
+    // transpile script and inject tracing code if necessary
+    int runnableSourceResult = this->GetRunnableSourceCode(scriptType, contractSource);
+    if(runnableSourceResult != 0){
+      std::cout<<"+++++++++++++++++++++++++++++++++++++++++++ Failed to get runnable source code"<<std::endl;
+      return runnableSourceResult;
     }
 
-
     AddModule(this->engine, moduleID.c_str(), this->m_traceable_src.c_str(), this->m_traceale_src_line_offset);
-    /*
-    std::string data ("require(\"" + moduleID + "\")");
-    std::cout<<"++ Start running source code"<<std::endl;
-    RunScriptSourceDelegate(this->engine, data.c_str(), lcsHandler, gcsHandler);
-    std::cout<<"++ Finished unnign source code"<<std::endl;
-
-    /*
-    // clean up
-    DeleteEngine(this->engine);
-    this->engine = NULL;
-    std::cout<<">>>>After delete engine"<<std::endl;
-    NVMRPCResponse* new_response = new NVMRPCResponse();
-    new_response->set_result(101);
-    new_response->set_msg("Deployed successfully!");
-    */
 
     std::cout<<">>>>Now starting script execution!!!"<<std::endl;
 
@@ -371,20 +359,12 @@ int NVMEngine::StartScriptExecution(std::string& contractSource, const std::stri
       return NVM_UNEXPECTED_ERR;
     }
 
-    std::cout<<">>>>>>Get result "<<std::endl;
-
-    if(ctx.output.result != NULL){
-      this->m_exe_result = (char*)calloc(strlen(ctx.output.result)+1, sizeof(char));
+    if(ctx.output.result != nullptr){
+      std::cout<<"+++++++++++++++++++++++++++++++++ The exe result is calloced here"<<std::endl;
+      size_t strLength = strlen(ctx.output.result) + 1;
+      this->m_exe_result = (char*)calloc(strLength, sizeof(char));
       strcpy(this->m_exe_result, ctx.output.result);
-
-      std::cout<<">>>>The running result is: "<<this->m_exe_result<<std::endl;
-
-    }else{
-      this->m_exe_result = (char*)calloc(1, sizeof(char));
-      memset(this->m_exe_result, '\0', 1);
     }
-
-    std::cout<<">>>>Finished running startscriptexecution"<<std::endl;
 
     return ctx.output.ret;
 }
@@ -443,10 +423,9 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
         this->m_gcs_handler = (uintptr_t)gcsHandler;
         int ret = this->StartScriptExecution(scriptSrc, scriptType, runnableSrc, moduleID, configBundle);
         
-        if(this->m_exe_result != nullptr)
-          std::cout<<">>>>Hey running is done, and running result is: "<<this->m_exe_result<<std::endl;
-        else
-          std::cout<<">>>>Hey running is done, and the running result is null!"<<std::endl;
+        if(this->m_exe_result == nullptr){
+          this->m_exe_result = (char*)calloc(1, sizeof(char));
+        }
 
         NVMDataResponse *response = new NVMDataResponse();
         NVMFinalResponse *finalResponse = new NVMFinalResponse();
@@ -465,6 +444,7 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
 
         if(this->m_exe_result != nullptr){
           free(this->m_exe_result);
+          this->m_exe_result = nullptr;
         }
         
       }else if(requestType.compare(DATA_REQUEST_CALL_BACK) == 0){
@@ -486,11 +466,54 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
   return grpc::Status::OK;
 }
 
+void NVMEngine::LocalTest(){
+  // compose testing data
+  std::string moduleID ("contract.js");
+  std::string scriptType ("js");
+  std::string scriptSrc, runnableSrc;
+
+  std::ifstream sourceFP("testcase/vault/source.txt");
+  if(sourceFP.is_open()){
+    std::stringstream buffer;
+    buffer<<sourceFP.rdbuf();
+    scriptSrc = buffer.str();
+
+    std::cout<<"Readout source is: "<<scriptSrc<<std::endl;
+    sourceFP.close();
+  }
+
+  std::ifstream runnableSrcFP("testcase/vault/runnable_source.txt");
+  if(runnableSrcFP.is_open()){
+    std::stringstream buffer;
+    buffer<<runnableSrcFP.rdbuf();
+    runnableSrc = buffer.str();
+
+    std::cout<<"The runnable source is: "<<runnableSrc<<std::endl;
+    runnableSrcFP.close();
+  }
+
+  NVMConfigBundle* configBundle = new NVMConfigBundle();
+  configBundle->set_limits_exe_instruction(400000000);
+  configBundle->set_limits_total_mem_size(40000000);
+
+  int ret = this->StartScriptExecution(scriptSrc, scriptType, runnableSrc, moduleID, *configBundle);
+
+  if(this->m_exe_result != nullptr)
+    std::cout<<">>>>Hey running is done, and running result is: "<<this->m_exe_result<<std::endl;
+  else
+    std::cout<<">>>>Hey running is done, and the running result is null! and the ret is: "<<ret<<std::endl;
+
+  if(this->m_exe_result != nullptr)
+    free(this->m_exe_result);
+
+}
+
+
 void RunServer(const char* addr_str){
 
   std::string engine_addr(addr_str);
 
-  if(gNVMEngine != NULL)
+  if(gNVMEngine != nullptr)
     free(gNVMEngine);
 
   gNVMEngine = new NVMEngine(NVM_CURRENCY_LEVEL);
@@ -511,81 +534,19 @@ int main(int argc, const char *argv[]) {
 
   Initialization();
 
-  if(argc > 1){
-    RunServer(argv[1]);
+  bool DEBUG = false;
+
+  if(DEBUG){
+    NVMEngine* engine = new NVMEngine(NVM_CURRENCY_LEVEL);
+    engine->LocalTest();
+
   }else{
-    std::cout<<"Please specify the port"<<std::endl;
+    if(argc > 1){
+      RunServer(argv[1]);
+    }else{
+      std::cout<<"Please specify the port"<<std::endl;
+    }
   }
 
   return 0;
-}
-
-
-// =================== Original Interfaces =====================
-void ExecuteScript(const char* filename, V8ExecutionDelegate delegate) {
-  void *lcsHandler = CreateStorageHandler();
-  void *gcsHandler = CreateStorageHandler();
-
-  V8Engine *e = CreateEngine();
-
-  size_t size = 0;
-  int lineOffset = 0;
-  char *source = readFile(filename, &size);
-  if (source == NULL) {
-    LOG(FATAL)<<filename<<" is not found."<<std::endl;
-    exit(1);
-  }
-
-  // convert TS to js if needed.
-  size_t filenameLen = strlen(filename);
-  if (filenameLen > 3 && filename[filenameLen - 3] == '.' &&
-      filename[filenameLen - 2] == 't' && filename[filenameLen - 1] == 's') {
-    size = 0;
-    char *jsSource = TranspileTypeScriptModule(e, source, &lineOffset);
-    if (jsSource == NULL) {
-      fprintf(stderr, "%s is not a valid TypeScript file.\n", filename);
-      free(source);
-      exit(1);
-    }
-    free(source);
-    source = jsSource;
-  }
-
-  // inject tracing code.
-  if (enable_tracer_injection) {
-    char *traceableSource = InjectTracingInstructions(e, source, &lineOffset,
-                                                      strict_disallow_usage);
-    if (traceableSource == NULL) {
-      fprintf(stderr, "Inject tracing instructions failed.\n");
-      free(source);
-      return;
-    }
-    free(source);
-    source = traceableSource;
-  }
-
-  char id[128];
-  sprintf(id, "./%s", filename);
-
-  AddModule(e, id, source, lineOffset);
-
-  char data[128];
-  sprintf(data, "require(\"%s\");", id);
-
-  delegate(e, data, (uintptr_t)lcsHandler, (uintptr_t)gcsHandler);
-
-  free(source);
-  DeleteEngine(e);
-
-  DeleteStorageHandler(lcsHandler);
-  DeleteStorageHandler(gcsHandler);
-}
-
-void *loop(void *arg) {
-  ExecuteScript((const char*)arg, RunScriptSourceDelegate);
-  return 0x00;
-}
-
-void ExecuteScriptSource(const char *filename) {
-  ExecuteScript(filename, RunScriptSourceDelegate);
 }

@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <iostream>
+#include <fstream>
 
 #include <grpc/grpc.h>
 #include <grpcpp/server.h>
@@ -94,7 +95,7 @@ class NVMEngine final: public NVMService::Service{
       std::cout<<"Now we're starting the engine"<<std::endl;
     }
 
-    bool GetRunnableSourceCode(const std::string&, std::string&);
+    int GetRunnableSourceCode(const std::string&, std::string&);
 
     void ReadExeStats(NVMStatsBundle *);
 
@@ -102,8 +103,10 @@ class NVMEngine final: public NVMService::Service{
 
     grpc::Status SmartContractCall(grpc::ServerContext*, grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest>*) override;
 
+    void LocalTest();       // for testing purpose
+
     inline void* Callback(char* func_name, char** args){
-        if(this->m_stm != NULL){
+        if(this->m_stm != nullptr){
             // compose server request
             NVMDataRequest* request = new NVMDataRequest();
             //this->m_stm->Write(request);
@@ -138,9 +141,9 @@ class NVMEngine final: public NVMService::Service{
 };
 
 inline void* DataExchangeCallback(char* func_name, char** args){
-    if(gNVMEngine != NULL){
+    if(gNVMEngine != nullptr){
         void* result = gNVMEngine->Callback(func_name, args);
         return result;
     }
-    return NULL;
+    return nullptr;
 }
