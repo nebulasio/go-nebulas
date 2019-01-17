@@ -109,8 +109,8 @@ if [ ! -d $CUR_DIR/lib_llvm/include/llvm ]; then
 fi
 
 
-export CXX=$CUR_DIR/bin/nclang
-#export CXX=$CUR_DIR/lib_llvm/bin/clang++
+#export CXX=$CUR_DIR/bin/nclang
+export CXX=$CUR_DIR/lib_llvm/bin/clang++
 export CC=$CUR_DIR/lib_llvm/bin/clang
 
 cd $CUR_DIR/3rd_party
@@ -124,6 +124,7 @@ if [ ! -d $CUR_DIR/lib/include/boost ]; then
   ./b2 toolset=clang cxxflags="-stdlib=libc++ -I$CUR_DIR/lib_llvm/include/c++/v1" linkflags="-stdlib=libc++ -lc++ -lc++abi" -j$PARALLEL
   ./b2 install toolset=clang cxxflags="-stdlib=libc++ -I$CUR_DIR/lib_llvm/include/c++/v1" linkflags="-stdlib=libc++ -lc++ -lc++abi" --prefix=$CUR_DIR/lib/
 fi
+export CXX=$CUR_DIR/bin/nclang
 
 #if [ -f $CUR_DIR/lib/include/boost/property_tree/detail/ptree_implementation.hpp ]; then
   #if [ ! -f $CUR_DIR/lib/include/boost/property_tree/detail/boost_ptree_rtti.patch ]; then
