@@ -102,7 +102,12 @@ int main(int argc, char *argv[]) {
 
   // neb::auth_table_t auth_table;
   neb::jit_driver &jd = neb::jit_driver::instance();
-  jd.run<neb::auth_table_t>("auth", v, vm["func"].as<std::string>());
+  auto ret = jd.run<neb::auth_table_t>("auth", v, vm["func"].as<std::string>());
+
+  for (auto &r : ret) {
+    std::cout << std::get<0>(r) << ',' << std::get<1>(r) << ','
+              << std::get<3>(r) << ',' << std::get<4>(r) << std::endl;
+  }
 
   return 0;
 }

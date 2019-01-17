@@ -91,12 +91,12 @@ if [ ! -d $CUR_DIR/lib_llvm/include/llvm ]; then
   ln -s $CUR_DIR/3rd_party/libcxxabi-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/projects/libcxxabi
 
   # update func supportsCOMDAT
-  cp $CUR_DIR/3rd_party/Triple.h $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/include/llvm/ADT
+  cp $CUR_DIR/3rd_party/build_option_bak/Triple.h $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/include/llvm/ADT
 
   cd $CUR_DIR/3rd_party
   mkdir llvm-build
   cd llvm-build
-  cmake -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib_llvm/ ../llvm-$LLVM_VERSION.src
+  cmake -DCMAKE_CXX_FLAGS=-stdlib=libc++ -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib_llvm/ ../llvm-$LLVM_VERSION.src
   make CC=clang -j$PARALLEL && make install
 fi
 
@@ -109,9 +109,10 @@ if [ ! -d "boost_1_67_0"  ]; then
 fi
 if [ ! -d $CUR_DIR/lib/include/boost ]; then
   cd boost_1_67_0
-  ./bootstrap.sh --prefix=$CUR_DIR/lib/
-  ./b2 --toolset=clang -j$PARALLEL
-  ./b2 install
+  ./bootstrap.sh --with-toolset=clang --prefix=$CUR_DIR/lib/
+  ./b2 clean
+  ./b2 toolset=clang cxxflags="-stdlib=libc++" linkflags="-stdlib=libc++ -lc++" -j$PARALLEL
+  ./b2 install toolset=clang cxxflags="-stdlib=libc++" linkflags="-stdlib=libc++ -lc++" --prefix=$CUR_DIR/lib/
 fi
 
 #if [ -f $CUR_DIR/lib/include/boost/property_tree/detail/ptree_implementation.hpp ]; then
@@ -173,6 +174,7 @@ if [ ! -d $CUR_DIR/lib/include/glog/ ]; then
   build_with_cmake glog
 fi
 if [ ! -d $CUR_DIR/lib/include/gtest/ ]; then
+  cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-googletest $CUR_DIR/3rd_party/googletest/CMakeLists.txt
   build_with_cmake googletest
 fi
 
@@ -219,7 +221,11 @@ if [ ! -f $CUR_DIR/lib/include/lz4.h ]; then
 fi
 
 if [ ! -d $CUR_DIR/lib/include/rocksdb ]; then
+  cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-rocksdb $CUR_DIR/3rd_party/rocksdb/CMakeLists.txt
+  cp $CUR_DIR/3rd_party/build_option_bak/Makefile-rocksdb $CUR_DIR/3rd_party/rocksdb/Makefile
+
   cd $CUR_DIR/3rd_party/rocksdb
+  make shared_lib -j$PARALLEL
   LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include LDFLAGS=-stdlib=libc++ make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
 fi
 
@@ -232,7 +238,7 @@ fi
 if [ ! -f $CUR_DIR/lib/bin/protoc ]; then
   cd $CUR_DIR/3rd_party/protobuf
   ./autogen.sh
-  ./configure --prefix=$CUR_DIR/lib/
+  ./configure --prefix=$CUR_DIR/lib/ CXXFLAGS='-stdlib=libc++'
   make -j$PARALLEL && make install && make clean
 fi
 
