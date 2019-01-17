@@ -96,7 +96,6 @@ undeploy:
 
 build:
 	cd cmd/neb; $(CGO_CFLAGS) $(CGO_LDFLAGS) go build $(LDFLAGS) -o ../../$(NEBBINARY)
-	cd cmd/crashreporter; go build $(LDFLAGS) -o ../../neb-crashreporter
 	$(BUUILDLOG)
 
 build-linux:
