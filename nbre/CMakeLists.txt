@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 project(nebulas-blockchain-runtime-environment)
 add_definitions(-std=c++14)
 add_definitions(-stdlib=libc++)
+add_definitions(-nodefaultlibs)
 
 if(Release)
   message(STATUS "This is a Release version")
@@ -71,9 +72,10 @@ llvm_map_components_to_libnames(llvm_libs
 
 set(jit_libs nbre_jit ${llvm_libs})
 
-set(fs_libs nbre_fs nbre_fs_proto rocksdb bz2 z zstd snappy lz4)
+set(fs_libs nbre_fs nbre_fs_proto bz2 z zstd snappy lz4)
 
 if(UNIX AND NOT APPLE)
+  set(common_libs ${common_libs} ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.a)
   set(protobuf_lib ${PROJECT_SOURCE_DIR}/lib/lib/libprotobuf.so)
   set(cpp_lib ${PROJECT_SOURCE_DIR}/lib/lib/libc++.so)
   set(Boost_LIBRARIES
@@ -116,7 +118,7 @@ file(GLOB_RECURSE nbre_fs_proto_src fs/proto/*.pb.cc)
 file(GLOB_RECURSE nbre_core_src core/*.cpp)
 
 add_library(nbre_rt SHARED ${nbre_jit_src} ${nbre_rt_src} ${nbre_common_src} ${nbre_fs_src} ${nbre_fs_proto_src} ${nbre_core_src})
-target_link_libraries(nbre_rt ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} ${extra_libs} ff softfloat c++)
+target_link_libraries(nbre_rt ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.a ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} ${extra_libs} ff softfloat c++)
 
 if(Release)
 else()
