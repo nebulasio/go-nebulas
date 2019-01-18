@@ -49,7 +49,7 @@ endif
 NBRELIB := nbre/lib/lib
 ifeq ($(NBRELIB),$(wildcard $(NBRELIB)))
 	CGO_CFLAGS=CGO_CFLAGS="-I/$(CURRENT_DIR)/nbre/lib/include -g -O2"
-	CGO_LDFLAGS=CGO_LDFLAGS="-L$(CURRENT_DIR)/nbre/lib/lib -lrocksdb -lstdc++ -lm -lz -lbz2 -lsnappy -llz4 -lzstd -g -O2"
+	CGO_LDFLAGS=CGO_LDFLAGS="-L$(CURRENT_DIR)/nbre/lib/lib -lrocksdb -lc++ -lgflags -lm -lz -lbz2 -lsnappy -llz4 -lzstd -g -O2"
 else
 	CGO_CFLAGS=
 	CGO_LDFLAGS=
