@@ -29,10 +29,12 @@ std::string entry_point_dip(uint64_t height) {
   uint64_t dip_block_interval = days * block_nums_of_a_day;
   std::string dip_reward_addr =
       std::string("n1c6y4ctkMeZk624QWBTXuywmNpCWmJZiBq");
+  std::string coinbase_addr =
+      std::string("n1HrPpwwH5gTA2d7QCkVjMw14YbN1NNNXHc");
 
   if (!height) {
     neb::rt::dip::init_dip_params(dip_start_block, dip_block_interval,
-                                  dip_reward_addr);
+                                  dip_reward_addr, coinbase_addr);
     return std::string("{\"err\":\"init dip params\"}");
   }
 

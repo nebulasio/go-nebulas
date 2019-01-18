@@ -35,8 +35,6 @@ std::string entry_point_dip_impl(uint64_t start_block, uint64_t end_block,
                                  dip_float_t alpha, dip_float_t beta);
 
 void init_dip_params(uint64_t dip_start_block, uint64_t dip_block_interval,
-                     const std::string &dip_reward_addr);
-void init_dip_params(uint64_t dip_start_block, uint64_t dip_block_interval,
                      const std::string &dip_reward_addr,
                      const std::string &coinbase_addr);
 } // namespace dip

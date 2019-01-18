@@ -53,20 +53,6 @@ std::string entry_point_dip_impl(uint64_t start_block, uint64_t end_block,
 }
 
 void init_dip_params(uint64_t dip_start_block, uint64_t dip_block_interval,
-                     const std::string &dip_reward_addr) {
-  neb::configuration::instance().dip_start_block() = dip_start_block;
-  neb::configuration::instance().dip_block_interval() = dip_block_interval;
-
-  neb::util::bytes addr_bytes = neb::util::bytes::from_base58(dip_reward_addr);
-  neb::configuration::instance().dip_reward_addr() =
-      neb::util::byte_to_string(addr_bytes);
-
-  LOG(INFO) << "init dip params, dip_start_block " << dip_start_block
-            << ", dip_block_interval " << dip_block_interval
-            << ", dip_reward_addr " << dip_reward_addr;
-}
-
-void init_dip_params(uint64_t dip_start_block, uint64_t dip_block_interval,
                      const std::string &dip_reward_addr,
                      const std::string &coinbase_addr) {
   neb::configuration::instance().dip_start_block() = dip_start_block;
