@@ -238,8 +238,8 @@ if [ ! -d $CUR_DIR/lib/include/rocksdb ]; then
   cd $CUR_DIR/3rd_party/rocksdb
   export CXX=$CUR_DIR/lib_llvm/bin/clang++
   make clean
-  make shared_lib -j$PARALLEL
-  LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include LDFLAGS=-stdlib=libc++ make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
+  #make shared_lib -j$PARALLEL
+  ROCKSDB_DISABLE_GFLAGS=On LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include LDFLAGS=-stdlib=libc++ make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
   export CXX=$CUR_DIR/bin/nclang
 fi
 
