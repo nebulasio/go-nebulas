@@ -206,8 +206,7 @@ floatxx_t nebulas_rank::f_account_rank(int64_t a, int64_t b, int64_t c,
                                        floatxx_t R) {
   floatxx_t one = softfloat_cast<uint32_t, typename floatxx_t::value_type>(1);
   auto gamma = math::pow(theta * R / (R + mu), lambda);
-  auto ret = (S / (one + math::exp(a + b * S))) *
-             (gamma / (one + math::exp(c + d * gamma)));
+  auto ret = (S / (one + math::pow(a / S, one / b))) * gamma;
   return ret;
 }
 
