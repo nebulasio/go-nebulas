@@ -10,6 +10,7 @@ endif (POLICY CMP0063)
 
 project(glog VERSION 0.3.5 LANGUAGES C CXX)
 include_directories(${PROJECT_SOURCE_DIR}/../../lib/include/)
+link_directories (${PROJECT_SOURCE_DIR}/../../lib/lib/)
 
 set (CPACK_PACKAGE_NAME glog)
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "")
@@ -490,7 +491,7 @@ if (WIN32 AND HAVE_SNPRINTF)
 endif (WIN32 AND HAVE_SNPRINTF)
 
 if (gflags_FOUND)
-  target_link_libraries (glog PUBLIC ${PROJECT_SOURCE_DIR}/../../lib/lib/libgflags.so)
+  target_link_libraries (glog PUBLIC gflags)
 
   if (NOT BUILD_SHARED_LIBS)
     # Don't use __declspec(dllexport|dllimport) if this is a static build
