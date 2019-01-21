@@ -177,17 +177,16 @@ if [ ! -d $CUR_DIR/3rd_party/gflags ]; then
 fi
 if [ ! -d $CUR_DIR/lib/include/gflags/ ]; then
   cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-gflags $CUR_DIR/3rd_party/gflags/CMakeLists.txt
-  build_with_cmake gflags
-  build_with_cmake gflags -DBUILD_SHARED_LIBS=true
+  build_with_cmake gflags -DGFLAGS_NAMESPACE=google -DCMAKE_CXX_FLAGS=-fPIC -DBUILD_SHARED_LIBS=true
 fi
 
 if [ ! -d $CUR_DIR/lib/include/glog/ ]; then
   cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-glog $CUR_DIR/3rd_party/glog/CMakeLists.txt
-  build_with_cmake glog
+  build_with_cmake glog -DGFLAGS_NAMESPACE=google -DCMAKE_CXX_FLAGS=-fPIC -DBUILD_SHARED_LIBS=true
 fi
 if [ ! -d $CUR_DIR/lib/include/gtest/ ]; then
   cp $CUR_DIR/3rd_party/build_option_bak/CMakeList.txt-googletest $CUR_DIR/3rd_party/googletest/CMakeLists.txt
-  build_with_cmake googletest
+  build_with_cmake googletest -DGFLAGS_NAMESPACE=google -DCMAKE_CXX_FLAGS=-fPIC -DBUILD_SHARED_LIBS=true
 fi
 
 if [ ! -d $CUR_DIR/lib/include/ff/ ]; then

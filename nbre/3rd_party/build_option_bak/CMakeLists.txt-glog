@@ -490,7 +490,7 @@ if (WIN32 AND HAVE_SNPRINTF)
 endif (WIN32 AND HAVE_SNPRINTF)
 
 if (gflags_FOUND)
-  target_link_libraries (glog PUBLIC ${PROJECT_SOURCE_DIR}/../../lib/lib/libgflags.a)
+  target_link_libraries (glog PUBLIC ${PROJECT_SOURCE_DIR}/../../lib/lib/libgflags.so)
 
   if (NOT BUILD_SHARED_LIBS)
     # Don't use __declspec(dllexport|dllimport) if this is a static build

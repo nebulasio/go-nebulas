@@ -8,7 +8,7 @@ add_executable(test_fs main.cpp
   gtest_account_db.cpp
   )
 
-target_link_libraries(test_fs  nbre_rt ${gtest_lib})
+target_link_libraries(test_fs nbre_rt ${gtest_lib})
 
 gtest_discover_tests(test_fs)
 add_test(NAME test_fs
