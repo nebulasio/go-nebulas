@@ -87,7 +87,7 @@ public:
         CODLayer(IRDumpLayer, extractSingleFunction, *this->CCMgr,
                  std::move(IndirectStubsMgrBuilder), InlineStubs),
         CXXRuntimeOverrides(
-            [this](const std::string &S) { return mangle(S); }) {}
+            [this](const std::string &S) { return mangle_fake(S); }) {}
 
   ~OrcLazyJIT() {
     // Run any destructors registered with __cxa_atexit.
@@ -104,15 +104,15 @@ public:
   Error addModule(std::shared_ptr<Module> M);
 
   JITSymbol findSymbol(const std::string &Name) {
-    return CODLayer.findSymbol(mangle(Name), true);
+    return CODLayer.findSymbol(mangle_fake(Name), true);
   }
 
   JITSymbol findSymbolIn(ModuleHandleT H, const std::string &Name) {
-    return CODLayer.findSymbolIn(H, mangle(Name), true);
+    return CODLayer.findSymbolIn(H, mangle_fake(Name), true);
   }
 
 private:
-  std::string mangle(const std::string &Name) {
+  std::string mangle_std(const std::string &Name) {
     std::string MangledName;
     {
       raw_string_ostream MangledNameStream(MangledName);
@@ -120,6 +120,8 @@ private:
     }
     return MangledName;
   }
+
+  std::string mangle_fake(const std::string &Name) { return Name; }
 
   static std::set<Function *> extractSingleFunction(Function &F) {
     std::set<Function *> Partition;
