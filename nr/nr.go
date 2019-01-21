@@ -22,10 +22,12 @@ import (
 	"errors"
 
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/nf/nbre"
 )
 
 type NR struct {
+	conf *nebletpb.Config
 	nbre core.Nbre
 
 	chain *core.BlockChain
@@ -34,6 +36,7 @@ type NR struct {
 // NewNR create nr
 func NewNR(neb Neblet) *NR {
 	nr := &NR{
+		conf:  neb.Config(),
 		nbre:  neb.Nbre(),
 		chain: neb.BlockChain(),
 	}
@@ -42,6 +45,9 @@ func NewNR(neb Neblet) *NR {
 
 // GetNRHandler returns the nr query handler
 func (n *NR) GetNRHandler(start, end, version uint64) (string, error) {
+	if start < n.conf.Nbre.StartHeight {
+		return "", ErrInvalidStartHeight
+	}
 	if start >= end {
 		return "", ErrInvalidHeightInterval
 	}

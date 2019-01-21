@@ -18,6 +18,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "core/neb_ipc/server/ipc_client_watcher.h"
+#include "fs/util.h"
+#include <boost/process/args.hpp>
 #include <boost/process/child.hpp>
 #include <boost/process/io.hpp>
 #include <thread>
@@ -41,12 +43,19 @@ void ipc_client_watcher::thread_func() {
     std::chrono::seconds delta = threshold - duration;
     if (delta >= std::chrono::seconds(0)) {
       std::this_thread::sleep_for(delta + std::chrono::seconds(1));
+      if (m_exit_flag) {
+        return;
+      }
     }
 
     LOG(INFO) << "to start nbre ";
     m_last_start_time = now;
     boost::process::ipstream stream;
-    boost::process::child client(m_path, boost::process::std_err > stream);
+    std::vector<std::string> v(
+        {neb::shm_configuration::instance().shm_name_identity()});
+
+    boost::process::child client(m_path, boost::process::args(v),
+                                 boost::process::std_err > stream);
     // boost::process::child client(m_path);
     if (client.valid()) {
       m_b_client_alive = true;

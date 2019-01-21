@@ -335,7 +335,7 @@ type Data interface {
 type Nbre interface {
 	Start() error
 	Execute(command string, args ...interface{}) (interface{}, error)
-	Shutdown() error
+	Stop()
 }
 
 type Nr interface {

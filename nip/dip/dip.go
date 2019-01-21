@@ -206,7 +206,7 @@ func (d *Dip) generateRewardTx(start uint64, end uint64, version uint64, item *D
 	if value, err = util.NewUint128FromString(item.Reward); err != nil {
 		return nil, err
 	}
-	if payload, err = core.NewDipPayload(start, end, version); err != nil {
+	if payload, err = core.NewDipPayload(start, end, version, item.Contract); err != nil {
 		return nil, err
 	}
 	if payloadBytes, err = payload.ToBytes(); err != nil {

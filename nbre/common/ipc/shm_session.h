@@ -61,7 +61,7 @@ public:
 
 protected:
   inline std::string server_session_mutex_name() {
-    return m_name + ".session_server.mutex";
+    return m_name + ".server.mutex";
   }
 
 protected:

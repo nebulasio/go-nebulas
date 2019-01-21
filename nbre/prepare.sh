@@ -17,8 +17,8 @@
 
 #!/bin/bash
 
-#CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" >/dev/null && pwd  )"
-CUR_DIR="$( pwd )"
+CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" >/dev/null && pwd  )"
+#CUR_DIR="$( pwd )"
 OS="$(uname -s)"
 
 if [ "$OS" = "Darwin" ]; then
@@ -90,13 +90,26 @@ if [ ! -d $CUR_DIR/lib_llvm/include/llvm ]; then
   ln -s $CUR_DIR/3rd_party/libcxx-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/projects/libcxx
   ln -s $CUR_DIR/3rd_party/libcxxabi-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/projects/libcxxabi
 
+  # update func supportsCOMDAT
+  cp $CUR_DIR/3rd_party/build_option_bak/Triple.h $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/include/llvm/ADT
+
   cd $CUR_DIR/3rd_party
-  mkdir llvm-build
-  cd llvm-build
-  cmake -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib_llvm/ ../llvm-$LLVM_VERSION.src
-  make CC=clang -j$PARALLEL && make install
+  if [ ! -f $CUR_DIR/3rd_party/llvm-lib/bin/clang ]; then
+    mkdir llvm-build
+    mkdir llvm-lib/
+    cd llvm-build
+    cmake -DCMAKE_CXX_COMPILER=g++ -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/3rd_party/llvm-lib/ ../llvm-$LLVM_VERSION.src
+    make -j$PARALLEL && make install
+    cd ..
+  fi
+  mkdir llvm-final-build
+  cd llvm-final-build
+  cmake -DCMAKE_C_COMPILER=$CUR_DIR/3rd_party/llvm-lib/bin/clang -DCMAKE_CXX_COMPILER=$CUR_DIR/3rd_party/nebclang -DCMAKE_CXX_FLAGS='-stdlib=libc++' -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib_llvm/ ../llvm-$LLVM_VERSION.src
+  make -j$PARALLEL && make install
 fi
 
+export PATH=$CUR_DIR/lib_llvm/bin:$PATH
+#export CXX=$CUR_DIR/bin/nclang
 export CXX=$CUR_DIR/lib_llvm/bin/clang++
 export CC=$CUR_DIR/lib_llvm/bin/clang
 
@@ -106,10 +119,12 @@ if [ ! -d "boost_1_67_0"  ]; then
 fi
 if [ ! -d $CUR_DIR/lib/include/boost ]; then
   cd boost_1_67_0
-  ./bootstrap.sh --prefix=$CUR_DIR/lib/
-  ./b2 --toolset=clang
-  ./b2 install
+  ./bootstrap.sh --with-toolset=clang --prefix=$CUR_DIR/lib/
+  ./b2 clean
+  ./b2 toolset=clang cxxflags="-stdlib=libc++ -I$CUR_DIR/lib_llvm/include/c++/v1" linkflags="-stdlib=libc++ -lc++ -lc++abi" -j$PARALLEL
+  ./b2 install toolset=clang cxxflags="-stdlib=libc++ -I$CUR_DIR/lib_llvm/include/c++/v1" linkflags="-stdlib=libc++ -lc++ -lc++abi" --prefix=$CUR_DIR/lib/
 fi
+export CXX=$CUR_DIR/bin/nclang
 
 #if [ -f $CUR_DIR/lib/include/boost/property_tree/detail/ptree_implementation.hpp ]; then
   #if [ ! -f $CUR_DIR/lib/include/boost/property_tree/detail/boost_ptree_rtti.patch ]; then
@@ -136,6 +151,14 @@ build_with_cmake(){
   cd ../ && rm -rf $build
 }
 
+check_install() {
+  if [ "$OS" = "Linux" ]; then
+    echo `ldconfig -p | grep -c $1`
+    return
+  fi
+  echo 0
+}
+
 build_with_configure(){
   cd $CUR_DIR/3rd_party/$1
   ./configure --prefix=$CUR_DIR/lib/
@@ -148,20 +171,22 @@ build_with_make(){
 }
 
 
-if [ "$OS" = "Darwin" ]; then
-  if [ ! -d $CUR_DIR/3rd_party/gflags ]; then
-    cd $CUR_DIR/3rd_party
-    git clone -b v2.2.1 https://github.com/gflags/gflags.git
-  fi
-  if [ ! -d $CUR_DIR/lib/include/gflags/ ]; then
-    build_with_cmake gflags
-  fi
+if [ ! -d $CUR_DIR/3rd_party/gflags ]; then
+  cd $CUR_DIR/3rd_party
+  git clone -b v2.2.1 https://github.com/gflags/gflags.git
+fi
+if [ ! -d $CUR_DIR/lib/include/gflags/ ]; then
+  cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-gflags $CUR_DIR/3rd_party/gflags/CMakeLists.txt
+  build_with_cmake gflags
+  build_with_cmake gflags -DBUILD_SHARED_LIBS=true
 fi
 
 if [ ! -d $CUR_DIR/lib/include/glog/ ]; then
+  cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-glog $CUR_DIR/3rd_party/glog/CMakeLists.txt
   build_with_cmake glog
 fi
 if [ ! -d $CUR_DIR/lib/include/gtest/ ]; then
+  cp $CUR_DIR/3rd_party/build_option_bak/CMakeList.txt-googletest $CUR_DIR/3rd_party/googletest/CMakeLists.txt
   build_with_cmake googletest
 fi
 
@@ -181,7 +206,9 @@ if [ ! -f $CUR_DIR/lib/include/zlib.h ]; then
 fi
 
 if [ ! -f $CUR_DIR/lib/include/zstd.h ]; then
-  build_with_make zstd
+  if [ `check_install zstd` -eq 0 ]; then
+    build_with_make zstd
+  fi
 fi
 
 if [ ! -f $CUR_DIR/lib/include/bzlib.h ]; then
@@ -206,8 +233,15 @@ if [ ! -f $CUR_DIR/lib/include/lz4.h ]; then
 fi
 
 if [ ! -d $CUR_DIR/lib/include/rocksdb ]; then
+  cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-rocksdb $CUR_DIR/3rd_party/rocksdb/CMakeLists.txt
+  cp $CUR_DIR/3rd_party/build_option_bak/Makefile-rocksdb $CUR_DIR/3rd_party/rocksdb/Makefile
+
   cd $CUR_DIR/3rd_party/rocksdb
-  LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include LDFLAGS=-stdlib=libc++ make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
+  export CXX=$CUR_DIR/lib_llvm/bin/clang++
+  make clean
+  #make shared_lib -j$PARALLEL
+  ROCKSDB_DISABLE_GFLAGS=On LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include LDFLAGS=-stdlib=libc++ make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
+  export CXX=$CUR_DIR/bin/nclang
 fi
 
 #if [ ! -d $CUR_DIR/lib/include/grpc ]; then
@@ -219,7 +253,7 @@ fi
 if [ ! -f $CUR_DIR/lib/bin/protoc ]; then
   cd $CUR_DIR/3rd_party/protobuf
   ./autogen.sh
-  ./configure --prefix=$CUR_DIR/lib/
+  ./configure --prefix=$CUR_DIR/lib/ CXXFLAGS='-stdlib=libc++'
   make -j$PARALLEL && make install && make clean
 fi
 

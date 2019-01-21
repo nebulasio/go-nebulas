@@ -21,6 +21,7 @@
 #pragma once
 #include "common/common.h"
 #include "common/util/byte.h"
+#include "common/util/lru_cache.h"
 #include "common/util/singleton.h"
 
 namespace neb {
@@ -44,7 +45,7 @@ public:
 private:
   mutable std::mutex m_sync_mutex;
   std::string m_nr_handler_id;
-  std::unordered_map<std::string, std::string> m_nr_result;
+  lru_cache<std::string, std::string> m_nr_result;
 };
 } // namespace nr
 } // namespace rt

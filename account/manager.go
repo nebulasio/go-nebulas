@@ -99,14 +99,12 @@ func NewManager(neblet Neblet) (*Manager, error) {
 	}
 	m.keydir = tmpKeyDir
 
-	if neblet != nil {
+	if neblet != nil && neblet.Config() != nil {
 		conf := neblet.Config().Chain
 
-		keydir := conf.Keydir
-		if filepath.IsAbs(keydir) {
-			m.keydir = keydir
-		} else {
-			dir, err := filepath.Abs(keydir)
+		if len(conf.Keydir) > 0 {
+			tmpKeyDir = conf.Keydir
+			dir, err := filepath.Abs(tmpKeyDir)
 			if err != nil {
 				return nil, err
 			}

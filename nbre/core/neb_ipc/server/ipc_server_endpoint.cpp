@@ -55,6 +55,10 @@ bool ipc_server_endpoint::start() {
   m_got_exception_when_start_nbre = false;
   m_thread = std::unique_ptr<std::thread>(new std::thread([&, this]() {
     try {
+      auto shm_service_name_str =
+          std::string("nbre.") +
+          neb::shm_configuration::instance().shm_name_identity();
+      auto shm_service_name = shm_service_name_str.c_str();
       {
         ipc_util_t us(shm_service_name, 128, 128);
         us.reset();
@@ -134,6 +138,12 @@ void ipc_server_endpoint::init_params(const nbre_params_t params) {
       params.m_admin_pub_addr;
   neb::core::ipc_configuration::instance().nbre_start_height() =
       params.m_nbre_start_height;
+
+  auto s = std::chrono::system_clock::from_time_t(0);
+  auto e = std::chrono::system_clock::now();
+  auto cnt = std::chrono::duration_cast<std::chrono::seconds>(e - s).count();
+  cnt &= 0xffff;
+  neb::shm_configuration::instance().shm_name_identity() = std::to_string(cnt);
 }
 
 void ipc_server_endpoint::add_all_callbacks() {
@@ -154,18 +164,43 @@ void ipc_server_endpoint::add_all_callbacks() {
         LOG(INFO) << "get init req ";
         ipc_pkg::nbre_init_ack *ack = p->construct<ipc_pkg::nbre_init_ack>(
             nullptr, p->default_allocator());
-        ack->set<ipc_pkg::nbre_root_dir>(
-            neb::core::ipc_configuration::instance().nbre_root_dir().c_str());
-        ack->set<ipc_pkg::nbre_exe_name>(
-            neb::core::ipc_configuration::instance().nbre_exe_name().c_str());
-        ack->set<ipc_pkg::neb_db_dir>(
-            neb::core::ipc_configuration::instance().neb_db_dir().c_str());
-        ack->set<ipc_pkg::nbre_db_dir>(
-            neb::core::ipc_configuration::instance().nbre_db_dir().c_str());
-        ack->set<ipc_pkg::nbre_log_dir>(
-            neb::core::ipc_configuration::instance().nbre_log_dir().c_str());
-        ack->set<ipc_pkg::admin_pub_addr>(
-            neb::core::ipc_configuration::instance().admin_pub_addr().c_str());
+
+        std::string nbre_root_dir =
+            neb::core::ipc_configuration::instance().nbre_root_dir();
+        neb::ipc::char_string_t cstr_nbre_root_dir(nbre_root_dir.c_str(),
+                                                   p->default_allocator());
+        ack->set<ipc_pkg::nbre_root_dir>(cstr_nbre_root_dir);
+
+        std::string nbre_exe_name =
+            neb::core::ipc_configuration::instance().nbre_exe_name();
+        neb::ipc::char_string_t cstr_nbre_exe_name(nbre_exe_name.c_str(),
+                                                   p->default_allocator());
+        ack->set<ipc_pkg::nbre_exe_name>(cstr_nbre_exe_name);
+
+        std::string neb_db_dir =
+            neb::core::ipc_configuration::instance().neb_db_dir();
+        neb::ipc::char_string_t cstr_neb_db_dir(neb_db_dir.c_str(),
+                                                p->default_allocator());
+        ack->set<ipc_pkg::neb_db_dir>(cstr_neb_db_dir);
+
+        std::string nbre_db_dir =
+            neb::core::ipc_configuration::instance().nbre_db_dir();
+        neb::ipc::char_string_t cstr_nbre_db_dir(nbre_db_dir.c_str(),
+                                                 p->default_allocator());
+        ack->set<ipc_pkg::nbre_db_dir>(cstr_nbre_db_dir);
+
+        std::string nbre_log_dir =
+            neb::core::ipc_configuration::instance().nbre_log_dir();
+        neb::ipc::char_string_t cstr_nbre_log_dir(nbre_log_dir.c_str(),
+                                                  p->default_allocator());
+        ack->set<ipc_pkg::nbre_log_dir>(cstr_nbre_log_dir);
+
+        std::string admin_pub_addr =
+            neb::core::ipc_configuration::instance().admin_pub_addr().c_str();
+        neb::ipc::char_string_t cstr_admin_pub_addr(admin_pub_addr.c_str(),
+                                                    p->default_allocator());
+        ack->set<ipc_pkg::admin_pub_addr>(cstr_admin_pub_addr);
+
         ack->set<ipc_pkg::nbre_start_height>(
             neb::core::ipc_configuration::instance().nbre_start_height());
         p->push_back(ack);

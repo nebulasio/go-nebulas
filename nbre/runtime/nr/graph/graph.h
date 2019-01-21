@@ -73,9 +73,9 @@ protected:
 
 }; // end class transaction_graph
 
-typedef std::shared_ptr<transaction_graph> transaction_graph_ptr_t;
+using transaction_graph_ptr_t = std::unique_ptr<transaction_graph>;
 
-transaction_graph_ptr_t build_graph_from_internal(
+transaction_graph *build_graph_from_internal(
     const transaction_graph::internal_graph_t &internal_graph);
 
 } // namespace rt

@@ -45,10 +45,12 @@ void rocksdb_storage::open_database(const std::string &db_name,
   if (nullptr == m_db) {
     if (flag == storage_open_for_readonly) {
       rocksdb::Options options;
+      options.keep_log_file_num = 1;
       status = rocksdb::DB::OpenForReadOnly(options, db_name, &db, false);
       m_enable_batch = true;
     } else {
       rocksdb::Options options;
+      options.keep_log_file_num = 1;
 
       //! TODO setup bloomfilter, LRUCache, writer buffer size
       rocksdb::BlockBasedTableOptions table_options;

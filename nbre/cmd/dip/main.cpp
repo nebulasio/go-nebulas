@@ -39,6 +39,56 @@ void height_interval(uint64_t height) {
             << std::endl;
 }
 
+void nr(uint64_t start_block, uint64_t end_block) {
+
+  if (start_block > end_block) {
+    std::cout << std::string(
+                     "{\"err\":\"start height must less than end height\"}")
+              << std::endl;
+    return;
+  }
+  uint64_t block_nums_of_a_day = 24 * 3600 / 15;
+  uint64_t days = 7;
+  uint64_t max_nr_block_interval = days * block_nums_of_a_day;
+  if (start_block + max_nr_block_interval < end_block) {
+    std::cout << std::string("{\"err\":\"nr block interval out of range\"}")
+              << std::endl;
+    return;
+  }
+  std::cout << "run nr successfully" << std::endl;
+}
+
+void dip(uint64_t height) {
+
+  uint64_t block_nums_of_a_day = 24 * 3600 / 15;
+  uint64_t days = 7;
+  uint64_t dip_start_block = 1540000;
+  uint64_t dip_block_interval = days * block_nums_of_a_day;
+  std::string dip_reward_addr =
+      std::string("n1YubAA3VVi2HEDw3VSaJ2ZcjzYKXL6SuQw");
+
+  if (!height) {
+    neb::rt::dip::init_dip_params(dip_start_block, dip_block_interval,
+                                  dip_reward_addr, std::string());
+    std::cout << std::string("{\"err\":\"init dip params\"}") << std::endl;
+    return;
+  }
+
+  if (height < dip_start_block + dip_block_interval) {
+    std::cout << std::string("{\"err\":\"invalid height\"}") << std::endl;
+    return;
+  }
+
+  uint64_t interval_nums = (height - dip_start_block) / dip_block_interval;
+  uint64_t start_block = dip_start_block + dip_block_interval * interval_nums;
+  uint64_t end_block = start_block - 1;
+  start_block -= dip_block_interval;
+
+  std::cout << "start height: " << start_block << ", end height: " << end_block
+            << std::endl;
+  nr(start_block, end_block);
+}
+
 int main(int argc, char *argv[]) {
 
   using dip_info_t = neb::rt::dip::dip_info_t;
@@ -50,9 +100,11 @@ int main(int argc, char *argv[]) {
   std::cout << neb::rt::dip::dip_reward::dip_info_to_json(v) << std::endl;
 
   uint64_t height;
+  uint64_t start_block, end_block;
 
   while (std::cin >> height) {
-    height_interval(height);
+    // nr(start_block, end_block);
+    dip(height);
   }
   return 0;
 }

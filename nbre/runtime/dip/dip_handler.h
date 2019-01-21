@@ -45,7 +45,7 @@ public:
 
 private:
   mutable std::mutex m_sync_mutex;
-  std::unordered_map<neb::block_height_t, std::string> m_dip_reward;
+  std::map<neb::block_height_t, std::string> m_dip_reward;
 
   bool m_has_curr;
   std::pair<version_t, block_height_t> m_curr;

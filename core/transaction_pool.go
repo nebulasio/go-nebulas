@@ -284,7 +284,6 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 		}).Debug("Failed to check transaction in access.")
 		return err
 	}
-	//}
 
 	// check dip reward
 	if err := pool.bc.dip.CheckReward(tx); err != nil {

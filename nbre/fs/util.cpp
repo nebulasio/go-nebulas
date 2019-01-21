@@ -54,11 +54,7 @@ bool is_absolute_path(const std::string &fp) {
 bool exists(const std::string &p) {
   return boost::filesystem::exists(boost::filesystem::path(p));
 }
-std::string get_user_name() {
-//  return std::getenv("USER");
-  //TODO(larry): Using environment variables to find the username is very unreliable. Currently use empty string.
-return std::string();
-}
+std::string get_user_name() { return std::string("usr"); }
 
 } // end namespace fs
 
@@ -78,4 +74,7 @@ wei_t to_wei(const std::string &hex_str) {
   ss >> wei;
   return wei;
 }
+
+shm_configuration::shm_configuration() {}
+shm_configuration::~shm_configuration() = default;
 } // end namespace neb

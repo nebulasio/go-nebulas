@@ -69,7 +69,10 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
     info.m_status = txs_result_ptr->m_status;
     info.m_gas_used = txs_result_ptr->m_gas_used;
 
-    txs.push_back(info);
+    // ignore failed transactions
+    if (info.m_status) {
+      txs.push_back(info);
+    }
   }
   return std::make_unique<std::vector<transaction_info_t>>(txs);
 }

@@ -49,7 +49,6 @@ if (env == 'local') {
     neb.setRequest(new HttpRequest("http://127.0.0.1:9685")); //https://testnet.nebulas.io
     ChainID = 1111;
     from = new Wallet.Account("830ccbac2029b880eb07aa9a19c65ce6dad41702d409771eada791d6a6a83a1e");
-    nodes.push("http://127.0.0.1:9685");
 } else {
 	console.log("please input correct env local testneb1 testneb2 testneb3");
 	return;

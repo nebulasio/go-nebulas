@@ -11,3 +11,6 @@ target_link_libraries(auth_table nbre_rt)
 add_executable(rocksdb_storage rocksdb_storage.cpp)
 target_link_libraries(rocksdb_storage nbre_rt)
 
+add_executable(rocksdb_rm rocksdb_rm.cpp)
+target_link_libraries(rocksdb_rm nbre_rt)
+

@@ -27,7 +27,8 @@ namespace rt {
 namespace dip {
 
 struct dip_info_t {
-  std::string m_address;
+  std::string m_deployer;
+  std::string m_contract;
   std::string m_reward;
 };
 
@@ -73,6 +74,9 @@ private:
   static void
   full_fill_meta_info(const std::vector<std::pair<std::string, uint64_t>> &meta,
                       boost::property_tree::ptree &root);
+
+  static void back_to_coinbase(std::vector<dip_info_t> &dip_infos,
+                               floatxx_t reward_left);
 };
 
 } // namespace dip

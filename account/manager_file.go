@@ -44,6 +44,14 @@ type account struct {
 
 // refreshAccounts sync key files to memory
 func (m *Manager) refreshAccounts() error {
+	if exist, err := util.FileExists(m.keydir); !exist || err != nil {
+		if err != nil {
+			return err
+		}
+		// if m.keydir is not exist, do not refresh the list.
+		return nil
+	}
+
 	files, err := ioutil.ReadDir(m.keydir)
 	if err != nil {
 		return err

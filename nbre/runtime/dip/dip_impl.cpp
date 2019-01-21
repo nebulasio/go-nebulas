@@ -38,10 +38,9 @@ std::string entry_point_dip_impl(uint64_t start_block, uint64_t end_block,
       neb::core::ipc_configuration::instance().neb_db_dir();
   neb::fs::blockchain bc(neb_db_path);
   neb::fs::blockchain_api ba(&bc);
-  neb::rt::nr::transaction_db_ptr_t tdb_ptr =
-      std::make_shared<neb::fs::transaction_db>(&ba);
-  neb::rt::nr::account_db_ptr_t adb_ptr =
-      std::make_shared<neb::fs::account_db>(&ba);
+  nr::transaction_db_ptr_t tdb_ptr =
+      std::make_unique<neb::fs::transaction_db>(&ba);
+  nr::account_db_ptr_t adb_ptr = std::make_unique<neb::fs::account_db>(&ba);
 
   auto ret = dip_reward::get_dip_reward(
       start_block, end_block, height, nr_result, tdb_ptr, adb_ptr, alpha, beta);
@@ -54,17 +53,25 @@ std::string entry_point_dip_impl(uint64_t start_block, uint64_t end_block,
 }
 
 void init_dip_params(uint64_t dip_start_block, uint64_t dip_block_interval,
-                     const std::string &dip_reward_addr) {
+                     const std::string &dip_reward_addr,
+                     const std::string &coinbase_addr) {
   neb::configuration::instance().dip_start_block() = dip_start_block;
   neb::configuration::instance().dip_block_interval() = dip_block_interval;
 
-  neb::util::bytes addr_bytes = neb::util::bytes::from_base58(dip_reward_addr);
+  neb::util::bytes reward_bytes =
+      neb::util::bytes::from_base58(dip_reward_addr);
   neb::configuration::instance().dip_reward_addr() =
-      neb::util::byte_to_string(addr_bytes);
+      neb::util::byte_to_string(reward_bytes);
+
+  neb::util::bytes coinbase_bytes =
+      neb::util::bytes::from_base58(coinbase_addr);
+  neb::configuration::instance().coinbase_addr() =
+      neb::util::byte_to_string(coinbase_bytes);
 
   LOG(INFO) << "init dip params, dip_start_block " << dip_start_block
             << ", dip_block_interval " << dip_block_interval
-            << ", dip_reward_addr " << dip_reward_addr;
+            << ", dip_reward_addr " << dip_reward_addr << ", coinbase_addr "
+            << coinbase_addr;
 }
 
 } // namespace dip

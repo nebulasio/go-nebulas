@@ -121,6 +121,9 @@ protected:
   make_context(const std::vector<nbre::NBREIR> &irs,
                const std::string &func_name);
 
+  bool find_mangling(llvm::Module *M, const std::string &func_name,
+                     std::string &mangling_name);
+
 protected:
   std::mutex m_mutex;
   std::unordered_map<std::string, std::unique_ptr<jit_context>> m_jit_instances;

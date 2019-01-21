@@ -23,6 +23,7 @@ import (
 	"errors"
 
 	"github.com/nebulasio/go-nebulas/core"
+	"github.com/nebulasio/go-nebulas/neblet/pb"
 )
 
 // Error types
@@ -33,6 +34,7 @@ var (
 )
 
 type Neblet interface {
+	Config() *nebletpb.Config
 	BlockChain() *core.BlockChain
 	Nbre() core.Nbre
 }
