@@ -21,20 +21,21 @@
 #pragma once
 
 #include "common/math/softfloat.hpp"
+#include "runtime/stdrt.h"
 #include <string>
 
 namespace neb {
 namespace rt {
 namespace nr {
 
-typedef typename infer_type_helper<uint64_t>::type uintyy_t;
-typedef typename infer_type_helper<int64_t>::type intyy_t;
-
 using nr_float_t = float32;
-using version_t = uintyy_t;
-std::string entry_point_nr_impl(uintyy_t start_block, uintyy_t end_block,
-                                version_t version, intyy_t a, intyy_t b,
-                                intyy_t c, intyy_t d, nr_float_t theta,
+using version_t = compatible_uint64_t;
+
+std::string entry_point_nr_impl(compatible_uint64_t start_block,
+                                compatible_uint64_t end_block,
+                                version_t version, compatible_int64_t a,
+                                compatible_int64_t b, compatible_int64_t c,
+                                compatible_int64_t d, nr_float_t theta,
                                 nr_float_t mu, nr_float_t lambda);
 } // namespace nr
 } // namespace rt

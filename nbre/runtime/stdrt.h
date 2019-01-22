@@ -22,4 +22,6 @@ namespace neb {
 namespace core {
 class driver;
 }
+using compatible_uint64_t = unsigned long long;
+using compatible_int64_t = long long;
 }

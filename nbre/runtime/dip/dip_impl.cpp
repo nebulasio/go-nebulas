@@ -29,8 +29,9 @@ namespace neb {
 namespace rt {
 namespace dip {
 
-std::string entry_point_dip_impl(uint64_t start_block, uint64_t end_block,
-                                 version_t version, uint64_t height,
+std::string entry_point_dip_impl(compatible_uint64_t start_block,
+                                 compatible_uint64_t end_block,
+                                 version_t version, compatible_uint64_t height,
                                  const std::string &nr_result,
                                  dip_float_t alpha, dip_float_t beta) {
 
@@ -52,7 +53,8 @@ std::string entry_point_dip_impl(uint64_t start_block, uint64_t end_block,
   return dip_reward::dip_info_to_json(*ret, meta_info);
 }
 
-void init_dip_params(uint64_t dip_start_block, uint64_t dip_block_interval,
+void init_dip_params(compatible_uint64_t dip_start_block,
+                     compatible_uint64_t dip_block_interval,
                      const std::string &dip_reward_addr,
                      const std::string &coinbase_addr) {
   neb::configuration::instance().dip_start_block() = dip_start_block;

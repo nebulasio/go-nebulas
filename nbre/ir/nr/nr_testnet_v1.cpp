@@ -20,7 +20,8 @@
 
 #include "runtime/nr/impl/nr_impl.h"
 
-std::string entry_point_nr(uint64_t start_block, uint64_t end_block) {
+std::string entry_point_nr(neb::compatible_uint64_t start_block,
+                           neb::compatible_uint64_t end_block) {
 
   if (start_block > end_block) {
     return std::string("{\"err\":\"start height must less than end height\"}");
@@ -38,13 +39,13 @@ std::string entry_point_nr(uint64_t start_block, uint64_t end_block) {
            ((0ULL + patch_version) << 48);
   };
 
-  int64_t a = 3000;
-  int64_t b = -1;
-  int64_t c = 6;
-  int64_t d = -9;
+  neb::compatible_int64_t a = 100;
+  neb::compatible_int64_t b = 2;
+  neb::compatible_int64_t c = 6;
+  neb::compatible_int64_t d = -9;
   neb::rt::nr::nr_float_t theta = 1;
   neb::rt::nr::nr_float_t mu = 1;
-  neb::rt::nr::nr_float_t lambda = 0.1;
+  neb::rt::nr::nr_float_t lambda = 2;
   return neb::rt::nr::entry_point_nr_impl(start_block, end_block,
                                           to_version_t(0, 0, 1), a, b, c, d,
                                           theta, mu, lambda);
