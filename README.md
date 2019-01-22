@@ -83,7 +83,7 @@ git checkout testnet
 3. Install dependencies packages.
     * all golang dependencies will be stored in ./vendor.
     * run `make dep` to install dependencies.
-    * If you failed to run this, please download our [vendor.tar.gz](http://ory7cn4fx.bkt.clouddn.com/vendor.tar.gz) directly.
+    * If you failed to run this, please download our [vendor.tar.gz](https://s3-us-west-1.amazonaws.com/develop-center/setup/vendor.tar.gz) directly.
 
 4. Install v8 libraries.
     * run `make deploy-v8`
