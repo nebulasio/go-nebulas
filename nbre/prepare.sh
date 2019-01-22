@@ -102,14 +102,18 @@ if [ ! -d $CUR_DIR/lib_llvm/include/llvm ]; then
     make -j$PARALLEL && make install
     cd ..
   fi
-  mkdir llvm-final-build
-  cd llvm-final-build
-  cmake -DCMAKE_C_COMPILER=$CUR_DIR/3rd_party/llvm-lib/bin/clang -DCMAKE_CXX_COMPILER=$CUR_DIR/3rd_party/nebclang -DCMAKE_CXX_FLAGS='-stdlib=libc++' -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib_llvm/ ../llvm-$LLVM_VERSION.src
-  make -j$PARALLEL && make install
+
+  if [ "$OS" = "Darwin" ]; then
+    mv $CUR_DIR/3rd_party/llvm-lib $CUR_DIR/lib_llvm
+  else
+    mkdir llvm-final-build
+    cd llvm-final-build
+    cmake -DCMAKE_C_COMPILER=$CUR_DIR/3rd_party/llvm-lib/bin/clang -DCMAKE_CXX_COMPILER=$CUR_DIR/3rd_party/nebclang -DCMAKE_CXX_FLAGS='-stdlib=libc++' -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib_llvm/ ../llvm-$LLVM_VERSION.src
+    make -j$PARALLEL && make install
+  fi
 fi
 
 export PATH=$CUR_DIR/lib_llvm/bin:$PATH
-#export CXX=$CUR_DIR/bin/nclang
 export CXX=$CUR_DIR/lib_llvm/bin/clang++
 export CC=$CUR_DIR/lib_llvm/bin/clang
 
@@ -238,7 +242,6 @@ if [ ! -d $CUR_DIR/lib/include/rocksdb ]; then
   cd $CUR_DIR/3rd_party/rocksdb
   export CXX=$CUR_DIR/lib_llvm/bin/clang++
   make clean
-  #make shared_lib -j$PARALLEL
   ROCKSDB_DISABLE_GFLAGS=On LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include LDFLAGS=-stdlib=libc++ make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
   export CXX=$CUR_DIR/bin/nclang
 fi
