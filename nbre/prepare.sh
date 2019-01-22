@@ -128,7 +128,10 @@ if [ ! -d $CUR_DIR/lib/include/boost ]; then
   ./b2 toolset=clang cxxflags="-stdlib=libc++ -I$CUR_DIR/lib_llvm/include/c++/v1" linkflags="-stdlib=libc++ -lc++ -lc++abi" -j$PARALLEL
   ./b2 install toolset=clang cxxflags="-stdlib=libc++ -I$CUR_DIR/lib_llvm/include/c++/v1" linkflags="-stdlib=libc++ -lc++ -lc++abi" --prefix=$CUR_DIR/lib/
 fi
-export CXX=$CUR_DIR/bin/nclang
+
+if [ "$OS" = "Linux" ]; then
+  export CXX=$CUR_DIR/bin/nclang
+fi
 
 #if [ -f $CUR_DIR/lib/include/boost/property_tree/detail/ptree_implementation.hpp ]; then
   #if [ ! -f $CUR_DIR/lib/include/boost/property_tree/detail/boost_ptree_rtti.patch ]; then
@@ -243,6 +246,9 @@ if [ ! -d $CUR_DIR/lib/include/rocksdb ]; then
   export CXX=$CUR_DIR/lib_llvm/bin/clang++
   make clean
   ROCKSDB_DISABLE_GFLAGS=On LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include LDFLAGS=-stdlib=libc++ make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
+fi
+
+if [ "$OS" = "Linux" ]; then
   export CXX=$CUR_DIR/bin/nclang
 fi
 
