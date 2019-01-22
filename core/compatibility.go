@@ -145,7 +145,7 @@ const (
 	LocalNvmGasLimitWithoutTimeoutAtHeight uint64 = 2
 
 	//LocalNetDipRewardHeight
-	LocalNetDipRewardHeight uint64 = 100
+	LocalNetDipRewardHeight uint64 = 2
 )
 
 // var for local/develop

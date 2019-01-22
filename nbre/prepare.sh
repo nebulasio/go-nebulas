@@ -21,10 +21,13 @@ CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" >/dev/null && pwd  )"
 #CUR_DIR="$( pwd )"
 OS="$(uname -s)"
 
+
 if [ "$OS" = "Darwin" ]; then
   LOGICAL_CPU=$(sysctl -n hw.ncpu)
+  DYLIB="dylib"
 else
   LOGICAL_CPU=$(cat /proc/cpuinfo |grep "processor"|wc -l)
+  DYLIB="so"
 fi
 
 PARALLEL=$LOGICAL_CPU
@@ -213,9 +216,9 @@ if [ ! -f $CUR_DIR/lib/include/zlib.h ]; then
 fi
 
 if [ ! -f $CUR_DIR/lib/include/zstd.h ]; then
-  if [ `check_install zstd` -eq 0 ]; then
+  # if [ `check_install zstd` -eq 0 ]; then
     build_with_make zstd
-  fi
+  # fi
 fi
 
 if [ ! -f $CUR_DIR/lib/include/bzlib.h ]; then
@@ -266,8 +269,8 @@ if [ ! -f $CUR_DIR/lib/bin/protoc ]; then
   make -j$PARALLEL && make install && make clean
 fi
 
-if [ ! -e $CUR_DIR/lib/lib/libc++.so ]; then
-  cp -f $CUR_DIR/lib_llvm/lib/libc++* $CUR_DIR/lib/lib/
+if [ ! -e $CUR_DIR/lib/lib/libc++.$DYLIB ]; then
+  cp -Rf $CUR_DIR/lib_llvm/lib/libc++* $CUR_DIR/lib/lib/
 fi
 
 if [ ! -f $CUR_DIR/lib/include/softfloat.h ]; then
