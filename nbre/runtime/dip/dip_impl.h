@@ -21,6 +21,7 @@
 #pragma once
 
 #include "common/math/softfloat.hpp"
+#include "runtime/stdrt.h"
 #include <string>
 
 namespace neb {
@@ -28,13 +29,16 @@ namespace rt {
 namespace dip {
 
 using dip_float_t = float32;
-using version_t = uint64_t;
-std::string entry_point_dip_impl(uint64_t start_block, uint64_t end_block,
-                                 version_t version, uint64_t height,
+using version_t = compatible_uint64_t;
+
+std::string entry_point_dip_impl(compatible_uint64_t start_block,
+                                 compatible_uint64_t end_block,
+                                 version_t version, compatible_uint64_t height,
                                  const std::string &nr_result,
                                  dip_float_t alpha, dip_float_t beta);
 
-void init_dip_params(uint64_t dip_start_block, uint64_t dip_block_interval,
+void init_dip_params(compatible_uint64_t dip_start_block,
+                     compatible_uint64_t dip_block_interval,
                      const std::string &dip_reward_addr,
                      const std::string &coinbase_addr);
 } // namespace dip

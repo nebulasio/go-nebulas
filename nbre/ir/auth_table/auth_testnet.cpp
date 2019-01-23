@@ -45,22 +45,22 @@ std::vector<row_t> entry_point_auth() {
   std::vector<row_t> auth_table = {
       std::make_tuple("nr", to_version_t(0, 0, 1),
                       std::string(admin_addr.begin(), admin_addr.end()),
-                      1540000ULL, 3000000ULL),
+                      1562800ULL, 3000000ULL),
       std::make_tuple("nr", to_version_t(0, 0, 2),
                       std::string(admin_addr.begin(), admin_addr.end()),
-                      1540000ULL, 3000000ULL),
+                      1562800ULL, 3000000ULL),
       std::make_tuple("nr", to_version_t(0, 0, 3),
                       std::string(admin_addr.begin(), admin_addr.end()),
-                      1540000ULL, 3000000ULL),
+                      1562800ULL, 3000000ULL),
       std::make_tuple("dip", to_version_t(0, 0, 1),
                       std::string(admin_addr.begin(), admin_addr.end()),
-                      1540000ULL, 3000000ULL),
+                      1562800ULL, 3000000ULL),
       std::make_tuple("dip", to_version_t(0, 0, 2),
                       std::string(admin_addr.begin(), admin_addr.end()),
-                      1540000ULL, 3000000ULL),
+                      1562800ULL, 3000000ULL),
       std::make_tuple("dip", to_version_t(0, 0, 3),
                       std::string(admin_addr.begin(), admin_addr.end()),
-                      1540000ULL, 3000000ULL)};
+                      1562800ULL, 3000000ULL)};
   return auth_table;
 }
 

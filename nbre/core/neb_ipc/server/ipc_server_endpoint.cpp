@@ -142,7 +142,7 @@ void ipc_server_endpoint::init_params(const nbre_params_t params) {
   auto s = std::chrono::system_clock::from_time_t(0);
   auto e = std::chrono::system_clock::now();
   auto cnt = std::chrono::duration_cast<std::chrono::seconds>(e - s).count();
-  cnt &= 0xffff;
+  cnt &= 0xff;
   neb::shm_configuration::instance().shm_name_identity() = std::to_string(cnt);
 }
 

@@ -76,7 +76,7 @@ set(jit_libs nbre_jit ${llvm_libs})
 set(fs_libs nbre_fs nbre_fs_proto bz2 z zstd snappy lz4)
 
 if(UNIX AND NOT APPLE)
-  set(common_libs ${common_libs} ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.a)
+  set(common_libs ${common_libs} ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.so)
   set(protobuf_lib ${PROJECT_SOURCE_DIR}/lib/lib/libprotobuf.so)
   set(cpp_lib ${PROJECT_SOURCE_DIR}/lib/lib/libc++.so)
   set(Boost_LIBRARIES
@@ -86,13 +86,13 @@ if(UNIX AND NOT APPLE)
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_graph.so
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_program_options.so)
   set(extra_libs
-    ${PROJECT_SOURCE_DIR}/lib/lib/libglog.a
+    ${PROJECT_SOURCE_DIR}/lib/lib/libglog.so
     ${PROJECT_SOURCE_DIR}/lib/lib/librocksdb.so.5
     rt
     bz2 z zstd snappy lz4
     )
 elseif(UNIX)
-  set(common_libs ${common_libs} ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.a)
+  set(common_libs ${common_libs} ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.dylib)
   set(protobuf_lib ${PROJECT_SOURCE_DIR}/lib/lib/libprotobuf.dylib)
   set(cpp_lib ${PROJECT_SOURCE_DIR}/lib/lib/libc++.dylib)
   set(Boost_LIBRARIES
@@ -102,8 +102,8 @@ elseif(UNIX)
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_graph.dylib
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_program_options.dylib)
   set(extra_libs
-    ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.a
-    ${PROJECT_SOURCE_DIR}/lib/lib/libglog.a
+    ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.dylib
+    ${PROJECT_SOURCE_DIR}/lib/lib/libglog.dylib
     ${PROJECT_SOURCE_DIR}/lib/lib/libbz2.1.dylib
     rocksdb z zstd snappy lz4) #TODO add rocksdb here
 endif()
@@ -119,7 +119,11 @@ file(GLOB_RECURSE nbre_fs_proto_src fs/proto/*.pb.cc)
 file(GLOB_RECURSE nbre_core_src core/*.cpp)
 
 add_library(nbre_rt SHARED ${nbre_jit_src} ${nbre_rt_src} ${nbre_common_src} ${nbre_fs_src} ${nbre_fs_proto_src} ${nbre_core_src})
-target_link_libraries(nbre_rt ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.a ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} ${extra_libs} ff softfloat c++)
+if(UNIX AND NOT APPLE)
+  target_link_libraries(nbre_rt ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.so ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} ${extra_libs} ff softfloat c++)
+elseif(UNIX)
+  target_link_libraries(nbre_rt ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.dylib ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} ${extra_libs} ff softfloat c++)
+endif()
 
 if(Release)
 else()

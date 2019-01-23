@@ -29,9 +29,11 @@ namespace neb {
 namespace rt {
 namespace nr {
 
-std::string entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
-                                version_t version, int64_t a, int64_t b,
-                                int64_t c, int64_t d, nr_float_t theta,
+std::string entry_point_nr_impl(compatible_uint64_t start_block,
+                                compatible_uint64_t end_block,
+                                version_t version, compatible_int64_t a,
+                                compatible_int64_t b, compatible_int64_t c,
+                                compatible_int64_t d, nr_float_t theta,
                                 nr_float_t mu, nr_float_t lambda) {
 
   std::string neb_db_path =

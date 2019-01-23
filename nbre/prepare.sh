@@ -21,10 +21,13 @@ CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" >/dev/null && pwd  )"
 #CUR_DIR="$( pwd )"
 OS="$(uname -s)"
 
+
 if [ "$OS" = "Darwin" ]; then
   LOGICAL_CPU=$(sysctl -n hw.ncpu)
+  DYLIB="dylib"
 else
   LOGICAL_CPU=$(cat /proc/cpuinfo |grep "processor"|wc -l)
+  DYLIB="so"
 fi
 
 PARALLEL=$LOGICAL_CPU
@@ -102,14 +105,18 @@ if [ ! -d $CUR_DIR/lib_llvm/include/llvm ]; then
     make -j$PARALLEL && make install
     cd ..
   fi
-  mkdir llvm-final-build
-  cd llvm-final-build
-  cmake -DCMAKE_C_COMPILER=$CUR_DIR/3rd_party/llvm-lib/bin/clang -DCMAKE_CXX_COMPILER=$CUR_DIR/3rd_party/nebclang -DCMAKE_CXX_FLAGS='-stdlib=libc++' -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib_llvm/ ../llvm-$LLVM_VERSION.src
-  make -j$PARALLEL && make install
+
+  if [ "$OS" = "Darwin" ]; then
+    mv $CUR_DIR/3rd_party/llvm-lib $CUR_DIR/lib_llvm
+  else
+    mkdir llvm-final-build
+    cd llvm-final-build
+    cmake -DCMAKE_C_COMPILER=$CUR_DIR/3rd_party/llvm-lib/bin/clang -DCMAKE_CXX_COMPILER=$CUR_DIR/3rd_party/nebclang -DCMAKE_CXX_FLAGS='-stdlib=libc++' -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib_llvm/ ../llvm-$LLVM_VERSION.src
+    make -j$PARALLEL && make install
+  fi
 fi
 
 export PATH=$CUR_DIR/lib_llvm/bin:$PATH
-#export CXX=$CUR_DIR/bin/nclang
 export CXX=$CUR_DIR/lib_llvm/bin/clang++
 export CC=$CUR_DIR/lib_llvm/bin/clang
 
@@ -124,7 +131,10 @@ if [ ! -d $CUR_DIR/lib/include/boost ]; then
   ./b2 toolset=clang cxxflags="-stdlib=libc++ -I$CUR_DIR/lib_llvm/include/c++/v1" linkflags="-stdlib=libc++ -lc++ -lc++abi" -j$PARALLEL
   ./b2 install toolset=clang cxxflags="-stdlib=libc++ -I$CUR_DIR/lib_llvm/include/c++/v1" linkflags="-stdlib=libc++ -lc++ -lc++abi" --prefix=$CUR_DIR/lib/
 fi
-export CXX=$CUR_DIR/bin/nclang
+
+if [ "$OS" = "Linux" ]; then
+  export CXX=$CUR_DIR/bin/nclang
+fi
 
 #if [ -f $CUR_DIR/lib/include/boost/property_tree/detail/ptree_implementation.hpp ]; then
   #if [ ! -f $CUR_DIR/lib/include/boost/property_tree/detail/boost_ptree_rtti.patch ]; then
@@ -168,6 +178,7 @@ build_with_configure(){
 build_with_make(){
   cd $CUR_DIR/3rd_party/$1
   make -j$PARALLEL && make install PREFIX=$CUR_DIR/lib/
+  make clean
 }
 
 
@@ -177,17 +188,16 @@ if [ ! -d $CUR_DIR/3rd_party/gflags ]; then
 fi
 if [ ! -d $CUR_DIR/lib/include/gflags/ ]; then
   cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-gflags $CUR_DIR/3rd_party/gflags/CMakeLists.txt
-  build_with_cmake gflags
-  build_with_cmake gflags -DBUILD_SHARED_LIBS=true
+  build_with_cmake gflags -DGFLAGS_NAMESPACE=google -DCMAKE_CXX_FLAGS=-fPIC -DBUILD_SHARED_LIBS=true
 fi
 
 if [ ! -d $CUR_DIR/lib/include/glog/ ]; then
   cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-glog $CUR_DIR/3rd_party/glog/CMakeLists.txt
-  build_with_cmake glog
+  build_with_cmake glog -DGFLAGS_NAMESPACE=google -DCMAKE_CXX_FLAGS=-fPIC -DBUILD_SHARED_LIBS=true
 fi
 if [ ! -d $CUR_DIR/lib/include/gtest/ ]; then
   cp $CUR_DIR/3rd_party/build_option_bak/CMakeList.txt-googletest $CUR_DIR/3rd_party/googletest/CMakeLists.txt
-  build_with_cmake googletest
+  build_with_cmake googletest -DGFLAGS_NAMESPACE=google -DCMAKE_CXX_FLAGS=-fPIC -DBUILD_SHARED_LIBS=true
 fi
 
 if [ ! -d $CUR_DIR/lib/include/ff/ ]; then
@@ -206,9 +216,9 @@ if [ ! -f $CUR_DIR/lib/include/zlib.h ]; then
 fi
 
 if [ ! -f $CUR_DIR/lib/include/zstd.h ]; then
-  if [ `check_install zstd` -eq 0 ]; then
+  # if [ `check_install zstd` -eq 0 ]; then
     build_with_make zstd
-  fi
+  # fi
 fi
 
 if [ ! -f $CUR_DIR/lib/include/bzlib.h ]; then
@@ -238,9 +248,11 @@ if [ ! -d $CUR_DIR/lib/include/rocksdb ]; then
 
   cd $CUR_DIR/3rd_party/rocksdb
   export CXX=$CUR_DIR/lib_llvm/bin/clang++
-  make clean
-  #make shared_lib -j$PARALLEL
   ROCKSDB_DISABLE_GFLAGS=On LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include LDFLAGS=-stdlib=libc++ make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
+  make clean
+fi
+
+if [ "$OS" = "Linux" ]; then
   export CXX=$CUR_DIR/bin/nclang
 fi
 
@@ -257,8 +269,8 @@ if [ ! -f $CUR_DIR/lib/bin/protoc ]; then
   make -j$PARALLEL && make install && make clean
 fi
 
-if [ ! -e $CUR_DIR/lib/lib/libc++.so ]; then
-  cp -f $CUR_DIR/lib_llvm/lib/libc++* $CUR_DIR/lib/lib/
+if [ ! -e $CUR_DIR/lib/lib/libc++.$DYLIB ]; then
+  cp -Rf $CUR_DIR/lib_llvm/lib/libc++* $CUR_DIR/lib/lib/
 fi
 
 if [ ! -f $CUR_DIR/lib/include/softfloat.h ]; then
