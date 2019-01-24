@@ -335,6 +335,7 @@ func nbreHandled(code C.int, holder unsafe.Pointer, result interface{}, handleEr
 
 // Stop stop nbre
 func (n *Nbre) Stop() {
+	logging.CLog().Info("Stopping Nbre.")
 	select {
 	case <-n.shutdown():
 		return
