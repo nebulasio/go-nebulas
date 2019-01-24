@@ -128,7 +128,7 @@ func (d *Dip) DipDelayRewardHeight() uint64 {
 	} else if chainID == core.TestNetID {
 		return 24 * 60 * 60 / 15
 	} else {
-		return 1
+		return 33
 	}
 }
 
