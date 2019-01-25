@@ -128,8 +128,8 @@ if [ ! -d $CUR_DIR/lib/include/boost ]; then
   cd boost_1_67_0
   ./bootstrap.sh --with-toolset=clang --prefix=$CUR_DIR/lib/
   ./b2 clean
-  ./b2 toolset=clang cxxflags="-stdlib=libc++ -I$CUR_DIR/lib_llvm/include/c++/v1" linkflags="-stdlib=libc++ -lc++ -lc++abi" -j$PARALLEL
-  ./b2 install toolset=clang cxxflags="-stdlib=libc++ -I$CUR_DIR/lib_llvm/include/c++/v1" linkflags="-stdlib=libc++ -lc++ -lc++abi" --prefix=$CUR_DIR/lib/
+  ./b2 toolset=clang cxxflags="-stdlib=libc++ -I$CUR_DIR/lib_llvm/include/c++/v1" linkflags="-stdlib=libc++ -lc++ -lc++abi" --with-date_time --with-graph --with-program_options --with-filesystem --with-system -j$PARALLEL
+  ./b2 install toolset=clang cxxflags="-stdlib=libc++ -I$CUR_DIR/lib_llvm/include/c++/v1" linkflags="-stdlib=libc++ -lc++ -lc++abi" --with-date_time --with-graph --with-program_options --with-filesystem --with-system --prefix=$CUR_DIR/lib/
 fi
 
 if [ "$OS" = "Linux" ]; then
