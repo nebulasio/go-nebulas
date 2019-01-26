@@ -54,11 +54,7 @@ namespace v8 {
  */
 class V8_EXPORT TracingCpuProfiler {
  public:
-  V8_DEPRECATE_SOON(
-      "The profiler is created automatically with the isolate.\n"
-      "No need to create it explicitly.",
-      static std::unique_ptr<TracingCpuProfiler> Create(Isolate*));
-
+  static std::unique_ptr<TracingCpuProfiler> Create(Isolate*);
   virtual ~TracingCpuProfiler() = default;
 
  protected:
@@ -291,13 +287,6 @@ class V8_EXPORT CpuProfiler {
   static CpuProfiler* New(Isolate* isolate);
 
   /**
-   * Synchronously collect current stack sample in all profilers attached to
-   * the |isolate|. The call does not affect number of ticks recorded for
-   * the current top node.
-   */
-  static void CollectSample(Isolate* isolate);
-
-  /**
    * Disposes the CPU profiler object.
    */
   void Dispose();
@@ -333,14 +322,12 @@ class V8_EXPORT CpuProfiler {
    * Recording the forced sample does not contribute to the aggregated
    * profile statistics.
    */
-  V8_DEPRECATED("Use static CollectSample(Isolate*) instead.",
-                void CollectSample());
+  void CollectSample();
 
   /**
    * Tells the profiler whether the embedder is idle.
    */
-  V8_DEPRECATED("Use Isolate::SetIdle(bool) instead.",
-                void SetIdle(bool is_idle));
+  void SetIdle(bool is_idle);
 
  private:
   CpuProfiler();
@@ -406,8 +393,7 @@ class V8_EXPORT HeapGraphNode {
                          // snapshot items together.
     kConsString = 10,    // Concatenated string. A pair of pointers to strings.
     kSlicedString = 11,  // Sliced string. A fragment of another string.
-    kSymbol = 12,        // A Symbol (ES6).
-    kBigInt = 13         // BigInt.
+    kSymbol = 12         // A Symbol (ES6).
   };
 
   /** Returns node type (see HeapGraphNode::Type). */
@@ -632,68 +618,6 @@ class V8_EXPORT AllocationProfile {
   static const int kNoColumnNumberInfo = Message::kNoColumnInfo;
 };
 
-/**
- * An object graph consisting of embedder objects and V8 objects.
- * Edges of the graph are strong references between the objects.
- * The embedder can build this graph during heap snapshot generation
- * to include the embedder objects in the heap snapshot.
- * Usage:
- * 1) Define derived class of EmbedderGraph::Node for embedder objects.
- * 2) Set the build embedder graph callback on the heap profiler using
- *    HeapProfiler::SetBuildEmbedderGraphCallback.
- * 3) In the callback use graph->AddEdge(node1, node2) to add an edge from
- *    node1 to node2.
- * 4) To represent references from/to V8 object, construct V8 nodes using
- *    graph->V8Node(value).
- */
-class V8_EXPORT EmbedderGraph {
- public:
-  class Node {
-   public:
-    Node() = default;
-    virtual ~Node() = default;
-    virtual const char* Name() = 0;
-    virtual size_t SizeInBytes() = 0;
-    /**
-     * The corresponding V8 wrapper node if not null.
-     * During heap snapshot generation the embedder node and the V8 wrapper
-     * node will be merged into one node to simplify retaining paths.
-     */
-    virtual Node* WrapperNode() { return nullptr; }
-    virtual bool IsRootNode() { return false; }
-    /** Must return true for non-V8 nodes. */
-    virtual bool IsEmbedderNode() { return true; }
-    /**
-     * Optional name prefix. It is used in Chrome for tagging detached nodes.
-     */
-    virtual const char* NamePrefix() { return nullptr; }
-
-   private:
-    Node(const Node&) = delete;
-    Node& operator=(const Node&) = delete;
-  };
-
-  /**
-   * Returns a node corresponding to the given V8 value. Ownership is not
-   * transferred. The result pointer is valid while the graph is alive.
-   */
-  virtual Node* V8Node(const v8::Local<v8::Value>& value) = 0;
-
-  /**
-   * Adds the given node to the graph and takes ownership of the node.
-   * Returns a raw pointer to the node that is valid while the graph is alive.
-   */
-  virtual Node* AddNode(std::unique_ptr<Node> node) = 0;
-
-  /**
-   * Adds an edge that represents a strong reference from the given node
-   * |from| to the given node |to|. The nodes must be added to the graph
-   * before calling this function.
-   */
-  virtual void AddEdge(Node* from, Node* to) = 0;
-
-  virtual ~EmbedderGraph() = default;
-};
 
 /**
  * Interface for controlling heap profiling. Instance of the
@@ -732,15 +656,6 @@ class V8_EXPORT HeapProfiler {
    */
   typedef RetainedObjectInfo* (*WrapperInfoCallback)(uint16_t class_id,
                                                      Local<Value> wrapper);
-
-  /**
-   * Callback function invoked during heap snapshot generation to retrieve
-   * the embedder object graph. The callback should use graph->AddEdge(..) to
-   * add references between the objects.
-   * The callback must not trigger garbage collection in V8.
-   */
-  typedef void (*BuildEmbedderGraphCallback)(v8::Isolate* isolate,
-                                             v8::EmbedderGraph* graph);
 
   /** Returns the number of snapshots taken. */
   int GetSnapshotCount();
@@ -881,16 +796,11 @@ class V8_EXPORT HeapProfiler {
   void DeleteAllHeapSnapshots();
 
   /** Binds a callback to embedder's class ID. */
-  V8_DEPRECATED(
-      "Use SetBuildEmbedderGraphCallback to provide info about embedder nodes",
-      void SetWrapperClassInfoProvider(uint16_t class_id,
-                                       WrapperInfoCallback callback));
+  void SetWrapperClassInfoProvider(
+      uint16_t class_id,
+      WrapperInfoCallback callback);
 
-  V8_DEPRECATED(
-      "Use SetBuildEmbedderGraphCallback to provide info about embedder nodes",
-      void SetGetRetainerInfosCallback(GetRetainerInfosCallback callback));
-
-  void SetBuildEmbedderGraphCallback(BuildEmbedderGraphCallback callback);
+  void SetGetRetainerInfosCallback(GetRetainerInfosCallback callback);
 
   /**
    * Default value of persistent handle class ID. Must not be used to
