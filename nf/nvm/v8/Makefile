@@ -20,8 +20,8 @@ CFLAGS=-DBUILDING_DLL -g -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unu
 CXXFLAGS=-DBUILDING_DLL -g -std=c++14 -DGOOGLE_PROTOBUF_NO_RTTI -fno-rtti -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result
 OUTPUT_DIR=pb/
 
-LDFLAGS	= -fvisibility=hidden -lgrpc -lgrpc++ -lgrpc++_cronet -lgrpc++_error_details -lgrpc++_reflection -lgrpc++_unsecure -lgrpc_cronet -lgrpc_unsecure -lglog -lprotobuf
-LIBS_PATH=
+LDFLAGS	= -fvisibility=hidden -lgrpc -lgrpc++ -lgrpc++_cronet -lgrpc++_error_details -lgrpc++_reflection -lgrpc++_unsecure -lgrpc_cronet -lgrpc_unsecure -lprotobuf
+LIBS_PATH= -L ./native_lib
 LIBS=-lpthread -lv8_libbase -lv8_libplatform -licui18n -licuuc
 
 ifeq ($(shell uname -s),Darwin)
@@ -40,9 +40,10 @@ else
 	DYLIB=.so
 	CFLAGS+=-I./include
 	CXXFLAGS+=-I./include
-	LIBS_PATH=-L/usr/local/v8/6.2.414.40/lib
-	LIBS+=-lv8
-	V8_BLOB_BIN_PATH=/usr/local/v8/6.2.414.40/bin
+        LDFLAGS+=-Wl,-dead_strip
+	LIB_LDFLAGS+=-current_version 1.0 -compatibility_version 1.0
+        #LDFLAGS+=-L./native_lib
+	LIBS+=-lv8_base -lv8_libsampler -lv8_external_snapshot
 endif
 
 .PHONY: engine v8_server clean v8_snapshot_bin install

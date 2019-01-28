@@ -529,8 +529,8 @@ void RunServer(const char* addr_str){
 
 int main(int argc, const char *argv[]) {
 
-  FLAGS_log_dir = "logs";
-  ::google::InitGoogleLogging(argv[0]);
+  //FLAGS_log_dir = "logs";
+  //::google::InitGoogleLogging(argv[0]);
 
   Initialization();
 

@@ -25,11 +25,15 @@
 
 #include "nvm.pb.h"
 
+#include <functional>
+#include <grpcpp/impl/codegen/async_generic_service.h>
 #include <grpcpp/impl/codegen/async_stream.h>
 #include <grpcpp/impl/codegen/async_unary_call.h>
+#include <grpcpp/impl/codegen/client_callback.h>
 #include <grpcpp/impl/codegen/method_handler_impl.h>
 #include <grpcpp/impl/codegen/proto_utils.h>
 #include <grpcpp/impl/codegen/rpc_method.h>
+#include <grpcpp/impl/codegen/server_callback.h>
 #include <grpcpp/impl/codegen/service_type.h>
 #include <grpcpp/impl/codegen/status.h>
 #include <grpcpp/impl/codegen/stub_options.h>
@@ -59,6 +63,12 @@ class NVMService final {
     std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::NVMDataRequest, ::NVMDataResponse>> PrepareAsyncSmartContractCall(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::NVMDataRequest, ::NVMDataResponse>>(PrepareAsyncSmartContractCallRaw(context, cq));
     }
+    class experimental_async_interface {
+     public:
+      virtual ~experimental_async_interface() {}
+      virtual void SmartContractCall(::grpc::ClientContext* context, ::grpc::experimental::ClientBidiReactor< ::NVMDataRequest,::NVMDataResponse>* reactor) = 0;
+    };
+    virtual class experimental_async_interface* experimental_async() { return nullptr; }
   private:
     virtual ::grpc::ClientReaderWriterInterface< ::NVMDataRequest, ::NVMDataResponse>* SmartContractCallRaw(::grpc::ClientContext* context) = 0;
     virtual ::grpc::ClientAsyncReaderWriterInterface< ::NVMDataRequest, ::NVMDataResponse>* AsyncSmartContractCallRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) = 0;
@@ -76,9 +86,21 @@ class NVMService final {
     std::unique_ptr<  ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMDataResponse>> PrepareAsyncSmartContractCall(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMDataResponse>>(PrepareAsyncSmartContractCallRaw(context, cq));
     }
+    class experimental_async final :
+      public StubInterface::experimental_async_interface {
+     public:
+      void SmartContractCall(::grpc::ClientContext* context, ::grpc::experimental::ClientBidiReactor< ::NVMDataRequest,::NVMDataResponse>* reactor) override;
+     private:
+      friend class Stub;
+      explicit experimental_async(Stub* stub): stub_(stub) { }
+      Stub* stub() { return stub_; }
+      Stub* stub_;
+    };
+    class experimental_async_interface* experimental_async() override { return &async_stub_; }
 
    private:
     std::shared_ptr< ::grpc::ChannelInterface> channel_;
+    class experimental_async async_stub_{this};
     ::grpc::ClientReaderWriter< ::NVMDataRequest, ::NVMDataResponse>* SmartContractCallRaw(::grpc::ClientContext* context) override;
     ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMDataResponse>* AsyncSmartContractCallRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) override;
     ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMDataResponse>* PrepareAsyncSmartContractCallRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) override;
@@ -104,7 +126,7 @@ class NVMService final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status SmartContractCall(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::NVMDataResponse, ::NVMDataRequest>* stream) final override {
+    ::grpc::Status SmartContractCall(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::NVMDataResponse, ::NVMDataRequest>* stream)  override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
@@ -113,6 +135,29 @@ class NVMService final {
     }
   };
   typedef WithAsyncMethod_SmartContractCall<Service > AsyncService;
+  template <class BaseClass>
+  class ExperimentalWithCallbackMethod_SmartContractCall : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service *service) {}
+   public:
+    ExperimentalWithCallbackMethod_SmartContractCall() {
+      ::grpc::Service::experimental().MarkMethodCallback(0,
+        new ::grpc::internal::CallbackBidiHandler< ::NVMDataRequest, ::NVMDataResponse>(
+          [this] { return this->SmartContractCall(); }));
+    }
+    ~ExperimentalWithCallbackMethod_SmartContractCall() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status SmartContractCall(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::NVMDataResponse, ::NVMDataRequest>* stream)  override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    virtual ::grpc::experimental::ServerBidiReactor< ::NVMDataRequest, ::NVMDataResponse>* SmartContractCall() {
+      return new ::grpc::internal::UnimplementedBidiReactor<
+        ::NVMDataRequest, ::NVMDataResponse>;}
+  };
+  typedef ExperimentalWithCallbackMethod_SmartContractCall<Service > ExperimentalCallbackService;
   template <class BaseClass>
   class WithGenericMethod_SmartContractCall : public BaseClass {
    private:
@@ -125,10 +170,52 @@ class NVMService final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status SmartContractCall(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::NVMDataResponse, ::NVMDataRequest>* stream) final override {
+    ::grpc::Status SmartContractCall(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::NVMDataResponse, ::NVMDataRequest>* stream)  override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
+  };
+  template <class BaseClass>
+  class WithRawMethod_SmartContractCall : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service *service) {}
+   public:
+    WithRawMethod_SmartContractCall() {
+      ::grpc::Service::MarkMethodRaw(0);
+    }
+    ~WithRawMethod_SmartContractCall() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status SmartContractCall(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::NVMDataResponse, ::NVMDataRequest>* stream)  override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestSmartContractCall(::grpc::ServerContext* context, ::grpc::ServerAsyncReaderWriter< ::grpc::ByteBuffer, ::grpc::ByteBuffer>* stream, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncBidiStreaming(0, context, stream, new_call_cq, notification_cq, tag);
+    }
+  };
+  template <class BaseClass>
+  class ExperimentalWithRawCallbackMethod_SmartContractCall : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service *service) {}
+   public:
+    ExperimentalWithRawCallbackMethod_SmartContractCall() {
+      ::grpc::Service::experimental().MarkMethodRawCallback(0,
+        new ::grpc::internal::CallbackBidiHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+          [this] { return this->SmartContractCall(); }));
+    }
+    ~ExperimentalWithRawCallbackMethod_SmartContractCall() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status SmartContractCall(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::NVMDataResponse, ::NVMDataRequest>* stream)  override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    virtual ::grpc::experimental::ServerBidiReactor< ::grpc::ByteBuffer, ::grpc::ByteBuffer>* SmartContractCall() {
+      return new ::grpc::internal::UnimplementedBidiReactor<
+        ::grpc::ByteBuffer, ::grpc::ByteBuffer>;}
   };
   typedef Service StreamedUnaryService;
   typedef Service SplitStreamedService;

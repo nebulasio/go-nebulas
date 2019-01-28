@@ -39,13 +39,14 @@
 #include <string.h>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #include <grpc/grpc.h>
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
 
-#include <glog/logging.h>
+//#include <glog/logging.h>
 
 #include "engine.h"
 #include "engine_int.h"

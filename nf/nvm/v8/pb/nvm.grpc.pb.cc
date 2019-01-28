@@ -5,12 +5,15 @@
 #include "nvm.pb.h"
 #include "nvm.grpc.pb.h"
 
+#include <functional>
 #include <grpcpp/impl/codegen/async_stream.h>
 #include <grpcpp/impl/codegen/async_unary_call.h>
 #include <grpcpp/impl/codegen/channel_interface.h>
 #include <grpcpp/impl/codegen/client_unary_call.h>
+#include <grpcpp/impl/codegen/client_callback.h>
 #include <grpcpp/impl/codegen/method_handler_impl.h>
 #include <grpcpp/impl/codegen/rpc_service_method.h>
+#include <grpcpp/impl/codegen/server_callback.h>
 #include <grpcpp/impl/codegen/service_type.h>
 #include <grpcpp/impl/codegen/sync_stream.h>
 
@@ -30,6 +33,10 @@ NVMService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel
 
 ::grpc::ClientReaderWriter< ::NVMDataRequest, ::NVMDataResponse>* NVMService::Stub::SmartContractCallRaw(::grpc::ClientContext* context) {
   return ::grpc::internal::ClientReaderWriterFactory< ::NVMDataRequest, ::NVMDataResponse>::Create(channel_.get(), rpcmethod_SmartContractCall_, context);
+}
+
+void NVMService::Stub::experimental_async::SmartContractCall(::grpc::ClientContext* context, ::grpc::experimental::ClientBidiReactor< ::NVMDataRequest,::NVMDataResponse>* reactor) {
+  ::grpc::internal::ClientCallbackReaderWriterFactory< ::NVMDataRequest,::NVMDataResponse>::Create(stub_->channel_.get(), stub_->rpcmethod_SmartContractCall_, context, reactor);
 }
 
 ::grpc::ClientAsyncReaderWriter< ::NVMDataRequest, ::NVMDataResponse>* NVMService::Stub::AsyncSmartContractCallRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) {
