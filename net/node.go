@@ -25,12 +25,12 @@ import (
 	"fmt"
 	"net"
 
-	crypto "github.com/libp2p/go-libp2p-crypto"
+	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p-crypto"
+	host "github.com/libp2p/go-libp2p-host"
 	libnet "github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
-	swarm "github.com/libp2p/go-libp2p-swarm"
-	"github.com/libp2p/go-libp2p/p2p/host/basic"
-	multiaddr "github.com/multiformats/go-multiaddr"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )
@@ -57,8 +57,9 @@ type Node struct {
 	context       context.Context
 	id            peer.ID
 	networkKey    crypto.PrivKey
-	network       *swarm.Network
-	host          *basichost.BasicHost
+	//network       inet.Network
+	multiaddrs    []multiaddr.Multiaddr
+	host          host.Host
 	streamManager *StreamManager
 	routeTable    *RouteTable
 }
@@ -126,9 +127,16 @@ func (node *Node) Stop() {
 
 func (node *Node) startHost() error {
 	// add nat manager
-	options := &basichost.HostOpts{}
-	options.NATManager = basichost.NewNATManager(node.network)
-	host, err := basichost.NewHost(node.context, node.network, options)
+	//options := &basichost.HostOpts{}
+	//options.NATManager = basichost.NewNATManager
+	//host, err := basichost.NewHost(node.context, node.swarm, options)
+	opts := []libp2p.Option{
+		libp2p.ListenAddrs(node.multiaddrs...),
+		libp2p.Identity(node.networkKey),
+		libp2p.Peerstore(node.routeTable.peerStore),
+		libp2p.NATPortMap(),
+	}
+	host, err := libp2p.New(node.context, opts...)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"err":            err,
@@ -138,13 +146,14 @@ func (node *Node) startHost() error {
 	}
 
 	host.SetStreamHandler(NebProtocolID, node.onStreamConnected)
+	//node.network = host.Network()
 	node.host = host
 
 	return nil
 }
 
 func (node *Node) stopHost() {
-	node.network.Close()
+	//node.network.Close()
 
 	if node.host == nil {
 		return
@@ -244,23 +253,24 @@ func initP2PSwarmNetwork(config *Config, node *Node) error {
 
 		multiaddrs[idx] = addr
 	}
+	node.multiaddrs = multiaddrs
 
-	network, err := swarm.NewNetwork(
-		node.context,
-		multiaddrs,
-		node.id,
-		node.routeTable.peerStore,
-		nil, // TODO: @robin integrate metrics.Reporter.
-	)
-	if err != nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"err":            err,
-			"listen address": config.Listen,
-			"node.id":        node.id.Pretty(),
-		}).Error("Failed to create swarm network.")
-		return err
-	}
-	node.network = network
+	//swarm := swarm.NewSwarm(
+	//	node.context,
+	//	node.id,
+	//	node.routeTable.peerStore,
+	//	nil, // TODO: @robin integrate metrics.Reporter.
+	//)
+	//if err := swarm.Listen(multiaddrs...); err != nil {
+	//	logging.CLog().WithFields(logrus.Fields{
+	//		"err":    err,
+	//		"addr": multiaddrs,
+	//	}).Error("Failed to listen addr.")
+	//	swarm.Close()
+	//	return err
+	//}
+
+	//node.network = swarm
 	return nil
 }
 

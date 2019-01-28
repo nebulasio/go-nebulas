@@ -38,6 +38,7 @@ import (
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 	peer "github.com/libp2p/go-libp2p-peer"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -65,7 +66,7 @@ type RouteTable struct {
 func NewRouteTable(config *Config, node *Node) *RouteTable {
 	table := &RouteTable{
 		quitCh:                   make(chan bool, 1),
-		peerStore:                peerstore.NewPeerstore(),
+		peerStore:                pstoremem.NewPeerstore(),
 		maxPeersCountForSyncResp: MaxPeersCountForSyncResp,
 		maxPeersCountToSync:      config.MaxSyncNodes,
 		cacheFilePath:            path.Join(config.RoutingTableDir, RouteTableCacheFileName),
@@ -211,7 +212,7 @@ func (table *RouteTable) AddPeerStream(s *Stream) {
 
 // RemovePeerStream remove peerStream from peerStore.
 func (table *RouteTable) RemovePeerStream(s *Stream) {
-	table.peerStore.AddAddr(s.pid, s.addr, 0)
+	table.peerStore.ClearAddrs(s.pid)
 	table.routeTable.Remove(s.pid)
 	table.onRouteTableChange()
 }

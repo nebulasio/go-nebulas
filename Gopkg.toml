@@ -16,62 +16,94 @@
 #   branch = "dev"
 #   source = "github.com/myfork/project2"
 #
-# [[override]]
+# [[constraint]]
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
+required = [
+"github.com/ipfs/go-detect-race",
+"github.com/ipfs/go-ipfs-util",
+"github.com/ipfs/go-log",
+"github.com/jbenet/goprocess",
+"github.com/libp2p/go-conn-security",
+"github.com/libp2p/go-conn-security-multistream",
+"github.com/libp2p/go-libp2p-blankhost",
+"github.com/libp2p/go-libp2p-circuit",
+"github.com/libp2p/go-libp2p-interface-connmgr",
+"github.com/libp2p/go-libp2p-interface-pnet",
+"github.com/libp2p/go-libp2p-loggables",
+"github.com/libp2p/go-libp2p-metrics",
+"github.com/libp2p/go-libp2p-nat",
+"github.com/libp2p/go-libp2p-netutil",
+"github.com/libp2p/go-libp2p-protocol",
+"github.com/libp2p/go-libp2p-secio",
+"github.com/libp2p/go-libp2p-transport",
+"github.com/libp2p/go-libp2p-transport-upgrader",
+"github.com/libp2p/go-maddr-filter",
+"github.com/libp2p/go-stream-muxer",
+"github.com/libp2p/go-tcp-transport",
+"github.com/libp2p/go-testutil",
+"github.com/libp2p/go-ws-transport",
+"github.com/multiformats/go-multiaddr-dns",
+"github.com/multiformats/go-multiaddr-net",
+"github.com/multiformats/go-multistream",
+"github.com/whyrusleeping/go-smux-multiplex",
+"github.com/whyrusleeping/go-smux-multistream",
+"github.com/whyrusleeping/go-smux-yamux",
+"github.com/whyrusleeping/mdns",
+"github.com/libp2p/go-libp2p-autonat",
+"github.com/libp2p/go-libp2p-discovery",
+"github.com/libp2p/go-libp2p-routing"]
+
+ignored = ["github.com/google/protobuf/examples*", "github.com/multiformats/go-multihash/test/sharness/bin"]
+
 [[constraint]]
   name = "github.com/sirupsen/logrus"
-  version = "1.0.3"
+  version = "v1.0.3"
 
 [[constraint]]
   name = "github.com/urfave/cli"
-  version ="1.19.1"
-  
+  version = "v1.19.1"
+
 
 [[constraint]]
+  name = "github.com/grpc/grpc-go"
+  version = "v1.16.0"
+
+
+[[constraint]]
+  name = "github.com/nebulasio/grpc-gateway"
   branch = "master"
-  name = "golang.org/x/text"
 
 
 [[constraint]]
-  name = "github.com/libp2p/go-sockaddr"
-  revision = "9ad2a49ab6a4f3e1ac08dffb3aa1f110dc062807"
+  name = "github.com/tecbot/gorocksdb"
+  revision = "3e476152774442234f9a9f747386a48a1d82a515"
 
 
 [[constraint]]
-  name = "github.com/libp2p/go-reuseport"
-  revision = "7b4e9d23b569c604ed9be4439a2e9ada26774b4f"
+  name = "github.com/libp2p/go-libp2p"
+  revision = "768598b353be264ce8420be6353d753a654967ee"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-stream-muxer"
-  revision = "e6b4fb7fef2a9e5189d463a7c661df5e6825177b"
-
-
-[[constraint]]
-  name = "github.com/gxed/eventfd"
-  revision = "61a199b93bf9d53c2ee26131d0ab691e8c637bc1"
+  revision = "740c590020d83cffa5a092f6a08901ff0d96cc93"
 
 
 [[constraint]]
   name = "github.com/whyrusleeping/go-smux-multistream"
-  revision = "afa6825376c14a0462fd420a7d4b4d157c937a42"
+  revision = "e799b10bc6eea2cc5ce18f7b7b4d8e1a0439476d"
 
 
 [[constraint]]
   name = "github.com/ipfs/go-ipfs-util"
-  revision = "ecb455b230ce7cb40510186fa723aa19af133aaf"
-
-
-[[constraint]]
-  name = "github.com/multiformats/go-multicodec-packed"
-  revision = "0ee69486dc1c9087aacfcc575e333f305009997e"
+  revision = "05b6094b6fa9c1e49b4b941061fdc147db1a21b7"
 
 
 [[constraint]]
   name = "github.com/ipfs/go-log"
-  revision = "c4ea31a0acafb2a0b2ee04c09901dcda86938acf"
+  revision = "de9a213953d6ec0e053b56e9d79800565c3fc9ca"
 
 
 [[constraint]]
@@ -81,27 +113,22 @@
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-host"
-  revision = "75df99651313a12e380c25eb359856d6bcc3c332"
+  revision = "735fd0a7fb546a35b903c8eae76b9184fcb6870c"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-crypto"
-  revision = "e89e1de117dd65c6129d99d1d853f48bc847cf17"
-
-
-[[constraint]]
-  name = "github.com/whyrusleeping/yamux"
-  revision = "74057c4936c275b645fd51200c33a9c8a223be61"
+  revision = "3120e9f9526fe05f2d3905961a5e0701b85579d9"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-blankhost"
-  revision = "5367619115fde9b9b754ba2be454922bc76cbcab"
+  revision = "aad3e0bcd0c2df6a8ae4d319a23ef0e003b5a1f8"
 
 
 [[constraint]]
   name = "github.com/multiformats/go-multiaddr-dns"
-  revision = "87ed7a0467713ec4204e073168e6e5adbed936de"
+  revision = "b3d6340f0777006db9e16e2817745c52fd64a500"
 
 
 [[constraint]]
@@ -111,187 +138,149 @@
 
 [[constraint]]
   name = "github.com/multiformats/go-multiaddr"
-  revision = "fb72fb2a8ef8fa11c7955820a2c5f9600b279c58"
+  revision = "8c3eb5dc1c12c5723d5b1d7de82abfa0e6f719d7"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-ws-transport"
-  revision = "de6160a1d0a6c2df87ed00dd607353fb33932e48"
+  revision = "cf837a525caf2b39044564847d8cf04b7734717c"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-metrics"
-  revision = "1ac87496e992290629575655bea4330dd4ab211e"
+  revision = "623fc2e95e2bd3143caa442b03121b60cc45b76d"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-swarm"
-  revision = "0c514e78b69fa48d1332d0fd252c83cf67724b87"
-
-
-[[constraint]]
-  name = "github.com/whyrusleeping/multiaddr-filter"
-  revision = "e903e4adabd70b78bc9293b6ee4f359afb3f9f59"
-
-
-[[constraint]]
-  name = "github.com/whyrusleeping/mafmt"
-  revision = "eb83a9b122d2a8d5ef0a7c4bbe42b2ac86f56017"
-
-
-[[constraint]]
-  name = "github.com/libp2p/go-libp2p-interface-conn"
-  revision = "e4aa48663dcc3f94df3e268ff986214ceb50fc96"
+  revision = "4aa22e840e2abc934b768c315f284dfa8a7fb2b7"
 
 
 [[constraint]]
   name = "github.com/whyrusleeping/mdns"
-  revision = "4c28b994c607f53e0ed4e40a2bb2c1b5a13290ef"
+  revision = "abf6f240934d687d4dff1c31dfbf94c28be9efda"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-secio"
-  revision = "0cdc8339ad2e4f7f32e67b6a481bfbd48be5c704"
+  revision = "a32a62ac3b6290558da74665995ce8cd0a891b6d"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-tcp-transport"
-  revision = "67ea83433b542708c50b1fb76bc1e5e3a5a4c3f1"
-
-
-[[constraint]]
-  name = "github.com/ipfs/go-cid"
-  revision = "1805dd530f03dcdf288e47db67f5dd556736f677"
+  revision = "b798b13b16f2e0bd49085c8cd4f5f83394d8a8ab"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-interface-connmgr"
-  revision = "2d407456dc007099a2eebf82037f645160952655"
-
-
-[[constraint]]
-  name = "github.com/whyrusleeping/go-smux-spdystream"
-  revision = "99ef171dcd9ac9c7324f49c11cc22fc088eb2552"
+  revision = "c31495968b1bb44bd8a59d5cb33369186611771b"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-peerstore"
-  revision = "89838b9577a2b83eb3e1632c162cfd0daeee58e3"
+  revision = "23d213ec8cefd793a3ec50b4198f91974ec9e70b"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-maddr-filter"
-  revision = "4e9ea17d7a48d63e00b22a953357d1a335f80cf3"
+  revision = "d7110fe4b673d43d05960985eb0d04e69c02f896"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-netutil"
-  revision = "df6691c28d0ccfe3992a767cad9884c79ee46a4f"
+  revision = "52aaa5543b0fc6baa29a45637e25f722c570ff05"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-circuit"
-  revision = "4730183d80def7bc574e1b486b1f6e97a5c67bb9"
+  revision = "fd7f6bb06d860a8d1cc9e4beef28b95d7dce2c12"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-peer"
-  revision = "bbf6c212429f9c279d99a91d2e5fd3fa8f06b0f9"
-
-
-[[constraint]]
-  name = "github.com/whyrusleeping/base32"
-  revision = "040256406660c57e043d6cc8a9406d20c4fc7277"
+  revision = "403c53bf57131cd1c76719d7e0f33fccd2da1d1d"
 
 
 [[constraint]]
   name = "github.com/whyrusleeping/go-smux-yamux"
-  revision = "c6704f34736883e7ab16087389d0744b07874821"
-
-
-[[constraint]]
-branch = "master"
-name = "golang.org/x/net"
-
-
-[[constraint]]
-branch = "master"
-name = "golang.org/x/crypto"
+  revision = "49458276a01f7fbc32ff62c8955fa3e852b8e772"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-transport"
-  revision = "ae93d86e1214ac0e6b86c27ab6c4853770918914"
-
-
-[[constraint]]
-  name = "github.com/libp2p/go-addr-util"
-  revision = "61d2b1ec65eba87a3606f2b3cacec114371b6c75"
-
-
-[[constraint]]
-  name = "github.com/whyrusleeping/go-notifier"
-  revision = "8d81c69ca17629313f595a9f379cf9b10e6a540b"
-
-
-[[constraint]]
-branch = "master"
-name = "golang.org/x/sys"
+  revision = "b3d7bd1776a317359453dc4e09f77be2462997c9"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-testutil"
-  revision = "40d1a32d274aa51c4014f68ff140eab5a01aaaf2"
-
-
-[[constraint]]
-  name = "github.com/multiformats/go-multibase"
-  revision = "dfd5076869faca5aed2886dcba60b44a0d0e9c01"
+  revision = "69a25531324f71977a4f6018fb59fa1c81f6d717"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-nat"
-  revision = "22f3bbcb92c0542889c1ccad062e9157de062ffe"
-
-
-[[constraint]]
-  name = "github.com/libp2p/go-msgio"
-  revision = "fa984f54d57f20970aac9309a89a7ea40821f67c"
+  revision = "9c68cc84c7a70c48a417ff4c9c4aabf498e93742"
 
 
 [[constraint]]
   name = "github.com/multiformats/go-multistream"
-  revision = "661a0b9a0e6d9e99e4552c431b0eb82f58fde5b3"
-
-[[constraint]]
-  name = "github.com/gxed/hashland"
-  revision = "d9f6b97f8db22dd1e090fd0bbbe98f09cc7dd0a8"
-
-[[constraint]]
-  name = "github.com/multiformats/go-multihash"
-  revision = "468a1b73e980e5aff011d308623e43e28c582b16"
+  revision = "0e509f6b999d3be262c0702d25fe868c77de1565"
 
 
 [[constraint]]
   name = "github.com/multiformats/go-multiaddr-net"
-  revision = "4ce984eed7a8f77535ce5d267d0a21bd5a3d8363"
+  revision = "c75d1cac17a0d84dbf8b2c53c61f0ebf0575183a"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-loggables"
-  revision = "6e6fb87d3d931c325ac557a00c24ec08e8aec3bf"
-
-
-[[constraint]]
-  name = "github.com/libp2p/go-libp2p-conn"
-  revision = "cac05849bae7557fcad8e3f42cc03c89bad45fb1"
+  revision = "57c325e76872c4459207a136f5310fcdaf0d7899"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-interface-pnet"
-  revision = "5f0531425ec87d70c89f255de3bd96701dfcf562"
+  revision = "3eda0a328422c06235501df5be481e4b51edc7cf"
 
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-net"
-  revision = "f4c6c7b7bcf224f75bc9bd547b83aaf9d2655dc3"
+  revision = "eeeb1a3aa9bcd523d3319db97b54e6d9bd607ced"
+
+
+[[constraint]]
+  name = "github.com/ipfs/go-detect-race"
+  revision = "5ea9f55c8a669394da8ff8f23e217366098bf5b6"
+
+
+[[constraint]]
+  name = "github.com/whyrusleeping/go-smux-multiplex"
+  revision = "c9680d872b8e73a2fc8d9bba3eacabf1e8add80d"
+
+
+[[constraint]]
+  name = "github.com/libp2p/go-conn-security-multistream"
+  revision = "eb108e0882d551a411b1c615ea755e3029354b78"
+
+
+[[constraint]]
+  name = "github.com/libp2p/go-conn-security"
+  revision = "4bd49438bc6d6b9cc7343d3bb36e878cf7d1138e"
+
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-transport-upgrader"
+  revision = "c70e773d05162124ac32cece7b2c3756832e5756"
+
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-autonat"
+  revision = "0877e8d474b5e1d69aed583dda3b9ba992978ba1"
+
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-discovery"
+  revision = "dd03021a71b32b1efb6dc5d1cc6127c69ce73a3c"
+
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-routing"
+  revision = "4e8066d30291d90c8f25ae14152faffaf473839f"
