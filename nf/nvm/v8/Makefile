@@ -16,20 +16,23 @@
 # along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-CFLAGS=-DBUILDING_DLL -g -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O3
-CXXFLAGS=-DBUILDING_DLL -g -std=c++14 -DGOOGLE_PROTOBUF_NO_RTTI -fno-rtti -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result
+CFLAGS=-DBUILDING_DLL -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O3
+CXXFLAGS=-DBUILDING_DLL -std=c++14 -DGOOGLE_PROTOBUF_NO_RTTI -fno-rtti -fPIC -m64 -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O3
 OUTPUT_DIR=pb/
 
-LDFLAGS	= -fvisibility=hidden -lgrpc -lgrpc++ -lgrpc++_cronet -lgrpc++_error_details -lgrpc++_reflection -lgrpc++_unsecure -lgrpc_cronet -lgrpc_unsecure -lprotobuf
-LIBS_PATH= -L ./native_lib
-LIBS=-lpthread -lv8_libbase -lv8_libplatform -licui18n -licuuc
+LDFLAGS=-fvisibility=hidden 
+LIBS_PATH=
+LIBS=-lgrpc++ -lgrpc++_error_details -lprotobuf -lpthread -lv8_libbase -lv8_libplatform -licui18n -licuuc
 
 ifeq ($(shell uname -s),Darwin)
 	CC=clang
 	CXX=clang++
 	LD=clang++
 	DYLIB=.dylib
+	CFLAGS+=-I./include
+	CXXFLAGS+=-I./include
 	LDFLAGS+=-Wl,-dead_strip
+	LIBS_PATH+=-L../native-lib/osx
 	LIB_LDFLAGS+=-current_version 1.0 -compatibility_version 1.0
 	LIBS+=-lv8_base -lv8_libsampler -lv8_external_snapshot
 	V8_BLOB_BIN_PATH=/usr/local/opt/v8/bin
@@ -40,9 +43,8 @@ else
 	DYLIB=.so
 	CFLAGS+=-I./include
 	CXXFLAGS+=-I./include
-        LDFLAGS+=-Wl,-dead_strip
+  LDFLAGS+=-Wl,-dead_strip
 	LIB_LDFLAGS+=-current_version 1.0 -compatibility_version 1.0
-        #LDFLAGS+=-L./native_lib
 	LIBS+=-lv8_base -lv8_libsampler -lv8_external_snapshot
 endif
 
