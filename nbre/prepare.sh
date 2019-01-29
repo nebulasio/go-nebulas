@@ -223,19 +223,10 @@ fi
 
 if [ ! -f $CUR_DIR/lib/include/bzlib.h ]; then
   cd $CUR_DIR/3rd_party/bzip2-1.0.6
-  case $OS in
-    'Linux')
-      BZLib="so"
-      ;;
-    'Darwin')
-      BZLib="dylib"
-      ;;
-    *) ;;
-  esac
-  cp -f ../Makefile-libbz2_$BZLib ./
-  make -j$PARALLEL -f Makefile-libbz2_$BZLib && make -f Makefile-libbz2_$BZLib install PREFIX=$CUR_DIR/lib/ && make -f Makefile-libbz2_$BZLib clean
-  rm -rf Makefile-libbz2_$BZLib
-  git checkout .
+  cp -f ../Makefile-libbz2_$DYLIB ./
+  make -j$PARALLEL -f Makefile-libbz2_$DYLIB && make -f Makefile-libbz2_$DYLIB install PREFIX=$CUR_DIR/lib/ && make -f Makefile-libbz2_$DYLIB clean
+#  rm -rf Makefile-libbz2_$DYLIB
+#  git checkout .
 fi
 
 if [ ! -f $CUR_DIR/lib/include/lz4.h ]; then
@@ -276,7 +267,7 @@ fi
 if [ ! -f $CUR_DIR/lib/include/softfloat.h ]; then
   cd $CUR_DIR/3rd_party/SoftFloat-3e/build/Linux-x86_64-GCC/
   make -j$PARALLEL
-  cp libsoftfloat.so $CUR_DIR/lib/lib/
+  cp libsoftfloat.so $CUR_DIR/lib/lib/libsoftfloat.$DYLIB
   cp ../../source/include/softfloat.h $CUR_DIR/lib/include/
   cp ../../source/include/softfloat_types.h $CUR_DIR/lib/include/
   make clean

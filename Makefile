@@ -48,7 +48,7 @@ endif
 
 NBRELIB := nbre/lib/lib
 ifeq ($(NBRELIB),$(wildcard $(NBRELIB)))
-	CGO_CFLAGS=CGO_CFLAGS="-I/$(CURRENT_DIR)/nbre/lib/include -g -O2"
+	CGO_CFLAGS=CGO_CFLAGS="-I$(CURRENT_DIR)/nbre/lib/include -g -O2"
 	CGO_LDFLAGS=CGO_LDFLAGS="-L$(CURRENT_DIR)/nbre/lib/lib -lrocksdb -lc++ -lgflags -lm -lz -lbz2 -lsnappy -llz4 -lzstd -g -O2"
 else
 	CGO_CFLAGS=
@@ -75,11 +75,6 @@ all: clean vet fmt lint build test
 dep:
 	$(DEPINSTALL) dep ensure -v
 
-deploy-libs:
-	$(INSTALL) nf/nvm/native-lib/*$(DYLIB) /usr/local/lib/
-	$(INSTALL) native-lib/*$(DYLIB) /usr/local/lib/
-	$(LDCONFIG)
-
 deploy-v8:
 	$(INSTALL) nf/nvm/native-lib/*$(DYLIB) /usr/local/lib/
 	$(LDCONFIG)
@@ -88,7 +83,7 @@ deploy-nbre:
 	$(INSTALL) nf/nbre/native/*$(DYLIB) /usr/local/lib/
 	$(LDCONFIG)
 
-deploy: deploy-libs deploy-v8 deploy-nbre
+deploy: deploy-v8 deploy-nbre
 
 undeploy:
 	-rm -f /usr/local/lib/libnebulas*

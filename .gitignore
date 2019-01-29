@@ -4,6 +4,7 @@ profile/
 
 # vendor dir.
 vendor
+vendor.*
 
 # ide files.
 .idea
@@ -16,7 +17,6 @@ vendor
 neb
 neb-*
 cmd/network/network
-nebulas_crashreporter
 !cmd/neb
 debug
 cmd/console/neb.js/dist/
