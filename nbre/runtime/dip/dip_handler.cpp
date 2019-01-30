@@ -132,11 +132,43 @@ void dip_handler::start(neb::block_height_t height,
   });
 }
 
+std::string
+dip_handler::get_dip_reward_when_missing(neb::block_height_t height) {
+
+  block_height_t dip_start_block =
+      neb::configuration::instance().dip_start_block();
+  block_height_t dip_block_interval =
+      neb::configuration::instance().dip_block_interval();
+
+  if (height < dip_start_block + dip_block_interval) {
+    return boost::str(boost::format("{\"err\":\"available height is %1%\"}") %
+                      (dip_start_block + dip_block_interval));
+  }
+
+  uint64_t interval_nums = (height - dip_start_block) / dip_block_interval;
+  uint64_t hash_height = dip_start_block + dip_block_interval * interval_nums;
+
+  std::string nbre_db_dir =
+      neb::core::ipc_configuration::instance().nbre_db_dir();
+  neb::fs::storage_open_flag open_flag = neb::fs::storage_open_for_readonly;
+  std::unique_ptr<neb::fs::rocksdb_storage> rs =
+      std::make_unique<neb::fs::rocksdb_storage>();
+  rs->open_database(nbre_db_dir, open_flag);
+  start(hash_height, rs.get());
+  rs->close_database();
+
+  return std::string("{\"err\":\"dip reward missing, wait to restart\"}");
+}
+
 std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   std::unique_lock<std::mutex> _l(m_sync_mutex);
 
   if (!m_has_curr) {
     return std::string("{\"err\":\"dip params not init yet\"}");
+  }
+
+  if (m_dip_reward.empty()) {
+    return get_dip_reward_when_missing(height);
   }
 
   if (!m_dip_reward.empty() && height < m_dip_reward.begin()->first) {
