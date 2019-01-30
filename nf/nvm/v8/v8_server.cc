@@ -81,6 +81,7 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
         InjectTracingInstructions(e, data, &lineOffset, strict_disallow_usage);
     if (traceableSource == nullptr) {
       LogErrorf("Inject tracing instructions failed.\n");
+      fprintf(stderr, "Inject tracing instructions failed.\n");
     } else {
       char *out = nullptr;
       int ret = RunScriptSource(&out, e, traceableSource, lineOffset,
@@ -89,12 +90,17 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
         free(traceableSource);
 
       LogInfof("[V8] Execution ret = %d, out = %s\n", ret, out);
+      fprintf(stderr, "[V8] Execution ret = %d, out = %s\n", ret, out);
+
       if(out != nullptr)
         free(out);
 
       ret = IsEngineLimitsExceeded(e);
       if (ret) {
         LogErrorf("[V8Error] Exceed %s limits, ret = %d\n",
+                ret == 1 ? "Instructions" : "Memory", ret);
+
+        fprintf(stderr, "[V8Error] Exceed %s limits, ret = %d\n",
                 ret == 1 ? "Instructions" : "Memory", ret);
       }
 
@@ -147,6 +153,8 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
     int ret = RunScriptSource(&out, e, data, lineOffset, (uintptr_t)lcsHandler,
                               (uintptr_t)gcsHandler);
     LogInfof("[V8] Execution ret = %d, out = %s\n", ret, out);
+    fprintf(stderr, "[V8] Execution ret = %d, out = %s\n", ret, out);
+
     if(out != nullptr)
       free(out);
   }
@@ -176,6 +184,7 @@ void Initialization(){
   Initialize();
   InitializeLogger(logFunc);
   InitializeRequireDelegate(RequireDelegateFunc, AttachLibVersionDelegateFunc);
+
   InitializeExecutionEnvDelegate(AttachLibVersionDelegateFunc);
   InitializeStorage(StorageGet, StoragePut, StorageDel);
   InitializeBlockchain(GetTxByHash, GetAccountState, Transfer, VerifyAddress, GetPreBlockHash, GetPreBlockSeed);
@@ -205,8 +214,10 @@ char *InjectTracingInstructionsThread(V8Engine *e, const char *source,
   memset(&ctx, 0x00, sizeof(ctx));
   SetRunScriptArgs(&ctx, e, INSTRUCTION, source, *source_line_offset, allow_usage);
 	bool btn = CreateScriptThread(&ctx);
+  std::cout<<">>>>>> Finishing injecting tracing instructions thread"<<std::endl;
   if (btn == false) {
     LogErrorf("Failed to create script thread");
+    fprintf(stderr, "Failed to create script thread");
     return nullptr;
   }
   *source_line_offset = ctx.output.line_offset;
@@ -255,6 +266,7 @@ void *ExecuteThread(void *args) {
     ctx->output.ret = Execute(&ctx->output.result, ctx->e, ctx->input.source, ctx->input.line_offset, (void *)ctx->input.lcs,
                 (void *)ctx->input.gcs, ExecuteSourceDataDelegate, nullptr);
     LogInfof("iRtn:%d--result:%s\n", ctx->output.ret, ctx->output.result);
+    fprintf(stderr, "iRtn:%d--result:%s\n", ctx->output.ret, ctx->output.result);
   }
 
   ctx->is_finished = true;
@@ -272,11 +284,13 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
   int rtn = gettimeofday(&tcBegin, nullptr);
   if (rtn != 0) {
     LogErrorf("CreateScriptThread get start time err:%d\n", rtn);
+    fprintf(stderr, "CreateScriptThread get start time err:%d\n", rtn);
     return false;
   }
   rtn = pthread_create(&thread, &attribute, ExecuteThread, (void *)ctx);
   if (rtn != 0) {
     LogErrorf("CreateScriptThread pthread_create err:%d\n", rtn);
+    fprintf(stderr, "CreateScriptThread pthread_create err:%d\n", rtn);
     return false;
   }
   
@@ -288,7 +302,6 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
   //thread safe
   while(1) {
     if (ctx->is_finished == true) {
-        
         std::cout<<"@@@@@@@@ finish flag is set to be true ONE"<<std::endl;
         if (is_kill == true) {
           std::cout<<"@@@@@@@@ finish flag is set to be true TWO"<<std::endl;
@@ -308,20 +321,18 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
       if (diff >= timeout && is_kill == false) {
         std::cout<<"%%%%%%%%%%%% checking termination condition"<<std::endl;
         LogErrorf("CreateScriptThread timeout timeout:%d diff:%d\n", timeout, diff);
+        fprintf(stderr, "CreateScriptThread timeout timeout:%d diff:%d\n", timeout, diff);
         TerminateExecution(ctx->e);
         is_kill = true;
       }
     }
   }
 
-  std::cout<<"@@@@@@@@ finish flag is set to be true FOUR!!!"<<std::endl;
-
   return true;
 }
 
 
 // NVMEngine related interfaces
-
 int NVMEngine::GetRunnableSourceCode(const std::string& sourceType, std::string& originalSource){
   const char* jsSource;
   uint64_t originalSourceLineOffset = 0;
@@ -345,6 +356,7 @@ int NVMEngine::GetRunnableSourceCode(const std::string& sourceType, std::string&
     return 0;
 
   }else{
+    std::cout<<">>>>>>>>>> Injecting tracking instructions in thread"<<std::endl;
     char* traceableSource = InjectTracingInstructionsThread(this->engine, jsSource, &this->m_src_offset, this->m_allow_usage);
     if(traceableSource != nullptr){
       this->m_traceable_src = std::string(traceableSource);
@@ -353,6 +365,8 @@ int NVMEngine::GetRunnableSourceCode(const std::string& sourceType, std::string&
       srcModuleCache->insert({sourceHash, newItem});
       return 0;
     }
+
+    std::cout<<">>>>Traceable source code is: "<<traceableSource<<std::endl;
   }
  
   return NVM_INJECT_TRACING_INSTRUCTION_ERR;
@@ -479,7 +493,6 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
       }else if(requestType.compare(DATA_REQUEST_CALL_BACK) == 0){
         // get result from the request index
         std::string metaData = request->meta_data();
-
         
       }else{
         // throw exception since the request type is not allowed

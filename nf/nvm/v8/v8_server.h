@@ -28,8 +28,8 @@
 
 #include "pb/nvm.grpc.pb.h"
 #include "pb/nvm.pb.h"
-#include "samples/memory_modules.h"
-#include "samples/memory_storage.h"
+#include "callback/memory_modules.h"
+#include "callback/memory_storage.h"
 
 #include <thread>
 #include <vector>

@@ -31,6 +31,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <iostream>
+
 using namespace std;
 
 typedef struct {
@@ -78,7 +80,10 @@ void reformatModuleId(char *dst, const char *src) {
 
 char *RequireDelegateFunc(void *handler, const char *filepath,
                           size_t *lineOffset) {
-  // LogInfof("RequireDelegateFunc: %s -> %s", "", filepath);
+  
+  LogInfof(">>>>> RequireDelegateFunc: %s -> %s", "", filepath);
+
+  std::cout<<"[ ----- CALLBACK ------ ] RequireDelegateFunc: "<<filepath<<std::endl;
 
   char id[128];
   sprintf(id, "%zu:%s", (uintptr_t)handler, filepath);
@@ -106,12 +111,11 @@ char *AttachLibVersionDelegateFunc(void *handler, const char *libname) {
   } else {
     sprintf(path, "1.0.0/%s", libname);
   }
-   LogDebugf("AttachLibVersion: %s -> %s", libname, path);
-   return path;
+  LogDebugf("AttachLibVersion: %s -> %s", libname, path);
+  return path;
 }
 
-void AddModule(void *handler, const char *filename, const char *source,
-               int lineOffset) {
+void AddModule(void *handler, const char *filename, const char *source, int lineOffset) {
   char filepath[128];
   if (strncmp(filename, "/", 1) != 0 && strncmp(filename, "./", 2) != 0 &&
       strncmp(filename, "../", 3) != 0) {
@@ -121,6 +125,7 @@ void AddModule(void *handler, const char *filename, const char *source,
     reformatModuleId(filepath, filename);
   }
   LogDebugf("AddModule: %s -> %s %d", filename, filepath, lineOffset);
+  std::cout<<"[ ---- Addmodule ---- ] AddModule: "<<filename<<" --> "<<filepath<<" "<<lineOffset<<std::endl;
 
   char id[128];
   sprintf(id, "%zu:%s", (uintptr_t)handler, filepath);
