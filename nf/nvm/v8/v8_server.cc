@@ -25,9 +25,9 @@ static int enable_tracer_injection = 0;
 static int strict_disallow_usage = 0;
 static size_t limits_of_executed_instructions = 0;
 static size_t limits_of_total_memory_size = 0;
-static int print_injection_result = 0;
+//static int print_injection_result = 0;
 
-void logFunc(int level, const char *msg) {
+void logFuncOld(int level, const char *msg) {
   std::thread::id tid = std::this_thread::get_id();
   std::hash<std::thread::id> hasher;
 
@@ -35,8 +35,29 @@ void logFunc(int level, const char *msg) {
   if (level >= LogLevel::ERROR) {
     f = stderr;
   }
-  fprintf(f, "[tid-%020zu] [%s] %s\n", hasher(tid), GetLogLevelText(level),
-          msg);
+  fprintf(f, "[tid-%020zu] [%s] %s\n", hasher(tid), GetLogLevelText(level), msg);
+}
+
+void logFunc(int level, const char *msg){
+  std::thread::id tid = std::this_thread::get_id();
+  std::hash<std::thread::id> hasher;
+
+  switch(level){
+    case LogLevel::DEBUG:
+      LOG(WARNING)<<msg;
+      break;
+    case LogLevel::WARN:
+      LOG(WARNING)<<msg;
+      break;
+    case LogLevel::INFO:
+      LOG(INFO)<<msg;
+      break;
+    case LogLevel::ERROR:
+      LOG(ERROR)<<msg;
+      break;
+    default:
+      break;
+  }
 }
 
 void eventTriggerFunc(void *handler, const char *topic, const char *data,
@@ -44,7 +65,6 @@ void eventTriggerFunc(void *handler, const char *topic, const char *data,
   fprintf(stdout, "[Event] [%s] %s\n", topic, data);
   *cnt = 20 + strlen(topic) + strlen(data);
 }
-
 
 typedef void (*V8ExecutionDelegate)(V8Engine *e, const char *data,
                                     uintptr_t lcsHandler, uintptr_t gcsHandler);
@@ -60,7 +80,7 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
     char *traceableSource =
         InjectTracingInstructions(e, data, &lineOffset, strict_disallow_usage);
     if (traceableSource == nullptr) {
-      fprintf(stderr, "Inject tracing instructions failed.\n");
+      LogErrorf("Inject tracing instructions failed.\n");
     } else {
       char *out = nullptr;
       int ret = RunScriptSource(&out, e, traceableSource, lineOffset,
@@ -68,13 +88,13 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
       if(traceableSource != nullptr)
         free(traceableSource);
 
-      fprintf(stdout, "[V8] Execution ret = %d, out = %s\n", ret, out);
+      LogInfof("[V8] Execution ret = %d, out = %s\n", ret, out);
       if(out != nullptr)
         free(out);
 
       ret = IsEngineLimitsExceeded(e);
       if (ret) {
-        fprintf(stdout, "[V8Error] Exceed %s limits, ret = %d\n",
+        LogErrorf("[V8Error] Exceed %s limits, ret = %d\n",
                 ret == 1 ? "Instructions" : "Memory", ret);
       }
 
@@ -100,12 +120,33 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
               e->stats.heap_size_limit, e->stats.malloced_memory,
               e->stats.peak_malloced_memory, e->stats.total_array_buffer_size,
               e->stats.peak_array_buffer_size);
+
+      LogInfof("\nStats of V8Engine:\n"
+              "  count_of_executed_instructions: \t%zu\n"
+              "  total_memory_size: \t\t\t%zu\n"
+              "  total_heap_size: \t\t\t%zu\n"
+              "  total_heap_size_executable: \t\t%zu\n"
+              "  total_physical_size: \t\t\t%zu\n"
+              "  total_available_size: \t\t%zu\n"
+              "  used_heap_size: \t\t\t%zu\n"
+              "  heap_size_limit: \t\t\t%zu\n"
+              "  malloced_memory: \t\t\t%zu\n"
+              "  peak_malloced_memory: \t\t%zu\n"
+              "  total_array_buffer_size: \t\t%zu\n"
+              "  peak_array_buffer_size: \t\t%zu\n",
+              e->stats.count_of_executed_instructions,
+              e->stats.total_memory_size, e->stats.total_heap_size,
+              e->stats.total_heap_size_executable, e->stats.total_physical_size,
+              e->stats.total_available_size, e->stats.used_heap_size,
+              e->stats.heap_size_limit, e->stats.malloced_memory,
+              e->stats.peak_malloced_memory, e->stats.total_array_buffer_size,
+              e->stats.peak_array_buffer_size);
     }
   } else {
     char *out = nullptr;
     int ret = RunScriptSource(&out, e, data, lineOffset, (uintptr_t)lcsHandler,
                               (uintptr_t)gcsHandler);
-    fprintf(stdout, "[V8] Execution ret = %d, out = %s\n", ret, out);
+    LogInfof("[V8] Execution ret = %d, out = %s\n", ret, out);
     if(out != nullptr)
       free(out);
   }
@@ -198,6 +239,7 @@ void *ExecuteThread(void *args) {
 
     ctx->output.line_offset = tContext.source_line_offset;
     ctx->output.result = static_cast<char *>(tContext.tracable_source);
+
   } else if (ctx->input.opt == INSTRUCTIONTS) {
     TypeScriptContext tContext;
     tContext.source_line_offset = 0;
@@ -208,15 +250,14 @@ void *ExecuteThread(void *args) {
 
     ctx->output.line_offset = tContext.source_line_offset;
     ctx->output.result = static_cast<char *>(tContext.js_source);
+
   } else {
     ctx->output.ret = Execute(&ctx->output.result, ctx->e, ctx->input.source, ctx->input.line_offset, (void *)ctx->input.lcs,
                 (void *)ctx->input.gcs, ExecuteSourceDataDelegate, nullptr);
-    printf("iRtn:%d--result:%s\n", ctx->output.ret, ctx->output.result);
+    LogInfof("iRtn:%d--result:%s\n", ctx->output.ret, ctx->output.result);
   }
 
   ctx->is_finished = true;
-  std::cout<<">>>>is_finished has been set to be true"<<std::endl;
-
   return 0x00;
 }
 // return : success return true. if hava err ,then return false. and not need to free heap
@@ -249,12 +290,10 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
     if (ctx->is_finished == true) {
         
         std::cout<<"@@@@@@@@ finish flag is set to be true ONE"<<std::endl;
-
         if (is_kill == true) {
           std::cout<<"@@@@@@@@ finish flag is set to be true TWO"<<std::endl;
           ctx->output.ret = NVM_EXE_TIMEOUT_ERR; 
           std::cout<<"@@@@@@@@ finish flag is set to be true THREE"<<std::endl;
-
         }
         break;
 
@@ -266,20 +305,12 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
         continue;
       }
       int diff = MicroSecondDiff(tcEnd, tcBegin);
-  
-      //std::cout<<"%%%%% Hey thread safe start!!!!"<<std::endl;
-
       if (diff >= timeout && is_kill == false) {
-                std::cout<<"%%%%%%%%%%%% checking termination condition"<<std::endl;
-
+        std::cout<<"%%%%%%%%%%%% checking termination condition"<<std::endl;
         LogErrorf("CreateScriptThread timeout timeout:%d diff:%d\n", timeout, diff);
-
         TerminateExecution(ctx->e);
         is_kill = true;
       }
-
-       //std::cout<<"%%%%% Hey thread safe finish!!!"<<std::endl;
-
     }
   }
 
@@ -341,7 +372,7 @@ int NVMEngine::StartScriptExecution(std::string& contractSource, const std::stri
     // transpile script and inject tracing code if necessary
     int runnableSourceResult = this->GetRunnableSourceCode(scriptType, contractSource);
     if(runnableSourceResult != 0){
-      std::cout<<"+++++++++++++++++++++++++++++++++++++++++++ Failed to get runnable source code"<<std::endl;
+      LogErrorf("++++ Failed to get runnable source code");
       return runnableSourceResult;
     }
 
@@ -360,7 +391,6 @@ int NVMEngine::StartScriptExecution(std::string& contractSource, const std::stri
     }
 
     if(ctx.output.result != nullptr){
-      std::cout<<"+++++++++++++++++++++++++++++++++ The exe result is calloced here"<<std::endl;
       size_t strLength = strlen(ctx.output.result) + 1;
       this->m_exe_result = (char*)calloc(strLength, sizeof(char));
       strcpy(this->m_exe_result, ctx.output.result);
@@ -381,7 +411,6 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
   this->m_stm = stream;
 
   try{
-    bool terminate = false;
     NVMDataRequest *request = new NVMDataRequest();
 
     while(stream->Read(request)){
@@ -407,15 +436,15 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
         google::protobuf::uint64 lcsHandler = configBundle.lcs_handler();
         google::protobuf::uint64 gcsHandler = configBundle.gcs_handler();
         
-        std::cout<<">>>Script source is: "<<scriptSrc<<std::endl;
-        std::cout<<">>>Script type is: "<<scriptType<<std::endl;
-        std::cout<<">>>Runnable src is: "<<runnableSrc<<std::endl;
-        std::cout<<">>>Module id is: "<<moduleID<<std::endl;
-        std::cout<<">>>blockJson is: "<<blockJson<<std::endl;
-        std::cout<<">>>>>tx json is: "<<txJson<<std::endl;
-        std::cout<<">>>>lcsHandler is: "<<lcsHandler<<", gcshandler is: "<<gcsHandler<<std::endl;
-        std::cout<<">>>>>>>The limit of exe instructions: "<<limitsOfExecutionInstructions<<std::endl;
-        std::cout<<">>>>>>>The limit of mem usage: "<<totalMemSize<<std::endl;
+        LogInfof(">>>>Script source is: %s", scriptSrc.c_str());
+        LogInfof(">>>>Script type is: %s", scriptType.c_str());
+        LogInfof(">>>>Runnable source is: %s", runnableSrc.c_str());
+        LogInfof(">>>>Module id is: %s", moduleID.c_str());
+        LogInfof(">>>>Blockjson is: %s", blockJson.c_str());
+        LogInfof(">>>>TX json is: %s", txJson.c_str());
+        LogInfof(">>>>lcsHandler %ld, gcsHandler %ld", lcsHandler, gcsHandler);
+        LogInfof(">>>>The limit of exe instruction %ld", limitsOfExecutionInstructions);
+        LogInfof(">>>>The limit of mem usage is: %ld", totalMemSize);
 
         this->m_runnable_src = runnableSrc;
         this->m_module_id = moduleID;
@@ -529,8 +558,8 @@ void RunServer(const char* addr_str){
 
 int main(int argc, const char *argv[]) {
 
-  //FLAGS_log_dir = "logs";
-  //::google::InitGoogleLogging(argv[0]);
+  FLAGS_log_dir = "logs";
+  ::google::InitGoogleLogging(argv[0]);
 
   Initialization();
 
@@ -545,6 +574,7 @@ int main(int argc, const char *argv[]) {
       RunServer(argv[1]);
     }else{
       std::cout<<"Please specify the port"<<std::endl;
+      LogErrorf("Please specify the port");
     }
   }
 

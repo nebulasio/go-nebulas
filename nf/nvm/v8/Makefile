@@ -22,7 +22,7 @@ OUTPUT_DIR=pb/
 
 LDFLAGS=-fvisibility=hidden 
 LIBS_PATH=
-LIBS=-lgrpc++ -lgrpc++_error_details -lprotobuf -lpthread -lv8_libbase -lv8_libplatform -licui18n -licuuc
+LIBS=-lgrpc++ -lgrpc++_error_details -lprotobuf -lpthread -lv8_libbase -lv8_libplatform -licui18n -licuuc -lglog
 
 ifeq ($(shell uname -s),Darwin)
 	CC=clang
