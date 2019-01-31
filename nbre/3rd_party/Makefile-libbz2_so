@@ -68,4 +68,4 @@ install:
 	chmod a+r $(PREFIX)/include/bzlib.h
 	cp -f libbz2.so.1.0.6 $(PREFIX)/lib
 	chmod a+r $(PREFIX)/lib/libbz2.so.1.0.6
-	cp -f $(PREFIX)/lib/libbz2.so.1.0.6 $(PREFIX)/lib/libbz2.so
+	cp -f libbz2.so.1.0.6 $(PREFIX)/lib/libbz2.so

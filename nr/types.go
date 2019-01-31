@@ -42,6 +42,8 @@ type Neblet interface {
 // NRItem nr item
 type NRItem struct {
 	Address string `json:"address"`
+	Median  string `json:"median"`
+	Weight  string `json:"weight"`
 	Score   string `json:"score"`
 }
 

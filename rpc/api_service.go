@@ -724,11 +724,13 @@ func (s *APIService) GetNRList(ctx context.Context, req *rpcpb.GetNRListRequest)
 	}
 
 	nrData := data.(*nr.NRData)
-	nrItems := make([]*rpcpb.NData, len(nrData.Nrs))
+	nrItems := make([]*rpcpb.NRItem, len(nrData.Nrs))
 	for idx, v := range nrData.Nrs {
-		item := &rpcpb.NData{
+		item := &rpcpb.NRItem{
 			Address: v.Address,
 			Value:   v.Score,
+			Median:  v.Median,
+			Weight:  v.Weight,
 		}
 		nrItems[idx] = item
 	}
@@ -758,11 +760,12 @@ func (s *APIService) GetDIPList(ctx context.Context, req *rpcpb.GetDIPListReques
 		return nil, err
 	}
 	dipData := data.(*dip.DIPData)
-	dipItems := make([]*rpcpb.NData, len(dipData.Dips))
+	dipItems := make([]*rpcpb.DIPItem, len(dipData.Dips))
 	for idx, v := range dipData.Dips {
-		item := &rpcpb.NData{
-			Address: v.Address,
-			Value:   v.Reward,
+		item := &rpcpb.DIPItem{
+			Address:  v.Address,
+			Contract: v.Contract,
+			Value:    v.Reward,
 		}
 		dipItems[idx] = item
 	}

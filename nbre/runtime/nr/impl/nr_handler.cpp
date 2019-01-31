@@ -90,6 +90,8 @@ void nr_handler::run_if_specify(block_height_t start_block,
 }
 
 void nr_handler::start(std::string nr_handler_id) {
+  std::unique_lock<std::mutex> _l(m_sync_mutex);
+
   m_nr_handler_id = nr_handler_id;
   if (!m_nr_handler_id.empty() && m_nr_result.exists(m_nr_handler_id)) {
     m_nr_handler_id.clear();

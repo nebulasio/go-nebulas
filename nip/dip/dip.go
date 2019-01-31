@@ -122,13 +122,13 @@ func (d *Dip) loop() {
 
 func (d *Dip) DipDelayRewardHeight() uint64 {
 	chainID := d.neb.BlockChain().ChainID()
-	// for Mainnet and Testnet, delay 1 day to submit dip reward.
+	// for Mainnet and Testnet, delay 0.5 day to submit dip reward.
 	if chainID == core.MainNetID {
-		return 24 * 60 * 60 / 15
+		return 12 * 60 * 60 / 15
 	} else if chainID == core.TestNetID {
-		return 24 * 60 * 60 / 15
+		return 12 * 60 * 60 / 15
 	} else {
-		return 1
+		return 33
 	}
 }
 

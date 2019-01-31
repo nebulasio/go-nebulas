@@ -128,8 +128,8 @@ if [ ! -d $CUR_DIR/lib/include/boost ]; then
   cd boost_1_67_0
   ./bootstrap.sh --with-toolset=clang --prefix=$CUR_DIR/lib/
   ./b2 clean
-  ./b2 toolset=clang cxxflags="-stdlib=libc++ -I$CUR_DIR/lib_llvm/include/c++/v1" linkflags="-stdlib=libc++ -lc++ -lc++abi" -j$PARALLEL
-  ./b2 install toolset=clang cxxflags="-stdlib=libc++ -I$CUR_DIR/lib_llvm/include/c++/v1" linkflags="-stdlib=libc++ -lc++ -lc++abi" --prefix=$CUR_DIR/lib/
+  ./b2 toolset=clang cxxflags="-stdlib=libc++ -I$CUR_DIR/lib_llvm/include/c++/v1" linkflags="-stdlib=libc++ -lc++ -lc++abi" --with-date_time --with-graph --with-program_options --with-filesystem --with-system -j$PARALLEL
+  ./b2 install toolset=clang cxxflags="-stdlib=libc++ -I$CUR_DIR/lib_llvm/include/c++/v1" linkflags="-stdlib=libc++ -lc++ -lc++abi" --with-date_time --with-graph --with-program_options --with-filesystem --with-system --prefix=$CUR_DIR/lib/
 fi
 
 if [ "$OS" = "Linux" ]; then
@@ -223,19 +223,10 @@ fi
 
 if [ ! -f $CUR_DIR/lib/include/bzlib.h ]; then
   cd $CUR_DIR/3rd_party/bzip2-1.0.6
-  case $OS in
-    'Linux')
-      BZLib="so"
-      ;;
-    'Darwin')
-      BZLib="dylib"
-      ;;
-    *) ;;
-  esac
-  cp -f ../Makefile-libbz2_$BZLib ./
-  make -j$PARALLEL -f Makefile-libbz2_$BZLib && make -f Makefile-libbz2_$BZLib install PREFIX=$CUR_DIR/lib/ && make -f Makefile-libbz2_$BZLib clean
-  rm -rf Makefile-libbz2_$BZLib
-  git checkout .
+  cp -f ../Makefile-libbz2_$DYLIB ./
+  make -j$PARALLEL -f Makefile-libbz2_$DYLIB && make -f Makefile-libbz2_$DYLIB install PREFIX=$CUR_DIR/lib/ && make -f Makefile-libbz2_$DYLIB clean
+#  rm -rf Makefile-libbz2_$DYLIB
+#  git checkout .
 fi
 
 if [ ! -f $CUR_DIR/lib/include/lz4.h ]; then
@@ -243,12 +234,12 @@ if [ ! -f $CUR_DIR/lib/include/lz4.h ]; then
 fi
 
 if [ ! -d $CUR_DIR/lib/include/rocksdb ]; then
-  cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-rocksdb $CUR_DIR/3rd_party/rocksdb/CMakeLists.txt
-  cp $CUR_DIR/3rd_party/build_option_bak/Makefile-rocksdb $CUR_DIR/3rd_party/rocksdb/Makefile
+  # cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-rocksdb $CUR_DIR/3rd_party/rocksdb/CMakeLists.txt
+  # cp $CUR_DIR/3rd_party/build_option_bak/Makefile-rocksdb $CUR_DIR/3rd_party/rocksdb/Makefile
 
   cd $CUR_DIR/3rd_party/rocksdb
   export CXX=$CUR_DIR/lib_llvm/bin/clang++
-  ROCKSDB_DISABLE_GFLAGS=On LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include LDFLAGS=-stdlib=libc++ make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
+  ROCKSDB_DISABLE_GFLAGS=On LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include CXXFLAGS=-stdlib=libc++ LDFLAGS=-lc++ make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
   make clean
 fi
 
@@ -276,7 +267,7 @@ fi
 if [ ! -f $CUR_DIR/lib/include/softfloat.h ]; then
   cd $CUR_DIR/3rd_party/SoftFloat-3e/build/Linux-x86_64-GCC/
   make -j$PARALLEL
-  cp libsoftfloat.so $CUR_DIR/lib/lib/
+  cp libsoftfloat.so $CUR_DIR/lib/lib/libsoftfloat.$DYLIB
   cp ../../source/include/softfloat.h $CUR_DIR/lib/include/
   cp ../../source/include/softfloat_types.h $CUR_DIR/lib/include/
   make clean

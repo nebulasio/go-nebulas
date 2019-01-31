@@ -44,6 +44,9 @@ public:
   void init_dip_params(block_height_t height, neb::fs::rocksdb_storage *rs);
 
 private:
+  std::string get_dip_reward_when_missing(neb::block_height_t height);
+
+private:
   mutable std::mutex m_sync_mutex;
   std::map<neb::block_height_t, std::string> m_dip_reward;
 

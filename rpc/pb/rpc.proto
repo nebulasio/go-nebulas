@@ -732,7 +732,19 @@ message GetNRListResponse {
     uint64 end = 3;
 
     // nr data list
-    repeated NData data = 4;
+    repeated NRItem data = 4;
+}
+
+message NRItem {
+    // nr address
+    string address = 1;
+
+    // value of nr.
+    string value = 2;
+
+    string median = 3;
+
+    string weight = 4;
 }
 
 message GetDIPListRequest {
@@ -751,13 +763,16 @@ message GetDIPListResponse {
     uint64 end = 3;
 
     // dip data list
-    repeated NData data = 4;
+    repeated DIPItem data = 4;
 }
 
-message NData {
+message DIPItem {
     // dip address
     string address = 1;
 
+    // dip contract address
+    string contract = 2;
+
     // value of dip reward.
-    string value = 2;
+    string value = 3;
 }
