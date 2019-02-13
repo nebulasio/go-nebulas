@@ -20,7 +20,6 @@ syntax = "proto3";
 
 
 service NVMService{
-
     rpc SmartContractCall(stream NVMDataRequest) returns (stream NVMDataResponse) {}
 }
 
@@ -31,28 +30,33 @@ message NVMConfigBundle{
     string block_json = 4;
     string tx_json = 5;
     string module_id = 6;
-    uint64 lcs_handler = 7;
-    uint64 gcs_handler = 8;
 
-    bool   enable_limits = 9;
-    uint64 limits_exe_instruction = 10;
-    uint64 limits_total_mem_size = 11;
-    uint64 execution_timeout = 12;
-    uint64 timeout_gas_limit_cost = 13;
-    uint64 max_limits_of_execution_instruction = 14;
-    uint64 default_limits_of_total_mem_size = 15;
+    bool   enable_limits = 7;
+    uint64 limits_exe_instruction = 8;
+    uint64 limits_total_mem_size = 9;
+    uint64 execution_timeout = 10;
+    uint64 timeout_gas_limit_cost = 11;
+    uint64 max_limits_of_execution_instruction = 12;
+    uint64 default_limits_of_total_mem_size = 13;
+}
+
+message NVMCallbackResult{
+    string func_name = 1;       // callback function name
+    string res = 2;             // expected result
+    repeated string extra = 3;  // more results
 }
 
 message NVMDataRequest{
     string request_type = 1;  // start or callback
     uint32 request_indx = 2;  // stream objects index
+    uint64 lcs_handler = 3;   // local engine index
+    uint64 gcs_handler = 4;   // global engine index, not used at this moment
    
-    string meta_data = 3;     // meta data got from client
-    NVMConfigBundle config_bundle = 4;
+    NVMCallbackResult callback_result = 5;     // callback execution result got from client
+    NVMConfigBundle config_bundle = 6;
 }
 
-
-
+// server side response
 message NVMStatsBundle{
     uint64 actual_count_of_execution_instruction = 1;
     uint64 actual_used_mem_size = 2;
@@ -66,12 +70,14 @@ message NVMFinalResponse{
 
 message NVMCallbackResponse{
     string func_name = 1;
-    string func_params = 2;
+    repeated string func_params = 2;
 }
 
 message NVMDataResponse {
     string response_type = 1;   // callback, final
     uint32 response_indx = 2;
-    NVMFinalResponse final_response = 3;
-    NVMCallbackResponse callback_response = 4; 
+    uint64 lcs_handler = 3;     // engine index
+    uint64 gcs_handler = 4;     // global engine index, not used at this moment
+    NVMFinalResponse final_response = 5;
+    NVMCallbackResponse callback_response = 6; 
 }

@@ -21,6 +21,7 @@
 
 namespace protobuf_nvm_2eproto {
 extern PROTOBUF_INTERNAL_EXPORT_protobuf_nvm_2eproto ::google::protobuf::internal::SCCInfo<0> scc_info_NVMCallbackResponse;
+extern PROTOBUF_INTERNAL_EXPORT_protobuf_nvm_2eproto ::google::protobuf::internal::SCCInfo<0> scc_info_NVMCallbackResult;
 extern PROTOBUF_INTERNAL_EXPORT_protobuf_nvm_2eproto ::google::protobuf::internal::SCCInfo<0> scc_info_NVMConfigBundle;
 extern PROTOBUF_INTERNAL_EXPORT_protobuf_nvm_2eproto ::google::protobuf::internal::SCCInfo<0> scc_info_NVMStatsBundle;
 extern PROTOBUF_INTERNAL_EXPORT_protobuf_nvm_2eproto ::google::protobuf::internal::SCCInfo<1> scc_info_NVMFinalResponse;
@@ -30,6 +31,11 @@ class NVMConfigBundleDefaultTypeInternal {
   ::google::protobuf::internal::ExplicitlyConstructed<NVMConfigBundle>
       _instance;
 } _NVMConfigBundle_default_instance_;
+class NVMCallbackResultDefaultTypeInternal {
+ public:
+  ::google::protobuf::internal::ExplicitlyConstructed<NVMCallbackResult>
+      _instance;
+} _NVMCallbackResult_default_instance_;
 class NVMDataRequestDefaultTypeInternal {
  public:
   ::google::protobuf::internal::ExplicitlyConstructed<NVMDataRequest>
@@ -70,6 +76,20 @@ static void InitDefaultsNVMConfigBundle() {
 ::google::protobuf::internal::SCCInfo<0> scc_info_NVMConfigBundle =
     {{ATOMIC_VAR_INIT(::google::protobuf::internal::SCCInfoBase::kUninitialized), 0, InitDefaultsNVMConfigBundle}, {}};
 
+static void InitDefaultsNVMCallbackResult() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::_NVMCallbackResult_default_instance_;
+    new (ptr) ::NVMCallbackResult();
+    ::google::protobuf::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::NVMCallbackResult::InitAsDefaultInstance();
+}
+
+::google::protobuf::internal::SCCInfo<0> scc_info_NVMCallbackResult =
+    {{ATOMIC_VAR_INIT(::google::protobuf::internal::SCCInfoBase::kUninitialized), 0, InitDefaultsNVMCallbackResult}, {}};
+
 static void InitDefaultsNVMDataRequest() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -81,8 +101,9 @@ static void InitDefaultsNVMDataRequest() {
   ::NVMDataRequest::InitAsDefaultInstance();
 }
 
-::google::protobuf::internal::SCCInfo<1> scc_info_NVMDataRequest =
-    {{ATOMIC_VAR_INIT(::google::protobuf::internal::SCCInfoBase::kUninitialized), 1, InitDefaultsNVMDataRequest}, {
+::google::protobuf::internal::SCCInfo<2> scc_info_NVMDataRequest =
+    {{ATOMIC_VAR_INIT(::google::protobuf::internal::SCCInfoBase::kUninitialized), 2, InitDefaultsNVMDataRequest}, {
+      &protobuf_nvm_2eproto::scc_info_NVMCallbackResult.base,
       &protobuf_nvm_2eproto::scc_info_NVMConfigBundle.base,}};
 
 static void InitDefaultsNVMStatsBundle() {
@@ -146,6 +167,7 @@ static void InitDefaultsNVMDataResponse() {
 
 void InitDefaults() {
   ::google::protobuf::internal::InitSCC(&scc_info_NVMConfigBundle.base);
+  ::google::protobuf::internal::InitSCC(&scc_info_NVMCallbackResult.base);
   ::google::protobuf::internal::InitSCC(&scc_info_NVMDataRequest.base);
   ::google::protobuf::internal::InitSCC(&scc_info_NVMStatsBundle.base);
   ::google::protobuf::internal::InitSCC(&scc_info_NVMFinalResponse.base);
@@ -153,7 +175,7 @@ void InitDefaults() {
   ::google::protobuf::internal::InitSCC(&scc_info_NVMDataResponse.base);
 }
 
-::google::protobuf::Metadata file_level_metadata[6];
+::google::protobuf::Metadata file_level_metadata[7];
 
 const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
   ~0u,  // no _has_bits_
@@ -167,8 +189,6 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMConfigBundle, block_json_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMConfigBundle, tx_json_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMConfigBundle, module_id_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMConfigBundle, lcs_handler_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMConfigBundle, gcs_handler_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMConfigBundle, enable_limits_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMConfigBundle, limits_exe_instruction_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMConfigBundle, limits_total_mem_size_),
@@ -177,13 +197,23 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMConfigBundle, max_limits_of_execution_instruction_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMConfigBundle, default_limits_of_total_mem_size_),
   ~0u,  // no _has_bits_
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMCallbackResult, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMCallbackResult, func_name_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMCallbackResult, res_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMCallbackResult, extra_),
+  ~0u,  // no _has_bits_
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataRequest, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataRequest, request_type_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataRequest, request_indx_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataRequest, meta_data_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataRequest, lcs_handler_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataRequest, gcs_handler_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataRequest, callback_result_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataRequest, config_bundle_),
   ~0u,  // no _has_bits_
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMStatsBundle, _internal_metadata_),
@@ -214,20 +244,24 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
   ~0u,  // no _weak_field_map_
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataResponse, response_type_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataResponse, response_indx_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataResponse, lcs_handler_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataResponse, gcs_handler_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataResponse, final_response_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataResponse, callback_response_),
 };
 static const ::google::protobuf::internal::MigrationSchema schemas[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, sizeof(::NVMConfigBundle)},
-  { 20, -1, sizeof(::NVMDataRequest)},
-  { 29, -1, sizeof(::NVMStatsBundle)},
-  { 36, -1, sizeof(::NVMFinalResponse)},
-  { 44, -1, sizeof(::NVMCallbackResponse)},
-  { 51, -1, sizeof(::NVMDataResponse)},
+  { 18, -1, sizeof(::NVMCallbackResult)},
+  { 26, -1, sizeof(::NVMDataRequest)},
+  { 37, -1, sizeof(::NVMStatsBundle)},
+  { 44, -1, sizeof(::NVMFinalResponse)},
+  { 52, -1, sizeof(::NVMCallbackResponse)},
+  { 59, -1, sizeof(::NVMDataResponse)},
 };
 
 static ::google::protobuf::Message const * const file_default_instances[] = {
   reinterpret_cast<const ::google::protobuf::Message*>(&::_NVMConfigBundle_default_instance_),
+  reinterpret_cast<const ::google::protobuf::Message*>(&::_NVMCallbackResult_default_instance_),
   reinterpret_cast<const ::google::protobuf::Message*>(&::_NVMDataRequest_default_instance_),
   reinterpret_cast<const ::google::protobuf::Message*>(&::_NVMStatsBundle_default_instance_),
   reinterpret_cast<const ::google::protobuf::Message*>(&::_NVMFinalResponse_default_instance_),
@@ -250,41 +284,45 @@ void protobuf_AssignDescriptorsOnce() {
 void protobuf_RegisterTypes(const ::std::string&) GOOGLE_PROTOBUF_ATTRIBUTE_COLD;
 void protobuf_RegisterTypes(const ::std::string&) {
   protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::internal::RegisterAllTypes(file_level_metadata, 6);
+  ::google::protobuf::internal::RegisterAllTypes(file_level_metadata, 7);
 }
 
 void AddDescriptorsImpl() {
   InitDefaults();
   static const char descriptor[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-      "\n\tnvm.proto\"\232\003\n\017NVMConfigBundle\022\022\n\nscrip"
+      "\n\tnvm.proto\"\360\002\n\017NVMConfigBundle\022\022\n\nscrip"
       "t_src\030\001 \001(\t\022\023\n\013script_type\030\002 \001(\t\022\024\n\014runn"
       "able_src\030\003 \001(\t\022\022\n\nblock_json\030\004 \001(\t\022\017\n\007tx"
-      "_json\030\005 \001(\t\022\021\n\tmodule_id\030\006 \001(\t\022\023\n\013lcs_ha"
-      "ndler\030\007 \001(\004\022\023\n\013gcs_handler\030\010 \001(\004\022\025\n\renab"
-      "le_limits\030\t \001(\010\022\036\n\026limits_exe_instructio"
-      "n\030\n \001(\004\022\035\n\025limits_total_mem_size\030\013 \001(\004\022\031"
-      "\n\021execution_timeout\030\014 \001(\004\022\036\n\026timeout_gas"
-      "_limit_cost\030\r \001(\004\022+\n#max_limits_of_execu"
-      "tion_instruction\030\016 \001(\004\022(\n default_limits"
-      "_of_total_mem_size\030\017 \001(\004\"x\n\016NVMDataReque"
-      "st\022\024\n\014request_type\030\001 \001(\t\022\024\n\014request_indx"
-      "\030\002 \001(\r\022\021\n\tmeta_data\030\003 \001(\t\022\'\n\rconfig_bund"
-      "le\030\004 \001(\0132\020.NVMConfigBundle\"]\n\016NVMStatsBu"
-      "ndle\022-\n%actual_count_of_execution_instru"
-      "ction\030\001 \001(\004\022\034\n\024actual_used_mem_size\030\002 \001("
-      "\004\"V\n\020NVMFinalResponse\022\016\n\006result\030\001 \001(\005\022\013\n"
-      "\003msg\030\002 \001(\t\022%\n\014stats_bundle\030\003 \001(\0132\017.NVMSt"
-      "atsBundle\"=\n\023NVMCallbackResponse\022\021\n\tfunc"
-      "_name\030\001 \001(\t\022\023\n\013func_params\030\002 \001(\t\"\233\001\n\017NVM"
-      "DataResponse\022\025\n\rresponse_type\030\001 \001(\t\022\025\n\rr"
-      "esponse_indx\030\002 \001(\r\022)\n\016final_response\030\003 \001"
-      "(\0132\021.NVMFinalResponse\022/\n\021callback_respon"
-      "se\030\004 \001(\0132\024.NVMCallbackResponse2J\n\nNVMSer"
-      "vice\022<\n\021SmartContractCall\022\017.NVMDataReque"
-      "st\032\020.NVMDataResponse\"\000(\0010\001b\006proto3"
+      "_json\030\005 \001(\t\022\021\n\tmodule_id\030\006 \001(\t\022\025\n\renable"
+      "_limits\030\007 \001(\010\022\036\n\026limits_exe_instruction\030"
+      "\010 \001(\004\022\035\n\025limits_total_mem_size\030\t \001(\004\022\031\n\021"
+      "execution_timeout\030\n \001(\004\022\036\n\026timeout_gas_l"
+      "imit_cost\030\013 \001(\004\022+\n#max_limits_of_executi"
+      "on_instruction\030\014 \001(\004\022(\n default_limits_o"
+      "f_total_mem_size\030\r \001(\004\"B\n\021NVMCallbackRes"
+      "ult\022\021\n\tfunc_name\030\001 \001(\t\022\013\n\003res\030\002 \001(\t\022\r\n\005e"
+      "xtra\030\003 \003(\t\"\274\001\n\016NVMDataRequest\022\024\n\014request"
+      "_type\030\001 \001(\t\022\024\n\014request_indx\030\002 \001(\r\022\023\n\013lcs"
+      "_handler\030\003 \001(\004\022\023\n\013gcs_handler\030\004 \001(\004\022+\n\017c"
+      "allback_result\030\005 \001(\0132\022.NVMCallbackResult"
+      "\022\'\n\rconfig_bundle\030\006 \001(\0132\020.NVMConfigBundl"
+      "e\"]\n\016NVMStatsBundle\022-\n%actual_count_of_e"
+      "xecution_instruction\030\001 \001(\004\022\034\n\024actual_use"
+      "d_mem_size\030\002 \001(\004\"V\n\020NVMFinalResponse\022\016\n\006"
+      "result\030\001 \001(\005\022\013\n\003msg\030\002 \001(\t\022%\n\014stats_bundl"
+      "e\030\003 \001(\0132\017.NVMStatsBundle\"=\n\023NVMCallbackR"
+      "esponse\022\021\n\tfunc_name\030\001 \001(\t\022\023\n\013func_param"
+      "s\030\002 \003(\t\"\305\001\n\017NVMDataResponse\022\025\n\rresponse_"
+      "type\030\001 \001(\t\022\025\n\rresponse_indx\030\002 \001(\r\022\023\n\013lcs"
+      "_handler\030\003 \001(\004\022\023\n\013gcs_handler\030\004 \001(\004\022)\n\016f"
+      "inal_response\030\005 \001(\0132\021.NVMFinalResponse\022/"
+      "\n\021callback_response\030\006 \001(\0132\024.NVMCallbackR"
+      "esponse2J\n\nNVMService\022<\n\021SmartContractCa"
+      "ll\022\017.NVMDataRequest\032\020.NVMDataResponse\"\000("
+      "\0010\001b\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 1034);
+      descriptor, 1171);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "nvm.proto", &protobuf_RegisterTypes);
 }
@@ -312,8 +350,6 @@ const int NVMConfigBundle::kRunnableSrcFieldNumber;
 const int NVMConfigBundle::kBlockJsonFieldNumber;
 const int NVMConfigBundle::kTxJsonFieldNumber;
 const int NVMConfigBundle::kModuleIdFieldNumber;
-const int NVMConfigBundle::kLcsHandlerFieldNumber;
-const int NVMConfigBundle::kGcsHandlerFieldNumber;
 const int NVMConfigBundle::kEnableLimitsFieldNumber;
 const int NVMConfigBundle::kLimitsExeInstructionFieldNumber;
 const int NVMConfigBundle::kLimitsTotalMemSizeFieldNumber;
@@ -358,9 +394,9 @@ NVMConfigBundle::NVMConfigBundle(const NVMConfigBundle& from)
   if (from.module_id().size() > 0) {
     module_id_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.module_id_);
   }
-  ::memcpy(&lcs_handler_, &from.lcs_handler_,
+  ::memcpy(&limits_exe_instruction_, &from.limits_exe_instruction_,
     static_cast<size_t>(reinterpret_cast<char*>(&enable_limits_) -
-    reinterpret_cast<char*>(&lcs_handler_)) + sizeof(enable_limits_));
+    reinterpret_cast<char*>(&limits_exe_instruction_)) + sizeof(enable_limits_));
   // @@protoc_insertion_point(copy_constructor:NVMConfigBundle)
 }
 
@@ -371,9 +407,9 @@ void NVMConfigBundle::SharedCtor() {
   block_json_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   tx_json_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   module_id_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  ::memset(&lcs_handler_, 0, static_cast<size_t>(
+  ::memset(&limits_exe_instruction_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&enable_limits_) -
-      reinterpret_cast<char*>(&lcs_handler_)) + sizeof(enable_limits_));
+      reinterpret_cast<char*>(&limits_exe_instruction_)) + sizeof(enable_limits_));
 }
 
 NVMConfigBundle::~NVMConfigBundle() {
@@ -416,9 +452,9 @@ void NVMConfigBundle::Clear() {
   block_json_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   tx_json_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   module_id_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  ::memset(&lcs_handler_, 0, static_cast<size_t>(
+  ::memset(&limits_exe_instruction_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&enable_limits_) -
-      reinterpret_cast<char*>(&lcs_handler_)) + sizeof(enable_limits_));
+      reinterpret_cast<char*>(&limits_exe_instruction_)) + sizeof(enable_limits_));
   _internal_metadata_.Clear();
 }
 
@@ -528,38 +564,10 @@ bool NVMConfigBundle::MergePartialFromCodedStream(
         break;
       }
 
-      // uint64 lcs_handler = 7;
+      // bool enable_limits = 7;
       case 7: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
             static_cast< ::google::protobuf::uint8>(56u /* 56 & 0xFF */)) {
-
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
-                 input, &lcs_handler_)));
-        } else {
-          goto handle_unusual;
-        }
-        break;
-      }
-
-      // uint64 gcs_handler = 8;
-      case 8: {
-        if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(64u /* 64 & 0xFF */)) {
-
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
-                 input, &gcs_handler_)));
-        } else {
-          goto handle_unusual;
-        }
-        break;
-      }
-
-      // bool enable_limits = 9;
-      case 9: {
-        if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(72u /* 72 & 0xFF */)) {
 
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
@@ -570,10 +578,10 @@ bool NVMConfigBundle::MergePartialFromCodedStream(
         break;
       }
 
-      // uint64 limits_exe_instruction = 10;
-      case 10: {
+      // uint64 limits_exe_instruction = 8;
+      case 8: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(80u /* 80 & 0xFF */)) {
+            static_cast< ::google::protobuf::uint8>(64u /* 64 & 0xFF */)) {
 
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
@@ -584,10 +592,10 @@ bool NVMConfigBundle::MergePartialFromCodedStream(
         break;
       }
 
-      // uint64 limits_total_mem_size = 11;
-      case 11: {
+      // uint64 limits_total_mem_size = 9;
+      case 9: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(88u /* 88 & 0xFF */)) {
+            static_cast< ::google::protobuf::uint8>(72u /* 72 & 0xFF */)) {
 
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
@@ -598,10 +606,10 @@ bool NVMConfigBundle::MergePartialFromCodedStream(
         break;
       }
 
-      // uint64 execution_timeout = 12;
-      case 12: {
+      // uint64 execution_timeout = 10;
+      case 10: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(96u /* 96 & 0xFF */)) {
+            static_cast< ::google::protobuf::uint8>(80u /* 80 & 0xFF */)) {
 
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
@@ -612,10 +620,10 @@ bool NVMConfigBundle::MergePartialFromCodedStream(
         break;
       }
 
-      // uint64 timeout_gas_limit_cost = 13;
-      case 13: {
+      // uint64 timeout_gas_limit_cost = 11;
+      case 11: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(104u /* 104 & 0xFF */)) {
+            static_cast< ::google::protobuf::uint8>(88u /* 88 & 0xFF */)) {
 
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
@@ -626,10 +634,10 @@ bool NVMConfigBundle::MergePartialFromCodedStream(
         break;
       }
 
-      // uint64 max_limits_of_execution_instruction = 14;
-      case 14: {
+      // uint64 max_limits_of_execution_instruction = 12;
+      case 12: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(112u /* 112 & 0xFF */)) {
+            static_cast< ::google::protobuf::uint8>(96u /* 96 & 0xFF */)) {
 
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
@@ -640,10 +648,10 @@ bool NVMConfigBundle::MergePartialFromCodedStream(
         break;
       }
 
-      // uint64 default_limits_of_total_mem_size = 15;
-      case 15: {
+      // uint64 default_limits_of_total_mem_size = 13;
+      case 13: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(120u /* 120 & 0xFF */)) {
+            static_cast< ::google::protobuf::uint8>(104u /* 104 & 0xFF */)) {
 
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
@@ -740,49 +748,39 @@ void NVMConfigBundle::SerializeWithCachedSizes(
       6, this->module_id(), output);
   }
 
-  // uint64 lcs_handler = 7;
-  if (this->lcs_handler() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt64(7, this->lcs_handler(), output);
-  }
-
-  // uint64 gcs_handler = 8;
-  if (this->gcs_handler() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt64(8, this->gcs_handler(), output);
-  }
-
-  // bool enable_limits = 9;
+  // bool enable_limits = 7;
   if (this->enable_limits() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(9, this->enable_limits(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteBool(7, this->enable_limits(), output);
   }
 
-  // uint64 limits_exe_instruction = 10;
+  // uint64 limits_exe_instruction = 8;
   if (this->limits_exe_instruction() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt64(10, this->limits_exe_instruction(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(8, this->limits_exe_instruction(), output);
   }
 
-  // uint64 limits_total_mem_size = 11;
+  // uint64 limits_total_mem_size = 9;
   if (this->limits_total_mem_size() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt64(11, this->limits_total_mem_size(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(9, this->limits_total_mem_size(), output);
   }
 
-  // uint64 execution_timeout = 12;
+  // uint64 execution_timeout = 10;
   if (this->execution_timeout() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt64(12, this->execution_timeout(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(10, this->execution_timeout(), output);
   }
 
-  // uint64 timeout_gas_limit_cost = 13;
+  // uint64 timeout_gas_limit_cost = 11;
   if (this->timeout_gas_limit_cost() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt64(13, this->timeout_gas_limit_cost(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(11, this->timeout_gas_limit_cost(), output);
   }
 
-  // uint64 max_limits_of_execution_instruction = 14;
+  // uint64 max_limits_of_execution_instruction = 12;
   if (this->max_limits_of_execution_instruction() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt64(14, this->max_limits_of_execution_instruction(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(12, this->max_limits_of_execution_instruction(), output);
   }
 
-  // uint64 default_limits_of_total_mem_size = 15;
+  // uint64 default_limits_of_total_mem_size = 13;
   if (this->default_limits_of_total_mem_size() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt64(15, this->default_limits_of_total_mem_size(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(13, this->default_limits_of_total_mem_size(), output);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -865,49 +863,39 @@ void NVMConfigBundle::SerializeWithCachedSizes(
         6, this->module_id(), target);
   }
 
-  // uint64 lcs_handler = 7;
-  if (this->lcs_handler() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(7, this->lcs_handler(), target);
-  }
-
-  // uint64 gcs_handler = 8;
-  if (this->gcs_handler() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(8, this->gcs_handler(), target);
-  }
-
-  // bool enable_limits = 9;
+  // bool enable_limits = 7;
   if (this->enable_limits() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(9, this->enable_limits(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(7, this->enable_limits(), target);
   }
 
-  // uint64 limits_exe_instruction = 10;
+  // uint64 limits_exe_instruction = 8;
   if (this->limits_exe_instruction() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(10, this->limits_exe_instruction(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(8, this->limits_exe_instruction(), target);
   }
 
-  // uint64 limits_total_mem_size = 11;
+  // uint64 limits_total_mem_size = 9;
   if (this->limits_total_mem_size() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(11, this->limits_total_mem_size(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(9, this->limits_total_mem_size(), target);
   }
 
-  // uint64 execution_timeout = 12;
+  // uint64 execution_timeout = 10;
   if (this->execution_timeout() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(12, this->execution_timeout(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(10, this->execution_timeout(), target);
   }
 
-  // uint64 timeout_gas_limit_cost = 13;
+  // uint64 timeout_gas_limit_cost = 11;
   if (this->timeout_gas_limit_cost() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(13, this->timeout_gas_limit_cost(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(11, this->timeout_gas_limit_cost(), target);
   }
 
-  // uint64 max_limits_of_execution_instruction = 14;
+  // uint64 max_limits_of_execution_instruction = 12;
   if (this->max_limits_of_execution_instruction() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(14, this->max_limits_of_execution_instruction(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(12, this->max_limits_of_execution_instruction(), target);
   }
 
-  // uint64 default_limits_of_total_mem_size = 15;
+  // uint64 default_limits_of_total_mem_size = 13;
   if (this->default_limits_of_total_mem_size() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(15, this->default_limits_of_total_mem_size(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(13, this->default_limits_of_total_mem_size(), target);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -969,63 +957,49 @@ size_t NVMConfigBundle::ByteSizeLong() const {
         this->module_id());
   }
 
-  // uint64 lcs_handler = 7;
-  if (this->lcs_handler() != 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::UInt64Size(
-        this->lcs_handler());
-  }
-
-  // uint64 gcs_handler = 8;
-  if (this->gcs_handler() != 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::UInt64Size(
-        this->gcs_handler());
-  }
-
-  // uint64 limits_exe_instruction = 10;
+  // uint64 limits_exe_instruction = 8;
   if (this->limits_exe_instruction() != 0) {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::UInt64Size(
         this->limits_exe_instruction());
   }
 
-  // uint64 limits_total_mem_size = 11;
+  // uint64 limits_total_mem_size = 9;
   if (this->limits_total_mem_size() != 0) {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::UInt64Size(
         this->limits_total_mem_size());
   }
 
-  // uint64 execution_timeout = 12;
+  // uint64 execution_timeout = 10;
   if (this->execution_timeout() != 0) {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::UInt64Size(
         this->execution_timeout());
   }
 
-  // uint64 timeout_gas_limit_cost = 13;
+  // uint64 timeout_gas_limit_cost = 11;
   if (this->timeout_gas_limit_cost() != 0) {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::UInt64Size(
         this->timeout_gas_limit_cost());
   }
 
-  // uint64 max_limits_of_execution_instruction = 14;
+  // uint64 max_limits_of_execution_instruction = 12;
   if (this->max_limits_of_execution_instruction() != 0) {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::UInt64Size(
         this->max_limits_of_execution_instruction());
   }
 
-  // uint64 default_limits_of_total_mem_size = 15;
+  // uint64 default_limits_of_total_mem_size = 13;
   if (this->default_limits_of_total_mem_size() != 0) {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::UInt64Size(
         this->default_limits_of_total_mem_size());
   }
 
-  // bool enable_limits = 9;
+  // bool enable_limits = 7;
   if (this->enable_limits() != 0) {
     total_size += 1 + 1;
   }
@@ -1080,12 +1054,6 @@ void NVMConfigBundle::MergeFrom(const NVMConfigBundle& from) {
   if (from.module_id().size() > 0) {
 
     module_id_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.module_id_);
-  }
-  if (from.lcs_handler() != 0) {
-    set_lcs_handler(from.lcs_handler());
-  }
-  if (from.gcs_handler() != 0) {
-    set_gcs_handler(from.gcs_handler());
   }
   if (from.limits_exe_instruction() != 0) {
     set_limits_exe_instruction(from.limits_exe_instruction());
@@ -1146,8 +1114,6 @@ void NVMConfigBundle::InternalSwap(NVMConfigBundle* other) {
     GetArenaNoVirtual());
   module_id_.Swap(&other->module_id_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
     GetArenaNoVirtual());
-  swap(lcs_handler_, other->lcs_handler_);
-  swap(gcs_handler_, other->gcs_handler_);
   swap(limits_exe_instruction_, other->limits_exe_instruction_);
   swap(limits_total_mem_size_, other->limits_total_mem_size_);
   swap(execution_timeout_, other->execution_timeout_);
@@ -1166,14 +1132,368 @@ void NVMConfigBundle::InternalSwap(NVMConfigBundle* other) {
 
 // ===================================================================
 
+void NVMCallbackResult::InitAsDefaultInstance() {
+}
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+const int NVMCallbackResult::kFuncNameFieldNumber;
+const int NVMCallbackResult::kResFieldNumber;
+const int NVMCallbackResult::kExtraFieldNumber;
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+
+NVMCallbackResult::NVMCallbackResult()
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  ::google::protobuf::internal::InitSCC(
+      &protobuf_nvm_2eproto::scc_info_NVMCallbackResult.base);
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:NVMCallbackResult)
+}
+NVMCallbackResult::NVMCallbackResult(const NVMCallbackResult& from)
+  : ::google::protobuf::Message(),
+      _internal_metadata_(NULL),
+      extra_(from.extra_) {
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  func_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (from.func_name().size() > 0) {
+    func_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.func_name_);
+  }
+  res_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (from.res().size() > 0) {
+    res_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.res_);
+  }
+  // @@protoc_insertion_point(copy_constructor:NVMCallbackResult)
+}
+
+void NVMCallbackResult::SharedCtor() {
+  func_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  res_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+
+NVMCallbackResult::~NVMCallbackResult() {
+  // @@protoc_insertion_point(destructor:NVMCallbackResult)
+  SharedDtor();
+}
+
+void NVMCallbackResult::SharedDtor() {
+  func_name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  res_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+
+void NVMCallbackResult::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const ::google::protobuf::Descriptor* NVMCallbackResult::descriptor() {
+  ::protobuf_nvm_2eproto::protobuf_AssignDescriptorsOnce();
+  return ::protobuf_nvm_2eproto::file_level_metadata[kIndexInFileMessages].descriptor;
+}
+
+const NVMCallbackResult& NVMCallbackResult::default_instance() {
+  ::google::protobuf::internal::InitSCC(&protobuf_nvm_2eproto::scc_info_NVMCallbackResult.base);
+  return *internal_default_instance();
+}
+
+
+void NVMCallbackResult::Clear() {
+// @@protoc_insertion_point(message_clear_start:NVMCallbackResult)
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  extra_.Clear();
+  func_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  res_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  _internal_metadata_.Clear();
+}
+
+bool NVMCallbackResult::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+  ::google::protobuf::uint32 tag;
+  // @@protoc_insertion_point(parse_start:NVMCallbackResult)
+  for (;;) {
+    ::std::pair<::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // string func_name = 1;
+      case 1: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(10u /* 10 & 0xFF */)) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_func_name()));
+          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+            this->func_name().data(), static_cast<int>(this->func_name().length()),
+            ::google::protobuf::internal::WireFormatLite::PARSE,
+            "NVMCallbackResult.func_name"));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // string res = 2;
+      case 2: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(18u /* 18 & 0xFF */)) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_res()));
+          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+            this->res().data(), static_cast<int>(this->res().length()),
+            ::google::protobuf::internal::WireFormatLite::PARSE,
+            "NVMCallbackResult.res"));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // repeated string extra = 3;
+      case 3: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(26u /* 26 & 0xFF */)) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->add_extra()));
+          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+            this->extra(this->extra_size() - 1).data(),
+            static_cast<int>(this->extra(this->extra_size() - 1).length()),
+            ::google::protobuf::internal::WireFormatLite::PARSE,
+            "NVMCallbackResult.extra"));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      default: {
+      handle_unusual:
+        if (tag == 0) {
+          goto success;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, _internal_metadata_.mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+success:
+  // @@protoc_insertion_point(parse_success:NVMCallbackResult)
+  return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:NVMCallbackResult)
+  return false;
+#undef DO_
+}
+
+void NVMCallbackResult::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:NVMCallbackResult)
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // string func_name = 1;
+  if (this->func_name().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+      this->func_name().data(), static_cast<int>(this->func_name().length()),
+      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+      "NVMCallbackResult.func_name");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      1, this->func_name(), output);
+  }
+
+  // string res = 2;
+  if (this->res().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+      this->res().data(), static_cast<int>(this->res().length()),
+      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+      "NVMCallbackResult.res");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      2, this->res(), output);
+  }
+
+  // repeated string extra = 3;
+  for (int i = 0, n = this->extra_size(); i < n; i++) {
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+      this->extra(i).data(), static_cast<int>(this->extra(i).length()),
+      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+      "NVMCallbackResult.extra");
+    ::google::protobuf::internal::WireFormatLite::WriteString(
+      3, this->extra(i), output);
+  }
+
+  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), output);
+  }
+  // @@protoc_insertion_point(serialize_end:NVMCallbackResult)
+}
+
+::google::protobuf::uint8* NVMCallbackResult::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
+  // @@protoc_insertion_point(serialize_to_array_start:NVMCallbackResult)
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // string func_name = 1;
+  if (this->func_name().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+      this->func_name().data(), static_cast<int>(this->func_name().length()),
+      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+      "NVMCallbackResult.func_name");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        1, this->func_name(), target);
+  }
+
+  // string res = 2;
+  if (this->res().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+      this->res().data(), static_cast<int>(this->res().length()),
+      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+      "NVMCallbackResult.res");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        2, this->res(), target);
+  }
+
+  // repeated string extra = 3;
+  for (int i = 0, n = this->extra_size(); i < n; i++) {
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+      this->extra(i).data(), static_cast<int>(this->extra(i).length()),
+      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+      "NVMCallbackResult.extra");
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteStringToArray(3, this->extra(i), target);
+  }
+
+  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:NVMCallbackResult)
+  return target;
+}
+
+size_t NVMCallbackResult::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:NVMCallbackResult)
+  size_t total_size = 0;
+
+  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()));
+  }
+  // repeated string extra = 3;
+  total_size += 1 *
+      ::google::protobuf::internal::FromIntSize(this->extra_size());
+  for (int i = 0, n = this->extra_size(); i < n; i++) {
+    total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+      this->extra(i));
+  }
+
+  // string func_name = 1;
+  if (this->func_name().size() > 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::StringSize(
+        this->func_name());
+  }
+
+  // string res = 2;
+  if (this->res().size() > 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::StringSize(
+        this->res());
+  }
+
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void NVMCallbackResult::MergeFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:NVMCallbackResult)
+  GOOGLE_DCHECK_NE(&from, this);
+  const NVMCallbackResult* source =
+      ::google::protobuf::internal::DynamicCastToGenerated<const NVMCallbackResult>(
+          &from);
+  if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:NVMCallbackResult)
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:NVMCallbackResult)
+    MergeFrom(*source);
+  }
+}
+
+void NVMCallbackResult::MergeFrom(const NVMCallbackResult& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:NVMCallbackResult)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  extra_.MergeFrom(from.extra_);
+  if (from.func_name().size() > 0) {
+
+    func_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.func_name_);
+  }
+  if (from.res().size() > 0) {
+
+    res_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.res_);
+  }
+}
+
+void NVMCallbackResult::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:NVMCallbackResult)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void NVMCallbackResult::CopyFrom(const NVMCallbackResult& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:NVMCallbackResult)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool NVMCallbackResult::IsInitialized() const {
+  return true;
+}
+
+void NVMCallbackResult::Swap(NVMCallbackResult* other) {
+  if (other == this) return;
+  InternalSwap(other);
+}
+void NVMCallbackResult::InternalSwap(NVMCallbackResult* other) {
+  using std::swap;
+  extra_.InternalSwap(CastToBase(&other->extra_));
+  func_name_.Swap(&other->func_name_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+    GetArenaNoVirtual());
+  res_.Swap(&other->res_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+    GetArenaNoVirtual());
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+}
+
+::google::protobuf::Metadata NVMCallbackResult::GetMetadata() const {
+  protobuf_nvm_2eproto::protobuf_AssignDescriptorsOnce();
+  return ::protobuf_nvm_2eproto::file_level_metadata[kIndexInFileMessages];
+}
+
+
+// ===================================================================
+
 void NVMDataRequest::InitAsDefaultInstance() {
+  ::_NVMDataRequest_default_instance_._instance.get_mutable()->callback_result_ = const_cast< ::NVMCallbackResult*>(
+      ::NVMCallbackResult::internal_default_instance());
   ::_NVMDataRequest_default_instance_._instance.get_mutable()->config_bundle_ = const_cast< ::NVMConfigBundle*>(
       ::NVMConfigBundle::internal_default_instance());
 }
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int NVMDataRequest::kRequestTypeFieldNumber;
 const int NVMDataRequest::kRequestIndxFieldNumber;
-const int NVMDataRequest::kMetaDataFieldNumber;
+const int NVMDataRequest::kLcsHandlerFieldNumber;
+const int NVMDataRequest::kGcsHandlerFieldNumber;
+const int NVMDataRequest::kCallbackResultFieldNumber;
 const int NVMDataRequest::kConfigBundleFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
@@ -1192,25 +1512,27 @@ NVMDataRequest::NVMDataRequest(const NVMDataRequest& from)
   if (from.request_type().size() > 0) {
     request_type_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.request_type_);
   }
-  meta_data_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (from.meta_data().size() > 0) {
-    meta_data_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.meta_data_);
+  if (from.has_callback_result()) {
+    callback_result_ = new ::NVMCallbackResult(*from.callback_result_);
+  } else {
+    callback_result_ = NULL;
   }
   if (from.has_config_bundle()) {
     config_bundle_ = new ::NVMConfigBundle(*from.config_bundle_);
   } else {
     config_bundle_ = NULL;
   }
-  request_indx_ = from.request_indx_;
+  ::memcpy(&lcs_handler_, &from.lcs_handler_,
+    static_cast<size_t>(reinterpret_cast<char*>(&request_indx_) -
+    reinterpret_cast<char*>(&lcs_handler_)) + sizeof(request_indx_));
   // @@protoc_insertion_point(copy_constructor:NVMDataRequest)
 }
 
 void NVMDataRequest::SharedCtor() {
   request_type_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  meta_data_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  ::memset(&config_bundle_, 0, static_cast<size_t>(
+  ::memset(&callback_result_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&request_indx_) -
-      reinterpret_cast<char*>(&config_bundle_)) + sizeof(request_indx_));
+      reinterpret_cast<char*>(&callback_result_)) + sizeof(request_indx_));
 }
 
 NVMDataRequest::~NVMDataRequest() {
@@ -1220,7 +1542,7 @@ NVMDataRequest::~NVMDataRequest() {
 
 void NVMDataRequest::SharedDtor() {
   request_type_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  meta_data_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (this != internal_default_instance()) delete callback_result_;
   if (this != internal_default_instance()) delete config_bundle_;
 }
 
@@ -1245,12 +1567,17 @@ void NVMDataRequest::Clear() {
   (void) cached_has_bits;
 
   request_type_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  meta_data_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (GetArenaNoVirtual() == NULL && callback_result_ != NULL) {
+    delete callback_result_;
+  }
+  callback_result_ = NULL;
   if (GetArenaNoVirtual() == NULL && config_bundle_ != NULL) {
     delete config_bundle_;
   }
   config_bundle_ = NULL;
-  request_indx_ = 0u;
+  ::memset(&lcs_handler_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&request_indx_) -
+      reinterpret_cast<char*>(&lcs_handler_)) + sizeof(request_indx_));
   _internal_metadata_.Clear();
 }
 
@@ -1294,26 +1621,50 @@ bool NVMDataRequest::MergePartialFromCodedStream(
         break;
       }
 
-      // string meta_data = 3;
+      // uint64 lcs_handler = 3;
       case 3: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(26u /* 26 & 0xFF */)) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_meta_data()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->meta_data().data(), static_cast<int>(this->meta_data().length()),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "NVMDataRequest.meta_data"));
+            static_cast< ::google::protobuf::uint8>(24u /* 24 & 0xFF */)) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &lcs_handler_)));
         } else {
           goto handle_unusual;
         }
         break;
       }
 
-      // .NVMConfigBundle config_bundle = 4;
+      // uint64 gcs_handler = 4;
       case 4: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(34u /* 34 & 0xFF */)) {
+            static_cast< ::google::protobuf::uint8>(32u /* 32 & 0xFF */)) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &gcs_handler_)));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // .NVMCallbackResult callback_result = 5;
+      case 5: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(42u /* 42 & 0xFF */)) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessage(
+               input, mutable_callback_result()));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // .NVMConfigBundle config_bundle = 6;
+      case 6: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(50u /* 50 & 0xFF */)) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadMessage(
                input, mutable_config_bundle()));
         } else {
@@ -1363,20 +1714,26 @@ void NVMDataRequest::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteUInt32(2, this->request_indx(), output);
   }
 
-  // string meta_data = 3;
-  if (this->meta_data().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->meta_data().data(), static_cast<int>(this->meta_data().length()),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "NVMDataRequest.meta_data");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      3, this->meta_data(), output);
+  // uint64 lcs_handler = 3;
+  if (this->lcs_handler() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(3, this->lcs_handler(), output);
   }
 
-  // .NVMConfigBundle config_bundle = 4;
+  // uint64 gcs_handler = 4;
+  if (this->gcs_handler() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(4, this->gcs_handler(), output);
+  }
+
+  // .NVMCallbackResult callback_result = 5;
+  if (this->has_callback_result()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      5, this->_internal_callback_result(), output);
+  }
+
+  // .NVMConfigBundle config_bundle = 6;
   if (this->has_config_bundle()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      4, this->_internal_config_bundle(), output);
+      6, this->_internal_config_bundle(), output);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -1409,22 +1766,28 @@ void NVMDataRequest::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(2, this->request_indx(), target);
   }
 
-  // string meta_data = 3;
-  if (this->meta_data().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->meta_data().data(), static_cast<int>(this->meta_data().length()),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "NVMDataRequest.meta_data");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        3, this->meta_data(), target);
+  // uint64 lcs_handler = 3;
+  if (this->lcs_handler() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(3, this->lcs_handler(), target);
   }
 
-  // .NVMConfigBundle config_bundle = 4;
+  // uint64 gcs_handler = 4;
+  if (this->gcs_handler() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(4, this->gcs_handler(), target);
+  }
+
+  // .NVMCallbackResult callback_result = 5;
+  if (this->has_callback_result()) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      InternalWriteMessageToArray(
+        5, this->_internal_callback_result(), deterministic, target);
+  }
+
+  // .NVMConfigBundle config_bundle = 6;
   if (this->has_config_bundle()) {
     target = ::google::protobuf::internal::WireFormatLite::
       InternalWriteMessageToArray(
-        4, this->_internal_config_bundle(), deterministic, target);
+        6, this->_internal_config_bundle(), deterministic, target);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -1451,18 +1814,32 @@ size_t NVMDataRequest::ByteSizeLong() const {
         this->request_type());
   }
 
-  // string meta_data = 3;
-  if (this->meta_data().size() > 0) {
+  // .NVMCallbackResult callback_result = 5;
+  if (this->has_callback_result()) {
     total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->meta_data());
+      ::google::protobuf::internal::WireFormatLite::MessageSize(
+        *callback_result_);
   }
 
-  // .NVMConfigBundle config_bundle = 4;
+  // .NVMConfigBundle config_bundle = 6;
   if (this->has_config_bundle()) {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::MessageSize(
         *config_bundle_);
+  }
+
+  // uint64 lcs_handler = 3;
+  if (this->lcs_handler() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt64Size(
+        this->lcs_handler());
+  }
+
+  // uint64 gcs_handler = 4;
+  if (this->gcs_handler() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt64Size(
+        this->gcs_handler());
   }
 
   // uint32 request_indx = 2;
@@ -1503,12 +1880,17 @@ void NVMDataRequest::MergeFrom(const NVMDataRequest& from) {
 
     request_type_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.request_type_);
   }
-  if (from.meta_data().size() > 0) {
-
-    meta_data_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.meta_data_);
+  if (from.has_callback_result()) {
+    mutable_callback_result()->::NVMCallbackResult::MergeFrom(from.callback_result());
   }
   if (from.has_config_bundle()) {
     mutable_config_bundle()->::NVMConfigBundle::MergeFrom(from.config_bundle());
+  }
+  if (from.lcs_handler() != 0) {
+    set_lcs_handler(from.lcs_handler());
+  }
+  if (from.gcs_handler() != 0) {
+    set_gcs_handler(from.gcs_handler());
   }
   if (from.request_indx() != 0) {
     set_request_indx(from.request_indx());
@@ -1541,9 +1923,10 @@ void NVMDataRequest::InternalSwap(NVMDataRequest* other) {
   using std::swap;
   request_type_.Swap(&other->request_type_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
     GetArenaNoVirtual());
-  meta_data_.Swap(&other->meta_data_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-    GetArenaNoVirtual());
+  swap(callback_result_, other->callback_result_);
   swap(config_bundle_, other->config_bundle_);
+  swap(lcs_handler_, other->lcs_handler_);
+  swap(gcs_handler_, other->gcs_handler_);
   swap(request_indx_, other->request_indx_);
   _internal_metadata_.Swap(&other->_internal_metadata_);
 }
@@ -2169,22 +2552,18 @@ NVMCallbackResponse::NVMCallbackResponse()
 }
 NVMCallbackResponse::NVMCallbackResponse(const NVMCallbackResponse& from)
   : ::google::protobuf::Message(),
-      _internal_metadata_(NULL) {
+      _internal_metadata_(NULL),
+      func_params_(from.func_params_) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   func_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   if (from.func_name().size() > 0) {
     func_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.func_name_);
-  }
-  func_params_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (from.func_params().size() > 0) {
-    func_params_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.func_params_);
   }
   // @@protoc_insertion_point(copy_constructor:NVMCallbackResponse)
 }
 
 void NVMCallbackResponse::SharedCtor() {
   func_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  func_params_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 
 NVMCallbackResponse::~NVMCallbackResponse() {
@@ -2194,7 +2573,6 @@ NVMCallbackResponse::~NVMCallbackResponse() {
 
 void NVMCallbackResponse::SharedDtor() {
   func_name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  func_params_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 
 void NVMCallbackResponse::SetCachedSize(int size) const {
@@ -2217,8 +2595,8 @@ void NVMCallbackResponse::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
+  func_params_.Clear();
   func_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  func_params_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   _internal_metadata_.Clear();
 }
 
@@ -2248,14 +2626,15 @@ bool NVMCallbackResponse::MergePartialFromCodedStream(
         break;
       }
 
-      // string func_params = 2;
+      // repeated string func_params = 2;
       case 2: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
             static_cast< ::google::protobuf::uint8>(18u /* 18 & 0xFF */)) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_func_params()));
+                input, this->add_func_params()));
           DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->func_params().data(), static_cast<int>(this->func_params().length()),
+            this->func_params(this->func_params_size() - 1).data(),
+            static_cast<int>(this->func_params(this->func_params_size() - 1).length()),
             ::google::protobuf::internal::WireFormatLite::PARSE,
             "NVMCallbackResponse.func_params"));
         } else {
@@ -2300,14 +2679,14 @@ void NVMCallbackResponse::SerializeWithCachedSizes(
       1, this->func_name(), output);
   }
 
-  // string func_params = 2;
-  if (this->func_params().size() > 0) {
+  // repeated string func_params = 2;
+  for (int i = 0, n = this->func_params_size(); i < n; i++) {
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->func_params().data(), static_cast<int>(this->func_params().length()),
+      this->func_params(i).data(), static_cast<int>(this->func_params(i).length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
       "NVMCallbackResponse.func_params");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      2, this->func_params(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteString(
+      2, this->func_params(i), output);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -2335,15 +2714,14 @@ void NVMCallbackResponse::SerializeWithCachedSizes(
         1, this->func_name(), target);
   }
 
-  // string func_params = 2;
-  if (this->func_params().size() > 0) {
+  // repeated string func_params = 2;
+  for (int i = 0, n = this->func_params_size(); i < n; i++) {
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->func_params().data(), static_cast<int>(this->func_params().length()),
+      this->func_params(i).data(), static_cast<int>(this->func_params(i).length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
       "NVMCallbackResponse.func_params");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        2, this->func_params(), target);
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteStringToArray(2, this->func_params(i), target);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -2363,18 +2741,19 @@ size_t NVMCallbackResponse::ByteSizeLong() const {
       ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()));
   }
+  // repeated string func_params = 2;
+  total_size += 1 *
+      ::google::protobuf::internal::FromIntSize(this->func_params_size());
+  for (int i = 0, n = this->func_params_size(); i < n; i++) {
+    total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+      this->func_params(i));
+  }
+
   // string func_name = 1;
   if (this->func_name().size() > 0) {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::StringSize(
         this->func_name());
-  }
-
-  // string func_params = 2;
-  if (this->func_params().size() > 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->func_params());
   }
 
   int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
@@ -2404,13 +2783,10 @@ void NVMCallbackResponse::MergeFrom(const NVMCallbackResponse& from) {
   ::google::protobuf::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
+  func_params_.MergeFrom(from.func_params_);
   if (from.func_name().size() > 0) {
 
     func_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.func_name_);
-  }
-  if (from.func_params().size() > 0) {
-
-    func_params_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.func_params_);
   }
 }
 
@@ -2438,9 +2814,8 @@ void NVMCallbackResponse::Swap(NVMCallbackResponse* other) {
 }
 void NVMCallbackResponse::InternalSwap(NVMCallbackResponse* other) {
   using std::swap;
+  func_params_.InternalSwap(CastToBase(&other->func_params_));
   func_name_.Swap(&other->func_name_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-    GetArenaNoVirtual());
-  func_params_.Swap(&other->func_params_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
     GetArenaNoVirtual());
   _internal_metadata_.Swap(&other->_internal_metadata_);
 }
@@ -2462,6 +2837,8 @@ void NVMDataResponse::InitAsDefaultInstance() {
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int NVMDataResponse::kResponseTypeFieldNumber;
 const int NVMDataResponse::kResponseIndxFieldNumber;
+const int NVMDataResponse::kLcsHandlerFieldNumber;
+const int NVMDataResponse::kGcsHandlerFieldNumber;
 const int NVMDataResponse::kFinalResponseFieldNumber;
 const int NVMDataResponse::kCallbackResponseFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
@@ -2491,7 +2868,9 @@ NVMDataResponse::NVMDataResponse(const NVMDataResponse& from)
   } else {
     callback_response_ = NULL;
   }
-  response_indx_ = from.response_indx_;
+  ::memcpy(&lcs_handler_, &from.lcs_handler_,
+    static_cast<size_t>(reinterpret_cast<char*>(&response_indx_) -
+    reinterpret_cast<char*>(&lcs_handler_)) + sizeof(response_indx_));
   // @@protoc_insertion_point(copy_constructor:NVMDataResponse)
 }
 
@@ -2542,7 +2921,9 @@ void NVMDataResponse::Clear() {
     delete callback_response_;
   }
   callback_response_ = NULL;
-  response_indx_ = 0u;
+  ::memset(&lcs_handler_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&response_indx_) -
+      reinterpret_cast<char*>(&lcs_handler_)) + sizeof(response_indx_));
   _internal_metadata_.Clear();
 }
 
@@ -2586,10 +2967,38 @@ bool NVMDataResponse::MergePartialFromCodedStream(
         break;
       }
 
-      // .NVMFinalResponse final_response = 3;
+      // uint64 lcs_handler = 3;
       case 3: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(26u /* 26 & 0xFF */)) {
+            static_cast< ::google::protobuf::uint8>(24u /* 24 & 0xFF */)) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &lcs_handler_)));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // uint64 gcs_handler = 4;
+      case 4: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(32u /* 32 & 0xFF */)) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &gcs_handler_)));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // .NVMFinalResponse final_response = 5;
+      case 5: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(42u /* 42 & 0xFF */)) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadMessage(
                input, mutable_final_response()));
         } else {
@@ -2598,10 +3007,10 @@ bool NVMDataResponse::MergePartialFromCodedStream(
         break;
       }
 
-      // .NVMCallbackResponse callback_response = 4;
-      case 4: {
+      // .NVMCallbackResponse callback_response = 6;
+      case 6: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(34u /* 34 & 0xFF */)) {
+            static_cast< ::google::protobuf::uint8>(50u /* 50 & 0xFF */)) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadMessage(
                input, mutable_callback_response()));
         } else {
@@ -2651,16 +3060,26 @@ void NVMDataResponse::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteUInt32(2, this->response_indx(), output);
   }
 
-  // .NVMFinalResponse final_response = 3;
-  if (this->has_final_response()) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      3, this->_internal_final_response(), output);
+  // uint64 lcs_handler = 3;
+  if (this->lcs_handler() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(3, this->lcs_handler(), output);
   }
 
-  // .NVMCallbackResponse callback_response = 4;
+  // uint64 gcs_handler = 4;
+  if (this->gcs_handler() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(4, this->gcs_handler(), output);
+  }
+
+  // .NVMFinalResponse final_response = 5;
+  if (this->has_final_response()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      5, this->_internal_final_response(), output);
+  }
+
+  // .NVMCallbackResponse callback_response = 6;
   if (this->has_callback_response()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      4, this->_internal_callback_response(), output);
+      6, this->_internal_callback_response(), output);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -2693,18 +3112,28 @@ void NVMDataResponse::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(2, this->response_indx(), target);
   }
 
-  // .NVMFinalResponse final_response = 3;
+  // uint64 lcs_handler = 3;
+  if (this->lcs_handler() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(3, this->lcs_handler(), target);
+  }
+
+  // uint64 gcs_handler = 4;
+  if (this->gcs_handler() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(4, this->gcs_handler(), target);
+  }
+
+  // .NVMFinalResponse final_response = 5;
   if (this->has_final_response()) {
     target = ::google::protobuf::internal::WireFormatLite::
       InternalWriteMessageToArray(
-        3, this->_internal_final_response(), deterministic, target);
+        5, this->_internal_final_response(), deterministic, target);
   }
 
-  // .NVMCallbackResponse callback_response = 4;
+  // .NVMCallbackResponse callback_response = 6;
   if (this->has_callback_response()) {
     target = ::google::protobuf::internal::WireFormatLite::
       InternalWriteMessageToArray(
-        4, this->_internal_callback_response(), deterministic, target);
+        6, this->_internal_callback_response(), deterministic, target);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -2731,18 +3160,32 @@ size_t NVMDataResponse::ByteSizeLong() const {
         this->response_type());
   }
 
-  // .NVMFinalResponse final_response = 3;
+  // .NVMFinalResponse final_response = 5;
   if (this->has_final_response()) {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::MessageSize(
         *final_response_);
   }
 
-  // .NVMCallbackResponse callback_response = 4;
+  // .NVMCallbackResponse callback_response = 6;
   if (this->has_callback_response()) {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::MessageSize(
         *callback_response_);
+  }
+
+  // uint64 lcs_handler = 3;
+  if (this->lcs_handler() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt64Size(
+        this->lcs_handler());
+  }
+
+  // uint64 gcs_handler = 4;
+  if (this->gcs_handler() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt64Size(
+        this->gcs_handler());
   }
 
   // uint32 response_indx = 2;
@@ -2789,6 +3232,12 @@ void NVMDataResponse::MergeFrom(const NVMDataResponse& from) {
   if (from.has_callback_response()) {
     mutable_callback_response()->::NVMCallbackResponse::MergeFrom(from.callback_response());
   }
+  if (from.lcs_handler() != 0) {
+    set_lcs_handler(from.lcs_handler());
+  }
+  if (from.gcs_handler() != 0) {
+    set_gcs_handler(from.gcs_handler());
+  }
   if (from.response_indx() != 0) {
     set_response_indx(from.response_indx());
   }
@@ -2822,6 +3271,8 @@ void NVMDataResponse::InternalSwap(NVMDataResponse* other) {
     GetArenaNoVirtual());
   swap(final_response_, other->final_response_);
   swap(callback_response_, other->callback_response_);
+  swap(lcs_handler_, other->lcs_handler_);
+  swap(gcs_handler_, other->gcs_handler_);
   swap(response_indx_, other->response_indx_);
   _internal_metadata_.Swap(&other->_internal_metadata_);
 }
@@ -2837,6 +3288,9 @@ namespace google {
 namespace protobuf {
 template<> GOOGLE_PROTOBUF_ATTRIBUTE_NOINLINE ::NVMConfigBundle* Arena::CreateMaybeMessage< ::NVMConfigBundle >(Arena* arena) {
   return Arena::CreateInternal< ::NVMConfigBundle >(arena);
+}
+template<> GOOGLE_PROTOBUF_ATTRIBUTE_NOINLINE ::NVMCallbackResult* Arena::CreateMaybeMessage< ::NVMCallbackResult >(Arena* arena) {
+  return Arena::CreateInternal< ::NVMCallbackResult >(arena);
 }
 template<> GOOGLE_PROTOBUF_ATTRIBUTE_NOINLINE ::NVMDataRequest* Arena::CreateMaybeMessage< ::NVMDataRequest >(Arena* arena) {
   return Arena::CreateInternal< ::NVMDataRequest >(arena);

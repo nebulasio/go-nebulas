@@ -38,7 +38,7 @@ namespace protobuf_nvm_2eproto {
 struct TableStruct {
   static const ::google::protobuf::internal::ParseTableField entries[];
   static const ::google::protobuf::internal::AuxillaryParseTableField aux[];
-  static const ::google::protobuf::internal::ParseTable schema[6];
+  static const ::google::protobuf::internal::ParseTable schema[7];
   static const ::google::protobuf::internal::FieldMetadata field_metadata[];
   static const ::google::protobuf::internal::SerializationTable serialization_table[];
   static const ::google::protobuf::uint32 offsets[];
@@ -48,6 +48,9 @@ void AddDescriptors();
 class NVMCallbackResponse;
 class NVMCallbackResponseDefaultTypeInternal;
 extern NVMCallbackResponseDefaultTypeInternal _NVMCallbackResponse_default_instance_;
+class NVMCallbackResult;
+class NVMCallbackResultDefaultTypeInternal;
+extern NVMCallbackResultDefaultTypeInternal _NVMCallbackResult_default_instance_;
 class NVMConfigBundle;
 class NVMConfigBundleDefaultTypeInternal;
 extern NVMConfigBundleDefaultTypeInternal _NVMConfigBundle_default_instance_;
@@ -66,6 +69,7 @@ extern NVMStatsBundleDefaultTypeInternal _NVMStatsBundle_default_instance_;
 namespace google {
 namespace protobuf {
 template<> ::NVMCallbackResponse* Arena::CreateMaybeMessage<::NVMCallbackResponse>(Arena*);
+template<> ::NVMCallbackResult* Arena::CreateMaybeMessage<::NVMCallbackResult>(Arena*);
 template<> ::NVMConfigBundle* Arena::CreateMaybeMessage<::NVMConfigBundle>(Arena*);
 template<> ::NVMDataRequest* Arena::CreateMaybeMessage<::NVMDataRequest>(Arena*);
 template<> ::NVMDataResponse* Arena::CreateMaybeMessage<::NVMDataResponse>(Arena*);
@@ -247,57 +251,45 @@ class NVMConfigBundle : public ::google::protobuf::Message /* @@protoc_insertion
   ::std::string* release_module_id();
   void set_allocated_module_id(::std::string* module_id);
 
-  // uint64 lcs_handler = 7;
-  void clear_lcs_handler();
-  static const int kLcsHandlerFieldNumber = 7;
-  ::google::protobuf::uint64 lcs_handler() const;
-  void set_lcs_handler(::google::protobuf::uint64 value);
-
-  // uint64 gcs_handler = 8;
-  void clear_gcs_handler();
-  static const int kGcsHandlerFieldNumber = 8;
-  ::google::protobuf::uint64 gcs_handler() const;
-  void set_gcs_handler(::google::protobuf::uint64 value);
-
-  // uint64 limits_exe_instruction = 10;
+  // uint64 limits_exe_instruction = 8;
   void clear_limits_exe_instruction();
-  static const int kLimitsExeInstructionFieldNumber = 10;
+  static const int kLimitsExeInstructionFieldNumber = 8;
   ::google::protobuf::uint64 limits_exe_instruction() const;
   void set_limits_exe_instruction(::google::protobuf::uint64 value);
 
-  // uint64 limits_total_mem_size = 11;
+  // uint64 limits_total_mem_size = 9;
   void clear_limits_total_mem_size();
-  static const int kLimitsTotalMemSizeFieldNumber = 11;
+  static const int kLimitsTotalMemSizeFieldNumber = 9;
   ::google::protobuf::uint64 limits_total_mem_size() const;
   void set_limits_total_mem_size(::google::protobuf::uint64 value);
 
-  // uint64 execution_timeout = 12;
+  // uint64 execution_timeout = 10;
   void clear_execution_timeout();
-  static const int kExecutionTimeoutFieldNumber = 12;
+  static const int kExecutionTimeoutFieldNumber = 10;
   ::google::protobuf::uint64 execution_timeout() const;
   void set_execution_timeout(::google::protobuf::uint64 value);
 
-  // uint64 timeout_gas_limit_cost = 13;
+  // uint64 timeout_gas_limit_cost = 11;
   void clear_timeout_gas_limit_cost();
-  static const int kTimeoutGasLimitCostFieldNumber = 13;
+  static const int kTimeoutGasLimitCostFieldNumber = 11;
   ::google::protobuf::uint64 timeout_gas_limit_cost() const;
   void set_timeout_gas_limit_cost(::google::protobuf::uint64 value);
 
-  // uint64 max_limits_of_execution_instruction = 14;
+  // uint64 max_limits_of_execution_instruction = 12;
   void clear_max_limits_of_execution_instruction();
-  static const int kMaxLimitsOfExecutionInstructionFieldNumber = 14;
+  static const int kMaxLimitsOfExecutionInstructionFieldNumber = 12;
   ::google::protobuf::uint64 max_limits_of_execution_instruction() const;
   void set_max_limits_of_execution_instruction(::google::protobuf::uint64 value);
 
-  // uint64 default_limits_of_total_mem_size = 15;
+  // uint64 default_limits_of_total_mem_size = 13;
   void clear_default_limits_of_total_mem_size();
-  static const int kDefaultLimitsOfTotalMemSizeFieldNumber = 15;
+  static const int kDefaultLimitsOfTotalMemSizeFieldNumber = 13;
   ::google::protobuf::uint64 default_limits_of_total_mem_size() const;
   void set_default_limits_of_total_mem_size(::google::protobuf::uint64 value);
 
-  // bool enable_limits = 9;
+  // bool enable_limits = 7;
   void clear_enable_limits();
-  static const int kEnableLimitsFieldNumber = 9;
+  static const int kEnableLimitsFieldNumber = 7;
   bool enable_limits() const;
   void set_enable_limits(bool value);
 
@@ -311,8 +303,6 @@ class NVMConfigBundle : public ::google::protobuf::Message /* @@protoc_insertion
   ::google::protobuf::internal::ArenaStringPtr block_json_;
   ::google::protobuf::internal::ArenaStringPtr tx_json_;
   ::google::protobuf::internal::ArenaStringPtr module_id_;
-  ::google::protobuf::uint64 lcs_handler_;
-  ::google::protobuf::uint64 gcs_handler_;
   ::google::protobuf::uint64 limits_exe_instruction_;
   ::google::protobuf::uint64 limits_total_mem_size_;
   ::google::protobuf::uint64 execution_timeout_;
@@ -320,6 +310,155 @@ class NVMConfigBundle : public ::google::protobuf::Message /* @@protoc_insertion
   ::google::protobuf::uint64 max_limits_of_execution_instruction_;
   ::google::protobuf::uint64 default_limits_of_total_mem_size_;
   bool enable_limits_;
+  mutable ::google::protobuf::internal::CachedSize _cached_size_;
+  friend struct ::protobuf_nvm_2eproto::TableStruct;
+};
+// -------------------------------------------------------------------
+
+class NVMCallbackResult : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:NVMCallbackResult) */ {
+ public:
+  NVMCallbackResult();
+  virtual ~NVMCallbackResult();
+
+  NVMCallbackResult(const NVMCallbackResult& from);
+
+  inline NVMCallbackResult& operator=(const NVMCallbackResult& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  NVMCallbackResult(NVMCallbackResult&& from) noexcept
+    : NVMCallbackResult() {
+    *this = ::std::move(from);
+  }
+
+  inline NVMCallbackResult& operator=(NVMCallbackResult&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const NVMCallbackResult& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const NVMCallbackResult* internal_default_instance() {
+    return reinterpret_cast<const NVMCallbackResult*>(
+               &_NVMCallbackResult_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    1;
+
+  void Swap(NVMCallbackResult* other);
+  friend void swap(NVMCallbackResult& a, NVMCallbackResult& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline NVMCallbackResult* New() const final {
+    return CreateMaybeMessage<NVMCallbackResult>(NULL);
+  }
+
+  NVMCallbackResult* New(::google::protobuf::Arena* arena) const final {
+    return CreateMaybeMessage<NVMCallbackResult>(arena);
+  }
+  void CopyFrom(const ::google::protobuf::Message& from) final;
+  void MergeFrom(const ::google::protobuf::Message& from) final;
+  void CopyFrom(const NVMCallbackResult& from);
+  void MergeFrom(const NVMCallbackResult& from);
+  void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) final;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const final;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(NVMCallbackResult* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return NULL;
+  }
+  inline void* MaybeArenaPtr() const {
+    return NULL;
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // repeated string extra = 3;
+  int extra_size() const;
+  void clear_extra();
+  static const int kExtraFieldNumber = 3;
+  const ::std::string& extra(int index) const;
+  ::std::string* mutable_extra(int index);
+  void set_extra(int index, const ::std::string& value);
+  #if LANG_CXX11
+  void set_extra(int index, ::std::string&& value);
+  #endif
+  void set_extra(int index, const char* value);
+  void set_extra(int index, const char* value, size_t size);
+  ::std::string* add_extra();
+  void add_extra(const ::std::string& value);
+  #if LANG_CXX11
+  void add_extra(::std::string&& value);
+  #endif
+  void add_extra(const char* value);
+  void add_extra(const char* value, size_t size);
+  const ::google::protobuf::RepeatedPtrField< ::std::string>& extra() const;
+  ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_extra();
+
+  // string func_name = 1;
+  void clear_func_name();
+  static const int kFuncNameFieldNumber = 1;
+  const ::std::string& func_name() const;
+  void set_func_name(const ::std::string& value);
+  #if LANG_CXX11
+  void set_func_name(::std::string&& value);
+  #endif
+  void set_func_name(const char* value);
+  void set_func_name(const char* value, size_t size);
+  ::std::string* mutable_func_name();
+  ::std::string* release_func_name();
+  void set_allocated_func_name(::std::string* func_name);
+
+  // string res = 2;
+  void clear_res();
+  static const int kResFieldNumber = 2;
+  const ::std::string& res() const;
+  void set_res(const ::std::string& value);
+  #if LANG_CXX11
+  void set_res(::std::string&& value);
+  #endif
+  void set_res(const char* value);
+  void set_res(const char* value, size_t size);
+  ::std::string* mutable_res();
+  ::std::string* release_res();
+  void set_allocated_res(::std::string* res);
+
+  // @@protoc_insertion_point(class_scope:NVMCallbackResult)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::RepeatedPtrField< ::std::string> extra_;
+  ::google::protobuf::internal::ArenaStringPtr func_name_;
+  ::google::protobuf::internal::ArenaStringPtr res_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_nvm_2eproto::TableStruct;
 };
@@ -360,7 +499,7 @@ class NVMDataRequest : public ::google::protobuf::Message /* @@protoc_insertion_
                &_NVMDataRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    1;
+    2;
 
   void Swap(NVMDataRequest* other);
   friend void swap(NVMDataRequest& a, NVMDataRequest& b) {
@@ -426,24 +565,22 @@ class NVMDataRequest : public ::google::protobuf::Message /* @@protoc_insertion_
   ::std::string* release_request_type();
   void set_allocated_request_type(::std::string* request_type);
 
-  // string meta_data = 3;
-  void clear_meta_data();
-  static const int kMetaDataFieldNumber = 3;
-  const ::std::string& meta_data() const;
-  void set_meta_data(const ::std::string& value);
-  #if LANG_CXX11
-  void set_meta_data(::std::string&& value);
-  #endif
-  void set_meta_data(const char* value);
-  void set_meta_data(const char* value, size_t size);
-  ::std::string* mutable_meta_data();
-  ::std::string* release_meta_data();
-  void set_allocated_meta_data(::std::string* meta_data);
+  // .NVMCallbackResult callback_result = 5;
+  bool has_callback_result() const;
+  void clear_callback_result();
+  static const int kCallbackResultFieldNumber = 5;
+  private:
+  const ::NVMCallbackResult& _internal_callback_result() const;
+  public:
+  const ::NVMCallbackResult& callback_result() const;
+  ::NVMCallbackResult* release_callback_result();
+  ::NVMCallbackResult* mutable_callback_result();
+  void set_allocated_callback_result(::NVMCallbackResult* callback_result);
 
-  // .NVMConfigBundle config_bundle = 4;
+  // .NVMConfigBundle config_bundle = 6;
   bool has_config_bundle() const;
   void clear_config_bundle();
-  static const int kConfigBundleFieldNumber = 4;
+  static const int kConfigBundleFieldNumber = 6;
   private:
   const ::NVMConfigBundle& _internal_config_bundle() const;
   public:
@@ -451,6 +588,18 @@ class NVMDataRequest : public ::google::protobuf::Message /* @@protoc_insertion_
   ::NVMConfigBundle* release_config_bundle();
   ::NVMConfigBundle* mutable_config_bundle();
   void set_allocated_config_bundle(::NVMConfigBundle* config_bundle);
+
+  // uint64 lcs_handler = 3;
+  void clear_lcs_handler();
+  static const int kLcsHandlerFieldNumber = 3;
+  ::google::protobuf::uint64 lcs_handler() const;
+  void set_lcs_handler(::google::protobuf::uint64 value);
+
+  // uint64 gcs_handler = 4;
+  void clear_gcs_handler();
+  static const int kGcsHandlerFieldNumber = 4;
+  ::google::protobuf::uint64 gcs_handler() const;
+  void set_gcs_handler(::google::protobuf::uint64 value);
 
   // uint32 request_indx = 2;
   void clear_request_indx();
@@ -463,8 +612,10 @@ class NVMDataRequest : public ::google::protobuf::Message /* @@protoc_insertion_
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::internal::ArenaStringPtr request_type_;
-  ::google::protobuf::internal::ArenaStringPtr meta_data_;
+  ::NVMCallbackResult* callback_result_;
   ::NVMConfigBundle* config_bundle_;
+  ::google::protobuf::uint64 lcs_handler_;
+  ::google::protobuf::uint64 gcs_handler_;
   ::google::protobuf::uint32 request_indx_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_nvm_2eproto::TableStruct;
@@ -506,7 +657,7 @@ class NVMStatsBundle : public ::google::protobuf::Message /* @@protoc_insertion_
                &_NVMStatsBundle_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    2;
+    3;
 
   void Swap(NVMStatsBundle* other);
   friend void swap(NVMStatsBundle& a, NVMStatsBundle& b) {
@@ -616,7 +767,7 @@ class NVMFinalResponse : public ::google::protobuf::Message /* @@protoc_insertio
                &_NVMFinalResponse_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    3;
+    4;
 
   void Swap(NVMFinalResponse* other);
   friend void swap(NVMFinalResponse& a, NVMFinalResponse& b) {
@@ -747,7 +898,7 @@ class NVMCallbackResponse : public ::google::protobuf::Message /* @@protoc_inser
                &_NVMCallbackResponse_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    4;
+    5;
 
   void Swap(NVMCallbackResponse* other);
   friend void swap(NVMCallbackResponse& a, NVMCallbackResponse& b) {
@@ -799,6 +950,28 @@ class NVMCallbackResponse : public ::google::protobuf::Message /* @@protoc_inser
 
   // accessors -------------------------------------------------------
 
+  // repeated string func_params = 2;
+  int func_params_size() const;
+  void clear_func_params();
+  static const int kFuncParamsFieldNumber = 2;
+  const ::std::string& func_params(int index) const;
+  ::std::string* mutable_func_params(int index);
+  void set_func_params(int index, const ::std::string& value);
+  #if LANG_CXX11
+  void set_func_params(int index, ::std::string&& value);
+  #endif
+  void set_func_params(int index, const char* value);
+  void set_func_params(int index, const char* value, size_t size);
+  ::std::string* add_func_params();
+  void add_func_params(const ::std::string& value);
+  #if LANG_CXX11
+  void add_func_params(::std::string&& value);
+  #endif
+  void add_func_params(const char* value);
+  void add_func_params(const char* value, size_t size);
+  const ::google::protobuf::RepeatedPtrField< ::std::string>& func_params() const;
+  ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_func_params();
+
   // string func_name = 1;
   void clear_func_name();
   static const int kFuncNameFieldNumber = 1;
@@ -813,26 +986,12 @@ class NVMCallbackResponse : public ::google::protobuf::Message /* @@protoc_inser
   ::std::string* release_func_name();
   void set_allocated_func_name(::std::string* func_name);
 
-  // string func_params = 2;
-  void clear_func_params();
-  static const int kFuncParamsFieldNumber = 2;
-  const ::std::string& func_params() const;
-  void set_func_params(const ::std::string& value);
-  #if LANG_CXX11
-  void set_func_params(::std::string&& value);
-  #endif
-  void set_func_params(const char* value);
-  void set_func_params(const char* value, size_t size);
-  ::std::string* mutable_func_params();
-  ::std::string* release_func_params();
-  void set_allocated_func_params(::std::string* func_params);
-
   // @@protoc_insertion_point(class_scope:NVMCallbackResponse)
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::RepeatedPtrField< ::std::string> func_params_;
   ::google::protobuf::internal::ArenaStringPtr func_name_;
-  ::google::protobuf::internal::ArenaStringPtr func_params_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_nvm_2eproto::TableStruct;
 };
@@ -873,7 +1032,7 @@ class NVMDataResponse : public ::google::protobuf::Message /* @@protoc_insertion
                &_NVMDataResponse_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    5;
+    6;
 
   void Swap(NVMDataResponse* other);
   friend void swap(NVMDataResponse& a, NVMDataResponse& b) {
@@ -939,10 +1098,10 @@ class NVMDataResponse : public ::google::protobuf::Message /* @@protoc_insertion
   ::std::string* release_response_type();
   void set_allocated_response_type(::std::string* response_type);
 
-  // .NVMFinalResponse final_response = 3;
+  // .NVMFinalResponse final_response = 5;
   bool has_final_response() const;
   void clear_final_response();
-  static const int kFinalResponseFieldNumber = 3;
+  static const int kFinalResponseFieldNumber = 5;
   private:
   const ::NVMFinalResponse& _internal_final_response() const;
   public:
@@ -951,10 +1110,10 @@ class NVMDataResponse : public ::google::protobuf::Message /* @@protoc_insertion
   ::NVMFinalResponse* mutable_final_response();
   void set_allocated_final_response(::NVMFinalResponse* final_response);
 
-  // .NVMCallbackResponse callback_response = 4;
+  // .NVMCallbackResponse callback_response = 6;
   bool has_callback_response() const;
   void clear_callback_response();
-  static const int kCallbackResponseFieldNumber = 4;
+  static const int kCallbackResponseFieldNumber = 6;
   private:
   const ::NVMCallbackResponse& _internal_callback_response() const;
   public:
@@ -962,6 +1121,18 @@ class NVMDataResponse : public ::google::protobuf::Message /* @@protoc_insertion
   ::NVMCallbackResponse* release_callback_response();
   ::NVMCallbackResponse* mutable_callback_response();
   void set_allocated_callback_response(::NVMCallbackResponse* callback_response);
+
+  // uint64 lcs_handler = 3;
+  void clear_lcs_handler();
+  static const int kLcsHandlerFieldNumber = 3;
+  ::google::protobuf::uint64 lcs_handler() const;
+  void set_lcs_handler(::google::protobuf::uint64 value);
+
+  // uint64 gcs_handler = 4;
+  void clear_gcs_handler();
+  static const int kGcsHandlerFieldNumber = 4;
+  ::google::protobuf::uint64 gcs_handler() const;
+  void set_gcs_handler(::google::protobuf::uint64 value);
 
   // uint32 response_indx = 2;
   void clear_response_indx();
@@ -976,6 +1147,8 @@ class NVMDataResponse : public ::google::protobuf::Message /* @@protoc_insertion
   ::google::protobuf::internal::ArenaStringPtr response_type_;
   ::NVMFinalResponse* final_response_;
   ::NVMCallbackResponse* callback_response_;
+  ::google::protobuf::uint64 lcs_handler_;
+  ::google::protobuf::uint64 gcs_handler_;
   ::google::protobuf::uint32 response_indx_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_nvm_2eproto::TableStruct;
@@ -1309,35 +1482,7 @@ inline void NVMConfigBundle::set_allocated_module_id(::std::string* module_id) {
   // @@protoc_insertion_point(field_set_allocated:NVMConfigBundle.module_id)
 }
 
-// uint64 lcs_handler = 7;
-inline void NVMConfigBundle::clear_lcs_handler() {
-  lcs_handler_ = GOOGLE_ULONGLONG(0);
-}
-inline ::google::protobuf::uint64 NVMConfigBundle::lcs_handler() const {
-  // @@protoc_insertion_point(field_get:NVMConfigBundle.lcs_handler)
-  return lcs_handler_;
-}
-inline void NVMConfigBundle::set_lcs_handler(::google::protobuf::uint64 value) {
-  
-  lcs_handler_ = value;
-  // @@protoc_insertion_point(field_set:NVMConfigBundle.lcs_handler)
-}
-
-// uint64 gcs_handler = 8;
-inline void NVMConfigBundle::clear_gcs_handler() {
-  gcs_handler_ = GOOGLE_ULONGLONG(0);
-}
-inline ::google::protobuf::uint64 NVMConfigBundle::gcs_handler() const {
-  // @@protoc_insertion_point(field_get:NVMConfigBundle.gcs_handler)
-  return gcs_handler_;
-}
-inline void NVMConfigBundle::set_gcs_handler(::google::protobuf::uint64 value) {
-  
-  gcs_handler_ = value;
-  // @@protoc_insertion_point(field_set:NVMConfigBundle.gcs_handler)
-}
-
-// bool enable_limits = 9;
+// bool enable_limits = 7;
 inline void NVMConfigBundle::clear_enable_limits() {
   enable_limits_ = false;
 }
@@ -1351,7 +1496,7 @@ inline void NVMConfigBundle::set_enable_limits(bool value) {
   // @@protoc_insertion_point(field_set:NVMConfigBundle.enable_limits)
 }
 
-// uint64 limits_exe_instruction = 10;
+// uint64 limits_exe_instruction = 8;
 inline void NVMConfigBundle::clear_limits_exe_instruction() {
   limits_exe_instruction_ = GOOGLE_ULONGLONG(0);
 }
@@ -1365,7 +1510,7 @@ inline void NVMConfigBundle::set_limits_exe_instruction(::google::protobuf::uint
   // @@protoc_insertion_point(field_set:NVMConfigBundle.limits_exe_instruction)
 }
 
-// uint64 limits_total_mem_size = 11;
+// uint64 limits_total_mem_size = 9;
 inline void NVMConfigBundle::clear_limits_total_mem_size() {
   limits_total_mem_size_ = GOOGLE_ULONGLONG(0);
 }
@@ -1379,7 +1524,7 @@ inline void NVMConfigBundle::set_limits_total_mem_size(::google::protobuf::uint6
   // @@protoc_insertion_point(field_set:NVMConfigBundle.limits_total_mem_size)
 }
 
-// uint64 execution_timeout = 12;
+// uint64 execution_timeout = 10;
 inline void NVMConfigBundle::clear_execution_timeout() {
   execution_timeout_ = GOOGLE_ULONGLONG(0);
 }
@@ -1393,7 +1538,7 @@ inline void NVMConfigBundle::set_execution_timeout(::google::protobuf::uint64 va
   // @@protoc_insertion_point(field_set:NVMConfigBundle.execution_timeout)
 }
 
-// uint64 timeout_gas_limit_cost = 13;
+// uint64 timeout_gas_limit_cost = 11;
 inline void NVMConfigBundle::clear_timeout_gas_limit_cost() {
   timeout_gas_limit_cost_ = GOOGLE_ULONGLONG(0);
 }
@@ -1407,7 +1552,7 @@ inline void NVMConfigBundle::set_timeout_gas_limit_cost(::google::protobuf::uint
   // @@protoc_insertion_point(field_set:NVMConfigBundle.timeout_gas_limit_cost)
 }
 
-// uint64 max_limits_of_execution_instruction = 14;
+// uint64 max_limits_of_execution_instruction = 12;
 inline void NVMConfigBundle::clear_max_limits_of_execution_instruction() {
   max_limits_of_execution_instruction_ = GOOGLE_ULONGLONG(0);
 }
@@ -1421,7 +1566,7 @@ inline void NVMConfigBundle::set_max_limits_of_execution_instruction(::google::p
   // @@protoc_insertion_point(field_set:NVMConfigBundle.max_limits_of_execution_instruction)
 }
 
-// uint64 default_limits_of_total_mem_size = 15;
+// uint64 default_limits_of_total_mem_size = 13;
 inline void NVMConfigBundle::clear_default_limits_of_total_mem_size() {
   default_limits_of_total_mem_size_ = GOOGLE_ULONGLONG(0);
 }
@@ -1433,6 +1578,185 @@ inline void NVMConfigBundle::set_default_limits_of_total_mem_size(::google::prot
   
   default_limits_of_total_mem_size_ = value;
   // @@protoc_insertion_point(field_set:NVMConfigBundle.default_limits_of_total_mem_size)
+}
+
+// -------------------------------------------------------------------
+
+// NVMCallbackResult
+
+// string func_name = 1;
+inline void NVMCallbackResult::clear_func_name() {
+  func_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& NVMCallbackResult::func_name() const {
+  // @@protoc_insertion_point(field_get:NVMCallbackResult.func_name)
+  return func_name_.GetNoArena();
+}
+inline void NVMCallbackResult::set_func_name(const ::std::string& value) {
+  
+  func_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:NVMCallbackResult.func_name)
+}
+#if LANG_CXX11
+inline void NVMCallbackResult::set_func_name(::std::string&& value) {
+  
+  func_name_.SetNoArena(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:NVMCallbackResult.func_name)
+}
+#endif
+inline void NVMCallbackResult::set_func_name(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  
+  func_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:NVMCallbackResult.func_name)
+}
+inline void NVMCallbackResult::set_func_name(const char* value, size_t size) {
+  
+  func_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:NVMCallbackResult.func_name)
+}
+inline ::std::string* NVMCallbackResult::mutable_func_name() {
+  
+  // @@protoc_insertion_point(field_mutable:NVMCallbackResult.func_name)
+  return func_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* NVMCallbackResult::release_func_name() {
+  // @@protoc_insertion_point(field_release:NVMCallbackResult.func_name)
+  
+  return func_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void NVMCallbackResult::set_allocated_func_name(::std::string* func_name) {
+  if (func_name != NULL) {
+    
+  } else {
+    
+  }
+  func_name_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), func_name);
+  // @@protoc_insertion_point(field_set_allocated:NVMCallbackResult.func_name)
+}
+
+// string res = 2;
+inline void NVMCallbackResult::clear_res() {
+  res_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& NVMCallbackResult::res() const {
+  // @@protoc_insertion_point(field_get:NVMCallbackResult.res)
+  return res_.GetNoArena();
+}
+inline void NVMCallbackResult::set_res(const ::std::string& value) {
+  
+  res_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:NVMCallbackResult.res)
+}
+#if LANG_CXX11
+inline void NVMCallbackResult::set_res(::std::string&& value) {
+  
+  res_.SetNoArena(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:NVMCallbackResult.res)
+}
+#endif
+inline void NVMCallbackResult::set_res(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  
+  res_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:NVMCallbackResult.res)
+}
+inline void NVMCallbackResult::set_res(const char* value, size_t size) {
+  
+  res_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:NVMCallbackResult.res)
+}
+inline ::std::string* NVMCallbackResult::mutable_res() {
+  
+  // @@protoc_insertion_point(field_mutable:NVMCallbackResult.res)
+  return res_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* NVMCallbackResult::release_res() {
+  // @@protoc_insertion_point(field_release:NVMCallbackResult.res)
+  
+  return res_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void NVMCallbackResult::set_allocated_res(::std::string* res) {
+  if (res != NULL) {
+    
+  } else {
+    
+  }
+  res_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), res);
+  // @@protoc_insertion_point(field_set_allocated:NVMCallbackResult.res)
+}
+
+// repeated string extra = 3;
+inline int NVMCallbackResult::extra_size() const {
+  return extra_.size();
+}
+inline void NVMCallbackResult::clear_extra() {
+  extra_.Clear();
+}
+inline const ::std::string& NVMCallbackResult::extra(int index) const {
+  // @@protoc_insertion_point(field_get:NVMCallbackResult.extra)
+  return extra_.Get(index);
+}
+inline ::std::string* NVMCallbackResult::mutable_extra(int index) {
+  // @@protoc_insertion_point(field_mutable:NVMCallbackResult.extra)
+  return extra_.Mutable(index);
+}
+inline void NVMCallbackResult::set_extra(int index, const ::std::string& value) {
+  // @@protoc_insertion_point(field_set:NVMCallbackResult.extra)
+  extra_.Mutable(index)->assign(value);
+}
+#if LANG_CXX11
+inline void NVMCallbackResult::set_extra(int index, ::std::string&& value) {
+  // @@protoc_insertion_point(field_set:NVMCallbackResult.extra)
+  extra_.Mutable(index)->assign(std::move(value));
+}
+#endif
+inline void NVMCallbackResult::set_extra(int index, const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  extra_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:NVMCallbackResult.extra)
+}
+inline void NVMCallbackResult::set_extra(int index, const char* value, size_t size) {
+  extra_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:NVMCallbackResult.extra)
+}
+inline ::std::string* NVMCallbackResult::add_extra() {
+  // @@protoc_insertion_point(field_add_mutable:NVMCallbackResult.extra)
+  return extra_.Add();
+}
+inline void NVMCallbackResult::add_extra(const ::std::string& value) {
+  extra_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:NVMCallbackResult.extra)
+}
+#if LANG_CXX11
+inline void NVMCallbackResult::add_extra(::std::string&& value) {
+  extra_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:NVMCallbackResult.extra)
+}
+#endif
+inline void NVMCallbackResult::add_extra(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  extra_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:NVMCallbackResult.extra)
+}
+inline void NVMCallbackResult::add_extra(const char* value, size_t size) {
+  extra_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:NVMCallbackResult.extra)
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
+NVMCallbackResult::extra() const {
+  // @@protoc_insertion_point(field_list:NVMCallbackResult.extra)
+  return extra_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+NVMCallbackResult::mutable_extra() {
+  // @@protoc_insertion_point(field_mutable_list:NVMCallbackResult.extra)
+  return &extra_;
 }
 
 // -------------------------------------------------------------------
@@ -1506,60 +1830,89 @@ inline void NVMDataRequest::set_request_indx(::google::protobuf::uint32 value) {
   // @@protoc_insertion_point(field_set:NVMDataRequest.request_indx)
 }
 
-// string meta_data = 3;
-inline void NVMDataRequest::clear_meta_data() {
-  meta_data_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+// uint64 lcs_handler = 3;
+inline void NVMDataRequest::clear_lcs_handler() {
+  lcs_handler_ = GOOGLE_ULONGLONG(0);
 }
-inline const ::std::string& NVMDataRequest::meta_data() const {
-  // @@protoc_insertion_point(field_get:NVMDataRequest.meta_data)
-  return meta_data_.GetNoArena();
+inline ::google::protobuf::uint64 NVMDataRequest::lcs_handler() const {
+  // @@protoc_insertion_point(field_get:NVMDataRequest.lcs_handler)
+  return lcs_handler_;
 }
-inline void NVMDataRequest::set_meta_data(const ::std::string& value) {
+inline void NVMDataRequest::set_lcs_handler(::google::protobuf::uint64 value) {
   
-  meta_data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:NVMDataRequest.meta_data)
+  lcs_handler_ = value;
+  // @@protoc_insertion_point(field_set:NVMDataRequest.lcs_handler)
 }
-#if LANG_CXX11
-inline void NVMDataRequest::set_meta_data(::std::string&& value) {
+
+// uint64 gcs_handler = 4;
+inline void NVMDataRequest::clear_gcs_handler() {
+  gcs_handler_ = GOOGLE_ULONGLONG(0);
+}
+inline ::google::protobuf::uint64 NVMDataRequest::gcs_handler() const {
+  // @@protoc_insertion_point(field_get:NVMDataRequest.gcs_handler)
+  return gcs_handler_;
+}
+inline void NVMDataRequest::set_gcs_handler(::google::protobuf::uint64 value) {
   
-  meta_data_.SetNoArena(
-    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:NVMDataRequest.meta_data)
+  gcs_handler_ = value;
+  // @@protoc_insertion_point(field_set:NVMDataRequest.gcs_handler)
 }
-#endif
-inline void NVMDataRequest::set_meta_data(const char* value) {
-  GOOGLE_DCHECK(value != NULL);
+
+// .NVMCallbackResult callback_result = 5;
+inline bool NVMDataRequest::has_callback_result() const {
+  return this != internal_default_instance() && callback_result_ != NULL;
+}
+inline void NVMDataRequest::clear_callback_result() {
+  if (GetArenaNoVirtual() == NULL && callback_result_ != NULL) {
+    delete callback_result_;
+  }
+  callback_result_ = NULL;
+}
+inline const ::NVMCallbackResult& NVMDataRequest::_internal_callback_result() const {
+  return *callback_result_;
+}
+inline const ::NVMCallbackResult& NVMDataRequest::callback_result() const {
+  const ::NVMCallbackResult* p = callback_result_;
+  // @@protoc_insertion_point(field_get:NVMDataRequest.callback_result)
+  return p != NULL ? *p : *reinterpret_cast<const ::NVMCallbackResult*>(
+      &::_NVMCallbackResult_default_instance_);
+}
+inline ::NVMCallbackResult* NVMDataRequest::release_callback_result() {
+  // @@protoc_insertion_point(field_release:NVMDataRequest.callback_result)
   
-  meta_data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:NVMDataRequest.meta_data)
+  ::NVMCallbackResult* temp = callback_result_;
+  callback_result_ = NULL;
+  return temp;
 }
-inline void NVMDataRequest::set_meta_data(const char* value, size_t size) {
+inline ::NVMCallbackResult* NVMDataRequest::mutable_callback_result() {
   
-  meta_data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:NVMDataRequest.meta_data)
+  if (callback_result_ == NULL) {
+    auto* p = CreateMaybeMessage<::NVMCallbackResult>(GetArenaNoVirtual());
+    callback_result_ = p;
+  }
+  // @@protoc_insertion_point(field_mutable:NVMDataRequest.callback_result)
+  return callback_result_;
 }
-inline ::std::string* NVMDataRequest::mutable_meta_data() {
-  
-  // @@protoc_insertion_point(field_mutable:NVMDataRequest.meta_data)
-  return meta_data_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline ::std::string* NVMDataRequest::release_meta_data() {
-  // @@protoc_insertion_point(field_release:NVMDataRequest.meta_data)
-  
-  return meta_data_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline void NVMDataRequest::set_allocated_meta_data(::std::string* meta_data) {
-  if (meta_data != NULL) {
+inline void NVMDataRequest::set_allocated_callback_result(::NVMCallbackResult* callback_result) {
+  ::google::protobuf::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == NULL) {
+    delete callback_result_;
+  }
+  if (callback_result) {
+    ::google::protobuf::Arena* submessage_arena = NULL;
+    if (message_arena != submessage_arena) {
+      callback_result = ::google::protobuf::internal::GetOwnedMessage(
+          message_arena, callback_result, submessage_arena);
+    }
     
   } else {
     
   }
-  meta_data_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), meta_data);
-  // @@protoc_insertion_point(field_set_allocated:NVMDataRequest.meta_data)
+  callback_result_ = callback_result;
+  // @@protoc_insertion_point(field_set_allocated:NVMDataRequest.callback_result)
 }
 
-// .NVMConfigBundle config_bundle = 4;
+// .NVMConfigBundle config_bundle = 6;
 inline bool NVMDataRequest::has_config_bundle() const {
   return this != internal_default_instance() && config_bundle_ != NULL;
 }
@@ -1827,57 +2180,73 @@ inline void NVMCallbackResponse::set_allocated_func_name(::std::string* func_nam
   // @@protoc_insertion_point(field_set_allocated:NVMCallbackResponse.func_name)
 }
 
-// string func_params = 2;
+// repeated string func_params = 2;
+inline int NVMCallbackResponse::func_params_size() const {
+  return func_params_.size();
+}
 inline void NVMCallbackResponse::clear_func_params() {
-  func_params_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  func_params_.Clear();
 }
-inline const ::std::string& NVMCallbackResponse::func_params() const {
+inline const ::std::string& NVMCallbackResponse::func_params(int index) const {
   // @@protoc_insertion_point(field_get:NVMCallbackResponse.func_params)
-  return func_params_.GetNoArena();
+  return func_params_.Get(index);
 }
-inline void NVMCallbackResponse::set_func_params(const ::std::string& value) {
-  
-  func_params_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+inline ::std::string* NVMCallbackResponse::mutable_func_params(int index) {
+  // @@protoc_insertion_point(field_mutable:NVMCallbackResponse.func_params)
+  return func_params_.Mutable(index);
+}
+inline void NVMCallbackResponse::set_func_params(int index, const ::std::string& value) {
   // @@protoc_insertion_point(field_set:NVMCallbackResponse.func_params)
+  func_params_.Mutable(index)->assign(value);
 }
 #if LANG_CXX11
-inline void NVMCallbackResponse::set_func_params(::std::string&& value) {
-  
-  func_params_.SetNoArena(
-    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:NVMCallbackResponse.func_params)
+inline void NVMCallbackResponse::set_func_params(int index, ::std::string&& value) {
+  // @@protoc_insertion_point(field_set:NVMCallbackResponse.func_params)
+  func_params_.Mutable(index)->assign(std::move(value));
 }
 #endif
-inline void NVMCallbackResponse::set_func_params(const char* value) {
+inline void NVMCallbackResponse::set_func_params(int index, const char* value) {
   GOOGLE_DCHECK(value != NULL);
-  
-  func_params_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  func_params_.Mutable(index)->assign(value);
   // @@protoc_insertion_point(field_set_char:NVMCallbackResponse.func_params)
 }
-inline void NVMCallbackResponse::set_func_params(const char* value, size_t size) {
-  
-  func_params_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
+inline void NVMCallbackResponse::set_func_params(int index, const char* value, size_t size) {
+  func_params_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
   // @@protoc_insertion_point(field_set_pointer:NVMCallbackResponse.func_params)
 }
-inline ::std::string* NVMCallbackResponse::mutable_func_params() {
-  
-  // @@protoc_insertion_point(field_mutable:NVMCallbackResponse.func_params)
-  return func_params_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline ::std::string* NVMCallbackResponse::add_func_params() {
+  // @@protoc_insertion_point(field_add_mutable:NVMCallbackResponse.func_params)
+  return func_params_.Add();
 }
-inline ::std::string* NVMCallbackResponse::release_func_params() {
-  // @@protoc_insertion_point(field_release:NVMCallbackResponse.func_params)
-  
-  return func_params_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline void NVMCallbackResponse::add_func_params(const ::std::string& value) {
+  func_params_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:NVMCallbackResponse.func_params)
 }
-inline void NVMCallbackResponse::set_allocated_func_params(::std::string* func_params) {
-  if (func_params != NULL) {
-    
-  } else {
-    
-  }
-  func_params_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), func_params);
-  // @@protoc_insertion_point(field_set_allocated:NVMCallbackResponse.func_params)
+#if LANG_CXX11
+inline void NVMCallbackResponse::add_func_params(::std::string&& value) {
+  func_params_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:NVMCallbackResponse.func_params)
+}
+#endif
+inline void NVMCallbackResponse::add_func_params(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  func_params_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:NVMCallbackResponse.func_params)
+}
+inline void NVMCallbackResponse::add_func_params(const char* value, size_t size) {
+  func_params_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:NVMCallbackResponse.func_params)
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
+NVMCallbackResponse::func_params() const {
+  // @@protoc_insertion_point(field_list:NVMCallbackResponse.func_params)
+  return func_params_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+NVMCallbackResponse::mutable_func_params() {
+  // @@protoc_insertion_point(field_mutable_list:NVMCallbackResponse.func_params)
+  return &func_params_;
 }
 
 // -------------------------------------------------------------------
@@ -1951,7 +2320,35 @@ inline void NVMDataResponse::set_response_indx(::google::protobuf::uint32 value)
   // @@protoc_insertion_point(field_set:NVMDataResponse.response_indx)
 }
 
-// .NVMFinalResponse final_response = 3;
+// uint64 lcs_handler = 3;
+inline void NVMDataResponse::clear_lcs_handler() {
+  lcs_handler_ = GOOGLE_ULONGLONG(0);
+}
+inline ::google::protobuf::uint64 NVMDataResponse::lcs_handler() const {
+  // @@protoc_insertion_point(field_get:NVMDataResponse.lcs_handler)
+  return lcs_handler_;
+}
+inline void NVMDataResponse::set_lcs_handler(::google::protobuf::uint64 value) {
+  
+  lcs_handler_ = value;
+  // @@protoc_insertion_point(field_set:NVMDataResponse.lcs_handler)
+}
+
+// uint64 gcs_handler = 4;
+inline void NVMDataResponse::clear_gcs_handler() {
+  gcs_handler_ = GOOGLE_ULONGLONG(0);
+}
+inline ::google::protobuf::uint64 NVMDataResponse::gcs_handler() const {
+  // @@protoc_insertion_point(field_get:NVMDataResponse.gcs_handler)
+  return gcs_handler_;
+}
+inline void NVMDataResponse::set_gcs_handler(::google::protobuf::uint64 value) {
+  
+  gcs_handler_ = value;
+  // @@protoc_insertion_point(field_set:NVMDataResponse.gcs_handler)
+}
+
+// .NVMFinalResponse final_response = 5;
 inline bool NVMDataResponse::has_final_response() const {
   return this != internal_default_instance() && final_response_ != NULL;
 }
@@ -2005,7 +2402,7 @@ inline void NVMDataResponse::set_allocated_final_response(::NVMFinalResponse* fi
   // @@protoc_insertion_point(field_set_allocated:NVMDataResponse.final_response)
 }
 
-// .NVMCallbackResponse callback_response = 4;
+// .NVMCallbackResponse callback_response = 6;
 inline bool NVMDataResponse::has_callback_response() const {
   return this != internal_default_instance() && callback_response_ != NULL;
 }
@@ -2062,6 +2459,8 @@ inline void NVMDataResponse::set_allocated_callback_response(::NVMCallbackRespon
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

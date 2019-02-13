@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2017-2019 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -19,6 +19,8 @@
 #pragma once
 
 #include <stddef.h>
+#include "../v8_util.h"
+#include "callback_util.h"
 
 char *RequireDelegateFunc(void *handler, const char *filename, size_t *lineOffset);
 

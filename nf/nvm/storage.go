@@ -18,12 +18,9 @@
 
 package nvm
 
-import "C"
-
 import (
 	"errors"
 	"regexp"
-	"unsafe"
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -62,17 +59,16 @@ func parseStorageKey(key string) (string, string, error) {
 
 // StorageGetFunc export StorageGetFunc
 //export StorageGetFunc
-func StorageGetFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) *C.char {
-	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
+func StorageGetFunc(handler uint64, k string) (string, uint64) {
+	
+	// calculate Gas.
+	var gasCnt uint64 = 0
+
+	_, storage := getEngineByStorageHandler(handler)
 	if storage == nil {
 		logging.VLog().Error("Failed to get storage handler.")
-		return nil
+		return "", gasCnt
 	}
-
-	k := C.GoString(key)
-
-	// calculate Gas.
-	*gasCnt = C.size_t(0)
 
 	domainKey, itemKey, err := parseStorageKey(k)
 	if err != nil {
@@ -81,7 +77,7 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) *C.ch
 			"key":     k,
 			"err":     err,
 		}).Debug("Invalid storage key.")
-		return nil
+		return "", gasCnt
 	}
 
 	val, err := storage.Get(trie.HashDomains(domainKey, itemKey))
@@ -93,26 +89,27 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) *C.ch
 				"err":     err,
 			}).Debug("StorageGetFunc get key failed.")
 		}
-		return nil
+		return "", gasCnt
 	}
 
-	return C.CString(string(val))
+	return string(val), gasCnt
 }
 
 // StoragePutFunc export StoragePutFunc
 //export StoragePutFunc
-func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char, gasCnt *C.size_t) int {
-	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
+func StoragePutFunc(handler uint64, k string, value string) (int, uint64) {
+
+	var gasCnt uint64 = 0
+
+	_, storage := getEngineByStorageHandler(handler)
 	if storage == nil {
 		logging.VLog().Error("Failed to get storage handler.")
-		return 1
+		return 1, gasCnt
 	}
-
-	k := C.GoString(key)
-	v := []byte(C.GoString(value))
+	v := []byte(value)
 
 	// calculate Gas.
-	*gasCnt = C.size_t(len(k) + len(v))
+	gasCnt = uint64(len(k) + len(v))
 
 	domainKey, itemKey, err := parseStorageKey(k)
 	if err != nil {
@@ -121,7 +118,7 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char, gasCnt *
 			"key":     k,
 			"err":     err,
 		}).Debug("Invalid storage key.")
-		return 1
+		return 1, gasCnt
 	}
 
 	err = storage.Put(trie.HashDomains(domainKey, itemKey), v)
@@ -131,25 +128,23 @@ func StoragePutFunc(handler unsafe.Pointer, key *C.char, value *C.char, gasCnt *
 			"key":     k,
 			"err":     err,
 		}).Debug("StoragePutFunc put key failed.")
-		return 1
+		return 1, gasCnt
 	}
 
-	return 0
+	return 0, gasCnt
 }
 
 // StorageDelFunc export StorageDelFunc
 //export StorageDelFunc
-func StorageDelFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) int {
+func StorageDelFunc(handler uint64, k string) (int, uint64) {
+
+	var gasCnt uint64 = 0
+
 	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
 		logging.VLog().Error("Failed to get storage handler.")
-		return 1
+		return 1, gasCnt
 	}
-
-	k := C.GoString(key)
-
-	// calculate Gas.
-	*gasCnt = C.size_t(0)
 
 	domainKey, itemKey, err := parseStorageKey(k)
 	if err != nil {
@@ -158,7 +153,7 @@ func StorageDelFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) int {
 			"key":     k,
 			"err":     err,
 		}).Debug("invalid storage key.")
-		return 1
+		return 1, gasCnt
 	}
 
 	err = storage.Del(trie.HashDomains(domainKey, itemKey))
@@ -168,8 +163,8 @@ func StorageDelFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) int {
 			"key":     k,
 			"err":     err,
 		}).Debug("StorageDelFunc del key failed.")
-		return 1
+		return 1, gasCnt
 	}
 
-	return 0
+	return 0, gasCnt
 }

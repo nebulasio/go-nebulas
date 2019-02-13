@@ -31,10 +31,6 @@ void V8Log_cgo(int level, const char *msg);
 char *RequireDelegateFunc_cgo(void *handler, const char *filename, size_t *lineOffset);
 char *AttachLibVersionDelegateFunc_cgo(void *handler, const char *libname);
 
-char *StorageGetFunc_cgo(void *handler, const char *key, size_t *gasCnt);
-int StoragePutFunc_cgo(void *handler, const char *key, const char *value, size_t *gasCnt);
-int StorageDelFunc_cgo(void *handler, const char *key, size_t *gasCnt);
-
 char *GetTxByHashFunc_cgo(void *handler, const char *hash);
 char *GetAccountStateFunc_cgo(void *handler, const char *address);
 int TransferFunc_cgo(void *handler, const char *to, const char *value);
@@ -53,6 +49,7 @@ void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, si
 
 */
 import "C"
+
 import (
 	"fmt"
 	"strings"
@@ -80,9 +77,9 @@ const (
 	TimeoutGasLimitCost              = 100000000
 	MaxLimitsOfExecutionInstructions = 10000000 // 10,000,000
 
-	NVMRequestTypeStart = "start"
-	NVMRequestTypeCallBack = "callback"
-	NVMResponseTypeFinal = "final"
+	NVMDataExchangeTypeStart = "start"
+	NVMDataExchangeTypeCallBack = "callback"
+	NVMDataExchangeTypeFinal = "final"
 
 	NVM_SUCCESS = 0
 	NVM_EXCEPTION_ERR = -1
@@ -92,6 +89,22 @@ const (
 	NVM_EXE_TIMEOUT_ERR = -5
 	NVM_TRANSPILE_SCRIPT_ERR = -6
 	NVM_INJECT_TRACING_INSTRUCTION_ERR = -7
+)
+
+// callback function names
+const (
+	REQUIRE_DELEGATE_FUNC = "RequireDelegateFunc"
+	ATTACH_LIB_VERSION_DELEGATE_FUNC = "AttachLibVersionDelegateFunc"
+	STORAGE_GET = "StorageGet"
+	STORAGE_PUT = "StoragePut"
+	STORAGE_DEL = "StorageDel"
+	GET_TX_BY_HASH = "GetTxByHash"
+	GET_ACCOUNT_STATE = "GetAccountState"
+	TRANSFER = "Transfer"
+	VERIFY_ADDR = "VerifyAddress"
+	GET_PRE_BLOCK_HASH = "GetPreBlockHash"
+	GET_PRE_BLOCK_SEED = "GetPreBlockSeed"
+	EVENT_TRIGGER_FUNC = "eventTriggerFunc"
 )
 
 //engine_v8 private data
@@ -147,7 +160,7 @@ func InitV8Engine() {
 	C.InitializeExecutionEnvDelegate((C.AttachLibVersionDelegate)(unsafe.Pointer(C.AttachLibVersionDelegateFunc_cgo)))
 
 	// Storage.
-	C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
+	//C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
 
 	// Blockchain.
 	C.InitializeBlockchain((C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)),
@@ -266,286 +279,6 @@ func (e *V8Engine) ExecutionInstructions() uint64 {
 	return e.actualCountOfExecutionInstructions
 }
 
-/*
-// TranspileTypeScript transpile typescript to javascript and return it.
-func (e *V8Engine) TranspileTypeScript(source string) (string, int, error) {
-	cSource := C.CString(source)
-	defer C.free(unsafe.Pointer(cSource))
-
-	lineOffset := C.int(0)
-	jsSource := C.TranspileTypeScriptModuleThread(e.v8engine, cSource, &lineOffset)
-	if jsSource == nil {
-		return "", 0, ErrTranspileTypeScriptFailed
-	}
-
-	defer C.free(unsafe.Pointer(jsSource))
-	return C.GoString(jsSource), int(lineOffset), nil
-}
-
-// InjectTracingInstructions process the source to inject tracing instructions.
-func (e *V8Engine) InjectTracingInstructions(source string) (string, int, error) {
-	cSource := C.CString(source)
-	defer C.free(unsafe.Pointer(cSource))
-
-	lineOffset := C.int(0)
-
-	traceableCSource := C.InjectTracingInstructionsThread(e.v8engine, cSource, &lineOffset, C.int(e.strictDisallowUsageOfInstructionCounter))
-	if traceableCSource == nil {
-		return "", 0, ErrInjectTracingInstructionFailed
-	}
-
-	defer C.free(unsafe.Pointer(traceableCSource))
-	return C.GoString(traceableCSource), int(lineOffset), nil
-}
-
-// CollectTracingStats collect tracing data from v8 engine.
-func (e *V8Engine) CollectTracingStats() {
-	// read memory stats.
-	C.ReadMemoryStatistics(e.v8engine)
-
-	e.actualCountOfExecutionInstructions = uint64(e.v8engine.stats.count_of_executed_instructions)
-	e.actualTotalMemorySize = uint64(e.v8engine.stats.total_memory_size)
-}
-
-// DeployAndInit a contract
-func (e *V8Engine) DeployAndInit(source, sourceType, args string, listenAddr string) (string, error) {
-	e.serverListenAddr = listenAddr
-	return e.RunContractScript(source, sourceType, "init", args)
-}
-
-// Call function in a script
-func (e *V8Engine) Call(source, sourceType, function, args string, listenAddr string) (string, error) {
-	e.serverListenAddr = listenAddr
-
-	if core.PublicFuncNameChecker.MatchString(function) == false {
-		logging.VLog().Debugf("Invalid function: %v", function)
-		return "", ErrDisallowCallNotStandardFunction
-	}
-	if strings.EqualFold("init", function) == true {
-		return "", ErrDisallowCallPrivateFunction
-	}
-	return e.RunContractScript(source, sourceType, function, args)
-}
-
-// RunContractScript execute script in Smart Contract's way.
-func (e *V8Engine) RunContractScript(source, sourceType, function, args string) (string, error) {
-	var runnableSource string
-	var sourceLineOffset int
-	var err error
-
-	switch sourceType {
-	case core.SourceTypeJavaScript:
-		runnableSource, sourceLineOffset, err = e.prepareRunnableContractScript(source, function, args)
-	case core.SourceTypeTypeScript:
-		// transpile to javascript.
-		jsSource, _, err := e.TranspileTypeScript(source)
-		if err != nil {
-			return "", err
-		}
-		runnableSource, sourceLineOffset, err = e.prepareRunnableContractScript(jsSource, function, args)
-	default:
-		return "", ErrUnsupportedSourceType
-	}
-
-	if err != nil {
-		return "", err
-	}
-	if e.ctx.block.Height() >= core.NvmMemoryLimitWithoutInjectHeight {
-		e.CollectTracingStats()
-		mem := e.actualTotalMemorySize + core.DefaultLimitsOfTotalMemorySize
-		logging.VLog().WithFields(logrus.Fields{
-			"actualTotalMemorySize": e.actualTotalMemorySize,
-			"limit":                 mem,
-			"tx.hash":               e.ctx.tx.Hash(),
-		}).Debug("mem limit")
-		if err := e.SetExecutionLimits(e.limitsOfExecutionInstructions, mem); err != nil {
-			return "", err
-		}
-	}
-
-	if e.ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
-		if e.limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
-			e.SetExecutionLimits(MaxLimitsOfExecutionInstructions, e.limitsOfTotalMemorySize)
-		}
-	}
-	result, err := e.RunScriptSource(runnableSource, sourceLineOffset)
-
-	if e.ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
-		if e.limitsOfExecutionInstructions == MaxLimitsOfExecutionInstructions && err == ErrInsufficientGas {
-			err = ErrExecutionTimeout
-			result = "\"null\""
-		}
-	}
-	return result, err
-}
-
-// AddModule add module.
-func (e *V8Engine) AddModule(id, source string, sourceLineOffset int) error {
-	// inject tracing instruction when enable limits.
-	if e.enableLimits {
-		var item *sourceModuleItem
-		sourceHash := byteutils.Hex(hash.Sha3256([]byte(source)))
-
-		// try read from cache.
-		if sourceModuleCache.Contains(sourceHash) { //ToDo cache whether need into db
-			value, _ := sourceModuleCache.Get(sourceHash)
-			item = value.(*sourceModuleItem)
-		}
-
-		if item == nil {
-			traceableSource, lineOffset, err := e.InjectTracingInstructions(source)
-			if err != nil {
-				logging.VLog().WithFields(logrus.Fields{
-					"err": err,
-				}).Debug("Failed to inject tracing instruction.")
-				return err
-			}
-
-			item = &sourceModuleItem{
-				source:                    source,
-				sourceLineOffset:          sourceLineOffset,
-				traceableSource:           traceableSource,
-				traceableSourceLineOffset: lineOffset,
-			}
-
-			// put to cache.
-			sourceModuleCache.Add(sourceHash, item)
-		}
-
-		source = item.traceableSource
-		sourceLineOffset = item.traceableSourceLineOffset
-	}
-
-	e.modules.Add(NewModule(id, source, sourceLineOffset))
-	return nil
-}
-
-func (e *V8Engine) prepareRunnableContractScript(source, function, args string) (string, int, error) {
-	sourceLineOffset := 0
-
-	// add module.
-	const ModuleID string = "contract.js"
-	if err := e.AddModule(ModuleID, source, sourceLineOffset); err != nil {
-		return "", 0, err
-	}
-
-	// prepare for execute.
-	block := toSerializableBlock(e.ctx.block)
-	blockJSON, err := json.Marshal(block)
-	if err != nil {
-		return "", 0, err
-	}
-	tx := toSerializableTransaction(e.ctx.tx)
-	txJSON, err := json.Marshal(tx)
-	if err != nil {
-		return "", 0, err
-	}
-
-	var runnableSource string
-	var argsInput []byte
-	if len(args) > 0 {
-		var argsObj []interface{}
-		if err := json.Unmarshal([]byte(args), &argsObj); err != nil {
-			return "", 0, ErrArgumentsFormat
-		}
-		if argsInput, err = json.Marshal(argsObj); err != nil {
-			return "", 0, ErrArgumentsFormat
-		}
-
-	} else {
-		argsInput = []byte("[]")
-	}
-	runnableSource = fmt.Sprintf(`Blockchain.blockParse("%s");
-									Blockchain.transactionParse("%s");
-									var __contract = require("%s");
-									var __instance = new __contract();
-									__instance["%s"].apply(__instance, JSON.parse("%s"));`,
-		formatArgs(string(blockJSON)), formatArgs(string(txJSON)),
-		ModuleID, function, formatArgs(string(argsInput)))
-	return runnableSource, 0, nil
-}
-
-// RunScriptSource run js source.
-func (e *V8Engine) RunScriptSource(source string, sourceLineOffset int) (string, error) {
-
-	cSource := C.CString(source)
-	defer C.free(unsafe.Pointer(cSource))
-
-	var (
-		result  string
-		err     error
-		ret     C.int
-		cResult *C.char
-	)
-
-	ctx := e.Context()
-	if ctx == nil || ctx.block == nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"ctx": ctx,
-		}).Error("Unexpected: Failed to get current height")
-		err = core.ErrUnexpected
-		return "", err
-	}
-
-	// done := make(chan bool, 1)
-	// go func() {
-	// 	ret = C.RunScriptSource(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
-	// 		C.uintptr_t(e.gcsHandler))
-	// 	done <- true
-	// }()
-	ret = C.RunScriptSourceThread(&cResult, e.v8engine, cSource, C.int(sourceLineOffset), C.uintptr_t(e.lcsHandler),
-		C.uintptr_t(e.gcsHandler))
-
-	logging.CLog().WithFields(
-		logrus.Fields{
-			"cResult": C.GoString(cResult),
-			"ret": ret,
-		}).Info(">>>>The contract execution result")
-
-	e.CollectTracingStats()
-
-	//set err
-	if ret == C.NVM_EXE_TIMEOUT_ERR {
-		err = ErrExecutionTimeout
-		if ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
-			err = core.ErrUnexpected
-		} else if ctx.block.Height() >= core.NewNvmExeTimeoutConsumeGasHeight {
-			if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
-				e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
-			} else {
-				e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
-			}
-		}
-	} else if ret == C.NVM_UNEXPECTED_ERR {
-		err = core.ErrUnexpected
-	} else {
-		if ret != C.NVM_SUCCESS {
-			err = core.ErrExecutionFailed
-		}
-		if e.limitsOfExecutionInstructions > 0 &&
-			e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
-			// Reach instruction limits.
-			err = ErrInsufficientGas
-			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
-		} else if e.limitsOfTotalMemorySize > 0 && e.limitsOfTotalMemorySize < e.actualTotalMemorySize {
-			// reach memory limits.
-			err = ErrExceedMemoryLimits
-			e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
-		}
-	}
-
-	//set result
-	if cResult != nil {
-		result = C.GoString(cResult)
-		C.free(unsafe.Pointer(cResult))
-	} else if ret == C.NVM_SUCCESS {
-		result = "\"\"" // default JSON String.
-	}
-
-	return result, err
-}
-*/
-
 func (e *V8Engine) CheckTimeout() bool {
 	elapsedTime := time.Since(e.startExeTime)
 
@@ -659,11 +392,18 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 	configBundle := &NVMConfigBundle{ScriptSrc:config.PayloadSource, ScriptType:config.PayloadSourceType, EnableLimits: true, RunnableSrc: runnableSource, 
 		MaxLimitsOfExecutionInstruction:MaxLimitsOfExecutionInstructions, DefaultLimitsOfTotalMemSize:core.DefaultLimitsOfTotalMemorySize,
 		LimitsExeInstruction: e.limitsOfExecutionInstructions, LimitsTotalMemSize: e.limitsOfTotalMemorySize, ExecutionTimeout: e.executionTimeOut,
-		BlockJson:formatArgs(string(blockJSON)), TxJson: formatArgs(string(txJSON)), ModuleId: moduleID, 
-		LcsHandler: e.lcsHandler, GcsHandler: e.gcsHandler}
+		BlockJson:formatArgs(string(blockJSON)), TxJson: formatArgs(string(txJSON)), ModuleId: moduleID}
+
+	callbackResult := &NVMCallbackResult{Res:""}
 
 	// for call request, the metadata is nil
-	request := &NVMDataRequest{RequestType:NVMRequestTypeStart, RequestIndx:nvmRequestIndex, MetaData:"", ConfigBundle: configBundle}
+	request := &NVMDataRequest{
+		RequestType:NVMDataExchangeTypeStart, 
+		RequestIndx:nvmRequestIndex,
+		ConfigBundle: configBundle,
+		LcsHandler: e.lcsHandler, 
+		GcsHandler: e.gcsHandler,
+		CallbackResult: callbackResult}
 
 	stream, err := v8Client.SmartContractCall(ctx); if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -694,7 +434,13 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			return "", ErrRPCConnection
 		}
 
-		if(dataResponse.GetResponseType() == NVMResponseTypeFinal && dataResponse.GetFinalResponse() != nil){
+		logging.CLog().WithFields(logrus.Fields{
+			"response_type": dataResponse.GetResponseType(),
+			"response_indx": dataResponse.GetResponseIndx(),
+			"module": "nvm",
+		}).Info(">>>>>>>ONE   Now is receiving a call back from the v8 process to handle")
+
+		if(dataResponse.GetResponseType() == NVMDataExchangeTypeFinal && dataResponse.GetFinalResponse() != nil){
 
 			stream.CloseSend()
 			finalResponse := dataResponse.GetFinalResponse()
@@ -773,14 +519,59 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 
 		}else{
 			//TODO start to handle the callback and send result back to server
+			serverLcsHandler := dataResponse.GetLcsHandler()
+			serverGcsHandler := dataResponse.GetGcsHandler()
+			callbackResponse := dataResponse.GetCallbackResponse()
+			responseFuncName := callbackResponse.GetFuncName()
+			responseFuncParams := callbackResponse.GetFuncParams()
 			
+			logging.CLog().WithFields(logrus.Fields{
+				"response_type": dataResponse.GetResponseType,
+				"response_indx": dataResponse.GetResponseIndx,
+				"response_function_name": dataResponse.GetCallbackResponse().FuncName,
+				"response_function_para": responseFuncParams[0],
+				"module": "nvm",
+			}).Info(">>>>>>>Now is receiving a call back from the v8 process to handle")
+
+			// check the callback type
+			callbackResult := &NVMCallbackResult{}
+
+			if responseFuncName == STORAGE_GET {
+				value, gasCnt := StorageGetFunc(serverLcsHandler, responseFuncParams[0])
+				callbackResult.FuncName = responseFuncName
+				callbackResult.Res = value
+				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+
+			} else if responseFuncName == STORAGE_PUT {
+				resCode, gasCnt := StoragePutFunc(serverLcsHandler, responseFuncParams[0], responseFuncParams[1])
+				callbackResult.FuncName = responseFuncName
+				callbackResult.Res = fmt.Sprintf("%v", resCode)
+				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+
+			} else if responseFuncName == STORAGE_DEL {
+				resCode, gasCnt := StorageDelFunc(serverLcsHandler, responseFuncParams[0])
+				callbackResult.FuncName = responseFuncName
+				callbackResult.Res = fmt.Sprintf("%v", resCode)
+				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+
+			} else{
+
+			}
+
 			// stream.Send()
 			nvmRequestIndex += 1
-			newRequest := &NVMDataRequest{RequestType:NVMRequestTypeCallBack, RequestIndx:dataResponse.GetResponseIndx(), MetaData:""}
+			newRequest := &NVMDataRequest{
+				RequestType:NVMDataExchangeTypeCallBack, 
+				RequestIndx:dataResponse.GetResponseIndx(),
+				LcsHandler:serverLcsHandler,
+				GcsHandler:serverGcsHandler,
+				CallbackResult:callbackResult}
+
 			stream.Send(newRequest)
 		}
 		
 		if(e.CheckTimeout()){
+			logging.CLog().Info("+++++++++= Now is timeout!!!!")
 			return "", ErrExecutionTimeout
 			break
 		}
@@ -819,6 +610,7 @@ func getEngineByStorageHandler(handler uint64) (*V8Engine, Account) {
 	}
 }
 
+//TODO: need to refactor this function since it's used in other files, including: event.go, module.go
 func getEngineByEngineHandler(handler unsafe.Pointer) *V8Engine {
 	/*
 	v8engine := (*C.V8Engine)(handler)

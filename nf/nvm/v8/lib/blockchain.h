@@ -20,7 +20,7 @@
 #ifndef _NEBULAS_NF_NVM_V8_LIB_BLOCKCHAIN_H_
 #define _NEBULAS_NF_NVM_V8_LIB_BLOCKCHAIN_H_
 
-#include <v8.h>
+#include "v8.h"
 
 using namespace v8;
 

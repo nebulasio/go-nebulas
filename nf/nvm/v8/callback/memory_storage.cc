@@ -45,43 +45,41 @@ void *CreateStorageHandler() { return (void *)handlerCounter.fetch_add(1); }
 
 void DeleteStorageHandler(void *handler) {}
 
-char *StorageGet(void *handler, const char *key, size_t *cnt) {
-  char *ret = NULL;
-  string sKey = genKey(handler, key);
+char* StorageGet(void* handler, const char *key, size_t *cnt){
+  NVMCallbackResponse *res = new NVMCallbackResponse();
+  res->set_func_name(std::string(STORAGE_GET));
+  res->add_func_params(std::string(key));
 
-  mapMutex.lock();
-  auto it = memoryMap.find(sKey);
-  if (it != memoryMap.end()) {
-    string &value = it->second;
-    ret = (char *)calloc(value.length() + 1, sizeof(char));
-    strncpy(ret, value.c_str(), value.length());
-  }
-  mapMutex.unlock();
+  const NVMCallbackResult *result = DataExchangeCallback(res);
+  const char* resString = result->res().c_str();
+  char* cstr = new char[result->res().length() + 1];
+  strcpy(cstr, resString);
+  *cnt = (size_t)std::stoll(result->extra(0));
 
-  *cnt = 0;
-
-  return ret;
+  return cstr;
 }
 
-int StoragePut(void *handler, const char *key, const char *value, size_t *cnt) {
-  string sKey = genKey(handler, key);
+int StoragePut(void* handler, const char* key, const char *value, size_t *cnt){
+  NVMCallbackResponse *res = new NVMCallbackResponse();
+  res->set_func_name(std::string(STORAGE_PUT));
+  res->add_func_params(std::string(key));
+  res->add_func_params(std::string(value));
 
-  mapMutex.lock();
-  memoryMap[sKey] = string(value);
-  mapMutex.unlock();
+  const NVMCallbackResult* result = DataExchangeCallback(res);
+  *cnt = (size_t)std::stoll(result->extra(0));
+  int resCode = std::stoi(result->res());
 
-  *cnt = strlen(key) + strlen(value);
-  return 0;
+  return resCode;
 }
 
-int StorageDel(void *handler, const char *key, size_t *cnt) {
-  string sKey = genKey(handler, key);
+int StorageDel(void* handler, const char* key, size_t *cnt){
+  NVMCallbackResponse *res = new NVMCallbackResponse();
+  res->set_func_name(std::string(STORAGE_DEL));
+  res->add_func_params(std::string(key));
 
-  mapMutex.lock();
-  memoryMap.erase(sKey);
-  mapMutex.unlock();
+  const NVMCallbackResult* result = DataExchangeCallback(res);
+  *cnt = (size_t)std::stoll(result->extra(0));
+  int resCode = std::stoi(result->res());
 
-  *cnt = 0;
-
-  return 0;
+  return resCode;
 }

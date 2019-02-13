@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2017-2019 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -17,7 +17,10 @@
 // <http://www.gnu.org/licenses/>.
 
 #pragma once
+
 #include <stddef.h>
+#include "../v8_util.h"
+#include "callback_util.h"
 
 void *CreateStorageHandler();
 void DeleteStorageHandler(void *handler);

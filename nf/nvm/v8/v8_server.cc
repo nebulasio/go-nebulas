@@ -17,7 +17,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "v8_server.h"
+#include "v8_util.h"
+#include <unistd.h>
 
 #define MicroSecondDiff(newtv, oldtv) (1000000 * (unsigned long long)((newtv).tv_sec - (oldtv).tv_sec) + (newtv).tv_usec - (oldtv).tv_usec)  //milliseconds
 
@@ -184,15 +185,15 @@ void Initialization(){
   Initialize();
   InitializeLogger(logFunc);
   InitializeRequireDelegate(RequireDelegateFunc, AttachLibVersionDelegateFunc);
-
   InitializeExecutionEnvDelegate(AttachLibVersionDelegateFunc);
+
   InitializeStorage(StorageGet, StoragePut, StorageDel);
   InitializeBlockchain(GetTxByHash, GetAccountState, Transfer, VerifyAddress, GetPreBlockHash, GetPreBlockSeed);
   InitializeEvent(eventTriggerFunc);
   //InitializeCrypto(Sha256Func, Sha3256Func, Ripemd160Func, RecoverAddressFunc, Md5Func, Base64Func);
 }
 
-void InitializeDataStruct(){
+void InitializeDataStructure(){
   srcModuleCache = std::unique_ptr<std::map<std::string, CacheSrcItem>>(new std::map<std::string, CacheSrcItem>());
 }
 
@@ -390,6 +391,7 @@ int NVMEngine::StartScriptExecution(std::string& contractSource, const std::stri
       return runnableSourceResult;
     }
 
+    //TODO, check if the module already cached
     AddModule(this->engine, moduleID.c_str(), this->m_traceable_src.c_str(), this->m_traceale_src_line_offset);
 
     std::cout<<">>>>Now starting script execution!!!"<<std::endl;
@@ -423,16 +425,21 @@ void NVMEngine::ReadExeStats(NVMStatsBundle *statsBundle){
 grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest>* stream){
 
   this->m_stm = stream;
-
+  
   try{
+
     NVMDataRequest *request = new NVMDataRequest();
 
-    while(stream->Read(request)){
+    //while(stream->Read(request)){
+
+    stream->Read(request);
 
       std::string requestType = request->request_type();
       google::protobuf::uint32 requestIndx = request->request_indx();
+      google::protobuf::uint64 lcsHandler = request->lcs_handler();
+      google::protobuf::uint64 gcsHandler = request->gcs_handler();
 
-      if(requestType.compare(DATA_REQUEST_START) == 0){
+      if(requestType.compare(DATA_EXHG_START) == 0){
 
         NVMConfigBundle configBundle = request->config_bundle();
         std::string scriptSrc = configBundle.script_src();
@@ -447,8 +454,6 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
         bool enableLimits = configBundle.enable_limits();
         std::string blockJson = configBundle.block_json();
         std::string txJson = configBundle.tx_json();
-        google::protobuf::uint64 lcsHandler = configBundle.lcs_handler();
-        google::protobuf::uint64 gcsHandler = configBundle.gcs_handler();
         
         LogInfof(">>>>Script source is: %s", scriptSrc.c_str());
         LogInfof(">>>>Script type is: %s", scriptType.c_str());
@@ -470,6 +475,8 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
           this->m_exe_result = (char*)calloc(1, sizeof(char));
         }
 
+        //usleep(2000000);
+
         NVMDataResponse *response = new NVMDataResponse();
         NVMFinalResponse *finalResponse = new NVMFinalResponse();
         finalResponse->set_result(ret);
@@ -480,8 +487,10 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
         finalResponse->set_allocated_stats_bundle(statsBundle);
 
         response->set_allocated_final_response(finalResponse);
-        response->set_response_type(DATA_RESPONSE_FINAL);
+        response->set_response_type(DATA_EXHG_FINAL);
         response->set_response_indx(0);
+        response->set_lcs_handler(lcsHandler);
+        response->set_gcs_handler(gcsHandler);
       
         stream->Write(*response);
 
@@ -490,16 +499,17 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
           this->m_exe_result = nullptr;
         }
         
-      }else if(requestType.compare(DATA_REQUEST_CALL_BACK) == 0){
+      }else if(requestType.compare(DATA_EXHG_CALL_BACK) == 0){
         // get result from the request index
-        std::string metaData = request->meta_data();
+        NVMCallbackResult res = request->callback_result();
+        std::cout<<"Callback from golang side with result: "<<res.res()<<std::endl;
         
       }else{
         // throw exception since the request type is not allowed
         std::cout<<"Illegal request type"<<std::endl;
       }
       
-    }
+    //}
 
   }catch(const std::exception& e){
     std::cout<<e.what()<<std::endl;
@@ -507,6 +517,8 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
 
   return grpc::Status::OK;
 }
+
+
 
 void NVMEngine::LocalTest(){
   // compose testing data
@@ -550,15 +562,62 @@ void NVMEngine::LocalTest(){
 
 }
 
+const NVMCallbackResult* NVMEngine::Callback(NVMCallbackResponse* callback_response){
+    if(this->m_stm != nullptr){
+        const NVMCallbackResult *result;
+        NVMDataResponse *response = new NVMDataResponse();
+        response->set_response_type(DATA_EXHG_CALL_BACK);
+        response->set_response_indx(++this->m_response_indx);
+        response->set_lcs_handler((google::protobuf::uint64)this->m_lcs_handler);
+        response->set_gcs_handler((google::protobuf::uint64)this->m_gcs_handler);
+        response->set_allocated_callback_response(callback_response);
+        this->m_stm->Write(*response);
+
+        // wait for the result and return
+        NVMDataRequest *request = new NVMDataRequest();
+        while(this->m_stm->Read(request)){
+          std::string requestType = request->request_type();
+          google::protobuf::uint32 requestIndx = request->request_indx();
+          google::protobuf::uint64 lcsHandler = request->lcs_handler();
+          google::protobuf::uint64 gcsHandler = request->gcs_handler();
+
+          if(requestType.compare(DATA_EXHG_CALL_BACK) == 0){
+            result = &(request->callback_result());
+            std::cout<<"----- Now is checking the call back request sent from the GOLANG client with type: "<<requestType<<std::endl;
+          }
+          break;
+        }
+        free(request);
+        return result;
+
+    }else{
+        LogErrorf("Streaming object is not NULL");
+    }
+    return nullptr;
+}
+
+const NVMCallbackResult* DataExchangeCallback(NVMCallbackResponse* response){
+    if(gNVMEngine != nullptr){
+        return gNVMEngine->Callback(response);
+    }else{
+        std::cout<<"[---- ERROR ----] failed to exchange data"<<std::endl;
+        LogErrorf("Failed to exchange data");
+    }
+    return nullptr;
+}
 
 void RunServer(const char* addr_str){
 
   std::string engine_addr(addr_str);
 
-  if(gNVMEngine != nullptr)
+  if(gNVMEngine != nullptr){
     free(gNVMEngine);
+  }
 
   gNVMEngine = new NVMEngine(NVM_CURRENCY_LEVEL);
+ 
+  if(gNVMEngine != nullptr)
+    std::cout<<"$$$$$$$$$$$$$$$$ Hey gNVMEngine is now availble"<<std::endl;
 
   grpc::ServerBuilder builder;
   builder.AddListeningPort(engine_addr, grpc::InsecureServerCredentials());
