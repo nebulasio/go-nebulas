@@ -26,6 +26,11 @@ namespace math {
 template <typename T> T min(const T &x, const T &y) { return x < y ? x : y; }
 template <typename T> T max(const T &x, const T &y) { return x > y ? x : y; }
 
+template <typename T> T abs(const T &x, const T &y) {
+  T delta = x - y;
+  return delta > 0 ? delta : 0 - delta;
+}
+
 template <typename T> std::string to_string(const T &val) {
   std::stringstream ss;
   ss << val;

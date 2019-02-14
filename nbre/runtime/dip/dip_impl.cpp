@@ -45,10 +45,12 @@ std::string entry_point_dip_impl(compatible_uint64_t start_block,
 
   auto ret = dip_reward::get_dip_reward(
       start_block, end_block, height, nr_result, tdb_ptr, adb_ptr, alpha, beta);
+  LOG(INFO) << "get dip reward resurned";
   std::vector<std::pair<std::string, uint64_t>> meta_info(
       {{"start_height", start_block},
        {"end_height", end_block},
        {"version", version}});
+  LOG(INFO) << "meta info attached";
 
   return dip_reward::dip_info_to_json(*ret, meta_info);
 }

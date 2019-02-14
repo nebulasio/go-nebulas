@@ -41,27 +41,33 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
   auto it_txs =
       tdb_ptr->read_transactions_from_db_with_duration(start_block, end_block);
   auto txs = *it_txs;
+  LOG(INFO) << "transaction size " << txs.size();
 
   auto it_nr_infos = neb::rt::nr::nebulas_rank::json_to_nr_info(nr_result);
   auto it_acc_to_contract_txs =
       neb::fs::transaction_db::read_transactions_with_address_type(txs, 0x57,
                                                                    0x58);
+  LOG(INFO) << "account to contract size " << it_acc_to_contract_txs->size();
   // dapp total votes
   auto it_acc_to_contract_votes =
       account_to_contract_votes(*it_acc_to_contract_txs, *it_nr_infos);
+  LOG(INFO) << "account to contract votes " << it_acc_to_contract_votes->size();
   auto it_dapp_votes = dapp_votes(*it_acc_to_contract_votes);
+  LOG(INFO) << "dapp votes size " << it_dapp_votes->size();
 
   // bonus pool in total
   std::string dip_reward_addr =
       neb::configuration::instance().dip_reward_addr();
   wei_t balance = adb_ptr->get_balance(dip_reward_addr, end_block);
   floatxx_t bonus_total = conversion(balance).to_float<floatxx_t>();
+  LOG(INFO) << "bonus total " << bonus_total;
   // bonus_total = adb_ptr->get_normalized_value(bonus_total);
 
   floatxx_t sum_votes(0);
   for (auto &v : *it_dapp_votes) {
     sum_votes += v.second * v.second;
   }
+  LOG(INFO) << "sum votes " << sum_votes;
 
   floatxx_t reward_sum(0);
   std::vector<dip_info_t> dip_infos;
@@ -80,8 +86,12 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
         neb::math::to_string(neb::conversion().from_float(reward_in_wei));
     dip_infos.push_back(info);
   }
-  assert(reward_sum <= bonus_total);
+  LOG(INFO) << "dip info size " << dip_infos.size();
+  LOG(INFO) << "reward sum " << reward_sum << ", bonus total " << bonus_total;
+  // assert(reward_sum <= bonus_total);
+  LOG(INFO) << "reward sum " << reward_sum;
   back_to_coinbase(dip_infos, bonus_total - reward_sum);
+  LOG(INFO) << "back to coinbase";
   return std::make_unique<std::vector<dip_info_t>>(dip_infos);
 }
 
@@ -89,7 +99,7 @@ void dip_reward::back_to_coinbase(std::vector<dip_info_t> &dip_infos,
                                   floatxx_t reward_left) {
 
   std::string coinbase_addr = neb::configuration::instance().coinbase_addr();
-  if (!coinbase_addr.empty()) {
+  if (!coinbase_addr.empty() && reward_left > 0) {
     dip_info_t info;
     info.m_deployer = coinbase_addr;
     info.m_reward =
@@ -125,6 +135,7 @@ std::string dip_reward::dip_info_to_json(
     arr.push_back(std::make_pair(std::string(), p));
   }
 
+  LOG(INFO) << "dip info size " << dip_infos.size();
   for (auto &info : dip_infos) {
     boost::property_tree::ptree p;
     neb::util::bytes deployer_bytes =
@@ -143,11 +154,13 @@ std::string dip_reward::dip_info_to_json(
     arr.push_back(std::make_pair(std::string(), p));
   }
   root.add_child("dips", arr);
+  LOG(INFO) << "dip info to ptree done";
 
   std::stringstream ss;
   boost::property_tree::json_parser::write_json(ss, root, false);
   std::string tmp = ss.str();
   boost::replace_all(tmp, "[\"\"]", "[]");
+  LOG(INFO) << "ptree serialize done";
   return tmp;
 }
 
