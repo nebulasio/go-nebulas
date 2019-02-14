@@ -14,7 +14,7 @@ else
     echo './vendor not found. Createing ./vendor...'
     if [[ -f ${NEBULAS_SRC}/nodep ]]; then
         echo './nodep exists. Downloading vendor...'
-        wget http://ory7cn4fx.bkt.clouddn.com/vendor.tar.gz
+        wget http://develop-center.oss-cn-zhangjiakou.aliyuncs.com/setup/vendor.tar.gz
         tar -vxzf vendor.tar.gz
     else
         echo './nodep not found. Run dep...'
