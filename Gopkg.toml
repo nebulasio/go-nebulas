@@ -54,7 +54,7 @@ ignored=[
 
 [[constraint]]
   name = "github.com/tecbot/gorocksdb"
-  revision = "8752a943348155073ae407010e2b75c40480271a"
+  revision = "3e476152774442234f9a9f747386a48a1d82a515"
 
 [[constraint]]
   name = "github.com/libp2p/go-sockaddr"
