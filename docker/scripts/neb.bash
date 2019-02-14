@@ -60,7 +60,7 @@ setup_with_nbre() {
         echo './nbre/bin/nbre not found. Downlading ./nbre/bin/nbre...'
         mkdir -p ${NEBULAS_SRC}/nbre/bin
         pushd ${NEBULAS_SRC}/nbre/bin
-        wget $SOURCE_URL/nbre/nbre -O nbre
+        wget $SOURCE_URL/nbre/nbre.$OS -O nbre
         popd
     fi 
 }
