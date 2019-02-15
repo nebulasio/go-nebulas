@@ -19,7 +19,6 @@
 package rpc
 
 import (
-	"errors"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -303,7 +302,7 @@ func (s *AdminService) GetNewNonceAndPush(tx *core.Transaction, passphrase []byt
 
 	if passphrase != nil {
 		if err := neb.AccountManager().SignTransactionWithPassphrase(tx.From(), tx, passphrase); err != nil {
-			return errors.New("invalid private key XXXXX")
+			return err
 		}
 	} else {
 		if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
