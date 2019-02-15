@@ -570,15 +570,20 @@ func (pool *TransactionPool) UnlockZeroNonce() {
 	pool.zn.Unlock()
 }
 
-//get new nonce
+// get new nonce
 func (pool *TransactionPool) GetNewNonce(tx *Transaction, nonce uint64) uint64 {
+	return nonce + pool.GetPending(tx.from) + 1
+}
+
+// get pending tx count
+func (pool *TransactionPool) GetPending(addr *Address) uint64 {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	slot := tx.from.address.Hex()
+	slot := addr.address.Hex()
 	bucket, ok := pool.buckets[slot]
 	if !ok {
-		return nonce + 1
+		return 0
 	}
-	return nonce + uint64(bucket.Len()) + 1
+	return uint64(bucket.Len())
 }

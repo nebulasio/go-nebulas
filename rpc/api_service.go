@@ -82,7 +82,9 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	}
 
 	block := neb.BlockChain().TailBlock()
+	height := block.Height()
 	if req.Height > 0 {
+		height = req.Height
 		block = neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
 		if block == nil {
 			metricsAccountStateFailed.Mark(1)
@@ -96,7 +98,7 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	}
 
 	metricsAccountStateSuccess.Mark(1)
-	return &rpcpb.GetAccountStateResponse{Balance: acc.Balance().String(), Nonce: acc.Nonce(), Type: uint32(addr.Type())}, nil
+	return &rpcpb.GetAccountStateResponse{Balance: acc.Balance().String(), Nonce: acc.Nonce(), Type: uint32(addr.Type()), Height: height, Pending: neb.BlockChain().TransactionPool().GetPending(addr)}, nil
 }
 
 // Call is the RPC API handler.

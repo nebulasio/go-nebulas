@@ -359,6 +359,12 @@ message GetAccountStateResponse {
 
     // Account type
     uint32 type = 3;
+
+    // Block height
+    uint64 height = 4;
+
+    // Current sender pending tx count
+    uint64 pending = 5;
 }
 
 // Response message of Call rpc.
