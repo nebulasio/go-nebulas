@@ -28,9 +28,6 @@ package nvm
 // Forward declaration.
 void V8Log_cgo(int level, const char *msg);
 
-char *RequireDelegateFunc_cgo(void *handler, const char *filename, size_t *lineOffset);
-char *AttachLibVersionDelegateFunc_cgo(void *handler, const char *libname);
-
 char *GetTxByHashFunc_cgo(void *handler, const char *hash);
 char *GetAccountStateFunc_cgo(void *handler, const char *address);
 int TransferFunc_cgo(void *handler, const char *to, const char *value);
@@ -44,8 +41,6 @@ char *Ripemd160Func_cgo(const char *data, size_t *gasCnt);
 char *RecoverAddressFunc_cgo(int alg, const char *data, const char *sign, size_t *gasCnt);
 char *Md5Func_cgo(const char *data, size_t *gasCnt);
 char *Base64Func_cgo(const char *data, size_t *gasCnt);
-
-void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt);
 
 */
 import "C"
@@ -154,10 +149,10 @@ func InitV8Engine() {
 	C.InitializeLogger((C.LogFunc)(unsafe.Pointer(C.V8Log_cgo)))
 
 	// Require.
-	C.InitializeRequireDelegate((C.RequireDelegate)(unsafe.Pointer(C.RequireDelegateFunc_cgo)), (C.AttachLibVersionDelegate)(unsafe.Pointer(C.AttachLibVersionDelegateFunc_cgo)))
+	//C.InitializeRequireDelegate((C.RequireDelegate)(unsafe.Pointer(C.RequireDelegateFunc_cgo)), (C.AttachLibVersionDelegate)(unsafe.Pointer(C.AttachLibVersionDelegateFunc_cgo)))
 
 	// execution_env require
-	C.InitializeExecutionEnvDelegate((C.AttachLibVersionDelegate)(unsafe.Pointer(C.AttachLibVersionDelegateFunc_cgo)))
+	//C.InitializeExecutionEnvDelegate((C.AttachLibVersionDelegate)(unsafe.Pointer(C.AttachLibVersionDelegateFunc_cgo)))
 
 	// Storage.
 	//C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
@@ -172,7 +167,7 @@ func InitV8Engine() {
 	)
 
 	// Event.
-	C.InitializeEvent((C.EventTriggerFunc)(unsafe.Pointer(C.EventTriggerFunc_cgo)))
+	//C.InitializeEvent((C.EventTriggerFunc)(unsafe.Pointer(C.EventTriggerFunc_cgo)))
 
 	// Crypto
 	C.InitializeCrypto((C.Sha256Func)(unsafe.Pointer(C.Sha256Func_cgo)),
@@ -610,17 +605,36 @@ func getEngineByStorageHandler(handler uint64) (*V8Engine, Account) {
 	}
 }
 
-//TODO: need to refactor this function since it's used in other files, including: event.go, module.go
+// Still use the storage maps to get the v8 engine
+func getEngineByEngineHandler(handler uint64) *V8Engine {
+	storagesLock.RLock()
+	defer storagesLock.RUnlock()
+
+	engine := storages[handler]
+	if engine == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"wantedHandler": handler,
+		}).Error("wantedHandler is not found.")
+		return nil
+	}
+
+	// only use the lcs handler to check
+	if engine.lcsHandler == handler {
+		return engine
+	} else {
+		return nil
+	}
+}
+
+/*
 func getEngineByEngineHandler(handler unsafe.Pointer) *V8Engine {
-	/*
 	v8engine := (*C.V8Engine)(handler)
 	enginesLock.RLock()
 	defer enginesLock.RUnlock()
 
 	return engines[v8engine]
-	*/
-	return nil
 }
+*/
 
 func formatArgs(s string) string {
 	s = strings.Replace(s, "\\", "\\\\", -1)

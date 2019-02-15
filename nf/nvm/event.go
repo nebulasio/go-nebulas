@@ -20,8 +20,6 @@ package nvm
 
 import "C"
 import (
-	"unsafe"
-
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -58,9 +56,9 @@ type TransferFromContractFailureEvent struct {
 
 // EventTriggerFunc export EventTriggerFunc
 //export EventTriggerFunc
-func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char, gasCnt *C.size_t) {
-	gTopic := C.GoString(topic)
-	gData := C.GoString(data)
+func EventTriggerFunc(handler uint64, gTopic, gData string) uint64 {
+
+	var gasCnt uint64 = 0
 
 	e := getEngineByEngineHandler(handler)
 	if e == nil {
@@ -69,13 +67,15 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char, gasCnt *C.siz
 			"topic":    gTopic,
 			"data":     gData,
 		}).Error("Event.Trigger delegate handler does not found.")
-		return
+		return gasCnt
 	}
 
 	// calculate Gas.
-	*gasCnt = C.size_t(EventBaseGasCount + len(gTopic) + len(gData))
+	gasCnt = uint64(EventBaseGasCount + len(gTopic) + len(gData))
 
 	contractTopic := EventNameSpaceContract + "." + gTopic
 	event := &state.Event{Topic: contractTopic, Data: gData}
 	e.ctx.state.RecordEvent(e.ctx.tx.Hash(), event)
+
+	return gasCnt
 }

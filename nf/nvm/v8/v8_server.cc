@@ -40,9 +40,6 @@ void logFuncOld(int level, const char *msg) {
 }
 
 void logFunc(int level, const char *msg){
-  std::thread::id tid = std::this_thread::get_id();
-  std::hash<std::thread::id> hasher;
-
   switch(level){
     case LogLevel::DEBUG:
       LOG(WARNING)<<msg;
@@ -347,7 +344,6 @@ int NVMEngine::GetRunnableSourceCode(const std::string& sourceType, std::string&
     return NVM_TRANSPILE_SCRIPT_ERR;
   }
 
-  char* runnableSource;
   std::string sourceHash = sha256(std::string(jsSource));
   auto searchRecord = srcModuleCache->find(sourceHash);
   if(searchRecord != srcModuleCache->end()){
@@ -435,7 +431,7 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
     stream->Read(request);
 
       std::string requestType = request->request_type();
-      google::protobuf::uint32 requestIndx = request->request_indx();
+      //google::protobuf::uint32 requestIndx = request->request_indx();
       google::protobuf::uint64 lcsHandler = request->lcs_handler();
       google::protobuf::uint64 gcsHandler = request->gcs_handler();
 
@@ -451,7 +447,7 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
         google::protobuf::uint64 limitsOfExecutionInstructions = configBundle.limits_exe_instruction();
         google::protobuf::uint64 totalMemSize = configBundle.limits_total_mem_size();
 
-        bool enableLimits = configBundle.enable_limits();
+        //bool enableLimits = configBundle.enable_limits();
         std::string blockJson = configBundle.block_json();
         std::string txJson = configBundle.tx_json();
         
@@ -565,6 +561,7 @@ void NVMEngine::LocalTest(){
 const NVMCallbackResult* NVMEngine::Callback(NVMCallbackResponse* callback_response){
     if(this->m_stm != nullptr){
         const NVMCallbackResult *result;
+        bool getResultFlag = false;
         NVMDataResponse *response = new NVMDataResponse();
         response->set_response_type(DATA_EXHG_CALL_BACK);
         response->set_response_indx(++this->m_response_indx);
@@ -577,17 +574,16 @@ const NVMCallbackResult* NVMEngine::Callback(NVMCallbackResponse* callback_respo
         NVMDataRequest *request = new NVMDataRequest();
         while(this->m_stm->Read(request)){
           std::string requestType = request->request_type();
-          google::protobuf::uint32 requestIndx = request->request_indx();
-          google::protobuf::uint64 lcsHandler = request->lcs_handler();
-          google::protobuf::uint64 gcsHandler = request->gcs_handler();
-
           if(requestType.compare(DATA_EXHG_CALL_BACK) == 0){
             result = &(request->callback_result());
+            getResultFlag = true;
             std::cout<<"----- Now is checking the call back request sent from the GOLANG client with type: "<<requestType<<std::endl;
           }
           break;
         }
         free(request);
+        if(!getResultFlag)
+          result = nullptr;
         return result;
 
     }else{
@@ -600,7 +596,6 @@ const NVMCallbackResult* DataExchangeCallback(NVMCallbackResponse* response){
     if(gNVMEngine != nullptr){
         return gNVMEngine->Callback(response);
     }else{
-        std::cout<<"[---- ERROR ----] failed to exchange data"<<std::endl;
         LogErrorf("Failed to exchange data");
     }
     return nullptr;

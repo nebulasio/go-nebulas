@@ -24,10 +24,6 @@ package nvm
 // logger.
 void V8Log(int level, const char *msg);
 
-// require.
-char *RequireDelegateFunc(void *handler, const char *filename, size_t *lineOffset);
-char *AttachLibVersionDelegateFunc(void *handler, const char *libname);
-
 // blockchain.
 char *GetTxByHashFunc(void *handler, const char *hash, size_t *gasCnt);
 int GetAccountStateFunc(void *handler, const char *address, size_t *gasCnt, char **result, char **info);
@@ -35,9 +31,6 @@ int TransferFunc(void *handler, const char *to, const char *value, size_t *gasCn
 int VerifyAddressFunc(void *handler, const char *address, size_t *gasCnt);
 int GetPreBlockHashFunc(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info);
 int GetPreBlockSeedFunc(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info);
-
-// event.
-void EventTriggerFunc(void *handler, const char *topic, const char *data, size_t *gasCnt);
 
 // crypto
 char *Sha256Func(const char *data, size_t *gasCnt);
@@ -51,14 +44,6 @@ char *Base64Func(const char *data, size_t *gasCnt);
 void V8Log_cgo(int level, const char *msg) {
 	V8Log(level, msg);
 };
-
-char *RequireDelegateFunc_cgo(void *handler, const char *filename, size_t *lineOffset) {
-	return RequireDelegateFunc(handler, filename, lineOffset);
-}
-
-char *AttachLibVersionDelegateFunc_cgo(void *handler, const char *libname) {
-	return AttachLibVersionDelegateFunc(handler, libname);
-}
 
 char *GetTxByHashFunc_cgo(void *handler, const char *hash, size_t *gasCnt) {
 	return GetTxByHashFunc(handler, hash, gasCnt);
@@ -80,10 +65,6 @@ int GetPreBlockHashFunc_cgo(void *handler, unsigned long long offset, size_t *ga
 int GetPreBlockSeedFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info) {
 	return GetPreBlockSeedFunc(handler, offset, gasCnt, result, info);
 }
-
-void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt) {
-	EventTriggerFunc(handler, topic, data, gasCnt);
-};
 
 char *Sha256Func_cgo(const char *data, size_t *gasCnt) {
 	return Sha256Func(data, gasCnt);
