@@ -19,6 +19,7 @@
 package rpc
 
 import (
+	"errors"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -26,6 +27,8 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
@@ -109,12 +112,21 @@ func (s *AdminService) SendTransaction(ctx context.Context, req *rpcpb.Transacti
 		metricsSendTxFailed.Mark(1)
 		return nil, err
 	}
+
+	if tx.Nonce() == 0 {
+		if err := s.GetNewNonceAndPush(tx, nil); err != nil {
+			metricsSendTxFailed.Mark(1)
+			return nil, err
+		}
+		return handleTransactionResponse(neb, tx, true)
+	}
+
 	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
 		metricsSendTxFailed.Mark(1)
 		return nil, err
 	}
 
-	return handleTransactionResponse(neb, tx)
+	return handleTransactionResponse(neb, tx, false)
 }
 
 // SignHash is the RPC API handler.
@@ -191,11 +203,21 @@ func (s *AdminService) SendTransactionWithPassphrase(ctx context.Context, req *r
 	if err != nil {
 		return nil, err
 	}
+
+	if tx.Nonce() == 0 {
+		if err := s.GetNewNonceAndPush(tx, []byte(req.Passphrase)); err != nil {
+			metricsSendTxFailed.Mark(1)
+			return nil, err
+		}
+
+		return handleTransactionResponse(neb, tx, true)
+	}
+
 	if err := neb.AccountManager().SignTransactionWithPassphrase(tx.From(), tx, []byte(req.Passphrase)); err != nil {
 		return nil, err
 	}
 
-	return handleTransactionResponse(neb, tx)
+	return handleTransactionResponse(neb, tx, false)
 }
 
 // StartPprof start pprof
@@ -253,4 +275,48 @@ func (s *AdminService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest
 	}
 
 	return resp, nil
+}
+
+func (s *AdminService) GetNewNonceAndPush(tx *core.Transaction, passphrase []byte) error {
+	neb := s.server.Neblet()
+	pool := neb.BlockChain().TransactionPool()
+	tailBlock := neb.BlockChain().TailBlock()
+
+	acc, err := tailBlock.GetAccount(tx.From().Bytes())
+	if err != nil {
+		return err
+	}
+
+	pool.LockZeroNonce()
+	defer pool.UnlockZeroNonce()
+	tx.SetNonce(pool.GetNewNonce(tx, acc.Nonce()))
+
+	if tx.Type() == core.TxPayloadDeployType {
+		if !tx.From().Equals(tx.To()) {
+			return core.ErrContractTransactionAddressNotEqual
+		}
+	} else if tx.Type() == core.TxPayloadCallType {
+		if _, err := tailBlock.CheckContract(tx.To()); err != nil {
+			return err
+		}
+	}
+
+	if passphrase != nil {
+		if err := neb.AccountManager().SignTransactionWithPassphrase(tx.From(), tx, passphrase); err != nil {
+			return errors.New("invalid private key XXXXX")
+		}
+	} else {
+		if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
+			return err
+		}
+	}
+
+	if err := pool.Push(tx); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"tx":  tx.StringWithoutData(),
+			"err": err,
+		}).Debug("Failed to push tx")
+		return err
+	}
+	return nil
 }

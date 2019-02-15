@@ -142,6 +142,11 @@ func (tx *Transaction) Nonce() uint64 {
 	return tx.nonce
 }
 
+// SetNonce update th nonce
+func (tx *Transaction) SetNonce(newNonce uint64) {
+	tx.nonce = newNonce
+}
+
 // Type return tx type
 func (tx *Transaction) Type() string {
 	return tx.data.Type

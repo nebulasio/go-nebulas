@@ -53,6 +53,7 @@ type TransactionPool struct {
 
 	ns net.Service
 	mu sync.RWMutex
+	zn sync.Mutex //zero nonce tx push lock
 
 	minGasPrice *util.Uint128 // the lowest gasPrice.
 	maxGasLimit *util.Uint128 // the maximum gasLimit.
@@ -555,4 +556,29 @@ func (pool *TransactionPool) evictExpiredTransactions() {
 			}
 		}
 	}
+}
+
+func (pool *TransactionPool) Broadcast(tx *Transaction) {
+	pool.ns.Broadcast(MessageTypeNewTx, tx, net.MessagePriorityNormal)
+}
+
+func (pool *TransactionPool) LockZeroNonce() {
+	pool.zn.Lock()
+}
+
+func (pool *TransactionPool) UnlockZeroNonce() {
+	pool.zn.Unlock()
+}
+
+//get new nonce
+func (pool *TransactionPool) GetNewNonce(tx *Transaction, nonce uint64) uint64 {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	slot := tx.from.address.Hex()
+	bucket, ok := pool.buckets[slot]
+	if !ok {
+		return nonce + 1
+	}
+	return nonce + uint64(bucket.Len()) + 1
 }
