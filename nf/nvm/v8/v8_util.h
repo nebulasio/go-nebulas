@@ -105,7 +105,7 @@ class NVMEngine final: public NVMService::Service{
 
     void LocalTest();       // for testing purpose
 
-    const NVMCallbackResult* Callback(NVMCallbackResponse*);
+    const NVMCallbackResult* Callback(void*, NVMCallbackResponse*);
 
   private:
     int m_concurrency_scale = 1;              // default concurrency number
@@ -135,4 +135,4 @@ class NVMEngine final: public NVMService::Service{
 
 };
 
-const NVMCallbackResult* DataExchangeCallback(NVMCallbackResponse*);
+const NVMCallbackResult* DataExchangeCallback(void*, NVMCallbackResponse*);

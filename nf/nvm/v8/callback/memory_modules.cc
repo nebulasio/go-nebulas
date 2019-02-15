@@ -105,13 +105,20 @@ char *RequireDelegateFunc(void *handler, const char *filepath,
 }
 
 char *AttachLibVersionDelegateFunc(void *handler, const char *libname) {
-  char *path = (char *)calloc(128, sizeof(char));
-  if (strncmp(libname, "lib/", 4) == 0) {
-    sprintf(path, "lib/1.0.0/%s", libname + 4);
-  } else {
-    sprintf(path, "1.0.0/%s", libname);
+
+  NVMCallbackResponse *res = new NVMCallbackResponse();
+  res->set_func_name(std::string(ATTACH_LIB_VERSION_DELEGATE_FUNC));
+  res->add_func_params(std::string(libname));
+
+  const NVMCallbackResult *result = DataExchangeCallback(handler, res);
+  const std::string func_name = result->func_name();
+  if(func_name.compare(ATTACH_LIB_VERSION_DELEGATE_FUNC) != 0){
+    return nullptr;
   }
-  LogDebugf("AttachLibVersion: %s -> %s", libname, path);
+  std::string resString = result->res();
+  char* path = (char*)calloc(resString.length(), sizeof(char));
+  strcpy(path, resString.c_str());
+
   return path;
 }
 
@@ -147,7 +154,6 @@ char *GetModuleSource(void *handler, const char *filename) {
   } else {
     reformatModuleId(filepath, filename);
   }
-  // LogInfof("GetModule: %s -> %s", filename, filepath);
 
   size_t size = 0;
   return RequireDelegateFunc(handler, filepath, &size);

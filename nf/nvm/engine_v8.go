@@ -549,7 +549,12 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 				callbackResult.Res = fmt.Sprintf("%v", resCode)
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
 
-			} else{
+			} else if responseFuncName == ATTACH_LIB_VERSION_DELEGATE_FUNC {
+				pathName := AttachLibVersionDelegateFunc(serverLcsHandler, responseFuncParams[0])
+				callbackResult.FuncName = responseFuncName
+				callbackResult.Res = pathName
+
+			} else {
 
 			}
 

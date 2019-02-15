@@ -50,13 +50,14 @@ char* StorageGet(void* handler, const char *key, size_t *cnt){
   res->set_func_name(std::string(STORAGE_GET));
   res->add_func_params(std::string(key));
 
-  const NVMCallbackResult *result = DataExchangeCallback(res);
-  const char* resString = result->res().c_str();
-  char* cstr = new char[result->res().length() + 1];
-  strcpy(cstr, resString);
+  const NVMCallbackResult *result = DataExchangeCallback(handler, res);
   *cnt = (size_t)std::stoll(result->extra(0));
+  
+  std::string resString = result->res();
+  char* cStr = (char*)calloc(resString.length()+1, sizeof(char));
+  strcpy(cStr, resString.c_str());
 
-  return cstr;
+  return cStr;
 }
 
 int StoragePut(void* handler, const char* key, const char *value, size_t *cnt){
@@ -65,7 +66,7 @@ int StoragePut(void* handler, const char* key, const char *value, size_t *cnt){
   res->add_func_params(std::string(key));
   res->add_func_params(std::string(value));
 
-  const NVMCallbackResult* result = DataExchangeCallback(res);
+  const NVMCallbackResult* result = DataExchangeCallback(handler, res);
   *cnt = (size_t)std::stoll(result->extra(0));
   int resCode = std::stoi(result->res());
 
@@ -77,7 +78,7 @@ int StorageDel(void* handler, const char* key, size_t *cnt){
   res->set_func_name(std::string(STORAGE_DEL));
   res->add_func_params(std::string(key));
 
-  const NVMCallbackResult* result = DataExchangeCallback(res);
+  const NVMCallbackResult* result = DataExchangeCallback(handler, res);
   *cnt = (size_t)std::stoll(result->extra(0));
   int resCode = std::stoi(result->res());
 

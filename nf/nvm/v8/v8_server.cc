@@ -558,15 +558,16 @@ void NVMEngine::LocalTest(){
 
 }
 
-const NVMCallbackResult* NVMEngine::Callback(NVMCallbackResponse* callback_response){
+const NVMCallbackResult* NVMEngine::Callback(void* handler, NVMCallbackResponse* callback_response){
     if(this->m_stm != nullptr){
         const NVMCallbackResult *result;
         bool getResultFlag = false;
         NVMDataResponse *response = new NVMDataResponse();
         response->set_response_type(DATA_EXHG_CALL_BACK);
         response->set_response_indx(++this->m_response_indx);
+        //response->set_lcs_handler(google::protobuf::uint64((uintptr_t)handler));
         response->set_lcs_handler((google::protobuf::uint64)this->m_lcs_handler);
-        response->set_gcs_handler((google::protobuf::uint64)this->m_gcs_handler);
+        response->set_gcs_handler((google::protobuf::uint64)this->m_gcs_handler); // gcs handler is not used by now
         response->set_allocated_callback_response(callback_response);
         this->m_stm->Write(*response);
 
@@ -592,9 +593,9 @@ const NVMCallbackResult* NVMEngine::Callback(NVMCallbackResponse* callback_respo
     return nullptr;
 }
 
-const NVMCallbackResult* DataExchangeCallback(NVMCallbackResponse* response){
+const NVMCallbackResult* DataExchangeCallback(void* handler, NVMCallbackResponse* response){
     if(gNVMEngine != nullptr){
-        return gNVMEngine->Callback(response);
+        return gNVMEngine->Callback(handler, response);
     }else{
         LogErrorf("Failed to exchange data");
     }
