@@ -582,8 +582,16 @@ func createInnerContext(engine *V8Engine, fromAddr *core.Address, toAddr *core.A
 	if err != nil {
 		return nil, err
 	}
+
+	// test sync adaptation
+	// In Testnet, before nbre available height, inner to address is fromAddr that is a bug.
+	innerToAddr := toAddr
+	if engine.ctx.tx.ChainID() == core.TestNetID &&
+		!core.NbreAvailableHeight(engine.ctx.block.Height()) {
+		innerToAddr = fromAddr
+	}
 	parentTx := engine.ctx.tx
-	newTx, err := parentTx.NewInnerTransaction(parentTx.To(), toAddr, value, payloadType, newPayloadHex)
+	newTx, err := parentTx.NewInnerTransaction(parentTx.To(), innerToAddr, value, payloadType, newPayloadHex)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"from":  fromAddr.String(),
