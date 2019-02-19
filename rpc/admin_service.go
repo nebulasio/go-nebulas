@@ -19,6 +19,7 @@
 package rpc
 
 import (
+	"sync"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -26,14 +27,13 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
-	"github.com/nebulasio/go-nebulas/util/logging"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
 // AdminService implements the RPC admin service interface.
 type AdminService struct {
 	server GRPCServer
+	zn     sync.Mutex //zero nonce send lock
 }
 
 // Accounts is the RPC API handler.
@@ -113,7 +113,7 @@ func (s *AdminService) SendTransaction(ctx context.Context, req *rpcpb.Transacti
 	}
 
 	if tx.Nonce() == 0 {
-		if err := s.GetNewNonceAndPush(tx, nil); err != nil {
+		if err := s.DealWithZeroNonceTransaction(tx, nil); err != nil {
 			metricsSendTxFailed.Mark(1)
 			return nil, err
 		}
@@ -204,7 +204,7 @@ func (s *AdminService) SendTransactionWithPassphrase(ctx context.Context, req *r
 	}
 
 	if tx.Nonce() == 0 {
-		if err := s.GetNewNonceAndPush(tx, []byte(req.Passphrase)); err != nil {
+		if err := s.DealWithZeroNonceTransaction(tx, []byte(req.Passphrase)); err != nil {
 			metricsSendTxFailed.Mark(1)
 			return nil, err
 		}
@@ -276,7 +276,7 @@ func (s *AdminService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest
 	return resp, nil
 }
 
-func (s *AdminService) GetNewNonceAndPush(tx *core.Transaction, passphrase []byte) error {
+func (s *AdminService) DealWithZeroNonceTransaction(tx *core.Transaction, passphrase []byte) error {
 	neb := s.server.Neblet()
 	pool := neb.BlockChain().TransactionPool()
 	tailBlock := neb.BlockChain().TailBlock()
@@ -286,9 +286,9 @@ func (s *AdminService) GetNewNonceAndPush(tx *core.Transaction, passphrase []byt
 		return err
 	}
 
-	pool.LockZeroNonce()
-	defer pool.UnlockZeroNonce()
-	tx.SetNonce(pool.GetNewNonce(tx, acc.Nonce()))
+	s.zn.Lock()
+	defer s.zn.Unlock()
+	tx.SetNonce(acc.Nonce() + pool.GetPending(tx.From()) + 1)
 
 	if tx.Type() == core.TxPayloadDeployType {
 		if !tx.From().Equals(tx.To()) {
@@ -310,12 +310,9 @@ func (s *AdminService) GetNewNonceAndPush(tx *core.Transaction, passphrase []byt
 		}
 	}
 
-	if err := pool.Push(tx); err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"tx":  tx.StringWithoutData(),
-			"err": err,
-		}).Debug("Failed to push tx")
+	if err := pool.PushAndBroadcast(tx); err != nil {
 		return err
 	}
+
 	return nil
 }

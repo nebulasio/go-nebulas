@@ -558,23 +558,6 @@ func (pool *TransactionPool) evictExpiredTransactions() {
 	}
 }
 
-func (pool *TransactionPool) Broadcast(tx *Transaction) {
-	pool.ns.Broadcast(MessageTypeNewTx, tx, net.MessagePriorityNormal)
-}
-
-func (pool *TransactionPool) LockZeroNonce() {
-	pool.zn.Lock()
-}
-
-func (pool *TransactionPool) UnlockZeroNonce() {
-	pool.zn.Unlock()
-}
-
-// get new nonce
-func (pool *TransactionPool) GetNewNonce(tx *Transaction, nonce uint64) uint64 {
-	return nonce + pool.GetPending(tx.from) + 1
-}
-
 // get pending tx count
 func (pool *TransactionPool) GetPending(addr *Address) uint64 {
 	pool.mu.Lock()

@@ -314,8 +314,6 @@ func handleTransactionResponse(neb core.Neblet, tx *core.Transaction, flag bool)
 		if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
 			return nil, err
 		}
-	} else { //zero nonce tx has already pushed into pool
-		neb.BlockChain().TransactionPool().Broadcast(tx)
 	}
 
 	var contract string
