@@ -24,7 +24,7 @@
 #include "fs/proto/ir.pb.h"
 #include "jit/jit_driver.h"
 #include "runtime/nr/impl/nebulas_rank.h"
-#include <ff/ff.h>
+#include <ff/functionflow.h>
 
 namespace neb {
 namespace rt {

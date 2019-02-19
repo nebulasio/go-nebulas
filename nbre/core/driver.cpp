@@ -26,7 +26,7 @@
 #include "runtime/dip/dip_handler.h"
 #include "runtime/nr/impl/nr_handler.h"
 #include "runtime/version.h"
-#include <ff/ff.h>
+#include <ff/functionflow.h>
 
 namespace neb {
 namespace core {

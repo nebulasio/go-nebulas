@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include <ff/ff.h>
+#include <ff/functionflow.h>
 #include <iostream>
 
 void f() {}

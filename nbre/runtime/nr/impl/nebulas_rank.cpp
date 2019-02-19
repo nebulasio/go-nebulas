@@ -25,7 +25,6 @@
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <chrono>
-#include <ff/ff.h>
 #include <thread>
 
 namespace neb {

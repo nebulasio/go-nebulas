@@ -201,7 +201,7 @@ if [ ! -d $CUR_DIR/lib/include/gtest/ ]; then
 fi
 
 if [ ! -d $CUR_DIR/lib/include/ff/ ]; then
-  build_with_cmake functionflow
+  build_with_cmake fflib
 fi
 
 if [ ! -f $CUR_DIR/lib/include/snappy.h ]; then

@@ -24,7 +24,7 @@
 #include "core/neb_ipc/server/ipc_configuration.h"
 #include "core/neb_ipc/server/ipc_server_endpoint.h"
 #include "fs/util.h"
-#include <ff/ff.h>
+#include <ff/functionflow.h>
 
 class simple_driver : public neb::core::internal::driver_base {
 public:

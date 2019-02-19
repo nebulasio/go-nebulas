@@ -30,7 +30,7 @@
 #include "runtime/dip/dip_handler.h"
 #include "runtime/version.h"
 #include <boost/format.hpp>
-#include <ff/ff.h>
+#include <ff/functionflow.h>
 
 namespace neb {
 namespace fs {
