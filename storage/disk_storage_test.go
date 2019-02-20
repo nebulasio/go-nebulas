@@ -104,5 +104,5 @@ func TestLeveldbBenchmark(t *testing.T) {
 		})
 	}
 	db.Close()
-	os.Remove(file)
+	os.RemoveAll(file)
 }

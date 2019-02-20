@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"github.com/nebulasio/go-nebulas/util"
 	"strconv"
 	"sync"
 	"time"
@@ -17,20 +18,20 @@ type RocksStorage struct {
 	mutex       sync.Mutex
 	batchOpts   map[string]*batchOpt
 
+	opts *gorocksdb.Options
+	columnHandles  map[string]*gorocksdb.ColumnFamilyHandle
+
 	ro *gorocksdb.ReadOptions
 	wo *gorocksdb.WriteOptions
 
 	cache *gorocksdb.Cache
 }
 
-// NewRocksStorage init a storage
-func NewRocksStorage(path string) (*RocksStorage, error) {
-
+func createRocksOptions(cache *gorocksdb.Cache) *gorocksdb.Options {
 	filter := gorocksdb.NewBloomFilter(10)
 	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
 	bbto.SetFilterPolicy(filter)
 
-	cache := gorocksdb.NewLRUCache(512 << 20)
 	bbto.SetBlockCache(cache)
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
@@ -39,6 +40,16 @@ func NewRocksStorage(path string) (*RocksStorage, error) {
 	opts.SetWriteBufferSize(64 * opt.MiB) //Default: 4MB
 	opts.IncreaseParallelism(4)           //flush and compaction thread
 
+	opts.SetKeepLogFileNum(1)
+	opts.SetDbLogDir("logs")
+	return opts
+}
+
+// NewRocksStorage init a storage
+func NewRocksStorage(path string) (*RocksStorage, error) {
+
+	cache := gorocksdb.NewLRUCache(512 << 20)
+	opts := createRocksOptions(cache)
 	db, err := gorocksdb.OpenDb(opts, path)
 	if err != nil {
 		return nil, err
@@ -48,7 +59,9 @@ func NewRocksStorage(path string) (*RocksStorage, error) {
 		db:          db,
 		cache:       cache,
 		enableBatch: false,
+		opts:		 opts,
 		batchOpts:   make(map[string]*batchOpt),
+		columnHandles: make(map[string]*gorocksdb.ColumnFamilyHandle),
 		ro:          gorocksdb.NewDefaultReadOptions(),
 		wo:          gorocksdb.NewDefaultWriteOptions(),
 	}
@@ -56,6 +69,78 @@ func NewRocksStorage(path string) (*RocksStorage, error) {
 	//go RecordMetrics(storage)
 
 	return storage, nil
+}
+
+// NewRocksStorage init a storage with column families
+func NewRocksStorageWithCF(path string, cfNames []string) (*RocksStorage, error) {
+	cache := gorocksdb.NewLRUCache(512 << 20)
+	opts := createRocksOptions(cache)
+
+	//we should create column families first.
+	//as the `default` column is can't be find for the normal open, we should close and then reopen.
+	// This is strange, but the example is like this.
+	if exist,_ := util.FileExists(path); !exist {
+		db, err := gorocksdb.OpenDb(opts, path)
+		if err != nil {
+			return nil, err
+		}
+		for _, cfName := range cfNames {
+			_, err := db.CreateColumnFamily(opts, cfName)
+			if err != nil {
+				return nil, err
+			}
+		}
+		db.Close()
+	}
+
+	cfNames = append([]string{"default"}, cfNames...)
+	cfOpts := make([]*gorocksdb.Options, len(cfNames))
+	for idx := range cfNames {
+		cfOpts[idx] = opts
+	}
+	db, handles, err := gorocksdb.OpenDbColumnFamilies(opts, path, cfNames, cfOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	handlesMap := make(map[string]*gorocksdb.ColumnFamilyHandle)
+	for idx, handle := range handles {
+		cfName := cfNames[idx]
+		handlesMap[cfName] = handle
+	}
+
+	//cfList, err := gorocksdb.ListColumnFamilies(opts, path)
+	//
+	//if err != nil {
+	//	return nil, err
+	//}
+	//if len(cfList) != len(cfNames) {
+	//	return nil, err
+	//}
+
+	storage := &RocksStorage{
+		db:          db,
+		cache:       cache,
+		enableBatch: false,
+		opts:		 opts,
+		batchOpts:   make(map[string]*batchOpt),
+		columnHandles: handlesMap,
+		ro:          gorocksdb.NewDefaultReadOptions(),
+		wo:          gorocksdb.NewDefaultWriteOptions(),
+	}
+
+	//go RecordMetrics(storage)
+
+	return storage, nil
+}
+
+func (storage *RocksStorage) CreateColumn(name string) error {
+	handle, err := storage.db.CreateColumnFamily(storage.opts, name)
+	if err != nil {
+		return err
+	}
+	storage.columnHandles[name] = handle
+	return nil
 }
 
 // Get return value to the key in Storage
@@ -108,6 +193,70 @@ func (storage *RocksStorage) Del(key []byte) error {
 	return storage.db.Delete(storage.wo, key)
 }
 
+// GetCF return value to the key in Storage
+func (storage *RocksStorage) GetCF(cfName string, key []byte) ([]byte, error) {
+	if handle, ok := storage.columnHandles[cfName]; ok {
+		value, err := storage.db.GetCF(storage.ro, handle, key)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if value == nil {
+			return nil, ErrKeyNotFound
+		}
+		defer value.Free()
+		return value.Data(), err
+	} else {
+		return nil, ErrCFNameNotFound
+	}
+}
+
+// PutCF put the key-value entry to Storage
+func (storage *RocksStorage) PutCF(cfName string, key []byte, value []byte) error {
+	if handle, ok := storage.columnHandles[cfName]; ok {
+		if storage.enableBatch {
+			storage.mutex.Lock()
+			defer storage.mutex.Unlock()
+
+			storage.batchOpts[byteutils.Hex(key)] = &batchOpt{
+				cfName:  cfName,
+				key:     key,
+				value:   value,
+				deleted: false,
+			}
+
+			return nil
+		}
+
+		return storage.db.PutCF(storage.wo, handle, key, value)
+	} else {
+		return ErrCFNameNotFound
+	}
+}
+
+// DelCF delete the key in Storage.
+func (storage *RocksStorage) DelCF(cfName string, key []byte) error {
+	if handle, ok := storage.columnHandles[cfName]; ok {
+		if storage.enableBatch {
+			storage.mutex.Lock()
+			defer storage.mutex.Unlock()
+
+			storage.batchOpts[byteutils.Hex(key)] = &batchOpt{
+				cfName:  cfName,
+				key:     key,
+				deleted: true,
+			}
+
+			return nil
+		}
+		return storage.db.DeleteCF(storage.wo, handle, key)
+	} else {
+		return ErrCFNameNotFound
+	}
+}
+
+
 // Close levelDB
 func (storage *RocksStorage) Close() error {
 	storage.db.Close()
@@ -136,10 +285,19 @@ func (storage *RocksStorage) Flush() error {
 	bl := len(storage.batchOpts)
 
 	for _, opt := range storage.batchOpts {
-		if opt.deleted {
-			wb.Delete(opt.key)
+		if len(opt.cfName) > 0 {
+			handle := storage.columnHandles[opt.cfName]
+			if opt.deleted {
+				wb.DeleteCF(handle, opt.key)
+			} else {
+				wb.PutCF(handle, opt.key, opt.value)
+			}
 		} else {
-			wb.Put(opt.key, opt.value)
+			if opt.deleted {
+				wb.Delete(opt.key)
+			} else {
+				wb.Put(opt.key, opt.value)
+			}
 		}
 	}
 	storage.batchOpts = make(map[string]*batchOpt)

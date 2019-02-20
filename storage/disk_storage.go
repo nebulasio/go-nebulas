@@ -37,6 +37,7 @@ type DiskStorage struct {
 }
 
 type batchOpt struct {
+	cfName  string
 	key     []byte
 	value   []byte
 	deleted bool
