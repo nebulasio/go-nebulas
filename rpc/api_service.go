@@ -266,7 +266,7 @@ func parseTransactionPayload(reqTx *rpcpb.TransactionRequest) (payloadType strin
 	return payloadType, payload, nil
 }
 
-func handleTransactionResponse(neb core.Neblet, tx *core.Transaction, flag bool) (resp *rpcpb.SendTransactionResponse, err error) {
+func handleTransactionResponse(neb core.Neblet, tx *core.Transaction) (resp *rpcpb.SendTransactionResponse, err error) {
 	defer func() {
 		if err != nil {
 			metricsSendTxFailed.Mark(1)
@@ -281,7 +281,7 @@ func handleTransactionResponse(neb core.Neblet, tx *core.Transaction, flag bool)
 		return nil, err
 	}
 
-	if !flag && tx.Nonce() <= acc.Nonce() { //if receive zero nonce , flag is true, no need to check
+	if tx.Nonce() <= acc.Nonce() {
 		return nil, errors.New("transaction's nonce is invalid, should bigger than the from's nonce")
 	}
 
@@ -309,11 +309,9 @@ func handleTransactionResponse(neb core.Neblet, tx *core.Transaction, flag bool)
 		}
 	}
 
-	if !flag {
-		// push and broadcast tx
-		if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
-			return nil, err
-		}
+	// push and broadcast tx
+	if err := neb.BlockChain().TransactionPool().PushAndBroadcast(tx); err != nil {
+		return nil, err
 	}
 
 	var contract string
@@ -345,7 +343,7 @@ func (s *APIService) SendRawTransaction(ctx context.Context, req *rpcpb.SendRawT
 		return nil, err
 	}
 
-	return handleTransactionResponse(neb, tx, false)
+	return handleTransactionResponse(neb, tx)
 }
 
 // GetBlockByHash get block info by the block hash

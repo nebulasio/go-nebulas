@@ -53,7 +53,6 @@ type TransactionPool struct {
 
 	ns net.Service
 	mu sync.RWMutex
-	zn sync.Mutex //zero nonce tx push lock
 
 	minGasPrice *util.Uint128 // the lowest gasPrice.
 	maxGasLimit *util.Uint128 // the maximum gasLimit.

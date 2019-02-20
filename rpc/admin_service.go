@@ -113,11 +113,16 @@ func (s *AdminService) SendTransaction(ctx context.Context, req *rpcpb.Transacti
 	}
 
 	if tx.Nonce() == 0 {
-		if err := s.DealWithZeroNonceTransaction(tx, nil); err != nil {
-			metricsSendTxFailed.Mark(1)
+		pool := neb.BlockChain().TransactionPool()
+		tailBlock := neb.BlockChain().TailBlock()
+		acc, err := tailBlock.GetAccount(tx.From().Bytes())
+		if err != nil {
 			return nil, err
 		}
-		return handleTransactionResponse(neb, tx, true)
+
+		s.zn.Lock()
+		defer s.zn.Unlock()
+		tx.SetNonce(acc.Nonce() + pool.GetPending(tx.From()) + 1)
 	}
 
 	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
@@ -125,7 +130,7 @@ func (s *AdminService) SendTransaction(ctx context.Context, req *rpcpb.Transacti
 		return nil, err
 	}
 
-	return handleTransactionResponse(neb, tx, false)
+	return handleTransactionResponse(neb, tx)
 }
 
 // SignHash is the RPC API handler.
@@ -204,19 +209,23 @@ func (s *AdminService) SendTransactionWithPassphrase(ctx context.Context, req *r
 	}
 
 	if tx.Nonce() == 0 {
-		if err := s.DealWithZeroNonceTransaction(tx, []byte(req.Passphrase)); err != nil {
-			metricsSendTxFailed.Mark(1)
+		pool := neb.BlockChain().TransactionPool()
+		tailBlock := neb.BlockChain().TailBlock()
+		acc, err := tailBlock.GetAccount(tx.From().Bytes())
+		if err != nil {
 			return nil, err
 		}
 
-		return handleTransactionResponse(neb, tx, true)
+		s.zn.Lock()
+		defer s.zn.Unlock()
+		tx.SetNonce(acc.Nonce() + pool.GetPending(tx.From()) + 1)
 	}
 
 	if err := neb.AccountManager().SignTransactionWithPassphrase(tx.From(), tx, []byte(req.Passphrase)); err != nil {
 		return nil, err
 	}
 
-	return handleTransactionResponse(neb, tx, false)
+	return handleTransactionResponse(neb, tx)
 }
 
 // StartPprof start pprof
@@ -274,45 +283,4 @@ func (s *AdminService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest
 	}
 
 	return resp, nil
-}
-
-func (s *AdminService) DealWithZeroNonceTransaction(tx *core.Transaction, passphrase []byte) error {
-	neb := s.server.Neblet()
-	pool := neb.BlockChain().TransactionPool()
-	tailBlock := neb.BlockChain().TailBlock()
-
-	acc, err := tailBlock.GetAccount(tx.From().Bytes())
-	if err != nil {
-		return err
-	}
-
-	s.zn.Lock()
-	defer s.zn.Unlock()
-	tx.SetNonce(acc.Nonce() + pool.GetPending(tx.From()) + 1)
-
-	if tx.Type() == core.TxPayloadDeployType {
-		if !tx.From().Equals(tx.To()) {
-			return core.ErrContractTransactionAddressNotEqual
-		}
-	} else if tx.Type() == core.TxPayloadCallType {
-		if _, err := tailBlock.CheckContract(tx.To()); err != nil {
-			return err
-		}
-	}
-
-	if passphrase != nil {
-		if err := neb.AccountManager().SignTransactionWithPassphrase(tx.From(), tx, passphrase); err != nil {
-			return err
-		}
-	} else {
-		if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
-			return err
-		}
-	}
-
-	if err := pool.PushAndBroadcast(tx); err != nil {
-		return err
-	}
-
-	return nil
 }
