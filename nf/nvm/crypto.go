@@ -33,41 +33,45 @@ import (
 
 // Sha256Func ..
 //export Sha256Func
-func Sha256Func(data *C.char, gasCnt *C.size_t) *C.char {
-	s := C.GoString(data)
-	*gasCnt = C.size_t(len(s) + CryptoSha256GasBase)
+//return: sha result(string), gasCnt(uint64)
+func Sha256Func(s string) (string, uint64) {
+	var gasCnt uint64 = 0
+	gasCnt = uint64(len(s) + CryptoSha256GasBase)
 
 	r := hash.Sha256([]byte(s))
-	return C.CString(byteutils.Hex(r))
+	return byteutils.Hex(r), gasCnt
 }
 
 // Sha3256Func ..
 //export Sha3256Func
-func Sha3256Func(data *C.char, gasCnt *C.size_t) *C.char {
-	s := C.GoString(data)
-	*gasCnt = C.size_t(len(s) + CryptoSha3256GasBase)
+//return: sha result(string), gasCnt(uint64)
+func Sha3256Func(s string) (string, uint64) {
+	var gasCnt uint64 = 0
+	gasCnt = uint64(len(s) + CryptoSha3256GasBase)
 
 	r := hash.Sha3256([]byte(s))
-	return C.CString(byteutils.Hex(r))
+	return byteutils.Hex(r), gasCnt
 }
 
 // Ripemd160Func ..
 //export Ripemd160Func
-func Ripemd160Func(data *C.char, gasCnt *C.size_t) *C.char {
-	s := C.GoString(data)
-	*gasCnt = C.size_t(len(s) + CryptoRipemd160GasBase)
+//return execution result(string), gasCnt(uint64)
+func Ripemd160Func(s string) (string, uint64) {
+	var gasCnt uint64 = 0
+	gasCnt = uint64(len(s) + CryptoRipemd160GasBase)
 
 	r := hash.Ripemd160([]byte(s))
-	return C.CString(byteutils.Hex(r))
+	return byteutils.Hex(r), gasCnt
 }
 
 // RecoverAddressFunc ..
 //export RecoverAddressFunc
-func RecoverAddressFunc(alg int, data, sign *C.char, gasCnt *C.size_t) *C.char {
-	d := C.GoString(data)
-	s := C.GoString(sign)
+//params: alg(int), d(string), s(string)
+//return: execution result(string), gasCnt(uint64)
+func RecoverAddressFunc(alg int, d, s string) (string, uint64) {
 
-	*gasCnt = C.size_t(CryptoRecoverAddressGasBase)
+	gasCnt := uint64(CryptoRecoverAddressGasBase)
+	result := ""
 
 	plain, err := byteutils.FromHex(d)
 	if err != nil {
@@ -77,7 +81,7 @@ func RecoverAddressFunc(alg int, data, sign *C.char, gasCnt *C.size_t) *C.char {
 			"alg":  alg,
 			"err":  err,
 		}).Debug("convert hash to byte array error.")
-		return nil
+		return result, gasCnt
 	}
 	cipher, err := byteutils.FromHex(s)
 	if err != nil {
@@ -87,7 +91,7 @@ func RecoverAddressFunc(alg int, data, sign *C.char, gasCnt *C.size_t) *C.char {
 			"alg":  alg,
 			"err":  err,
 		}).Debug("convert sign to byte array error.")
-		return nil
+		return result, gasCnt
 	}
 	addr, err := core.RecoverSignerFromSignature(keystore.Algorithm(alg), plain, cipher)
 	if err != nil {
@@ -97,28 +101,26 @@ func RecoverAddressFunc(alg int, data, sign *C.char, gasCnt *C.size_t) *C.char {
 			"alg":  alg,
 			"err":  err,
 		}).Debug("recover address error.")
-		return nil
+		return result, gasCnt
 	}
 
-	return C.CString(addr.String())
+	return addr.String(),gasCnt
 }
 
 // Md5Func ..
 //export Md5Func
-func Md5Func(data *C.char, gasCnt *C.size_t) *C.char {
-	s := C.GoString(data)
-	*gasCnt = C.size_t(len(s) + CryptoMd5GasBase)
+func Md5Func(s string) (string, uint64) {
+	gasCnt := uint64(len(s) + CryptoMd5GasBase)
 
 	r := md5.Sum([]byte(s))
-	return C.CString(byteutils.Hex(r[:]))
+	return byteutils.Hex(r[:]), gasCnt
 }
 
 // Base64Func ..
 //export Base64Func
-func Base64Func(data *C.char, gasCnt *C.size_t) *C.char {
-	s := C.GoString(data)
-	*gasCnt = C.size_t(len(s) + CryptoBase64GasBase)
+func Base64Func(s string) (string, uint64) {
+	gasCnt := uint64(len(s) + CryptoBase64GasBase)
 
 	r := hash.Base64Encode([]byte(s))
-	return C.CString(string(r))
+	return string(r), gasCnt
 }

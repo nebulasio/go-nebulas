@@ -25,17 +25,15 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-
-using namespace std;
+#include <string>
 
 static std::mutex mapMutex;
-static unordered_map<string, string> memoryMap;
-static atomic<uintptr_t> handlerCounter(1234);
+static std::unordered_map<std::string, std::string> memoryMap;
+static std::atomic<uintptr_t> handlerCounter(1234);
 
-string genKey(void *handler, const char *key) {
+std::string genKey(void *handler, const char *key) {
   uintptr_t prefix = (uintptr_t)handler;
-  string sKey = to_string(prefix);
+  std::string sKey = std::to_string(prefix);
   sKey.append("-");
   sKey.append(key);
   return sKey;
@@ -50,10 +48,10 @@ char* StorageGet(void* handler, const char *key, size_t *cnt){
   res->set_func_name(std::string(STORAGE_GET));
   res->add_func_params(std::string(key));
 
-  const NVMCallbackResult *result = DataExchangeCallback(handler, res);
-  *cnt = (size_t)std::stoll(result->extra(0));
+  const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
+  *cnt = (size_t)std::stoull(callback_res->extra(0));
   
-  std::string resString = result->res();
+  std::string resString = callback_res->result();
   char* cStr = (char*)calloc(resString.length()+1, sizeof(char));
   strcpy(cStr, resString.c_str());
 
@@ -66,9 +64,9 @@ int StoragePut(void* handler, const char* key, const char *value, size_t *cnt){
   res->add_func_params(std::string(key));
   res->add_func_params(std::string(value));
 
-  const NVMCallbackResult* result = DataExchangeCallback(handler, res);
-  *cnt = (size_t)std::stoll(result->extra(0));
-  int resCode = std::stoi(result->res());
+  const NVMCallbackResult* callback_res = DataExchangeCallback(handler, res);
+  *cnt = (size_t)std::stoull(callback_res->extra(0));
+  int resCode = std::stoi(callback_res->result());
 
   return resCode;
 }
@@ -78,9 +76,9 @@ int StorageDel(void* handler, const char* key, size_t *cnt){
   res->set_func_name(std::string(STORAGE_DEL));
   res->add_func_params(std::string(key));
 
-  const NVMCallbackResult* result = DataExchangeCallback(handler, res);
-  *cnt = (size_t)std::stoll(result->extra(0));
-  int resCode = std::stoi(result->res());
+  const NVMCallbackResult* callback_res = DataExchangeCallback(handler, res);
+  *cnt = (size_t)std::stoull(callback_res->extra(0));
+  int resCode = std::stoi(callback_res->result());
 
   return resCode;
 }

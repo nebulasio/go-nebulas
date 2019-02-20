@@ -29,6 +29,8 @@
 #include <unistd.h>
 #include <v8.h>
 
+#include <iostream>
+
 using namespace v8;
 
 static char source_require_format[] =
@@ -38,8 +40,8 @@ static char source_require_format[] =
     "};\n"
     "})();\n";
 
-static RequireDelegate sRequireDelegate = NULL;
-static AttachLibVersionDelegate attachLibVersionDelegate = NULL;
+static RequireDelegateFunc sRequireDelegate = NULL;
+static AttachLibVersionDelegateFunc attachLibVersionDelegate = NULL;
 
 static int readSource(Local<Context> context, const char *filename, char **data,
                       size_t *lineOffset) {
@@ -48,7 +50,6 @@ static int readSource(Local<Context> context, const char *filename, char **data,
   }
 
   *lineOffset = 0;
-
   char *content = NULL;
 
   // try sRequireDelegate.
@@ -79,6 +80,9 @@ static void attachVersion(char *out, int maxoutlen, Local<Context> context, cons
     V8Engine *e = GetV8EngineInstance(context);
     verlib = attachLibVersionDelegate(e, libname);
   }
+
+  std::cout<<" ------ version lib is: "<<verlib<<std::endl;
+
   if (verlib != NULL) {
     strncat(out, verlib, maxoutlen - strlen(out) - 1);
     free(verlib);
@@ -179,7 +183,7 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   free(static_cast<void *>(data));
 }
 
-void InitializeRequireDelegate(RequireDelegate delegate, AttachLibVersionDelegate aDelegate) {
+void InitializeRequireDelegate(RequireDelegateFunc delegate, AttachLibVersionDelegateFunc aDelegate) {
   sRequireDelegate = delegate;
   attachLibVersionDelegate = aDelegate;
 }

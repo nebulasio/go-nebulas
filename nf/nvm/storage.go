@@ -73,7 +73,7 @@ func StorageGetFunc(handler uint64, k string) (string, uint64) {
 	domainKey, itemKey, err := parseStorageKey(k)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"handler": uint64(uintptr(handler)),
+			"handler": handler,
 			"key":     k,
 			"err":     err,
 		}).Debug("Invalid storage key.")

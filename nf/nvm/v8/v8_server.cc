@@ -39,7 +39,7 @@ void logFuncOld(int level, const char *msg) {
   fprintf(f, "[tid-%020zu] [%s] %s\n", hasher(tid), GetLogLevelText(level), msg);
 }
 
-void logFunc(int level, const char *msg){
+void Logger(int level, const char *msg){
   switch(level){
     case LogLevel::DEBUG:
       LOG(WARNING)<<msg;
@@ -57,15 +57,6 @@ void logFunc(int level, const char *msg){
       break;
   }
 }
-
-void eventTriggerFunc(void *handler, const char *topic, const char *data,
-                      size_t *cnt) {
-  fprintf(stdout, "[Event] [%s] %s\n", topic, data);
-  *cnt = 20 + strlen(topic) + strlen(data);
-}
-
-typedef void (*V8ExecutionDelegate)(V8Engine *e, const char *data,
-                                    uintptr_t lcsHandler, uintptr_t gcsHandler);
 
 void RunScriptSourceDelegate(V8Engine *e, const char *data,
                              uintptr_t lcsHandler, uintptr_t gcsHandler) {
@@ -180,15 +171,16 @@ void InjectTracingInstructionsAndPrintDelegate(V8Engine *e, const char *data,
 
 void Initialization(){
   Initialize();
-  InitializeLogger(logFunc);
-  InitializeRequireDelegate(RequireDelegateFunc, AttachLibVersionDelegateFunc);
-  InitializeExecutionEnvDelegate(AttachLibVersionDelegateFunc);
+  InitializeLogger(Logger);
+  InitializeRequireDelegate(RequireDelegate, AttachLibVersionDelegate);
+  InitializeExecutionEnvDelegate(AttachLibVersionDelegate);
 
   InitializeStorage(StorageGet, StoragePut, StorageDel);
   InitializeBlockchain(GetTxByHash, GetAccountState, Transfer, VerifyAddress, GetPreBlockHash, GetPreBlockSeed);
-  InitializeEvent(eventTriggerFunc);
-  //InitializeCrypto(Sha256Func, Sha3256Func, Ripemd160Func, RecoverAddressFunc, Md5Func, Base64Func);
+  InitializeEvent(EventTrigger);
+  InitializeCrypto(Sha256, Sha3256, Ripemd160, RecoverAddress, Md5, Base64);
 }
+
 
 void InitializeDataStructure(){
   srcModuleCache = std::unique_ptr<std::map<std::string, CacheSrcItem>>(new std::map<std::string, CacheSrcItem>());
@@ -300,11 +292,8 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
   //thread safe
   while(1) {
     if (ctx->is_finished == true) {
-        std::cout<<"@@@@@@@@ finish flag is set to be true ONE"<<std::endl;
         if (is_kill == true) {
-          std::cout<<"@@@@@@@@ finish flag is set to be true TWO"<<std::endl;
           ctx->output.ret = NVM_EXE_TIMEOUT_ERR; 
-          std::cout<<"@@@@@@@@ finish flag is set to be true THREE"<<std::endl;
         }
         break;
 
@@ -495,11 +484,6 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
           this->m_exe_result = nullptr;
         }
         
-      }else if(requestType.compare(DATA_EXHG_CALL_BACK) == 0){
-        // get result from the request index
-        NVMCallbackResult res = request->callback_result();
-        std::cout<<"Callback from golang side with result: "<<res.res()<<std::endl;
-        
       }else{
         // throw exception since the request type is not allowed
         std::cout<<"Illegal request type"<<std::endl;
@@ -578,7 +562,7 @@ const NVMCallbackResult* NVMEngine::Callback(void* handler, NVMCallbackResponse*
           if(requestType.compare(DATA_EXHG_CALL_BACK) == 0){
             result = &(request->callback_result());
             getResultFlag = true;
-            std::cout<<"----- Now is checking the call back request sent from the GOLANG client with type: "<<requestType<<std::endl;
+            std::cout<<"-- Callback response from the GOLANG side with function: "<<callback_response->func_name()<<std::endl;
           }
           break;
         }
@@ -611,9 +595,6 @@ void RunServer(const char* addr_str){
   }
 
   gNVMEngine = new NVMEngine(NVM_CURRENCY_LEVEL);
- 
-  if(gNVMEngine != nullptr)
-    std::cout<<"$$$$$$$$$$$$$$$$ Hey gNVMEngine is now availble"<<std::endl;
 
   grpc::ServerBuilder builder;
   builder.AddListeningPort(engine_addr, grpc::InsecureServerCredentials());

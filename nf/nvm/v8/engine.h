@@ -17,8 +17,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#ifndef _NEBULAS_NF_NVM_V8_ENGINE_H_
-#define _NEBULAS_NF_NVM_V8_ENGINE_H_
+#pragma once
 // #include <v8.h>
 
 #if BUILDING_DLL
@@ -51,15 +50,15 @@ enum OptType {
 };
 
 // log
-typedef void (*LogFunc)(int level, const char *msg);
+typedef void (*LoggerFunc)(int level, const char *msg);
 EXPORT const char *GetLogLevelText(int level);
-EXPORT void InitializeLogger(LogFunc f);
+EXPORT void InitializeLogger(LoggerFunc f);
 
 // event.
 typedef void (*EventTriggerFunc)(void *handler, const char *topic,
-                                 const char *data, size_t *counterVal);
+                                 const char *data, size_t *cnt);
 EXPORT void InitializeEvent(EventTriggerFunc trigger);
-
+                                  
 // storage
 typedef char *(*StorageGetFunc)(void *handler, const char *key,
                                 size_t *counterVal);
@@ -83,8 +82,6 @@ typedef int (*GetPreBlockHashFunc)(void *handler, unsigned long long offset, siz
 
 typedef int (*GetPreBlockSeedFunc)(void *handler, unsigned long long offset, size_t *counterVal, char **result, char **info);
 
-
-
 EXPORT void InitializeBlockchain(GetTxByHashFunc getTx,
                                  GetAccountStateFunc getAccount,
                                  TransferFunc transfer,
@@ -94,11 +91,15 @@ EXPORT void InitializeBlockchain(GetTxByHashFunc getTx,
 
 // crypto
 typedef char *(*Sha256Func)(const char *data, size_t *counterVal);
+
 typedef char *(*Sha3256Func)(const char *data, size_t *counterVal);
+
 typedef char *(*Ripemd160Func)(const char *data, size_t *counterVal);
-typedef char *(*RecoverAddressFunc)(int alg, const char *data, const char *sign,
-                                 size_t *counterVal);
+
+typedef char *(*RecoverAddressFunc)(int alg, const char *data, const char *sign, size_t *counterVal);
+
 typedef char *(*Md5Func)(const char *data, size_t *counterVal);
+
 typedef char *(*Base64Func)(const char *data, size_t *counterVal);
 
 EXPORT void InitializeCrypto(Sha256Func sha256,
@@ -112,13 +113,13 @@ EXPORT void InitializeCrypto(Sha256Func sha256,
 EXPORT char *GetV8Version();
 
 // require callback.
-typedef char *(*RequireDelegate)(void *handler, const char *filename,
+typedef char *(*RequireDelegateFunc)(void *handler, const char *filename,
                                  size_t *lineOffset);
-typedef char *(*AttachLibVersionDelegate)(void *handler, const char *libname);
+typedef char *(*AttachLibVersionDelegateFunc)(void *handler, const char *libname);
 
-EXPORT void InitializeRequireDelegate(RequireDelegate delegate, AttachLibVersionDelegate libDelegate);
+EXPORT void InitializeRequireDelegate(RequireDelegateFunc delegate, AttachLibVersionDelegateFunc libDelegate);
 
-EXPORT void InitializeExecutionEnvDelegate(AttachLibVersionDelegate libDelegate);
+EXPORT void InitializeExecutionEnvDelegate(AttachLibVersionDelegateFunc libDelegate);
 
 typedef struct V8EngineStats {
   size_t count_of_executed_instructions;
@@ -136,7 +137,6 @@ typedef struct V8EngineStats {
 } V8EngineStats;
 
 typedef struct V8Engine {
-
   void *isolate;
   void *allocator;
   size_t limits_of_executed_instructions;
@@ -147,8 +147,8 @@ typedef struct V8Engine {
   int timeout;
   
   V8EngineStats stats;
- 
 } V8Engine;
+
 typedef struct v8ThreadContextInput {
   uintptr_t lcs;  
   uintptr_t gcs;
@@ -157,11 +157,13 @@ typedef struct v8ThreadContextInput {
   int allow_usage;
   const char *source;
 } v8ThreadContextInput;
+
 typedef struct v8ThreadContextOutput {
   int ret;  //output
   int line_offset;
   char *result; //output
 } v8ThreadContextOutput;
+
 typedef struct v8ThreadContext_ {
   V8Engine *e; 
   v8ThreadContextInput input;
@@ -169,7 +171,10 @@ typedef struct v8ThreadContext_ {
   bool is_finished;
 } v8ThreadContext;
 
+typedef void (*V8ExecutionDelegate)(V8Engine *e, const char *data, uintptr_t lcsHandler, uintptr_t gcsHandler);
+
 EXPORT void Initialize();
+
 EXPORT void Dispose();
 
 EXPORT V8Engine *CreateEngine();
@@ -209,5 +214,3 @@ void SetRunScriptArgs(v8ThreadContext *pc, V8Engine *e, int opt, const char *sou
 #ifdef __cplusplus
 }
 #endif // __cplusplus
-
-#endif // _NEBULAS_NF_NVM_V8_ENGINE_H_

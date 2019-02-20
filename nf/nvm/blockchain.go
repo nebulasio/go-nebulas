@@ -24,8 +24,6 @@ package nvm
 import "C"
 
 import (
-	"unsafe"
-
 	"encoding/json"
 
 	"github.com/gogo/protobuf/proto"
@@ -40,79 +38,85 @@ import (
 
 // GetTxByHashFunc returns tx info by hash
 //export GetTxByHashFunc
-func GetTxByHashFunc(handler unsafe.Pointer, hash *C.char, gasCnt *C.size_t) *C.char {
-	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+func GetTxByHashFunc(handler uint64, hash string) (string, uint64) {
+
+	res := ""
+
+	engine, _ := getEngineByStorageHandler(handler)
 	if engine == nil || engine.ctx.block == nil {
-		return nil
+		return res, 0
 	}
 
 	// calculate Gas.
-	*gasCnt = C.size_t(GetTxByHashGasBase)
+	gasCnt := uint64(GetTxByHashGasBase)
 
-	txHash, err := byteutils.FromHex(C.GoString(hash))
+	txHash, err := byteutils.FromHex(hash)
 	if err != nil {
-		return nil
+		return res, 0
 	}
 	txBytes, err := engine.ctx.state.GetTx(txHash)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"handler": uint64(uintptr(handler)),
-			"key":     C.GoString(hash),
+			"handler": handler,
+			"key":     hash,
 			"err":     err,
 		}).Debug("GetTxByHashFunc get tx failed.")
-		return nil
+		return res, 0
 	}
 	sTx, err := toSerializableTransactionFromBytes(txBytes)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"handler": uint64(uintptr(handler)),
-			"key":     C.GoString(hash),
+			"handler": handler,
+			"key":     hash,
 			"err":     err,
 		}).Debug("GetTxByHashFunc get tx failed.")
-		return nil
+		return res, 0
 	}
 	txJSON, err := json.Marshal(sTx)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"handler": uint64(uintptr(handler)),
-			"key":     C.GoString(hash),
+			"handler": handler,
+			"key":     hash,
 			"err":     err,
 		}).Debug("GetTxByHashFunc get tx failed.")
-		return nil
+		return res, 0
 	}
 
-	return C.CString(string(txJSON))
+	return string(txJSON), gasCnt
 }
 
 // GetAccountStateFunc returns account info by address
 //export GetAccountStateFunc
-func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size_t,
-	result **C.char, exceptionInfo **C.char) int {
-	*result = nil
-	*exceptionInfo = nil
+//return: execution result code, result string, exception info string, gascnt
+func GetAccountStateFunc(handler uint64, address string) (int, string, string, uint64) {
+
+	result := ""
+	exceptionInfo := ""
+	var gasCnt uint64 = 0
+
 	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if engine == nil || engine.ctx.block == nil {
 		logging.VLog().Error("Unexpected error: failed to get engine")
-		return C.NVM_UNEXPECTED_ERR
+		return NVM_UNEXPECTED_ERR, result, exceptionInfo, gasCnt
 	}
 
 	// calculate Gas.
-	*gasCnt = C.size_t(GetAccountStateGasBase)
+	gasCnt = uint64(GetAccountStateGasBase)
 
-	addr, err := core.AddressParse(C.GoString(address))
+	addr, err := core.AddressParse(address)
 	if err != nil {
-		*exceptionInfo = C.CString("Blockchain.getAccountState(), parse address failed")
-		return C.NVM_EXCEPTION_ERR
+		exceptionInfo = "Blockchain.getAccountState(), parse address failed"
+		return NVM_EXCEPTION_ERR, result, exceptionInfo, gasCnt
 	}
 
 	acc, err := engine.ctx.state.GetOrCreateUserAccount(addr.Bytes())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"handler": uint64(uintptr(handler)),
+			"handler": handler,
 			"address": addr,
 			"err":     err,
 		}).Error("Unexpected error: GetAccountStateFunc get account state failed")
-		return C.NVM_UNEXPECTED_ERR
+		return NVM_UNEXPECTED_ERR, result, exceptionInfo, gasCnt
 	}
 	state := toSerializableAccount(acc)
 	json, err := json.Marshal(state)
@@ -122,12 +126,13 @@ func GetAccountStateFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size
 			"json":  json,
 			"err":   err,
 		}).Error("Unexpected error: GetAccountStateFunc failed to mashal account state")
-		return C.NVM_UNEXPECTED_ERR
+		return NVM_UNEXPECTED_ERR, result, exceptionInfo, gasCnt
 	}
 
-	*result = C.CString(string(json))
-	return C.NVM_SUCCESS
+	result = string(json)
+	return NVM_SUCCESS, result, exceptionInfo, gasCnt
 }
+
 
 func recordTransferFailureEvent(errNo int, from string, to string, value string,
 	height uint64, wsState WorldState, txHash byteutils.Hash) {
@@ -200,8 +205,9 @@ func recordTransferFailureEvent(errNo int, from string, to string, value string,
 
 // TransferFunc transfer value to address
 //export TransferFunc
-func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_t) int {
-	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+func TransferFunc(handler uint64, to string, v string) (int, uint64) {
+
+	engine, _ := getEngineByStorageHandler(handler)
 	if engine == nil || engine.ctx == nil || engine.ctx.block == nil ||
 		engine.ctx.state == nil || engine.ctx.tx == nil {
 		logging.VLog().Fatal("Unexpected error: failed to get engine.")
@@ -221,48 +227,50 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 	}
 
 	// calculate Gas.
-	*gasCnt = C.size_t(TransferGasBase)
+	var gasCnt uint64 = 0
+	gasCnt = uint64(TransferGasBase)
 
-	addr, err := core.AddressParse(C.GoString(to))
+	addr, err := core.AddressParse(to)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"handler":   uint64(uintptr(handler)),
-			"toAddress": C.GoString(to),
+			"handler":   handler,
+			"toAddress": to,
 		}).Debug("TransferFunc parse address failed.")
 		recordTransferFailureEvent(TransferAddressParseErr, cAddr.String(), "", "", height, wsState, txHash)
-		return TransferAddressParseErr
+		return TransferAddressParseErr, gasCnt
 	}
 
 	toAcc, err := engine.ctx.state.GetOrCreateUserAccount(addr.Bytes())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"handler": uint64(uintptr(handler)),
+			"handler": handler,
 			"address": addr,
 			"err":     err,
 		}).Fatal("GetAccountStateFunc get account state failed.")
 	}
 
-	amount, err := util.NewUint128FromString(C.GoString(v))
+	amount, err := util.NewUint128FromString(v)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
-			"handler": uint64(uintptr(handler)),
+			"handler": handler,
 			"address": addr,
 			"err":     err,
 		}).Debug("GetAmountFunc get amount failed.")
 		recordTransferFailureEvent(TransferStringToBigIntErr, cAddr.String(), addr.String(), "", height, wsState, txHash)
-		return TransferStringToBigIntErr
+		return TransferStringToBigIntErr, gasCnt
 	}
+
 	// update balance
 	if amount.Cmp(util.NewUint128()) > 0 {
 		err = engine.ctx.contract.SubBalance(amount)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
-				"handler": uint64(uintptr(handler)),
-				"key":     C.GoString(to),
+				"handler": handler,
+				"key":     to,
 				"err":     err,
 			}).Debug("TransferFunc SubBalance failed.")
 			recordTransferFailureEvent(TransferSubBalance, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
-			return TransferSubBalance
+			return TransferSubBalance, gasCnt
 		}
 
 		err = toAcc.AddBalance(amount)
@@ -279,42 +287,46 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 	}
 
 	recordTransferFailureEvent(TransferFuncSuccess, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
-	return TransferFuncSuccess
+	return TransferFuncSuccess, gasCnt
 }
 
 // VerifyAddressFunc verify address is valid
 //export VerifyAddressFunc
-func VerifyAddressFunc(handler unsafe.Pointer, address *C.char, gasCnt *C.size_t) int {
+func VerifyAddressFunc(handler uint64, address string) (int, uint64) {
 	// calculate Gas.
-	*gasCnt = C.size_t(VerifyAddressGasBase)
+	gasCnt := uint64(VerifyAddressGasBase)
 
-	addr, err := core.AddressParse(C.GoString(address))
+	addr, err := core.AddressParse(address)
 	if err != nil {
-		return 0
+		return 0, gasCnt
 	}
-	return int(addr.Type())
+	return int(addr.Type()), gasCnt
 }
 
 // GetPreBlockHashFunc returns hash of the block before current tail by n
 //export GetPreBlockHashFunc
-func GetPreBlockHashFunc(handler unsafe.Pointer, offset C.ulonglong,
-	gasCnt *C.size_t, result **C.char, exceptionInfo **C.char) int {
-	*result = nil
-	*exceptionInfo = nil
+//params: handler, offset
+//return: execution result(int), result(string), exceptioninfo(string), gascnt(uint64)
+func GetPreBlockHashFunc(handler uint64, offset uint64) (int, string, string, uint64) {
+
+	var gasCnt uint64 = 0
+	result := ""
+	exceptionInfo := ""
 	n := uint64(offset)
 	if n > uint64(maxBlockOffset) { //31 days
-		*exceptionInfo = C.CString("Blockchain.GetPreBlockHash(), argument out of range")
-		return C.NVM_EXCEPTION_ERR
+		exceptionInfo = "Blockchain.GetPreBlockHash(), argument out of range"
+		return NVM_EXCEPTION_ERR, result, exceptionInfo, gasCnt
 	}
 
-	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	engine, _ := getEngineByStorageHandler(handler)
 	if engine == nil || engine.ctx == nil || engine.ctx.block == nil || engine.ctx.state == nil {
 		logging.VLog().Error("Unexpected error: failed to get engine.")
-		return C.NVM_UNEXPECTED_ERR
+		return NVM_UNEXPECTED_ERR, result, exceptionInfo, gasCnt
 	}
+
 	wsState := engine.ctx.state
 	// calculate Gas.
-	*gasCnt = C.size_t(GetPreBlockHashGasBase)
+	gasCnt = uint64(GetPreBlockHashGasBase)
 
 	//get height
 	height := engine.ctx.block.Height()
@@ -323,8 +335,8 @@ func GetPreBlockHashFunc(handler unsafe.Pointer, offset C.ulonglong,
 			"height": height,
 			"offset": n,
 		}).Debug("offset is large than height")
-		*exceptionInfo = C.CString("Blockchain.GetPreBlockHash(), argument[offset] is large than current height")
-		return C.NVM_EXCEPTION_ERR
+		exceptionInfo = "Blockchain.GetPreBlockHash(), argument[offset] is large than current height"
+		return NVM_EXCEPTION_ERR, result, exceptionInfo, gasCnt
 	}
 	height -= n
 
@@ -334,34 +346,38 @@ func GetPreBlockHashFunc(handler unsafe.Pointer, offset C.ulonglong,
 			"height": height,
 			"err":    err,
 		}).Error("Unexpected error: Failed to get block hash from wsState by height")
-		return C.NVM_UNEXPECTED_ERR
+		return NVM_UNEXPECTED_ERR, result, exceptionInfo, gasCnt
 	}
 
-	*result = C.CString(byteutils.Hex(blockHash))
-	return C.NVM_SUCCESS
+	result = byteutils.Hex(blockHash)
+	return NVM_SUCCESS, result, exceptionInfo, gasCnt
 }
 
 // GetPreBlockSeedFunc returns hash of the block before current tail by n
 //export GetPreBlockSeedFunc
-func GetPreBlockSeedFunc(handler unsafe.Pointer, offset C.ulonglong,
-	gasCnt *C.size_t, result **C.char, exceptionInfo **C.char) int {
-	*result = nil
-	*exceptionInfo = nil
+//params: handler(uint64), offset(uint64)
+//return: execution result(int), result(string), exceptionInfo(string), gasCnt(uint64)
+func GetPreBlockSeedFunc(handler uint64, offset uint64) (int, string, string, uint64) {
+
+	var gasCnt uint64 = 0
+	result := ""
+	exceptionInfo := ""
 
 	n := uint64(offset)
 	if n > uint64(maxBlockOffset) { //31 days
-		*exceptionInfo = C.CString("Blockchain.GetPreBlockSeed(), argument out of range")
-		return C.NVM_EXCEPTION_ERR
+		exceptionInfo = "Blockchain.GetPreBlockSeed(), argument out of range"
+		return NVM_EXCEPTION_ERR, result, exceptionInfo, gasCnt
 	}
 
-	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	engine, _ := getEngineByStorageHandler(handler)
 	if engine == nil || engine.ctx == nil || engine.ctx.block == nil || engine.ctx.state == nil {
 		logging.VLog().Error("Unexpected error: failed to get engine")
-		return C.NVM_UNEXPECTED_ERR
+		return NVM_UNEXPECTED_ERR, result, exceptionInfo, gasCnt
 	}
 	wsState := engine.ctx.state
+
 	// calculate Gas.
-	*gasCnt = C.size_t(GetPreBlockSeedGasBase)
+	gasCnt = uint64(GetPreBlockSeedGasBase)
 
 	//get height
 	height := engine.ctx.block.Height()
@@ -370,14 +386,14 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, offset C.ulonglong,
 			"height": height,
 			"offset": n,
 		}).Debug("offset is large than height")
-		*exceptionInfo = C.CString("Blockchain.GetPreBlockSeed(), argument[offset] is large than current height")
-		return C.NVM_EXCEPTION_ERR
+		exceptionInfo = "Blockchain.GetPreBlockSeed(), argument[offset] is large than current height"
+		return NVM_EXCEPTION_ERR, result, exceptionInfo, gasCnt
 	}
 
 	height -= n
 	if height < core.RandomAvailableHeight {
-		*exceptionInfo = C.CString("Blockchain.GetPreBlockSeed(), seed is not available at this height")
-		return C.NVM_EXCEPTION_ERR
+		exceptionInfo = "Blockchain.GetPreBlockSeed(), seed is not available at this height"
+		return NVM_EXCEPTION_ERR, result, exceptionInfo, gasCnt
 	}
 
 	blockHash, err := wsState.GetBlockHashByHeight(height)
@@ -387,7 +403,7 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, offset C.ulonglong,
 			"err":       err,
 			"blockHash": blockHash,
 		}).Error("Unexpected error: Failed to get block hash from wsState by height")
-		return C.NVM_UNEXPECTED_ERR
+		return NVM_UNEXPECTED_ERR, result, exceptionInfo, gasCnt
 	}
 
 	bytes, err := wsState.GetBlock(blockHash)
@@ -397,7 +413,7 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, offset C.ulonglong,
 			"err":       err,
 			"blockHash": blockHash,
 		}).Error("Unexpected error: Failed to get block from wsState by hash")
-		return C.NVM_UNEXPECTED_ERR
+		return NVM_UNEXPECTED_ERR, result, exceptionInfo, gasCnt
 	}
 
 	pbBlock := new(corepb.Block)
@@ -407,7 +423,7 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, offset C.ulonglong,
 			"height": height,
 			"err":    err,
 		}).Error("Unexpected error: Failed to unmarshal pbBlock")
-		return C.NVM_UNEXPECTED_ERR
+		return NVM_UNEXPECTED_ERR, result, exceptionInfo, gasCnt
 	}
 
 	if pbBlock.GetHeader() == nil || pbBlock.GetHeader().GetRandom() == nil ||
@@ -416,9 +432,9 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, offset C.ulonglong,
 			"pbBlock": pbBlock,
 			"height":  height,
 		}).Error("Unexpected error: No random found in block header")
-		return C.NVM_UNEXPECTED_ERR
+		return NVM_UNEXPECTED_ERR, result, exceptionInfo, gasCnt
 	}
 
-	*result = C.CString(byteutils.Hex(pbBlock.GetHeader().GetRandom().GetVrfSeed()))
-	return C.NVM_SUCCESS
+	result = byteutils.Hex(pbBlock.GetHeader().GetRandom().GetVrfSeed())
+	return NVM_SUCCESS, result, exceptionInfo, gasCnt
 }

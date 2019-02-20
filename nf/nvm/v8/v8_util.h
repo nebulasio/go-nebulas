@@ -21,7 +21,6 @@
 #include <unistd.h>
 #include "engine.h"
 #include "lib/blockchain.h"
-#include "lib/fake_blockchain.h"
 #include "lib/file.h"
 #include "lib/log_callback.h"
 #include "lib/logger.h"
@@ -30,6 +29,9 @@
 #include "pb/nvm.pb.h"
 #include "callback/memory_modules.h"
 #include "callback/memory_storage.h"
+#include "callback/blockchain_modules.h"
+#include "callback/event_trigger.h"
+#include "callback/crypto_modules.h"
 
 #include <thread>
 #include <vector>

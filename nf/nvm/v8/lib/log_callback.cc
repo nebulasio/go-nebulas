@@ -22,7 +22,7 @@
 
 #include <stdarg.h>
 
-static LogFunc LOG = NULL;
+static LoggerFunc LOG = NULL;
 static const char *LogLevelText[] = {"DEBUG", "WARN", "INFO", "ERROR"};
 
 const char *GetLogLevelText(int level) {
@@ -35,7 +35,7 @@ const char *GetLogLevelText(int level) {
   return LogLevelText[level - 1];
 };
 
-void InitializeLogger(LogFunc log) { LOG = log; }
+void InitializeLogger(LoggerFunc log) { LOG = log; }
 
 void NewNativeLogFunction(Isolate *isolate, Local<ObjectTemplate> globalTpl) {
   globalTpl->Set(String::NewFromUtf8(isolate, "_native_log"),

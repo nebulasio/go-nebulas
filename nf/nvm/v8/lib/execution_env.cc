@@ -23,7 +23,7 @@
 #include "logger.h"
 #include "global.h"
 #include "string.h"
-static AttachLibVersionDelegate alvDelegate = NULL;
+static AttachLibVersionDelegateFunc alvDelegate = NULL;
 
 int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
   char *verlib = NULL;
@@ -71,6 +71,6 @@ int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
   return 0;
 }
 
-void InitializeExecutionEnvDelegate(AttachLibVersionDelegate aDelegate) {
+void InitializeExecutionEnvDelegate(AttachLibVersionDelegateFunc aDelegate) {
   alvDelegate = aDelegate;
 }

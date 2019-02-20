@@ -78,11 +78,10 @@ void reformatModuleId(char *dst, const char *src) {
   strcpy(dst, ss.str().c_str());
 }
 
-char *RequireDelegateFunc(void *handler, const char *filepath,
+char *RequireDelegate(void *handler, const char *filepath,
                           size_t *lineOffset) {
   
   LogInfof(">>>>> RequireDelegateFunc: %s -> %s", "", filepath);
-
   std::cout<<"[ ----- CALLBACK ------ ] RequireDelegateFunc: "<<filepath<<std::endl;
 
   char id[128];
@@ -104,18 +103,18 @@ char *RequireDelegateFunc(void *handler, const char *filepath,
   return ret;
 }
 
-char *AttachLibVersionDelegateFunc(void *handler, const char *libname) {
+char *AttachLibVersionDelegate(void *handler, const char *libname) {
 
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(ATTACH_LIB_VERSION_DELEGATE_FUNC));
   res->add_func_params(std::string(libname));
 
-  const NVMCallbackResult *result = DataExchangeCallback(handler, res);
-  const std::string func_name = result->func_name();
+  const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
+  const std::string func_name = callback_res->func_name();
   if(func_name.compare(ATTACH_LIB_VERSION_DELEGATE_FUNC) != 0){
     return nullptr;
   }
-  std::string resString = result->res();
+  std::string resString = callback_res->result();
   char* path = (char*)calloc(resString.length(), sizeof(char));
   strcpy(path, resString.c_str());
 
@@ -156,5 +155,5 @@ char *GetModuleSource(void *handler, const char *filename) {
   }
 
   size_t size = 0;
-  return RequireDelegateFunc(handler, filepath, &size);
+  return RequireDelegate(handler, filepath, &size);
 }
