@@ -113,16 +113,9 @@ func (s *AdminService) SendTransaction(ctx context.Context, req *rpcpb.Transacti
 	}
 
 	if tx.Nonce() == 0 {
-		pool := neb.BlockChain().TransactionPool()
-		tailBlock := neb.BlockChain().TailBlock()
-		acc, err := tailBlock.GetAccount(tx.From().Bytes())
-		if err != nil {
-			return nil, err
-		}
-
 		s.zn.Lock()
 		defer s.zn.Unlock()
-		tx.SetNonce(acc.Nonce() + pool.GetPending(tx.From()) + 1)
+		s.AutoGenNonceForZeroNonceTransaction(tx)
 	}
 
 	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
@@ -180,6 +173,11 @@ func (s *AdminService) SignTransactionWithPassphrase(ctx context.Context, req *r
 		metricsSignTxFailed.Mark(1)
 		return nil, err
 	}
+	if tx.Nonce() == 0 {
+		s.zn.Lock()
+		defer s.zn.Unlock()
+		s.AutoGenNonceForZeroNonceTransaction(tx)
+	}
 	if err := neb.AccountManager().SignTransactionWithPassphrase(tx.From(), tx, []byte(req.Passphrase)); err != nil {
 		metricsSignTxFailed.Mark(1)
 		return nil, err
@@ -209,16 +207,9 @@ func (s *AdminService) SendTransactionWithPassphrase(ctx context.Context, req *r
 	}
 
 	if tx.Nonce() == 0 {
-		pool := neb.BlockChain().TransactionPool()
-		tailBlock := neb.BlockChain().TailBlock()
-		acc, err := tailBlock.GetAccount(tx.From().Bytes())
-		if err != nil {
-			return nil, err
-		}
-
 		s.zn.Lock()
 		defer s.zn.Unlock()
-		tx.SetNonce(acc.Nonce() + pool.GetPending(tx.From()) + 1)
+		s.AutoGenNonceForZeroNonceTransaction(tx)
 	}
 
 	if err := neb.AccountManager().SignTransactionWithPassphrase(tx.From(), tx, []byte(req.Passphrase)); err != nil {
@@ -283,4 +274,18 @@ func (s *AdminService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest
 	}
 
 	return resp, nil
+}
+
+func (s *AdminService) AutoGenNonceForZeroNonceTransaction(tx *core.Transaction) error {
+	neb := s.server.Neblet()
+	pool := neb.BlockChain().TransactionPool()
+	tailBlock := neb.BlockChain().TailBlock()
+
+	acc, err := tailBlock.GetAccount(tx.From().Bytes())
+	if err != nil {
+		return err
+	}
+
+	tx.SetNonce(acc.Nonce() + pool.GetPending(tx.From()) + 1)
+	return nil
 }
