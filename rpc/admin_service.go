@@ -294,7 +294,7 @@ func (s *AdminService) autoGenNonceForZeroNonceTransaction(tx *core.Transaction)
 		"tx.to":    tx.To().String(),
 		"value":    tx.Value(),
 		"gasPrice": tx.GasPrice(),
-		"gasLimit": tx.GasPrice(),
+		"gasLimit": tx.GasLimit(),
 		"nonce":    tx.Nonce(),
 	}).Debug("Set new nonce for tx")
 	return nil
