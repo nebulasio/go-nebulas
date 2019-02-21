@@ -27,6 +27,8 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
@@ -115,7 +117,7 @@ func (s *AdminService) SendTransaction(ctx context.Context, req *rpcpb.Transacti
 	if tx.Nonce() == 0 {
 		s.zn.Lock()
 		defer s.zn.Unlock()
-		s.AutoGenNonceForZeroNonceTransaction(tx)
+		s.autoGenNonceForZeroNonceTransaction(tx)
 	}
 
 	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
@@ -176,7 +178,7 @@ func (s *AdminService) SignTransactionWithPassphrase(ctx context.Context, req *r
 	if tx.Nonce() == 0 {
 		s.zn.Lock()
 		defer s.zn.Unlock()
-		s.AutoGenNonceForZeroNonceTransaction(tx)
+		s.autoGenNonceForZeroNonceTransaction(tx)
 	}
 	if err := neb.AccountManager().SignTransactionWithPassphrase(tx.From(), tx, []byte(req.Passphrase)); err != nil {
 		metricsSignTxFailed.Mark(1)
@@ -209,7 +211,7 @@ func (s *AdminService) SendTransactionWithPassphrase(ctx context.Context, req *r
 	if tx.Nonce() == 0 {
 		s.zn.Lock()
 		defer s.zn.Unlock()
-		s.AutoGenNonceForZeroNonceTransaction(tx)
+		s.autoGenNonceForZeroNonceTransaction(tx)
 	}
 
 	if err := neb.AccountManager().SignTransactionWithPassphrase(tx.From(), tx, []byte(req.Passphrase)); err != nil {
@@ -276,7 +278,7 @@ func (s *AdminService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest
 	return resp, nil
 }
 
-func (s *AdminService) AutoGenNonceForZeroNonceTransaction(tx *core.Transaction) error {
+func (s *AdminService) autoGenNonceForZeroNonceTransaction(tx *core.Transaction) error {
 	neb := s.server.Neblet()
 	pool := neb.BlockChain().TransactionPool()
 	tailBlock := neb.BlockChain().TailBlock()
@@ -287,5 +289,13 @@ func (s *AdminService) AutoGenNonceForZeroNonceTransaction(tx *core.Transaction)
 	}
 
 	tx.SetNonce(acc.Nonce() + pool.GetPending(tx.From()) + 1)
+	logging.VLog().WithFields(logrus.Fields{
+		"tx.from":  tx.From().String(),
+		"tx.to":    tx.To().String(),
+		"value":    tx.Value(),
+		"gasPrice": tx.GasPrice(),
+		"gasLimit": tx.GasPrice(),
+		"nonce":    tx.Nonce(),
+	}).Debug("Set new nonce for tx")
 	return nil
 }
