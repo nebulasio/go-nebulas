@@ -79,6 +79,8 @@ const (
 
 	// ExecutionTimeout max v8 execution timeout.
 	ExecutionTimeout                 = 15 * 1000 * 1000
+	OriginExecutionTimeout           = 5 * 1000 * 1000
+	CompatibleExecutionTimeout       = 20 * 1000 * 1000
 	TimeoutGasLimitCost              = 100000000
 	MaxLimitsOfExecutionInstructions = 10000000 // TODO: set max gasLimit with execution 5s *0.8
 )
@@ -212,6 +214,13 @@ func NewV8Engine(ctx *Context) *V8Engine {
 	// engine.v8engine.gcs = C.uintptr_t(engine.gcsHandler)
 	if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
 		engine.SetTimeOut(ExecutionTimeout)
+	} else {
+		timeoutMark := core.NvmExeTimeoutAtHeight(ctx.block.Height())
+		if timeoutMark {
+			engine.SetTimeOut(OriginExecutionTimeout)
+		} else {
+			engine.SetTimeOut(CompatibleExecutionTimeout)
+		}
 	}
 
 	if core.EnableInnerContractAtHeight(ctx.block.Height()) {

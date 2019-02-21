@@ -26,6 +26,8 @@ type CompatibilityLocal struct {
 
 	nvmGasLimitWithoutTimeoutHeight uint64
 
+	nvmExeTimeoutHeight []uint64
+
 	wsResetRecordDependencyHeight2 uint64
 
 	transferFromContractFailureEventRecordableHeight2 uint64
@@ -46,6 +48,7 @@ func NewCompatibilityLocal() Compatibility {
 		v8JSLibVersionControlHeight:                       2,
 		transferFromContractFailureEventRecordableHeight:  2,
 		newNvmExeTimeoutConsumeGasHeight:                  2,
+		nvmExeTimeoutHeight:                               []uint64{2},
 		wsResetRecordDependencyHeight2:                    2,
 		transferFromContractFailureEventRecordableHeight2: 2,
 
@@ -119,6 +122,11 @@ func (c *CompatibilityLocal) TransferFromContractFailureEventRecordableHeight2()
 // NewNvmExeTimeoutConsumeGasHeight ..
 func (c *CompatibilityLocal) NewNvmExeTimeoutConsumeGasHeight() uint64 {
 	return c.newNvmExeTimeoutConsumeGasHeight
+}
+
+// NvmExeTimeoutHeight ..
+func (c *CompatibilityLocal) NvmExeTimeoutHeight() []uint64 {
+	return c.nvmExeTimeoutHeight
 }
 
 // V8JSLibVersionHeightMap ..

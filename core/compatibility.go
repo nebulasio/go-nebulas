@@ -144,6 +144,7 @@ type Compatibility interface {
 	V8JSLibVersionControlHeight() uint64
 	TransferFromContractFailureEventRecordableHeight() uint64
 	NewNvmExeTimeoutConsumeGasHeight() uint64
+	NvmExeTimeoutHeight() []uint64
 	V8JSLibVersionHeightMap() *V8JSLibVersionHeightMap
 	NvmGasLimitWithoutTimeoutHeight() uint64
 	WsResetRecordDependencyHeight2() uint64 //reserve change log
@@ -180,6 +181,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		"TransferFromContractFailureHeight":         NebCompatibility.TransferFromContractFailureEventRecordableHeight(),
 		"TransferFromContractFailureHeight2":        NebCompatibility.TransferFromContractFailureEventRecordableHeight2(),
 		"NewNvmExeTimeoutConsumeGasHeight":          NebCompatibility.NewNvmExeTimeoutConsumeGasHeight(),
+		"NvmExeTimeoutHeight":                       NebCompatibility.NvmExeTimeoutHeight(),
 		"NbreAvailableHeight":                       NebCompatibility.NbreAvailableHeight(),
 	}).Info("Set compatibility options.")
 
@@ -411,6 +413,16 @@ func TransferFromContractFailureEventRecordableAtHeight2(blockHeight uint64) boo
 // NvmGasLimitWithoutTimeoutAtHeight ..
 func NvmGasLimitWithoutTimeoutAtHeight(blockHeight uint64) bool {
 	return blockHeight >= NebCompatibility.NvmGasLimitWithoutTimeoutHeight()
+}
+
+// NvmExeTimeoutAtHeight ..
+func NvmExeTimeoutAtHeight(blockHeight uint64) bool {
+	for _, height := range NebCompatibility.NvmExeTimeoutHeight() {
+		if blockHeight == height {
+			return true
+		}
+	}
+	return false
 }
 
 // GetNearestInstructionCounterVersionAtHeight ..

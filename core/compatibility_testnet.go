@@ -26,6 +26,8 @@ type CompatibilityTestNet struct {
 
 	newNvmExeTimeoutConsumeGasHeight uint64
 
+	nvmExeTimeoutHeight []uint64
+
 	v8JSLibVersionHeightMap *V8JSLibVersionHeightMap
 
 	nvmGasLimitWithoutTimeoutHeight uint64
@@ -46,6 +48,7 @@ func NewCompatibilityTestNet() Compatibility {
 		v8JSLibVersionControlHeight:                      424400,
 		transferFromContractFailureEventRecordableHeight: 424400,
 		newNvmExeTimeoutConsumeGasHeight:                 424400,
+		nvmExeTimeoutHeight:                              []uint64{309121, 309143, 424583, 424588, 424592, 456365, 456375, 456376, 456714, 456772, 816022, 816025, 816028, 816033, 816036},
 		v8JSLibVersionHeightMap: &V8JSLibVersionHeightMap{
 			Data: map[string]uint64{
 				"1.0.5": 424400, // v8JSLibVersionControlHeight
@@ -119,6 +122,11 @@ func (c *CompatibilityTestNet) TransferFromContractFailureEventRecordableHeight2
 // NewNvmExeTimeoutConsumeGasHeight ..
 func (c *CompatibilityTestNet) NewNvmExeTimeoutConsumeGasHeight() uint64 {
 	return c.newNvmExeTimeoutConsumeGasHeight
+}
+
+// NvmExeTimeoutHeight ..
+func (c *CompatibilityTestNet) NvmExeTimeoutHeight() []uint64 {
+	return c.nvmExeTimeoutHeight
 }
 
 // V8JSLibVersionHeightMap ..
