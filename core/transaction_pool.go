@@ -556,3 +556,16 @@ func (pool *TransactionPool) evictExpiredTransactions() {
 		}
 	}
 }
+
+// get pending tx count
+func (pool *TransactionPool) GetPending(addr *Address) uint64 {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	slot := addr.address.Hex()
+	bucket, ok := pool.buckets[slot]
+	if !ok {
+		return 0
+	}
+	return uint64(bucket.Len())
+}

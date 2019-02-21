@@ -19,6 +19,7 @@
 package rpc
 
 import (
+	"sync"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -26,12 +27,15 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
 // AdminService implements the RPC admin service interface.
 type AdminService struct {
 	server GRPCServer
+	zn     sync.Mutex //zero nonce send lock
 }
 
 // Accounts is the RPC API handler.
@@ -109,6 +113,13 @@ func (s *AdminService) SendTransaction(ctx context.Context, req *rpcpb.Transacti
 		metricsSendTxFailed.Mark(1)
 		return nil, err
 	}
+
+	if tx.Nonce() == 0 {
+		s.zn.Lock()
+		defer s.zn.Unlock()
+		s.autoGenNonceForZeroNonceTransaction(tx)
+	}
+
 	if err := neb.AccountManager().SignTransaction(tx.From(), tx); err != nil {
 		metricsSendTxFailed.Mark(1)
 		return nil, err
@@ -164,6 +175,11 @@ func (s *AdminService) SignTransactionWithPassphrase(ctx context.Context, req *r
 		metricsSignTxFailed.Mark(1)
 		return nil, err
 	}
+	if tx.Nonce() == 0 {
+		s.zn.Lock()
+		defer s.zn.Unlock()
+		s.autoGenNonceForZeroNonceTransaction(tx)
+	}
 	if err := neb.AccountManager().SignTransactionWithPassphrase(tx.From(), tx, []byte(req.Passphrase)); err != nil {
 		metricsSignTxFailed.Mark(1)
 		return nil, err
@@ -191,6 +207,13 @@ func (s *AdminService) SendTransactionWithPassphrase(ctx context.Context, req *r
 	if err != nil {
 		return nil, err
 	}
+
+	if tx.Nonce() == 0 {
+		s.zn.Lock()
+		defer s.zn.Unlock()
+		s.autoGenNonceForZeroNonceTransaction(tx)
+	}
+
 	if err := neb.AccountManager().SignTransactionWithPassphrase(tx.From(), tx, []byte(req.Passphrase)); err != nil {
 		return nil, err
 	}
@@ -253,4 +276,26 @@ func (s *AdminService) NodeInfo(ctx context.Context, req *rpcpb.NonParamsRequest
 	}
 
 	return resp, nil
+}
+
+func (s *AdminService) autoGenNonceForZeroNonceTransaction(tx *core.Transaction) error {
+	neb := s.server.Neblet()
+	pool := neb.BlockChain().TransactionPool()
+	tailBlock := neb.BlockChain().TailBlock()
+
+	acc, err := tailBlock.GetAccount(tx.From().Bytes())
+	if err != nil {
+		return err
+	}
+
+	tx.SetNonce(acc.Nonce() + pool.GetPending(tx.From()) + 1)
+	logging.VLog().WithFields(logrus.Fields{
+		"tx.from":  tx.From().String(),
+		"tx.to":    tx.To().String(),
+		"value":    tx.Value(),
+		"gasPrice": tx.GasPrice(),
+		"gasLimit": tx.GasPrice(),
+		"nonce":    tx.Nonce(),
+	}).Debug("Set new nonce for tx")
+	return nil
 }
