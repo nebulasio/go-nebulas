@@ -29,6 +29,7 @@ struct transaction_info_t {
   int32_t m_status;
   std::string m_from;
   std::string m_to;
+  std::string m_tx_type;
   wei_t m_tx_value;
   int64_t m_timestamp;
   wei_t m_gas_used;

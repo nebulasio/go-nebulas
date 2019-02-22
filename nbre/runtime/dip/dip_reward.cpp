@@ -47,6 +47,7 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
   auto it_acc_to_contract_txs =
       neb::fs::transaction_db::read_transactions_with_address_type(txs, 0x57,
                                                                    0x58);
+  ignore_account_transfer_contract(*it_acc_to_contract_txs, "binary");
   LOG(INFO) << "account to contract size " << it_acc_to_contract_txs->size();
   // dapp total votes
   auto it_acc_to_contract_votes =
@@ -315,6 +316,13 @@ floatxx_t dip_reward::participate_lambda(
           neb::math::min(beta * gamma_p * gamma_p / variance, floatxx_t(1)) /
           (alpha * gamma_s),
       floatxx_t(1));
+}
+
+void dip_reward::ignore_account_transfer_contract(
+    std::vector<neb::fs::transaction_info_t> &txs, const std::string &tx_type) {
+  for (auto it = txs.begin(); it != txs.end();) {
+    it = (it->m_tx_type == tx_type ? txs.erase(it) : it + 1);
+  }
 }
 } // namespace dip
 } // namespace rt

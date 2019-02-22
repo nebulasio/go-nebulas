@@ -59,6 +59,7 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
     info.m_tx_value = to_wei(neb::util::string_to_byte(tx.value()).to_hex());
     info.m_gas_price =
         to_wei(neb::util::string_to_byte(tx.gas_price()).to_hex());
+    info.m_tx_type = tx.data().type();
 
     // get topic chain.transactionResult
     std::string tx_hash_str = tx.hash();
