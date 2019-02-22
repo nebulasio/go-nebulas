@@ -24,6 +24,7 @@
 #include "common/util/json_parser.h"
 #include "common/util/version.h"
 #include "core/neb_ipc/server/ipc_configuration.h"
+#include "fs/fs_storage.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "fs/ir_manager/ir_manager_helper.h"
 #include "jit/jit_driver.h"
@@ -35,12 +36,9 @@
 namespace neb {
 namespace fs {
 
-ir_manager::ir_manager(const std::string &path, const std::string &bc_path) {
-  m_storage = std::make_unique<rocksdb_storage>();
-  m_storage->open_database(path, storage_open_for_readwrite);
-
-  m_blockchain =
-      std::make_unique<blockchain>(bc_path, storage_open_for_readonly);
+ir_manager::ir_manager() {
+  m_storage = fs_storage::instance().nbre_db_ptr();
+  m_blockchain = fs_storage::instance().neb_db_ptr();
 }
 
 ir_manager::~ir_manager() {
@@ -84,7 +82,7 @@ ir_manager::read_irs(const std::string &name, block_height_t height,
   }
 
   std::unordered_set<std::string> ir_set;
-  auto versions_ptr = ir_api::get_ir_versions(name, m_storage.get());
+  auto versions_ptr = ir_api::get_ir_versions(name, m_storage);
   for (auto version : *versions_ptr) {
     read_ir_depends(name, version, height, depends, ir_set, irs);
     if (!irs.empty()) {
@@ -159,12 +157,10 @@ void ir_manager::parse_irs_till_latest() {
 
 void ir_manager::parse_irs() {
 
-  block_height_t start_height =
-      ir_manager_helper::nbre_block_height(m_storage.get());
-  block_height_t end_height =
-      ir_manager_helper::lib_block_height(m_blockchain.get());
+  block_height_t start_height = ir_manager_helper::nbre_block_height(m_storage);
+  block_height_t end_height = ir_manager_helper::lib_block_height(m_blockchain);
 
-  ir_manager_helper::load_auth_table(m_storage.get(), m_auth_table);
+  ir_manager_helper::load_auth_table(m_storage, m_auth_table);
 
   std::string failed_flag =
       neb::configuration::instance().nbre_failed_flag_name();
@@ -173,17 +169,17 @@ void ir_manager::parse_irs() {
   for (block_height_t h = start_height + 1; h <= end_height; h++) {
     // LOG(INFO) << h;
 
-    if (!ir_manager_helper::has_failed_flag(m_storage.get(), failed_flag)) {
-      ir_manager_helper::set_failed_flag(m_storage.get(), failed_flag);
+    if (!ir_manager_helper::has_failed_flag(m_storage, failed_flag)) {
+      ir_manager_helper::set_failed_flag(m_storage, failed_flag);
       parse_irs_by_height(h);
     }
     m_storage->put(
         std::string(neb::configuration::instance().nbre_max_height_name(),
                     std::allocator<char>()),
         neb::util::number_to_byte<neb::util::bytes>(h));
-    ir_manager_helper::del_failed_flag(m_storage.get(), failed_flag);
+    ir_manager_helper::del_failed_flag(m_storage, failed_flag);
 
-    neb::rt::dip::dip_handler::instance().start(h, m_storage.get());
+    neb::rt::dip::dip_handler::instance().start(h, m_storage);
   }
 }
 
@@ -219,7 +215,7 @@ void ir_manager::parse_irs_by_height(block_height_t height) {
     // deploy auth table
     if (neb::configuration::instance().auth_module_name() == name &&
         neb::core::ipc_configuration::instance().admin_pub_addr() == from) {
-      ir_manager_helper::deploy_auth_table(m_storage.get(), *nbre_ir.get(),
+      ir_manager_helper::deploy_auth_table(m_storage, *nbre_ir.get(),
                                            m_auth_table, payload_bytes);
       continue;
     }
@@ -242,11 +238,11 @@ void ir_manager::parse_irs_by_height(block_height_t height) {
     }
 
     // update ir list and versions
-    ir_manager_helper::update_ir_list(name, m_storage.get());
-    ir_manager_helper::update_ir_versions(name, version, m_storage.get());
+    ir_manager_helper::update_ir_list(name, m_storage);
+    ir_manager_helper::update_ir_versions(name, version, m_storage);
 
     // deploy ir
-    ir_manager_helper::deploy_ir(name, version, payload_bytes, m_storage.get());
+    ir_manager_helper::deploy_ir(name, version, payload_bytes, m_storage);
 
     deploy_if_dip(name, version, ht);
   }

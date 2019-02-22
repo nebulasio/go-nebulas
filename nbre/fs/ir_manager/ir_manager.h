@@ -27,7 +27,7 @@ namespace fs {
 
 class ir_manager {
 public:
-  ir_manager(const std::string &path, const std::string &bc_path);
+  ir_manager();
   ~ir_manager();
   ir_manager(const ir_manager &im) = delete;
   ir_manager &operator=(const ir_manager &im) = delete;
@@ -52,8 +52,8 @@ private:
                      block_height_t available_height);
 
 private:
-  std::unique_ptr<rocksdb_storage> m_storage;
-  std::unique_ptr<blockchain> m_blockchain;
+  rocksdb_storage *m_storage;
+  blockchain *m_blockchain;
   std::map<auth_key_t, auth_val_t> m_auth_table;
 };
 } // namespace fs
