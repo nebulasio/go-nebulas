@@ -77,6 +77,10 @@ private:
 
   static void back_to_coinbase(std::vector<dip_info_t> &dip_infos,
                                floatxx_t reward_left);
+
+  static void ignore_account_transfer_contract(
+      std::vector<neb::fs::transaction_info_t> &txs,
+      const std::string &tx_type);
 };
 
 } // namespace dip

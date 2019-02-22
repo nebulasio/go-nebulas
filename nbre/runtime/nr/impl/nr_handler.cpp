@@ -42,8 +42,8 @@ void nr_handler::run_if_default(block_height_t start_block,
 
   ff::para<> p;
   p([this, start_block, end_block]() {
+    std::unique_lock<std::mutex> _l(m_sync_mutex);
     try {
-      std::unique_lock<std::mutex> _l(m_sync_mutex);
       jit_driver &jd = jit_driver::instance();
       auto nr_result = jd.run_ir<std::string>(
           "nr", start_block, neb::configuration::instance().nr_func_name(),
@@ -72,8 +72,8 @@ void nr_handler::run_if_specify(block_height_t start_block,
 
   ff::para<> p;
   p([this, &name_version, &irs, start_block, end_block]() {
+    std::unique_lock<std::mutex> _l(m_sync_mutex);
     try {
-      std::unique_lock<std::mutex> _l(m_sync_mutex);
 
       jit_driver &jd = jit_driver::instance();
       std::string nr_result = jd.run<std::string>(

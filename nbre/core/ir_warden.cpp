@@ -68,9 +68,7 @@ void ir_warden::on_timer() {
 }
 
 ir_warden::ir_warden() : m_is_sync_already(false) {
-  m_ir_manager = std::make_unique<fs::ir_manager>(
-      neb::core::ipc_configuration::instance().nbre_db_dir(),
-      neb::core::ipc_configuration::instance().neb_db_dir());
+  m_ir_manager = std::make_unique<fs::ir_manager>();
 }
 }
 } // namespace neb

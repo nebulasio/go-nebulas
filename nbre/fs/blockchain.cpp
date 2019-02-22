@@ -32,9 +32,7 @@ blockchain::blockchain(const std::string &path,
 }
 
 blockchain::~blockchain() {
-  if (m_storage) {
     m_storage->close_database();
-  }
 }
 
 std::unique_ptr<corepb::Block> blockchain::load_tail_block() {
@@ -63,9 +61,8 @@ blockchain::load_block_with_height(block_height_t height) {
 
 std::unique_ptr<corepb::Block>
 blockchain::load_block_with_tag_string(const std::string &tag) {
-  if (m_storage) {
-    m_storage->close_database();
-  }
+
+  m_storage->close_database();
   m_storage->open_database(m_path, m_open_flag);
 
   std::unique_ptr<corepb::Block> block = std::make_unique<corepb::Block>();

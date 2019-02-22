@@ -398,6 +398,7 @@ int ipc_server_endpoint::send_nbre_dip_reward_req(void *holder,
 
         req->set<ipc_pkg::height>(height);
         m_ipc_server->push_back(req);
+        LOG(INFO) << "ipc server send dip reward req, height " << height;
       },
       m_callbacks->m_nbre_dip_reward_callback);
 

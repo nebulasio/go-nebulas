@@ -29,7 +29,7 @@ TEST(test_fs, write_nbre_until_sync) {
   std::string db_write = get_db_path_for_write();
 
   std::shared_ptr<neb::fs::ir_manager> nbre_ptr =
-      std::make_shared<neb::fs::ir_manager>(db_write, db_read);
+      std::make_shared<neb::fs::ir_manager>();
 
   nbre_ptr->parse_irs_till_latest();
   nbre_ptr.reset();
@@ -86,7 +86,7 @@ TEST(test_fs, read_nbre_by_height_simple) {
   std::string db_write = get_db_path_for_write();
 
   std::shared_ptr<neb::fs::ir_manager> nbre_ptr =
-      std::make_shared<neb::fs::ir_manager>(db_write, db_read);
+      std::make_shared<neb::fs::ir_manager>();
 
   auto ret_ptr = nbre_ptr->read_irs("nr", 90001, true);
   auto ret = *ret_ptr;
@@ -119,7 +119,7 @@ TEST(test_fs, read_nbre_by_height) {
   std::string db_write = get_db_path_for_write();
 
   std::shared_ptr<neb::fs::ir_manager> nbre_ptr =
-      std::make_shared<neb::fs::ir_manager>(db_write, db_read);
+      std::make_shared<neb::fs::ir_manager>();
 
   auto ret_ptr = nbre_ptr->read_irs("dip", 90000, true);
   auto ret = *ret_ptr;
@@ -138,7 +138,7 @@ TEST(test_fs, read_nbre_by_name_version) {
   std::string db_write = get_db_path_for_write();
 
   std::shared_ptr<neb::fs::ir_manager> nbre_ptr =
-      std::make_shared<neb::fs::ir_manager>(db_write, db_read);
+      std::make_shared<neb::fs::ir_manager>();
 
   std::string name = "dip";
   uint64_t version = 1LL << 48;
@@ -156,5 +156,5 @@ TEST(test_fs, get_auth_table) {
   std::string db_write = get_db_path_for_write();
 
   std::shared_ptr<neb::fs::ir_manager> nbre_ptr =
-      std::make_shared<neb::fs::ir_manager>(db_write, db_read);
+      std::make_shared<neb::fs::ir_manager>();
 }

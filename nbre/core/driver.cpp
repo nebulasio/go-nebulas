@@ -21,6 +21,7 @@
 #include "common/configuration.h"
 #include "core/ir_warden.h"
 #include "core/neb_ipc/server/ipc_configuration.h"
+#include "fs/fs_storage.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_handler.h"
@@ -141,31 +142,22 @@ void driver_base::init_timer_thread() {
 
 void driver_base::init_nbre() {
 
-  std::string nbre_db_dir =
-      neb::core::ipc_configuration::instance().nbre_db_dir();
-  neb::fs::storage_open_flag open_flag = neb::fs::storage_open_for_readonly;
-  if (!boost::filesystem::exists(
-          boost::filesystem::path(nbre_db_dir + "/CURRENT"))) {
-    // open flag readwrite for initing rocksdb CURRNET file
-    open_flag = neb::fs::storage_open_for_readwrite;
-  }
-
-  std::unique_ptr<neb::fs::rocksdb_storage> rs =
-      std::make_unique<neb::fs::rocksdb_storage>();
-  rs->open_database(nbre_db_dir, open_flag);
-  neb::rt::dip::dip_handler::instance().read_dip_reward_from_storage(rs.get());
+  LOG(INFO) << "call func init_nbre";
+  auto rs = neb::fs::fs_storage::instance().nbre_db_ptr();
+  neb::rt::dip::dip_handler::instance().read_dip_reward_from_storage();
 
   try {
     auto nbre_max_height_bytes =
         rs->get(neb::configuration::instance().nbre_max_height_name());
     auto nbre_max_height =
         neb::util::byte_to_number<block_height_t>(nbre_max_height_bytes);
-    neb::rt::dip::dip_handler::instance().init_dip_params(nbre_max_height,
-                                                          rs.get());
+    LOG(INFO) << "nbre max height " << nbre_max_height;
+    neb::rt::dip::dip_handler::instance().init_dip_params(nbre_max_height);
+    LOG(INFO) << "init dip params done when init nbre";
   } catch (const std::exception &e) {
     LOG(INFO) << "nbre max height not init " << e.what();
   }
-  rs->close_database();
+  LOG(INFO) << "driver init nbre done";
 }
 
 } // end namespace internal
@@ -230,13 +222,8 @@ void driver::add_handlers() {
           return;
         }
 
-        std::unique_ptr<neb::fs::rocksdb_storage> rs =
-            std::make_unique<neb::fs::rocksdb_storage>();
-        rs->open_database(
-            neb::core::ipc_configuration::instance().nbre_db_dir(),
-            neb::fs::storage_open_for_readonly);
-        auto irs_ptr = neb::fs::ir_api::get_ir_list(rs.get());
-        rs->close_database();
+        auto rs = neb::fs::fs_storage::instance().nbre_db_ptr();
+        auto irs_ptr = neb::fs::ir_api::get_ir_list(rs);
         for (auto &ir : *irs_ptr) {
           neb::ipc::char_string_t ir_name(ir.c_str(),
                                           m_ipc_conn->default_allocator());
@@ -257,14 +244,9 @@ void driver::add_handlers() {
         auto ir_name = req->get<ipc_pkg::ir_name>();
         ack->set<neb::core::ipc_pkg::ir_name>(ir_name);
 
-        std::unique_ptr<neb::fs::rocksdb_storage> rs =
-            std::make_unique<neb::fs::rocksdb_storage>();
-        rs->open_database(
-            neb::core::ipc_configuration::instance().nbre_db_dir(),
-            neb::fs::storage_open_for_readonly);
+        auto rs = neb::fs::fs_storage::instance().nbre_db_ptr();
         auto ir_versions_ptr =
-            neb::fs::ir_api::get_ir_versions(ir_name.c_str(), rs.get());
-        rs->close_database();
+            neb::fs::ir_api::get_ir_versions(ir_name.c_str(), rs);
 
         for (auto &v : *ir_versions_ptr) {
           ack->get<neb::core::ipc_pkg::ir_versions>().push_back(v);
@@ -334,6 +316,7 @@ void driver::add_handlers() {
         }
 
         auto height = req->get<ipc_pkg::height>();
+        LOG(INFO) << "ipc client receive dip reward req, height " << height;
         neb::ipc::char_string_t cstr_dip_reward(
             neb::rt::dip::dip_handler::instance()
                 .get_dip_reward(height)
