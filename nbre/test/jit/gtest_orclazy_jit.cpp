@@ -20,7 +20,7 @@
 
 #include "common/common.h"
 #include "common/util/byte.h"
-#include "core/neb_ipc/server/ipc_configuration.h"
+#include "core/ipc_configuration.h"
 #include "fs/util.h"
 #include "jit/OrcLazyJIT.h"
 #include "jit/jit_driver.h"

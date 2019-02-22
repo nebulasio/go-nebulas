@@ -17,23 +17,30 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
+#pragma once
+#include "common/common.h"
+#include "common/quitable_thread.h"
+#include <chrono>
 
-#include "core/ipc_configuration.h"
-#include "fs/blockchain/transaction/transaction_db.h"
-#include <gtest/gtest.h>
+namespace neb {
+namespace core {
+class ipc_client_watcher : public neb::quitable_thread {
+public:
+  ipc_client_watcher(const std::string &path);
 
-TEST(test_fs, read_inter_transaction_from_db_with_duration) {
-  std::string neb_db_path =
-      neb::core::ipc_configuration::instance().neb_db_dir();
-  neb::fs::blockchain b(neb_db_path);
-  neb::fs::blockchain_api ba(&b);
-  neb::fs::transaction_db tdb(&ba);
+  virtual ~ipc_client_watcher();
 
-  auto txs = tdb.read_transactions_from_db_with_duration(204223, 204224);
-  for (auto &tx : *txs) {
-    LOG(INFO) << neb::util::string_to_byte(tx.m_from).to_base58();
-    LOG(INFO) << neb::util::string_to_byte(tx.m_to).to_base58();
-    LOG(INFO) << tx.m_tx_value;
-    LOG(INFO) << tx.m_timestamp;
-  }
-}
+  inline bool is_client_alive() { return m_b_client_alive; };
+
+protected:
+  virtual void thread_func();
+
+protected:
+  std::string m_path;
+  uint32_t m_restart_times;
+  std::chrono::system_clock::time_point m_last_start_time;
+  std::atomic_bool m_b_client_alive;
+
+}; // end class ipc_client_watcher
+} // namespace core
+} // namespace neb

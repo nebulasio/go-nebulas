@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "common/ir_conf_reader.h"
-#include "core/neb_ipc/server/ipc_configuration.h"
+#include "core/ipc_configuration.h"
 #include "fs/util.h"
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>

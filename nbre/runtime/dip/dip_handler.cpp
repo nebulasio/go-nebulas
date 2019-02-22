@@ -20,8 +20,8 @@
 
 #include "runtime/dip/dip_handler.h"
 #include "common/configuration.h"
+#include "core/ipc_configuration.h"
 #include "core/ir_warden.h"
-#include "core/neb_ipc/server/ipc_configuration.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "fs/proto/ir.pb.h"
 #include "jit/jit_driver.h"

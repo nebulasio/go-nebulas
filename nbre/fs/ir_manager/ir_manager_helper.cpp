@@ -19,7 +19,7 @@
 
 #include "fs/ir_manager/ir_manager_helper.h"
 #include "common/configuration.h"
-#include "core/neb_ipc//server/ipc_configuration.h"
+#include "core/ipc_configuration.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "jit/jit_driver.h"
 #include <boost/foreach.hpp>

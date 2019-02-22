@@ -19,7 +19,7 @@
 //
 
 #include "core/command.h"
-#include "core/neb_ipc/server/ipc_configuration.h"
+#include "core/ipc_configuration.h"
 #include "fs/blockchain.h"
 #include "fs/proto/block.pb.h"
 #include "fs/rocksdb_storage.h"

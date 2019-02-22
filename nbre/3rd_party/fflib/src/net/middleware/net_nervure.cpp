@@ -70,13 +70,13 @@ net_nervure::~net_nervure() {
   }
 }
 
-tcp_connection_base *net_nervure::add_tcp_client(const std::string &ip,
-                                                 uint16_t iTCPPort) {
+tcp_connection_base_ptr net_nervure::add_tcp_client(const std::string &ip,
+                                                    uint16_t iTCPPort) {
   tcp_endpoint ep(boost::asio::ip::address_v4::from_string(ip), iTCPPort);
   return add_tcp_client(ep);
 }
 
-tcp_connection_base *net_nervure::add_tcp_client(const tcp_endpoint &ep) {
+tcp_connection_base_ptr net_nervure::add_tcp_client(const tcp_endpoint &ep) {
   tcp_connection_base *p = NULL;
   switch (mi_mode) {
   case real_net:
@@ -88,16 +88,16 @@ tcp_connection_base *net_nervure::add_tcp_client(const tcp_endpoint &ep) {
   }
   tcp_connection_base_ptr pclient(p);
   m_oClients.push_back(pclient);
-  return pclient.get();
+  return pclient;
 }
 
-tcp_server *net_nervure::add_tcp_server(const std::string &ip,
-                                        uint16_t iTCPPort) {
+tcp_server_ptr net_nervure::add_tcp_server(const std::string &ip,
+                                           uint16_t iTCPPort) {
   tcp_endpoint ep(boost::asio::ip::address_v4::from_string(ip), iTCPPort);
   return add_tcp_server(ep);
 }
 
-tcp_server *net_nervure::add_tcp_server(const tcp_endpoint &ep) {
+tcp_server_ptr net_nervure::add_tcp_server(const tcp_endpoint &ep) {
   tcp_server *p = NULL;
   switch (mi_mode) {
   case real_net:
@@ -110,16 +110,16 @@ tcp_server *net_nervure::add_tcp_server(const tcp_endpoint &ep) {
   }
   tcp_server_ptr pserver(p);
   m_oServers.push_back(pserver);
-  return pserver.get();
+  return pserver;
 }
 
-udp_point *net_nervure::add_udp_point(const std::string &ip,
-                                      uint16_t iUDPPort) {
+udp_point_ptr net_nervure::add_udp_point(const std::string &ip,
+                                         uint16_t iUDPPort) {
   udp_endpoint ep(boost::asio::ip::address_v4::from_string(ip), iUDPPort);
   return add_udp_point(ep);
 }
 
-udp_point *net_nervure::add_udp_point(const udp_endpoint &ep) {
+udp_point_ptr net_nervure::add_udp_point(const udp_endpoint &ep) {
   udp_point *p = NULL;
   switch (mi_mode) {
   case real_net:
@@ -134,7 +134,7 @@ udp_point *net_nervure::add_udp_point(const udp_endpoint &ep) {
   }
   udp_point_ptr ppoint(p);
   m_oUDPPoints.push_back(ppoint);
-  return ppoint.get();
+  return ppoint;
 }
 
 void net_nervure::on_conn_recv_or_send_error(tcp_connection_base *pConn,

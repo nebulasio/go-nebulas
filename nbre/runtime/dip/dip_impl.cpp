@@ -21,7 +21,7 @@
 #include "runtime/dip/dip_impl.h"
 #include "common/common.h"
 #include "common/configuration.h"
-#include "core/neb_ipc/server/ipc_configuration.h"
+#include "core/ipc_configuration.h"
 #include "runtime/dip/dip_reward.h"
 #include "runtime/nr/impl/nebulas_rank.h"
 

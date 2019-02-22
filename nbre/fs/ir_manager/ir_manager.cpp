@@ -23,7 +23,7 @@
 #include "common/util/byte.h"
 #include "common/util/json_parser.h"
 #include "common/util/version.h"
-#include "core/neb_ipc/server/ipc_configuration.h"
+#include "core/ipc_configuration.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "fs/ir_manager/ir_manager_helper.h"
 #include "jit/jit_driver.h"

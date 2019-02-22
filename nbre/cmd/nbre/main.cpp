@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
+#if 0
 #include "common/common.h"
 #include "core/driver.h"
 #include "fs/util.h"
@@ -31,6 +32,29 @@ int main(int argc, char *argv[]) {
   neb::shm_configuration::instance().shm_name_identity() = argv[1];
 
   neb::core::driver d;
+  d.init();
+  d.run();
+  LOG(INFO) << "to quit nbre";
+
+  return 0;
+}
+#endif
+
+#include "common/common.h"
+#include "core/ipc_configuration.h"
+#include "core/net_ipc/client/client_driver.h"
+#include "fs/util.h"
+
+int main(int argc, char *argv[]) {
+  FLAGS_logtostderr = true;
+  neb::program_name = "nbre";
+
+  LOG(INFO) << "nbre started!";
+  assert(argc > 1);
+  neb::core::ipc_configuration::instance().port() = atoi(argv[1]);
+  // neb::shm_configuration::instance().shm_name_identity() = argv[1];
+
+  neb::core::client_driver d;
   d.init();
   d.run();
   LOG(INFO) << "to quit nbre";

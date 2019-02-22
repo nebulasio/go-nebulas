@@ -17,7 +17,8 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "core/neb_ipc/server/ipc_client_watcher.h"
+#include "core/net_ipc/server/ipc_client_watcher.h"
+#include "core/ipc_configuration.h"
 #include "fs/util.h"
 #include <boost/process/args.hpp>
 #include <boost/process/child.hpp>
@@ -48,14 +49,17 @@ void ipc_client_watcher::thread_func() {
       }
     }
 
-    LOG(INFO) << "to start nbre ";
+    LOG(INFO) << "to start nbre : " << m_path << ", "
+              << ipc_configuration::instance().port();
     m_last_start_time = now;
     boost::process::ipstream stream;
     std::vector<std::string> v(
-        {neb::shm_configuration::instance().shm_name_identity()});
+        {std::to_string(ipc_configuration::instance().port())});
 
-    boost::process::child client(m_path, boost::process::args(v),
-                                 boost::process::std_err > stream);
+    LOG(INFO) << "a0";
+    boost::process::child client(m_path, boost::process::args(v));
+    // boost::process::child client(m_path, boost::process::args(v),
+    // boost::process::std_err > stream);
     // boost::process::child client(m_path);
     if (client.valid()) {
       m_b_client_alive = true;
@@ -66,8 +70,8 @@ void ipc_client_watcher::thread_func() {
     while (stream && std::getline(stream, line) && !line.empty()) {
       std::cerr << line << std::endl;
     }
-    LOG(INFO) << "b";
 
+    LOG(INFO) << "b";
     std::error_code ec;
     client.wait(ec);
     LOG(INFO) << "c";

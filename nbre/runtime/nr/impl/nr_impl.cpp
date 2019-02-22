@@ -21,7 +21,7 @@
 #include "runtime/nr/impl/nr_impl.h"
 #include "common/common.h"
 #include "common/util/conversion.h"
-#include "core/neb_ipc/server/ipc_configuration.h"
+#include "core/ipc_configuration.h"
 #include "fs/blockchain/nebulas_currency.h"
 #include "runtime/nr/impl/nebulas_rank.h"
 

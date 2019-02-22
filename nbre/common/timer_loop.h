@@ -43,7 +43,7 @@ public:
         *m_service, boost::posix_time::seconds(seconds));
 
     timer->async_wait(
-        [this, timer, seconds, &f](const boost::system::error_code &ec) {
+        [this, timer, seconds, f](const boost::system::error_code &ec) {
           timer_callback(ec, seconds, timer, f);
         });
   }

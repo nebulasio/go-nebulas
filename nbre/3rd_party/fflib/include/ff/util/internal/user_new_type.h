@@ -57,26 +57,15 @@ template <> struct nt_extract_content_type_list<type_list<>> {
 
 #define define_nt_impl_2(_name, _dtype)                                        \
   struct _name {};                                                             \
-  namespace ff {                                                               \
-  namespace util {                                                             \
-  namespace internal {                                                         \
-  template <> struct nt_traits<_name> {                                        \
+  template <> struct ::ff::util::internal::nt_traits<_name> {                  \
     constexpr static const char *name = #_name;                                \
     typedef _dtype type;                                                       \
-  };                                                                           \
-  }                                                                            \
-  }                                                                            \
-  }
+  };
 
 #define define_nt_impl_3(_name, _dtype, _tname)                                \
   struct _name {};                                                             \
-  namespace ff {                                                               \
-  namespace util {                                                             \
-  namespace internal {                                                         \
-  template <> struct nt_traits<_name> {                                        \
+  template <> struct ::ff::util::nt_traits<_name> {                            \
     constexpr static const char *name = _tname;                                \
     typedef _dtype type;                                                       \
   };                                                                           \
-  }                                                                            \
-  }                                                                            \
-  }
+  \

@@ -67,17 +67,18 @@ public:
   //! This is thread safe!
   void stop();
 
-  tcp_server *add_tcp_server(const std::string &ip, uint16_t iTCPPort);
+  tcp_server_ptr add_tcp_server(const std::string &ip, uint16_t iTCPPort);
 
-  tcp_server *add_tcp_server(const tcp_endpoint &ep);
+  tcp_server_ptr add_tcp_server(const tcp_endpoint &ep);
 
-  udp_point *add_udp_point(const std::string &ip, uint16_t iUDPPort);
+  udp_point_ptr add_udp_point(const std::string &ip, uint16_t iUDPPort);
 
-  udp_point *add_udp_point(const udp_endpoint &ep);
+  udp_point_ptr add_udp_point(const udp_endpoint &ep);
 
-  tcp_connection_base *add_tcp_client(const std::string &ip, uint16_t iTCPPort);
+  tcp_connection_base_ptr add_tcp_client(const std::string &ip,
+                                         uint16_t iTCPPort);
 
-  tcp_connection_base *add_tcp_client(const tcp_endpoint &ep);
+  tcp_connection_base_ptr add_tcp_client(const tcp_endpoint &ep);
 
   inline io_service &ioservice() { return m_oIOService; }
 

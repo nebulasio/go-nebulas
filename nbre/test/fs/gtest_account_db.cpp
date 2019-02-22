@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "core/neb_ipc/server/ipc_configuration.h"
+#include "core/ipc_configuration.h"
 #include "fs/blockchain.h"
 #include "fs/blockchain/trie/trie.h"
 #include <gtest/gtest.h>

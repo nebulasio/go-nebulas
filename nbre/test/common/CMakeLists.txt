@@ -20,6 +20,6 @@ set_tests_properties(
   ENVIRONMENT "LD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/lib/lib"
   )
 
-add_subdirectory(ipc)
+#add_subdirectory(ipc)
 
 

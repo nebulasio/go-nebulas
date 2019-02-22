@@ -17,23 +17,6 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
-#include "core/ipc_configuration.h"
-#include "fs/blockchain/transaction/transaction_db.h"
-#include <gtest/gtest.h>
-
-TEST(test_fs, read_inter_transaction_from_db_with_duration) {
-  std::string neb_db_path =
-      neb::core::ipc_configuration::instance().neb_db_dir();
-  neb::fs::blockchain b(neb_db_path);
-  neb::fs::blockchain_api ba(&b);
-  neb::fs::transaction_db tdb(&ba);
-
-  auto txs = tdb.read_transactions_from_db_with_duration(204223, 204224);
-  for (auto &tx : *txs) {
-    LOG(INFO) << neb::util::string_to_byte(tx.m_from).to_base58();
-    LOG(INFO) << neb::util::string_to_byte(tx.m_to).to_base58();
-    LOG(INFO) << tx.m_tx_value;
-    LOG(INFO) << tx.m_timestamp;
-  }
-}
+#pragma once
+#include "core/net_ipc/ipc_interface.h"
+#include <ff/network.h>

@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "core/neb_ipc/server/ipc_configuration.h"
+#include "core/ipc_configuration.h"
 #include "fs/blockchain.h"
 #include "fs/blockchain/account/account_db.h"
 #include "fs/blockchain/blockchain_api.h"
