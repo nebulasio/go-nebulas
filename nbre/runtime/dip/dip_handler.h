@@ -28,27 +28,38 @@ namespace neb {
 namespace rt {
 namespace dip {
 
+struct dip_meta_t {
+  block_height_t m_start_block;
+  block_height_t m_block_interval;
+  version_t m_version;
+};
+
 class dip_handler : public util::singleton<dip_handler> {
 public:
   dip_handler();
 
-  void start(neb::block_height_t height, neb::fs::rocksdb_storage *rs);
+  void init_dip_params(block_height_t height);
+
+  void start(neb::block_height_t height, const dip_meta_t *dip_meta = nullptr);
   void deploy(version_t version, block_height_t available_height);
 
   std::string get_dip_reward(neb::block_height_t height);
 
-  void read_dip_reward_from_storage(neb::fs::rocksdb_storage *rs);
-  void write_dip_reward_to_storage(const std::string &dip_reward,
-                                   neb::fs::rocksdb_storage *rs);
-
-  void init_dip_params(block_height_t height, neb::fs::rocksdb_storage *rs);
+  void read_dip_reward_from_storage();
 
 private:
-  std::string get_dip_reward_when_missing(neb::block_height_t height);
+  std::string get_dip_reward_when_missing(neb::block_height_t height,
+                                          const dip_meta_t &dip_meta);
+
+  void write_dip_reward_to_storage(neb::block_height_t hash_height,
+                                   const std::string &dip_reward);
 
 private:
+  neb::fs::rocksdb_storage *m_storage;
   mutable std::mutex m_sync_mutex;
   std::map<neb::block_height_t, std::string> m_dip_reward;
+  // dip meta info history
+  std::vector<dip_meta_t> m_dip_history;
 
   bool m_has_curr;
   std::pair<version_t, block_height_t> m_curr;
