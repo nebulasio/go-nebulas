@@ -35,10 +35,6 @@ fs_storage::fs_storage() {
       storage_open_for_readonly);
 }
 
-fs_storage::~fs_storage() {
-  if (m_storage) {
-    m_storage->close_database();
-  }
-}
+fs_storage::~fs_storage() { m_storage->close_database(); }
 } // namespace fs
 } // namespace neb

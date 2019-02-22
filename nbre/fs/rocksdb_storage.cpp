@@ -31,11 +31,7 @@ namespace fs {
 
 rocksdb_storage::rocksdb_storage() : m_db(nullptr), m_enable_batch(false) {}
 
-rocksdb_storage::~rocksdb_storage() {
-  if (m_db) {
-    close_database();
-  }
-}
+rocksdb_storage::~rocksdb_storage() { close_database(); }
 
 void rocksdb_storage::open_database(const std::string &db_name,
                                     storage_open_flag flag) {

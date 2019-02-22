@@ -41,11 +41,7 @@ ir_manager::ir_manager() {
   m_blockchain = fs_storage::instance().neb_db_ptr();
 }
 
-ir_manager::~ir_manager() {
-  if (m_storage) {
-    m_storage->close_database();
-  }
-}
+ir_manager::~ir_manager() { m_storage->close_database(); }
 
 std::unique_ptr<nbre::NBREIR> ir_manager::read_ir(const std::string &name,
                                                   uint64_t version) {
@@ -179,7 +175,7 @@ void ir_manager::parse_irs() {
         neb::util::number_to_byte<neb::util::bytes>(h));
     ir_manager_helper::del_failed_flag(m_storage, failed_flag);
 
-    neb::rt::dip::dip_handler::instance().start(h, m_storage);
+    neb::rt::dip::dip_handler::instance().start(h);
   }
 }
 
