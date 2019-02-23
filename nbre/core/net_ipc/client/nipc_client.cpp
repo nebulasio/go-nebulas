@@ -51,6 +51,7 @@ bool nipc_client::start() {
           });
       nn.get_event_handler()->listen<::ff::net::event::tcp_get_connection>(
           [&, this](::ff::net::tcp_connection_base *) {
+            LOG(INFO) << "got connection";
             m_is_connected = true;
             local_mutex.lock();
             init_done = true;
@@ -58,7 +59,10 @@ bool nipc_client::start() {
             local_cond_var.notify_one();
           });
       nn.get_event_handler()->listen<::ff::net::event::tcp_lost_connection>(
-          [this](::ff::net::tcp_connection_base *) { m_is_connected = false; });
+          [this](::ff::net::tcp_connection_base *) {
+            LOG(INFO) << "lost connection";
+            m_is_connected = false;
+          });
       nn.add_pkg_hub(hub);
       m_conn =
           nn.add_tcp_client("127.0.0.1", ipc_configuration::instance().port());

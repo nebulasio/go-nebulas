@@ -160,11 +160,7 @@ template <typename PkgType, typename... Params> struct ipc_callback {
         [func, args...](enum ipc_status_code code, ff::net::package *pkg) {
           PkgType *ack = (PkgType *)pkg;
           if (code == ipc_status_succ) {
-            // auto f = std::bind(func, std::placeholders::_1, args...);
             callback_invoke<Params...>(func, ack, code);
-            // f(code, get_param_for_callback<Params>(ack)...);
-            // func(code, reinterpret_cast<void *>(ack->get<p_holder>()),
-            // ack->get<p_major>(), ack->get<p_minor>(), ack->get<p_patch>());
           } else {
             neb::core::issue_callback_with_error(func, code);
           }
@@ -180,27 +176,50 @@ void set_recv_nbre_version_callback(nbre_version_callback_t func) {
   ipc_callback<nbre_version_ack, p_holder, p_major, p_minor, p_patch>::bind(
       func, _2, _3, _4, _5);
 }
-int ipc_nbre_ir_list(void *holder) { return 0; }
+int ipc_nbre_ir_list(void *holder) {
+  return ipc_call<nbre_ir_list_req, p_holder>::bind(holder);
+}
 
-void set_recv_nbre_ir_list_callback(nbre_ir_list_callback_t func) {}
+void set_recv_nbre_ir_list_callback(nbre_ir_list_callback_t func) {
+  ipc_callback<nbre_ir_list_ack, p_holder, p_ir_name_list>::bind(func, _2, _3);
+}
 
-int ipc_nbre_ir_versions(void *holder, const char *ir_name) { return 0; }
-void set_recv_nbre_ir_versions_callback(nbre_ir_versions_callback_t func) {}
+// interface ipc_nbre_ir_versions
+int ipc_nbre_ir_versions(void *holder, const char *ir_name) {
+  return ipc_call<nbre_ir_versions_req, p_holder, p_ir_name>::bind(holder,
+                                                                   ir_name);
+}
+void set_recv_nbre_ir_versions_callback(nbre_ir_versions_callback_t func) {
+  ipc_callback<nbre_ir_versions_ack, p_holder, p_ir_versions>::bind(func, _2,
+                                                                    _3);
+}
 
 // interface get nr handler
 int ipc_nbre_nr_handler(void *holder, uint64_t start_block, uint64_t end_block,
                         uint64_t nr_version) {
-  return 0;
+  return ipc_call<nbre_nr_handler_req, p_holder, p_start_block, p_end_block,
+                  p_nr_version>::bind(holder, start_block, end_block,
+                                      nr_version);
 }
-void set_recv_nbre_nr_handler_callback(nbre_nr_handler_callback_t func) {}
+void set_recv_nbre_nr_handler_callback(nbre_nr_handler_callback_t func) {
+  ipc_callback<nbre_nr_handler_ack, p_holder, p_nr_handler>::bind(func, _2, _3);
+}
 
 // interface get nr result
-int ipc_nbre_nr_result(void *holder, const char *nr_handler) { return 0; }
-void set_recv_nbre_nr_result_callback(nbre_nr_result_callback_t func) {}
+int ipc_nbre_nr_result(void *holder, const char *nr_handler) {
+  return ipc_call<nbre_nr_result_req, p_holder, p_nr_handler>::bind(holder,
+                                                                    nr_handler);
+}
+void set_recv_nbre_nr_result_callback(nbre_nr_result_callback_t func) {
+  ipc_callback<nbre_nr_result_ack, p_holder, p_nr_result>::bind(func, _2, _3);
+}
 
 // interface get dip reward
 int ipc_nbre_dip_reward(void *holder, uint64_t height, uint64_t version) {
-  return 0;
+  return ipc_call<nbre_dip_reward_req, p_holder, p_height, p_version>::bind(
+      holder, height, version);
 }
-void set_recv_nbre_dip_reward_callback(nbre_dip_reward_callback_t func) {}
+void set_recv_nbre_dip_reward_callback(nbre_dip_reward_callback_t func) {
+  ipc_callback<nbre_dip_reward_ack, p_holder, p_dip_reward>::bind(func, _2, _3);
+}
 

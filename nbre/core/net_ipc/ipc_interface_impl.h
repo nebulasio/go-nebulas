@@ -37,9 +37,38 @@ define_ipc_pkg(nbre_init_req, p_holder)
 define_ipc_pkg(nbre_init_ack, p_nbre_root_dir, p_nbre_exe_name, p_neb_db_dir,
                p_nbre_log_dir, p_nbre_db_dir, p_admin_pub_addr,
                p_nbre_start_height)
-
 // define_ipc_api(server_send_pkg, client_send_pkg)
+//define_ipc_api(nbre_init_ack, nbre_init_req)
 define_ipc_api(nbre_version_req, nbre_version_ack)
-define_ipc_api(nbre_init_ack, nbre_init_req)
+
+define_ipc_param(std::string, p_ir_name_list)
+define_ipc_pkg(nbre_ir_list_req, p_holder)
+define_ipc_pkg(nbre_ir_list_ack, p_holder, p_ir_name_list)
+define_ipc_api(nbre_ir_list_req, nbre_ir_list_ack)
+
+define_ipc_param(std::string, p_ir_name)
+define_ipc_param(std::string, p_ir_versions)
+define_ipc_pkg(nbre_ir_versions_req, p_holder, p_ir_name)
+define_ipc_pkg(nbre_ir_versions_ack, p_holder, p_ir_versions)
+define_ipc_api(nbre_ir_versions_req, nbre_ir_versions_ack)
+
+define_ipc_param(uint64_t, p_start_block)
+define_ipc_param(uint64_t, p_end_block)
+define_ipc_param(uint64_t, p_nr_version)
+define_ipc_param(std::string, p_nr_handler)
+define_ipc_pkg(nbre_nr_handler_req, p_holder, p_start_block, p_end_block, p_nr_version)
+define_ipc_pkg(nbre_nr_handler_ack, p_holder, p_nr_handler)
+define_ipc_api(nbre_nr_handler_req, nbre_nr_result_ack)
+
+define_ipc_param(std::string, p_nr_result)
+define_ipc_pkg(nbre_nr_result_req, p_holder, p_nr_handler)
+define_ipc_pkg(nbre_nr_result_ack, p_holder, p_nr_result)
+define_ipc_api(nbre_nr_result_req, nbre_nr_result_ack)
+
+define_ipc_param(uint64_t, p_version)
+define_ipc_param(std::string, p_dip_reward)
+define_ipc_pkg(nbre_dip_reward_req, p_holder, p_height, p_version)
+define_ipc_pkg(nbre_dip_reward_ack, p_holder, p_dip_reward)
+define_ipc_api(nbre_dip_reward_req, nbre_dip_reward_ack)
 
     // clang-format on
