@@ -37,7 +37,7 @@ struct in_out_degree_t {
 class graph_algo {
 public:
   static void remove_cycles_based_on_time_sequence(
-      transaction_graph::internal_graph_t &graph);
+      transaction_graph::internal_graph_t &graph, block_height_t height);
 
   static void merge_edges_with_same_from_and_same_to(
       transaction_graph::internal_graph_t &graph);
@@ -62,6 +62,13 @@ public:
       -> std::unique_ptr<std::unordered_map<address_t, uint32_t>>;
 
 private:
+  static void opt_dfs_find_a_cycle_from_vertex_based_on_time_sequence(
+      const transaction_graph::vertex_descriptor_t &start_vertex,
+      const transaction_graph::vertex_descriptor_t &v,
+      const transaction_graph::internal_graph_t &graph, bool &has_cycle,
+      std::unordered_map<transaction_graph::vertex_descriptor_t, bool> &visited,
+      std::vector<transaction_graph::edge_descriptor_t> &edges,
+      std::vector<transaction_graph::edge_descriptor_t> &ret);
   static void dfs_find_a_cycle_from_vertex_based_on_time_sequence(
       const transaction_graph::vertex_descriptor_t &start_vertex,
       const transaction_graph::vertex_descriptor_t &v,
@@ -72,11 +79,11 @@ private:
 
   static auto find_a_cycle_from_vertex_based_on_time_sequence(
       const transaction_graph::vertex_descriptor_t &v,
-      const transaction_graph::internal_graph_t &graph)
+      const transaction_graph::internal_graph_t &graph, block_height_t height)
       -> std::vector<transaction_graph::edge_descriptor_t>;
 
   static auto find_a_cycle_based_on_time_sequence(
-      const transaction_graph::internal_graph_t &graph)
+      const transaction_graph::internal_graph_t &graph, block_height_t height)
       -> std::vector<transaction_graph::edge_descriptor_t>;
 
   static transaction_graph *merge_two_graphs(transaction_graph *tg,

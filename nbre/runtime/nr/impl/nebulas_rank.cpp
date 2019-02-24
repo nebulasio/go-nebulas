@@ -21,6 +21,7 @@
 #include "runtime/nr/impl/nebulas_rank.h"
 #include "common/util/conversion.h"
 #include "common/util/version.h"
+#include "common/util/compatibility.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -314,12 +315,22 @@ std::unique_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
     return std::make_unique<std::vector<nr_info_t>>();
   }
   LOG(INFO) << "we have " << tgs.size() << " subgraphs.";
-  for (auto it = tgs.begin(); it != tgs.end(); it++) {
-    neb::rt::transaction_graph *ptr = it->get();
-    neb::rt::graph_algo::remove_cycles_based_on_time_sequence(
-        ptr->internal_graph());
-    neb::rt::graph_algo::merge_edges_with_same_from_and_same_to(
-        ptr->internal_graph());
+  if (end_block < neb::compatibility::instance().decycle_height()) {
+    for (auto it = tgs.begin(); it != tgs.end(); it++) {
+      neb::rt::transaction_graph *ptr = it->get();
+      neb::rt::graph_algo::remove_cycles_based_on_time_sequence(
+          ptr->internal_graph(), end_block);
+      neb::rt::graph_algo::merge_edges_with_same_from_and_same_to(
+          ptr->internal_graph());
+    }
+  } else {
+    for (auto it = tgs.begin(); it != tgs.end(); it++) {
+      neb::rt::transaction_graph *ptr = it->get();
+      neb::rt::graph_algo::merge_edges_with_same_from_and_same_to(
+          ptr->internal_graph());
+      neb::rt::graph_algo::remove_cycles_based_on_time_sequence(
+          ptr->internal_graph(), end_block);
+    }
   }
   LOG(INFO) << "done with remove cycle.";
 

@@ -76,7 +76,7 @@ private:
                       boost::property_tree::ptree &root);
 
   static void back_to_coinbase(std::vector<dip_info_t> &dip_infos,
-                               floatxx_t reward_left);
+                               floatxx_t reward_left, block_height_t height);
 };
 
 } // namespace dip

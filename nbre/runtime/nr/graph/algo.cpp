@@ -19,9 +19,70 @@
 //
 
 #include "runtime/nr/graph/algo.h"
+#include "common/util/compatibility.h"
 
 namespace neb {
 namespace rt {
+
+void graph_algo::opt_dfs_find_a_cycle_from_vertex_based_on_time_sequence(
+    const transaction_graph::vertex_descriptor_t &s,
+    const transaction_graph::vertex_descriptor_t &v,
+    const transaction_graph::internal_graph_t &graph, bool &has_cycle,
+    std::unordered_map<transaction_graph::vertex_descriptor_t, bool> &visited,
+    std::vector<transaction_graph::edge_descriptor_t> &edges,
+    std::vector<transaction_graph::edge_descriptor_t> &ret) {
+
+  if (has_cycle) {
+    return;
+  }
+
+  transaction_graph::oeiterator_t oei, oei_end;
+  for (boost::tie(oei, oei_end) = boost::out_edges(v, graph); oei != oei_end;
+       oei++) {
+    auto target = boost::target(*oei, graph);
+
+    auto exit_cond = [&graph, &has_cycle, &edges,
+                      &ret](transaction_graph::oeiterator_t oei) {
+      edges.push_back(*oei);
+      has_cycle = true;
+
+      for (auto it = edges.begin(); it != edges.end(); it++) {
+        ret.push_back(*it);
+      }
+    };
+
+    if (target == s) {
+      exit_cond(oei);
+      return;
+    }
+
+    if (visited[target]) {
+      for (auto it = edges.begin(); it != edges.end();) {
+        it = edges.erase(it);
+        auto t = boost::target(*it, graph);
+        if (t == target) {
+          break;
+        }
+      }
+
+      exit_cond(oei);
+      return;
+    }
+
+    visited[target] = true;
+
+    edges.push_back(*oei);
+    opt_dfs_find_a_cycle_from_vertex_based_on_time_sequence(
+        s, target, graph, has_cycle, visited, edges, ret);
+    if (has_cycle) {
+      return;
+    }
+    edges.pop_back();
+
+    visited[target] = false;
+  }
+  return;
+}
 
 void graph_algo::dfs_find_a_cycle_from_vertex_based_on_time_sequence(
     const transaction_graph::vertex_descriptor_t &start_vertex,
@@ -109,22 +170,30 @@ void graph_algo::dfs_find_a_cycle_from_vertex_based_on_time_sequence(
 std::vector<transaction_graph::edge_descriptor_t>
 graph_algo::find_a_cycle_from_vertex_based_on_time_sequence(
     const transaction_graph::vertex_descriptor_t &v,
-    const transaction_graph::internal_graph_t &graph) {
+    const transaction_graph::internal_graph_t &graph, block_height_t height) {
 
   std::vector<transaction_graph::edge_descriptor_t> ret;
   std::vector<transaction_graph::edge_descriptor_t> edges;
-  std::set<transaction_graph::vertex_descriptor_t> visited;
   bool has_cycle = false;
 
-  visited.insert(v);
-  dfs_find_a_cycle_from_vertex_based_on_time_sequence(v, v, graph, visited,
-                                                      edges, has_cycle, ret);
+  if (height < neb::compatibility::instance().decycle_height()) {
+    std::set<transaction_graph::vertex_descriptor_t> visited;
+    visited.insert(v);
+    dfs_find_a_cycle_from_vertex_based_on_time_sequence(v, v, graph, visited,
+                                                        edges, has_cycle, ret);
+  } else {
+    std::unordered_map<transaction_graph::vertex_descriptor_t, bool> visited;
+    visited[v] = true;
+    opt_dfs_find_a_cycle_from_vertex_based_on_time_sequence(
+        v, v, graph, has_cycle, visited, edges, ret);
+  }
+
   return ret;
 }
 
 std::vector<transaction_graph::edge_descriptor_t>
 graph_algo::find_a_cycle_based_on_time_sequence(
-    const transaction_graph::internal_graph_t &graph) {
+    const transaction_graph::internal_graph_t &graph, block_height_t height) {
   std::vector<transaction_graph::vertex_descriptor_t> to_visit;
 
   transaction_graph::viterator_t vi, vi_end;
@@ -134,7 +203,7 @@ graph_algo::find_a_cycle_based_on_time_sequence(
   }
 
   for (auto it = to_visit.begin(); it != to_visit.end(); it++) {
-    auto ret = find_a_cycle_from_vertex_based_on_time_sequence(*it, graph);
+    auto ret = find_a_cycle_from_vertex_based_on_time_sequence(*it, graph, height);
     if (!ret.empty()) {
       return ret;
     }
@@ -143,10 +212,10 @@ graph_algo::find_a_cycle_based_on_time_sequence(
 }
 
 void graph_algo::remove_cycles_based_on_time_sequence(
-    transaction_graph::internal_graph_t &graph) {
+    transaction_graph::internal_graph_t &graph, block_height_t height) {
 
   std::vector<transaction_graph::edge_descriptor_t> ret =
-      find_a_cycle_based_on_time_sequence(graph);
+      find_a_cycle_based_on_time_sequence(graph, height);
   while (!ret.empty()) {
 
     wei_t min_w = -1;
@@ -163,7 +232,7 @@ void graph_algo::remove_cycles_based_on_time_sequence(
       }
     }
 
-    ret = find_a_cycle_based_on_time_sequence(graph);
+    ret = find_a_cycle_based_on_time_sequence(graph, height);
   }
 }
 
