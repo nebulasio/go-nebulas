@@ -24,9 +24,9 @@
 #include "common/util/json_parser.h"
 #include "common/util/version.h"
 #include "core/ipc_configuration.h"
-#include "fs/fs_storage.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "fs/ir_manager/ir_manager_helper.h"
+#include "fs/storage_holder.h"
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_handler.h"
 #include "runtime/version.h"
@@ -37,8 +37,8 @@ namespace neb {
 namespace fs {
 
 ir_manager::ir_manager() {
-  m_storage = fs_storage::instance().nbre_db_ptr();
-  m_blockchain = fs_storage::instance().neb_db_ptr();
+  m_storage = storage_holder::instance().nbre_db_ptr();
+  m_blockchain = storage_holder::instance().neb_db_ptr();
 }
 
 ir_manager::~ir_manager() { m_storage->close_database(); }

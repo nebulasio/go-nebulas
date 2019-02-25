@@ -22,9 +22,9 @@
 #include "common/configuration.h"
 #include "core/ipc_configuration.h"
 #include "core/ir_warden.h"
-#include "fs/fs_storage.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "fs/proto/ir.pb.h"
+#include "fs/storage_holder.h"
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_reward.h"
 #include <boost/foreach.hpp>
@@ -37,7 +37,7 @@ namespace rt {
 namespace dip {
 
 dip_handler::dip_handler() : m_has_curr(false) {
-  m_storage = neb::fs::fs_storage::instance().nbre_db_ptr();
+  m_storage = neb::fs::storage_holder::instance().nbre_db_ptr();
 }
 
 void dip_handler::init_dip_params(block_height_t height) {

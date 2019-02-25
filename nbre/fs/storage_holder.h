@@ -18,23 +18,25 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "fs/fs_storage.h"
-#include "core/neb_ipc/server/ipc_configuration.h"
+#pragma once
+
+#include "common/util/singleton.h"
+#include "fs/blockchain.h"
+#include "fs/rocksdb_storage.h"
 
 namespace neb {
 namespace fs {
+class storage_holder : public util::singleton<storage_holder> {
+public:
+  storage_holder();
+  ~storage_holder();
 
-fs_storage::fs_storage() {
-  m_storage = std::make_unique<rocksdb_storage>();
-  m_storage->open_database(
-      neb::core::ipc_configuration::instance().nbre_db_dir(),
-      storage_open_for_readwrite);
+  inline rocksdb_storage *nbre_db_ptr() { return m_storage.get(); }
+  inline blockchain *neb_db_ptr() { return m_blockchain.get(); }
 
-  m_blockchain = std::make_unique<blockchain>(
-      neb::core::ipc_configuration::instance().neb_db_dir(),
-      storage_open_for_readonly);
-}
-
-fs_storage::~fs_storage() { m_storage->close_database(); }
+private:
+  std::unique_ptr<rocksdb_storage> m_storage;
+  std::unique_ptr<blockchain> m_blockchain;
+};
 } // namespace fs
 } // namespace neb
