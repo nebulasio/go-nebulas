@@ -22,8 +22,8 @@
 #include "common/common.h"
 #include "common/configuration.h"
 #include "common/util/conversion.h"
-#include "fs/blockchain/nebulas_currency.h"
 #include "runtime/nr/impl/nebulas_rank.h"
+#include "util/nebulas_currency.h"
 
 namespace neb {
 namespace rt {

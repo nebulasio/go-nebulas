@@ -118,11 +118,12 @@ file(GLOB_RECURSE nbre_common_src common/*.cpp)
 file(GLOB_RECURSE nbre_fs_src fs/*.cpp)
 file(GLOB_RECURSE nbre_fs_proto_src fs/proto/*.pb.cc)
 file(GLOB_RECURSE nbre_core_src core/*.cpp)
+file(GLOB_RECURSE nbre_util_src util/*.cpp)
 
 list(FILTER nbre_core_src EXCLUDE REGEX "core/driver.cpp")
 list(FILTER nbre_core_src EXCLUDE REGEX "core/neb_ipc*")
 
-add_library(nbre_rt SHARED ${nbre_jit_src} ${nbre_rt_src} ${nbre_common_src} ${nbre_fs_src} ${nbre_fs_proto_src} ${nbre_core_src})
+add_library(nbre_rt SHARED ${nbre_jit_src} ${nbre_rt_src} ${nbre_common_src} ${nbre_fs_src} ${nbre_fs_proto_src} ${nbre_core_src} ${nbre_util_src})
 if(UNIX AND NOT APPLE)
   target_link_libraries(nbre_rt ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.so ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} ${extra_libs} ff_functionflow ff_net softfloat c++)
 elseif(UNIX)
@@ -134,6 +135,28 @@ else()
 add_subdirectory(test)
 endif()
 #add_subdirectory(benchmark)
+
+
+file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_common common/*.h common/*.hpp)
+file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_core core/*.h core/*.hpp)
+file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_rt rt/*.h rt/*.hpp)
+file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_fs fs/*.h fs/*.hpp)
+file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_util util/*.h util/*.hpp)
+
+set(DEPLOY_FILES_AND_DIRS ${DEPLOY_FILES_AND_DIRS_common} ${DEPLOY_FILES_AND_DIRS_core} ${DEPLOY_FILES_AND_DIRS_rt} ${DEPLOY_FILES_AND_DIRS_fs} ${DEPLOY_FILES_AND_DIRS_util})
+
+MACRO(INSTALL_HEADERS_WITH_DIRECTORY HEADER_LIST)
+
+  FOREACH(HEADER ${${HEADER_LIST}})
+    #STRING(REGEX MATCH "(.\\\*)\\\[/\\\]" DIR ${HEADER})
+    STRING(REPLACE "${PROJECT_SOURCE_DIR}/" "" RPATH ${HEADER})
+    STRING(REGEX MATCH "(.*)/"  DIR ${RPATH})
+    INSTALL(FILES ${HEADER} DESTINATION ${PROJECT_SOURCE_DIR}/lib/include/${DIR})
+  ENDFOREACH(HEADER)
+
+ENDMACRO(INSTALL_HEADERS_WITH_DIRECTORY)
+
+INSTALL_HEADERS_WITH_DIRECTORY(DEPLOY_FILES_AND_DIRS)
 
 if(EXISTS "${PROJECT_SOURCE_DIR}/cmd/CMakeLists.txt")
   add_subdirectory(cmd)

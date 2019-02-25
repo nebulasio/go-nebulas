@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2018 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -17,26 +17,32 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
 #pragma once
-
-#include "common/util/singleton.h"
-#include "fs/blockchain.h"
-#include "fs/rocksdb_storage.h"
+#include "common/common.h"
+#include "common/configuration.h"
+#include "common/util/byte.h"
+#include "util/command.h"
 
 namespace neb {
-namespace fs {
-class fs_storage : public util::singleton<fs_storage> {
+namespace cpp {
+class cpp_ir {
 public:
-  fs_storage();
-  ~fs_storage();
+  cpp_ir(const std::string &cpp_content);
 
-  inline rocksdb_storage *nbre_db_ptr() { return m_storage.get(); }
-  inline blockchain *neb_db_ptr() { return m_blockchain.get(); }
+  neb::util::bytes llvm_ir_content();
 
-private:
-  std::unique_ptr<rocksdb_storage> m_storage;
-  std::unique_ptr<blockchain> m_blockchain;
+protected:
+  int make_ir_bitcode(const std::string &cpp_file,
+                      const std::string &ir_bc_file);
+
+  std::string generate_fp();
+
+protected:
+  std::string m_cpp_content;
+  std::string m_cpp_fp;
+  std::string m_llvm_ir_fp;
+  bool m_b_got_error;
+  static std::atomic_int s_file_counter;
 };
-} // namespace fs
+} // namespace cpp
 } // namespace neb

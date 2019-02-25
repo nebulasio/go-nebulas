@@ -188,6 +188,7 @@ void make_ir_payload(std::ifstream &ifs,
     d->set_version(reader.depends()[i].version().data());
   }
   ir_info.set_ir(neb::util::byte_to_string(buf));
+  ir_info.set_ir_type("llvm");
 
   auto bytes_long = ir_info.ByteSizeLong();
   if (bytes_long > 128 * 1024) {

@@ -1,4 +1,4 @@
-// Copyright (C) 2018 go-nebulas authors
+// Copyright (C) 2017 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -18,24 +18,21 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "fs/blockchain/nebulas_currency.h"
+#include "fs/storage_holder.h"
+#include "common/configuration.h"
 
-neb::fs::nas operator"" _nas(long double v) { return neb::fs::nas(v); }
-neb::fs::nas operator"" _nas(const char *s) {
-  return neb::fs::nas(std::atoi(s));
+namespace neb {
+namespace fs {
+
+storage_holder::storage_holder() {
+  m_storage = std::make_unique<rocksdb_storage>();
+  m_storage->open_database(neb::configuration::instance().nbre_db_dir(),
+                           storage_open_for_readwrite);
+
+  m_blockchain = std::make_unique<blockchain>(
+      neb::configuration::instance().neb_db_dir(), storage_open_for_readonly);
 }
 
-neb::fs::wei operator"" _wei(long double v) { return neb::fs::wei(v); }
-neb::fs::wei operator"" _wei(const char *s) {
-  return neb::fs::wei(std::atoi(s));
-}
-
-std::ostream &operator<<(std::ostream &os, const neb::fs::nas &obj) {
-  os << obj.value() << "nas";
-  return os;
-}
-
-std::ostream &operator<<(std::ostream &os, const neb::fs::wei &obj) {
-  os << obj.value() << "wei";
-  return os;
-}
+storage_holder::~storage_holder() { m_storage->close_database(); }
+} // namespace fs
+} // namespace neb
