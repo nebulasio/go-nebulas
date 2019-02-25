@@ -19,7 +19,6 @@
 
 #include "fs/ir_manager/ir_manager_helper.h"
 #include "common/configuration.h"
-#include "core/ipc_configuration.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "jit/jit_driver.h"
 #include <boost/foreach.hpp>
@@ -58,7 +57,7 @@ block_height_t ir_manager_helper::nbre_block_height(rocksdb_storage *rs) {
                     std::allocator<char>())));
   } catch (std::exception &e) {
     LOG(INFO) << "to init nbre max height " << e.what();
-    start_height = neb::core::ipc_configuration::instance().nbre_start_height();
+    start_height = neb::configuration::instance().nbre_start_height();
     rs->put(std::string(neb::configuration::instance().nbre_max_height_name(),
                         std::allocator<char>()),
             neb::util::number_to_byte<neb::util::bytes>(start_height));

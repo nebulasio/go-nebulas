@@ -77,10 +77,58 @@ public:
   const std::string &coinbase_addr() const { return m_coinbase_addr; }
   std::string &coinbase_addr() { return m_coinbase_addr; }
 
+  // nbre root directory
+  inline const std::string &nbre_root_dir() const { return m_nbre_root_dir; }
+  inline std::string &nbre_root_dir() { return m_nbre_root_dir; }
+
+  // nbre execute path
+  inline const std::string &nbre_exe_name() const { return m_nbre_exe_name; }
+  inline std::string &nbre_exe_name() { return m_nbre_exe_name; }
+
+  // nebulas blockchain database directory
+  inline const std::string &neb_db_dir() const { return m_neb_db_dir; }
+  inline std::string &neb_db_dir() { return m_neb_db_dir; }
+
+  // nbre database directory
+  inline const std::string &nbre_db_dir() const { return m_nbre_db_dir; }
+  inline std::string &nbre_db_dir() { return m_nbre_db_dir; }
+
+  // nbre log directory
+  inline const std::string &nbre_log_dir() const { return m_nbre_log_dir; }
+  inline std::string &nbre_log_dir() { return m_nbre_log_dir; }
+
+  // nbre storage auth table admin address
+  inline const std::string &admin_pub_addr() const { return m_admin_pub_addr; }
+  inline std::string &admin_pub_addr() { return m_admin_pub_addr; }
+
+  // nbre start height
+  inline const uint64_t &nbre_start_height() const {
+    return m_nbre_start_height;
+  }
+  inline uint64_t &nbre_start_height() { return m_nbre_start_height; }
+
+  // nbre net ipc listen
+  inline const std::string &nipc_listen() const { return m_nipc_listen; }
+  inline std::string &nipc_listen() { return m_nipc_listen; }
+
+  // nbre net ipc port
+  inline const uint16_t &nipc_port() const { return m_nipc_port; }
+  inline uint16_t &nipc_port() { return m_nipc_port; }
+
 protected:
   block_height_t m_dip_start_block;
   block_height_t m_dip_block_interval;
   std::string m_dip_reward_addr;
   std::string m_coinbase_addr;
+
+  std::string m_nbre_root_dir;
+  std::string m_nbre_exe_name;
+  std::string m_neb_db_dir;
+  std::string m_nbre_db_dir;
+  std::string m_nbre_log_dir;
+  std::string m_admin_pub_addr;
+  uint64_t m_nbre_start_height;
+  std::string m_nipc_listen;
+  uint16_t m_nipc_port;
 };
 } // end namespace neb

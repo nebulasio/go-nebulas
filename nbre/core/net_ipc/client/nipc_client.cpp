@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "core/net_ipc/client/nipc_client.h"
-#include "core/ipc_configuration.h"
+#include "common/configuration.h"
 #include "core/net_ipc/nipc_pkg.h"
 
 namespace neb {
@@ -64,8 +64,8 @@ bool nipc_client::start() {
             m_is_connected = false;
           });
       nn.add_pkg_hub(hub);
-      m_conn = nn.add_tcp_client(ipc_configuration::instance().nipc_listen(),
-                                 ipc_configuration::instance().nipc_port());
+      m_conn = nn.add_tcp_client(configuration::instance().nipc_listen(),
+                                 configuration::instance().nipc_port());
       nn.run();
 
     } catch (const std::exception &e) {

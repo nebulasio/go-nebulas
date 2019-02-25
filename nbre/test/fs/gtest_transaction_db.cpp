@@ -18,13 +18,12 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "core/ipc_configuration.h"
+#include "common/configuration.h"
 #include "fs/blockchain/transaction/transaction_db.h"
 #include <gtest/gtest.h>
 
 TEST(test_fs, read_inter_transaction_from_db_with_duration) {
-  std::string neb_db_path =
-      neb::core::ipc_configuration::instance().neb_db_dir();
+  std::string neb_db_path = neb::configuration::instance().neb_db_dir();
   neb::fs::blockchain b(neb_db_path);
   neb::fs::blockchain_api ba(&b);
   neb::fs::transaction_db tdb(&ba);

@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
 #endif
 
 #include "common/common.h"
-#include "core/ipc_configuration.h"
+#include "common/configuration.h"
 #include "core/net_ipc/client/client_driver.h"
 #include "fs/util.h"
 
@@ -52,8 +52,8 @@ int main(int argc, char *argv[]) {
   LOG(INFO) << "nbre started!";
   assert(argc > 2);
   LOG(INFO) << "pass args " << argv[1] << ',' << argv[2];
-  neb::core::ipc_configuration::instance().nipc_listen() = argv[1];
-  neb::core::ipc_configuration::instance().nipc_port() = std::stoi(argv[2]);
+  neb::configuration::instance().nipc_listen() = argv[1];
+  neb::configuration::instance().nipc_port() = std::stoi(argv[2]);
 
   neb::core::client_driver d;
   d.init();

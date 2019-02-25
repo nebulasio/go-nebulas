@@ -21,7 +21,6 @@
 #include "runtime/dip/dip_reward.h"
 #include "common/configuration.h"
 #include "common/util/conversion.h"
-#include "core/ipc_configuration.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>

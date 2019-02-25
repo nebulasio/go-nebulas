@@ -23,7 +23,6 @@
 #include "common/util/byte.h"
 #include "common/util/json_parser.h"
 #include "common/util/version.h"
-#include "core/ipc_configuration.h"
 #include "fs/fs_storage.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "fs/ir_manager/ir_manager_helper.h"
@@ -210,7 +209,7 @@ void ir_manager::parse_irs_by_height(block_height_t height) {
 
     // deploy auth table
     if (neb::configuration::instance().auth_module_name() == name &&
-        neb::core::ipc_configuration::instance().admin_pub_addr() == from) {
+        neb::configuration::instance().admin_pub_addr() == from) {
       ir_manager_helper::deploy_auth_table(m_storage, *nbre_ir.get(),
                                            m_auth_table, payload_bytes);
       continue;

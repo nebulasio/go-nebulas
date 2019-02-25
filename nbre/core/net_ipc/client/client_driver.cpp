@@ -19,7 +19,6 @@
 //
 #include "core/net_ipc/client/client_driver.h"
 #include "common/configuration.h"
-#include "core/ipc_configuration.h"
 #include "core/ir_warden.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "jit/jit_driver.h"
@@ -145,8 +144,7 @@ void client_driver_base::init_timer_thread() {
 
 void client_driver_base::init_nbre() {
 
-  std::string nbre_db_dir =
-      neb::core::ipc_configuration::instance().nbre_db_dir();
+  std::string nbre_db_dir = neb::configuration::instance().nbre_db_dir();
   neb::fs::storage_open_flag open_flag = neb::fs::storage_open_for_readonly;
   if (!boost::filesystem::exists(
           boost::filesystem::path(nbre_db_dir + "/CURRENT"))) {
@@ -194,29 +192,28 @@ void client_driver::add_handlers() {
                                            std::shared_ptr<nbre_init_ack> ack) {
     LOG(INFO) << "get init ack";
     try {
-      ipc_configuration::instance().nbre_root_dir() =
+      configuration::instance().nbre_root_dir() =
           ack->get<p_nbre_root_dir>().c_str();
-      ipc_configuration::instance().nbre_exe_name() =
+      configuration::instance().nbre_exe_name() =
           ack->get<p_nbre_exe_name>().c_str();
-      ipc_configuration::instance().neb_db_dir() =
-          ack->get<p_neb_db_dir>().c_str();
-      ipc_configuration::instance().nbre_db_dir() =
+      configuration::instance().neb_db_dir() = ack->get<p_neb_db_dir>().c_str();
+      configuration::instance().nbre_db_dir() =
           ack->get<p_nbre_db_dir>().c_str();
-      ipc_configuration::instance().nbre_log_dir() =
+      configuration::instance().nbre_log_dir() =
           ack->get<p_nbre_log_dir>().c_str();
-      ipc_configuration::instance().nbre_start_height() =
+      configuration::instance().nbre_start_height() =
           ack->get<p_nbre_start_height>();
 
       std::string addr_base58 = ack->get<p_admin_pub_addr>().c_str();
       neb::util::bytes addr_bytes = neb::util::bytes::from_base58(addr_base58);
-      ipc_configuration::instance().admin_pub_addr() =
+      configuration::instance().admin_pub_addr() =
           neb::util::byte_to_string(addr_bytes);
 
-      LOG(INFO) << ipc_configuration::instance().nbre_db_dir();
+      LOG(INFO) << configuration::instance().nbre_db_dir();
       LOG(INFO) << addr_base58;
 
       //!
-      // FLAGS_log_dir = ipc_configuration::instance().nbre_log_dir();
+      // FLAGS_log_dir = configuration::instance().nbre_log_dir();
       // google::InitGoogleLogging("nbre-client");
 
       init_nbre();
@@ -235,9 +232,8 @@ void client_driver::add_handlers() {
 
           std::unique_ptr<neb::fs::rocksdb_storage> rs =
               std::make_unique<neb::fs::rocksdb_storage>();
-          rs->open_database(
-              neb::core::ipc_configuration::instance().nbre_db_dir(),
-              neb::fs::storage_open_for_readonly);
+          rs->open_database(neb::configuration::instance().nbre_db_dir(),
+                            neb::fs::storage_open_for_readonly);
           auto irs_ptr = neb::fs::ir_api::get_ir_list(rs.get());
           rs->close_database();
 
@@ -268,9 +264,8 @@ void client_driver::add_handlers() {
 
           std::unique_ptr<neb::fs::rocksdb_storage> rs =
               std::make_unique<neb::fs::rocksdb_storage>();
-          rs->open_database(
-              neb::core::ipc_configuration::instance().nbre_db_dir(),
-              neb::fs::storage_open_for_readonly);
+          rs->open_database(neb::configuration::instance().nbre_db_dir(),
+                            neb::fs::storage_open_for_readonly);
           auto ir_versions_ptr =
               neb::fs::ir_api::get_ir_versions(ir_name.c_str(), rs.get());
           rs->close_database();

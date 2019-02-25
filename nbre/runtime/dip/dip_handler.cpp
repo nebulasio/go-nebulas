@@ -20,7 +20,6 @@
 
 #include "runtime/dip/dip_handler.h"
 #include "common/configuration.h"
-#include "core/ipc_configuration.h"
 #include "core/ir_warden.h"
 #include "fs/fs_storage.h"
 #include "fs/ir_manager/api/ir_api.h"

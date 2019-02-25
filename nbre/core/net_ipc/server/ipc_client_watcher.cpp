@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "core/net_ipc/server/ipc_client_watcher.h"
-#include "core/ipc_configuration.h"
+#include "common/configuration.h"
 #include "fs/util.h"
 #include <boost/process/args.hpp>
 #include <boost/process/child.hpp>
@@ -53,8 +53,8 @@ void ipc_client_watcher::thread_func() {
     m_last_start_time = now;
     boost::process::ipstream stream;
     std::vector<std::string> v(
-        {ipc_configuration::instance().nipc_listen(),
-         std::to_string(ipc_configuration::instance().nipc_port())});
+        {configuration::instance().nipc_listen(),
+         std::to_string(configuration::instance().nipc_port())});
 
     boost::process::child client(m_path, boost::process::args(v));
     if (client.valid()) {

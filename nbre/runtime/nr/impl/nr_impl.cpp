@@ -20,8 +20,8 @@
 
 #include "runtime/nr/impl/nr_impl.h"
 #include "common/common.h"
+#include "common/configuration.h"
 #include "common/util/conversion.h"
-#include "core/ipc_configuration.h"
 #include "fs/blockchain/nebulas_currency.h"
 #include "runtime/nr/impl/nebulas_rank.h"
 
@@ -36,8 +36,7 @@ std::string entry_point_nr_impl(compatible_uint64_t start_block,
                                 compatible_int64_t d, nr_float_t theta,
                                 nr_float_t mu, nr_float_t lambda) {
 
-  std::string neb_db_path =
-      neb::core::ipc_configuration::instance().neb_db_dir();
+  std::string neb_db_path = neb::configuration::instance().neb_db_dir();
   neb::fs::blockchain bc(neb_db_path);
   neb::fs::blockchain_api ba(&bc);
   transaction_db_ptr_t tdb_ptr = std::make_unique<neb::fs::transaction_db>(&ba);

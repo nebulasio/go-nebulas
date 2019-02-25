@@ -18,15 +18,14 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "core/ipc_configuration.h"
+#include "common/configuration.h"
 #include "fs/blockchain.h"
 #include "fs/blockchain/trie/trie.h"
 #include <gtest/gtest.h>
 
 TEST(test_fs, account_state) {
 
-  std::string neb_db_path =
-      neb::core::ipc_configuration::instance().neb_db_dir();
+  std::string neb_db_path = neb::configuration::instance().neb_db_dir();
   neb::fs::rocksdb_storage rs;
   rs.open_database(neb_db_path, neb::fs::storage_open_for_readonly);
   neb::fs::trie t(&rs);

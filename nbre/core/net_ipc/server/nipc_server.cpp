@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "core/net_ipc/server/nipc_server.h"
-#include "core/ipc_configuration.h"
+#include "common/configuration.h"
 #include "core/net_ipc/nipc_pkg.h"
 
 namespace neb {
@@ -27,20 +27,16 @@ nipc_server::nipc_server() : m_server(nullptr), m_conn(nullptr) {}
 nipc_server::~nipc_server() { LOG(INFO) << "~nipc_server"; }
 
 void nipc_server::init_params(const nbre_params_t &params) {
-  neb::core::ipc_configuration::instance().nbre_root_dir() =
-      params.m_nbre_root_dir;
-  neb::core::ipc_configuration::instance().nbre_exe_name() =
-      params.m_nbre_exe_name;
-  neb::core::ipc_configuration::instance().neb_db_dir() = params.m_neb_db_dir;
-  neb::core::ipc_configuration::instance().nbre_db_dir() = params.m_nbre_db_dir;
-  neb::core::ipc_configuration::instance().nbre_log_dir() =
-      params.m_nbre_log_dir;
-  neb::core::ipc_configuration::instance().admin_pub_addr() =
-      params.m_admin_pub_addr;
-  neb::core::ipc_configuration::instance().nbre_start_height() =
+  neb::configuration::instance().nbre_root_dir() = params.m_nbre_root_dir;
+  neb::configuration::instance().nbre_exe_name() = params.m_nbre_exe_name;
+  neb::configuration::instance().neb_db_dir() = params.m_neb_db_dir;
+  neb::configuration::instance().nbre_db_dir() = params.m_nbre_db_dir;
+  neb::configuration::instance().nbre_log_dir() = params.m_nbre_log_dir;
+  neb::configuration::instance().admin_pub_addr() = params.m_admin_pub_addr;
+  neb::configuration::instance().nbre_start_height() =
       params.m_nbre_start_height;
-  neb::core::ipc_configuration::instance().nipc_listen() = params.m_nipc_listen;
-  neb::core::ipc_configuration::instance().nipc_port() = params.m_nipc_port;
+  neb::configuration::instance().nipc_listen() = params.m_nipc_listen;
+  neb::configuration::instance().nipc_port() = params.m_nipc_port;
 }
 
 bool nipc_server::start() {
@@ -56,9 +52,8 @@ bool nipc_server::start() {
       m_pkg_hub = std::make_unique<::ff::net::typed_pkg_hub>();
       add_all_callbacks();
       m_server->add_pkg_hub(*m_pkg_hub);
-      m_server->add_tcp_server(
-          neb::core::ipc_configuration::instance().nipc_listen(),
-          neb::core::ipc_configuration::instance().nipc_port());
+      m_server->add_tcp_server(neb::configuration::instance().nipc_listen(),
+                               neb::configuration::instance().nipc_port());
       m_request_timer = std::make_unique<api_request_timer>(
           &m_server->ioservice(), &ipc_callback_holder::instance());
 
@@ -83,7 +78,7 @@ bool nipc_server::start() {
       // We need start the client here
       m_client_watcher =
           std::unique_ptr<ipc_client_watcher>(new ipc_client_watcher(
-              neb::core::ipc_configuration::instance().nbre_exe_name()));
+              neb::configuration::instance().nbre_exe_name()));
       m_client_watcher->start();
       m_server->run();
     } catch (const std::exception &e) {
@@ -126,7 +121,7 @@ void nipc_server::add_all_callbacks() {
 
   m_pkg_hub->to_recv_pkg<nbre_init_req>([this](std::shared_ptr<nbre_init_req>) {
     std::shared_ptr<nbre_init_ack> ack = std::make_shared<nbre_init_ack>();
-    ipc_configuration &conf = ipc_configuration::instance();
+    configuration &conf = configuration::instance();
     ack->set<p_nbre_root_dir>(conf.nbre_root_dir());
     ack->set<p_nbre_exe_name>(conf.nbre_exe_name());
     ack->set<p_neb_db_dir>(conf.neb_db_dir());

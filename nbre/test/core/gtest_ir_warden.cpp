@@ -17,7 +17,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "core/ipc_configuration.h"
+#include "common/configuration.h"
 #include "core/ir_warden.h"
 #include "fs/util.h"
 #include <gtest/gtest.h>
@@ -34,20 +34,17 @@ TEST(test_core, is_sync_already) {
 }
 
 std::string get_db_path_for_read() {
-  std::string cur_path =
-      neb::core::ipc_configuration::instance().nbre_root_dir();
+  std::string cur_path = neb::configuration::instance().nbre_root_dir();
   return neb::fs::join_path(cur_path, "test/data/read-data.db/");
 }
 
 std::string get_db_path_for_write() {
-  std::string cur_path =
-      neb::core::ipc_configuration::instance().nbre_root_dir();
+  std::string cur_path = neb::configuration::instance().nbre_root_dir();
   return neb::fs::join_path(cur_path, "test/data/write-data.db/");
 }
 
 std::string get_blockchain_path_for_read() {
-  std::string cur_path =
-      neb::core::ipc_configuration::instance().nbre_root_dir();
+  std::string cur_path = neb::configuration::instance().nbre_root_dir();
   return neb::fs::join_path(cur_path, "../data.db/");
 }
 
