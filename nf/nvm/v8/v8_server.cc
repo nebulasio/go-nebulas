@@ -18,6 +18,7 @@
 //
 
 #include "v8_util.h"
+#include "compatibility.h"
 #include <unistd.h>
 
 #define MicroSecondDiff(newtv, oldtv) (1000000 * (unsigned long long)((newtv).tv_sec - (oldtv).tv_sec) + (newtv).tv_usec - (oldtv).tv_usec)  //milliseconds
@@ -326,16 +327,17 @@ int NVMEngine::GetRunnableSourceCode(const std::string& sourceType, std::string&
 
   if(sourceType.compare(this->TS_TYPE) == 0){
     jsSource = TranspileTypeScriptModuleThread(this->engine, originalSource.c_str(), &this->m_src_offset);
+    if(jsSource == nullptr){
+      return NVM_TRANSPILE_SCRIPT_ERR;
+    }
   }else{
     jsSource = originalSource.c_str();
-  }
-  if(jsSource == nullptr){
-    return NVM_TRANSPILE_SCRIPT_ERR;
   }
 
   std::string sourceHash = sha256(std::string(jsSource));
   auto searchRecord = srcModuleCache->find(sourceHash);
   if(searchRecord != srcModuleCache->end()){
+    std::cout<<">>>>>> Found existing runnable source module"<<std::endl;
     CacheSrcItem cachedSourceItem = searchRecord->second;
     this->m_traceable_src = cachedSourceItem.traceableSource;
     this->m_traceale_src_line_offset = cachedSourceItem.traceableSourceLineOffset;
@@ -366,20 +368,26 @@ int NVMEngine::StartScriptExecution(std::string& contractSource, const std::stri
       this->engine = CreateEngine();
     }
 
-    this->engine->limits_of_executed_instructions = configBundle.limits_exe_instruction();
-    this->engine->limits_of_total_memory_size = configBundle.limits_total_mem_size();
-
     // transpile script and inject tracing code if necessary
     int runnableSourceResult = this->GetRunnableSourceCode(scriptType, contractSource);
     if(runnableSourceResult != 0){
-      LogErrorf("++++ Failed to get runnable source code");
+      LogErrorf("Failed to get runnable source code");
       return runnableSourceResult;
     }
 
-    //TODO, check if the module already cached
     AddModule(this->engine, moduleID.c_str(), this->m_traceable_src.c_str(), this->m_traceale_src_line_offset);
 
-    std::cout<<">>>>Now starting script execution!!!"<<std::endl;
+    this->engine->limits_of_executed_instructions = configBundle.limits_exe_instruction();
+    this->engine->limits_of_total_memory_size = configBundle.limits_total_mem_size();
+    // check limitations
+    if(configBundle.block_height() >= GetNVMMemoryLimitWithoutInjectHeight()) {
+      ReadMemoryStatistics(this->engine);
+      uint64_t actualCountOfExecutionInstructions = (uint64_t)this->engine->stats.count_of_executed_instructions;
+      uint64_t actualTotalMemorySize = (uint64_t)this->engine->stats.total_memory_size;
+      uint64_t mem = actualTotalMemorySize + DefaultLimitsOfTotalMemorySize;
+      LogInfof("mem limit reset in V8, actualTotalMemorySize: %ld, limit: %ld, tx.hash: %s", actualTotalMemorySize, DefaultLimitsOfTotalMemorySize, configBundle.tx_json().c_str());
+      this->engine->limits_of_total_memory_size = mem;
+    }
 
     v8ThreadContext ctx;
     memset(&ctx, 0x00, sizeof(ctx));

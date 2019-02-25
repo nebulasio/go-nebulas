@@ -25,6 +25,10 @@ int ExecutionTimeOutErr = 2;
 typedef unsigned long long uint64;
 
 // ExecutionTimeoutInSeconds max v8 execution timeout.
-uint64 ExecutionTimeout                 = 15 * 1000 * 1000;
-uint64 TimeoutGasLimitCost              = 100000000;
-uint64 MaxLimitsOfExecutionInstructions = 10000000; // 10,000,000
+const uint64 ExecutionTimeout                 = 15 * 1000 * 1000;
+const uint64 TimeoutGasLimitCost              = 100000000;
+
+
+// DefaultLimitsOfTotalMemorySize default limits of total memory size
+const uint64 MaxLimitsOfExecutionInstructions = 10000000; // 10,000,000
+const uint64 DefaultLimitsOfTotalMemorySize = 40 * 1000 * 1000;

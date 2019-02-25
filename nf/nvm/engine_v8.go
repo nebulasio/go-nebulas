@@ -18,33 +18,6 @@
 
 package nvm
 
-/*
-#include <stdlib.h>
-#cgo CFLAGS:
-#cgo LDFLAGS: -L${SRCDIR}/native-lib -lnebulasv8
-
-#include "v8/engine.h"
-
-// Forward declaration.
-void V8Log_cgo(int level, const char *msg);
-
-char *GetTxByHashFunc_cgo(void *handler, const char *hash);
-char *GetAccountStateFunc_cgo(void *handler, const char *address);
-int TransferFunc_cgo(void *handler, const char *to, const char *value);
-int VerifyAddressFunc_cgo(void *handler, const char *address);
-char *GetPreBlockHashFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt);
-char *GetPreBlockSeedFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt);
-
-char *Sha256Func_cgo(const char *data, size_t *gasCnt);
-char *Sha3256Func_cgo(const char *data, size_t *gasCnt);
-char *Ripemd160Func_cgo(const char *data, size_t *gasCnt);
-char *RecoverAddressFunc_cgo(int alg, const char *data, const char *sign, size_t *gasCnt);
-char *Md5Func_cgo(const char *data, size_t *gasCnt);
-char *Base64Func_cgo(const char *data, size_t *gasCnt);
-
-*/
-//import "C"
-
 import (
 	"fmt"
 	"strings"
@@ -147,47 +120,6 @@ type sourceModuleItem struct {
 	traceableSourceLineOffset int
 }
 
-// InitV8Engine initialize the v8 engine.
-func InitV8Engine() {
-	//C.Initialize()
-
-	// Logger.
-	//C.InitializeLogger((C.LogFunc)(unsafe.Pointer(C.V8Log_cgo)))
-
-	// Require.
-	//C.InitializeRequireDelegate((C.RequireDelegate)(unsafe.Pointer(C.RequireDelegateFunc_cgo)), (C.AttachLibVersionDelegate)(unsafe.Pointer(C.AttachLibVersionDelegateFunc_cgo)))
-
-	// execution_env require
-	//C.InitializeExecutionEnvDelegate((C.AttachLibVersionDelegate)(unsafe.Pointer(C.AttachLibVersionDelegateFunc_cgo)))
-
-	// Storage.
-	//C.InitializeStorage((C.StorageGetFunc)(unsafe.Pointer(C.StorageGetFunc_cgo)), (C.StoragePutFunc)(unsafe.Pointer(C.StoragePutFunc_cgo)), (C.StorageDelFunc)(unsafe.Pointer(C.StorageDelFunc_cgo)))
-
-	// Blockchain.
-	/*
-	C.InitializeBlockchain((C.GetTxByHashFunc)(unsafe.Pointer(C.GetTxByHashFunc_cgo)),
-		(C.GetAccountStateFunc)(unsafe.Pointer(C.GetAccountStateFunc_cgo)),
-		(C.TransferFunc)(unsafe.Pointer(C.TransferFunc_cgo)),
-		(C.VerifyAddressFunc)(unsafe.Pointer(C.VerifyAddressFunc_cgo)),
-		(C.GetPreBlockHashFunc)(unsafe.Pointer(C.GetPreBlockHashFunc_cgo)),
-		(C.GetPreBlockSeedFunc)(unsafe.Pointer(C.GetPreBlockSeedFunc_cgo)),
-	)
-	*/
-
-	// Event.
-	//C.InitializeEvent((C.EventTriggerFunc)(unsafe.Pointer(C.EventTriggerFunc_cgo)))
-
-	// Crypto
-	/*
-	C.InitializeCrypto((C.Sha256Func)(unsafe.Pointer(C.Sha256Func_cgo)),
-		(C.Sha3256Func)(unsafe.Pointer(C.Sha3256Func_cgo)),
-		(C.Ripemd160Func)(unsafe.Pointer(C.Ripemd160Func_cgo)),
-		(C.RecoverAddressFunc)(unsafe.Pointer(C.RecoverAddressFunc_cgo)),
-		(C.Md5Func)(unsafe.Pointer(C.Md5Func_cgo)),
-		(C.Base64Func)(unsafe.Pointer(C.Base64Func_cgo)))
-	*/
-}
-
 // NewV8Engine return new V8Engine instance.
 func NewV8Engine(ctx *Context) *V8Engine {
 
@@ -251,8 +183,6 @@ func (e *V8Engine) Context() *Context {
 
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
 func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTotalMemorySize uint64) error {
-	//e.v8engine.limits_of_executed_instructions = C.size_t(limitsOfExecutionInstructions)
-	//e.v8engine.limits_of_total_memory_size = C.size_t(limitsOfTotalMemorySize)
 
 	logging.VLog().WithFields(logrus.Fields{
 		"limits_of_executed_instructions": limitsOfExecutionInstructions,
@@ -267,7 +197,7 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 		return ErrLimitHasEmpty
 	}
 	// V8 needs at least 6M heap memory.
-	if limitsOfTotalMemorySize > 0 && limitsOfTotalMemorySize < 6000000 {
+	if limitsOfTotalMemorySize < 6000000 {
 		logging.VLog().Debugf("V8 needs at least 6M (6000000) heap memory, your limitsOfTotalMemorySize (%d) is too low.", limitsOfTotalMemorySize)
 		return ErrSetMemorySmall
 	}
@@ -283,7 +213,9 @@ func (e *V8Engine) CheckTimeout() bool {
 	elapsedTime := time.Since(e.startExeTime)
 
 	if elapsedTime.Nanoseconds()/1000 > ExecutionTimeout{
-		logging.CLog().Info("!!! NVM run out of time!!!")
+		logging.CLog().WithFields(logrus.Fields{
+				"elapsedTime": elapsedTime,
+			}).Error("NVM execution timed out.")
 		return true
 	}
 
@@ -307,12 +239,17 @@ func (e *V8Engine) Call(config *core.NVMConfig, listenAddr string) (string, erro
 
 func (e *V8Engine) DeployAndInit(config *core.NVMConfig, listenAddr string) (string, error){
 	e.serverListenAddr = listenAddr
-	
 	config.FunctionName = core.ContractInitFunc
 	return e.RunScriptSource(config)
 }
 
 func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
+
+	// check source type
+	sourceType := config.PayloadSourceType
+	if sourceType != core.SourceTypeJavaScript && sourceType != core.SourceTypeTypeScript {
+		return "", ErrUnsupportedSourceType
+	}
 
 	// prepare for execute.
 	block := toSerializableBlock(e.ctx.block)
@@ -351,6 +288,7 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			moduleID, config.FunctionName, formatArgs(string(argsInput)))
 
 	// check height settings carefully
+	/*
 	if e.ctx.block.Height() >= core.NvmMemoryLimitWithoutInjectHeight {
 		//TODO: collect tracing stats
 		mem := e.actualTotalMemorySize + core.DefaultLimitsOfTotalMemorySize
@@ -361,6 +299,7 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 		}).Debug("mem limit")
 		e.limitsOfTotalMemorySize = mem
 	}
+	*/
 
 	if e.ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
 		if e.limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
@@ -376,7 +315,7 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 		}).Error("Failed to connect with V8 server")
 
 		// try to re-launch the process
-
+		
 	}
 	defer conn.Close()
 
@@ -438,7 +377,7 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			"response_type": dataResponse.GetResponseType(),
 			"response_indx": dataResponse.GetResponseIndx(),
 			"module": "nvm",
-		}).Info(">>>>>>>ONE   Now is receiving a call back from the v8 process to handle")
+		}).Info(">>>>>>>Receiving a call back from the v8 process to handle")
 
 		if(dataResponse.GetResponseType() == NVMDataExchangeTypeFinal && dataResponse.GetFinalResponse() != nil){
 
@@ -451,7 +390,7 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			// check the result here
 			logging.CLog().WithFields(
 				logrus.Fields{
-					"result": result,
+					"result": result,                                                                                                                                                                                                                                                                                                     
 					"ret": ret,
 				}).Info(">>>>The contract execution result")
 		
@@ -459,21 +398,23 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			//e.CollectTracingStats()
 			actualCountOfExecutionInstructions := stats.ActualCountOfExecutionInstruction
 			actualUsedMemSize := stats.ActualUsedMemSize
+			e.actualCountOfExecutionInstructions = actualCountOfExecutionInstructions
+			e.actualTotalMemorySize = actualUsedMemSize
 
 			logging.CLog().WithFields(logrus.Fields{
 				"actualAcountOfExecutionInstructions": actualCountOfExecutionInstructions,
 				"actualUsedMemSize": actualUsedMemSize,
 				"finalresult": ret,
+				"tx hash": e.ctx.tx.Hash(),
+				"tx height": e.ctx.block.Height(),
 			}).Info(">>>>Got stats info")
 		
-			/*
 			if e.ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
 				if e.limitsOfExecutionInstructions == MaxLimitsOfExecutionInstructions && err == ErrInsufficientGas {
 				  err = ErrExecutionTimeout
 				  result = "\"null\""
 				}
 			}
-			*/
 
 			//set err
 			if ret == NVM_TRANSPILE_SCRIPT_ERR {

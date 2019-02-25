@@ -251,45 +251,57 @@ class NVMConfigBundle : public ::google::protobuf::Message /* @@protoc_insertion
   ::std::string* release_module_id();
   void set_allocated_module_id(::std::string* module_id);
 
-  // uint64 limits_exe_instruction = 8;
+  // uint64 block_height = 7;
+  void clear_block_height();
+  static const int kBlockHeightFieldNumber = 7;
+  ::google::protobuf::uint64 block_height() const;
+  void set_block_height(::google::protobuf::uint64 value);
+
+  // uint64 chain_id = 8;
+  void clear_chain_id();
+  static const int kChainIdFieldNumber = 8;
+  ::google::protobuf::uint64 chain_id() const;
+  void set_chain_id(::google::protobuf::uint64 value);
+
+  // uint64 limits_exe_instruction = 10;
   void clear_limits_exe_instruction();
-  static const int kLimitsExeInstructionFieldNumber = 8;
+  static const int kLimitsExeInstructionFieldNumber = 10;
   ::google::protobuf::uint64 limits_exe_instruction() const;
   void set_limits_exe_instruction(::google::protobuf::uint64 value);
 
-  // uint64 limits_total_mem_size = 9;
+  // uint64 limits_total_mem_size = 11;
   void clear_limits_total_mem_size();
-  static const int kLimitsTotalMemSizeFieldNumber = 9;
+  static const int kLimitsTotalMemSizeFieldNumber = 11;
   ::google::protobuf::uint64 limits_total_mem_size() const;
   void set_limits_total_mem_size(::google::protobuf::uint64 value);
 
-  // uint64 execution_timeout = 10;
+  // uint64 execution_timeout = 12;
   void clear_execution_timeout();
-  static const int kExecutionTimeoutFieldNumber = 10;
+  static const int kExecutionTimeoutFieldNumber = 12;
   ::google::protobuf::uint64 execution_timeout() const;
   void set_execution_timeout(::google::protobuf::uint64 value);
 
-  // uint64 timeout_gas_limit_cost = 11;
+  // uint64 timeout_gas_limit_cost = 13;
   void clear_timeout_gas_limit_cost();
-  static const int kTimeoutGasLimitCostFieldNumber = 11;
+  static const int kTimeoutGasLimitCostFieldNumber = 13;
   ::google::protobuf::uint64 timeout_gas_limit_cost() const;
   void set_timeout_gas_limit_cost(::google::protobuf::uint64 value);
 
-  // uint64 max_limits_of_execution_instruction = 12;
+  // uint64 max_limits_of_execution_instruction = 14;
   void clear_max_limits_of_execution_instruction();
-  static const int kMaxLimitsOfExecutionInstructionFieldNumber = 12;
+  static const int kMaxLimitsOfExecutionInstructionFieldNumber = 14;
   ::google::protobuf::uint64 max_limits_of_execution_instruction() const;
   void set_max_limits_of_execution_instruction(::google::protobuf::uint64 value);
 
-  // uint64 default_limits_of_total_mem_size = 13;
+  // uint64 default_limits_of_total_mem_size = 15;
   void clear_default_limits_of_total_mem_size();
-  static const int kDefaultLimitsOfTotalMemSizeFieldNumber = 13;
+  static const int kDefaultLimitsOfTotalMemSizeFieldNumber = 15;
   ::google::protobuf::uint64 default_limits_of_total_mem_size() const;
   void set_default_limits_of_total_mem_size(::google::protobuf::uint64 value);
 
-  // bool enable_limits = 7;
+  // bool enable_limits = 9;
   void clear_enable_limits();
-  static const int kEnableLimitsFieldNumber = 7;
+  static const int kEnableLimitsFieldNumber = 9;
   bool enable_limits() const;
   void set_enable_limits(bool value);
 
@@ -303,6 +315,8 @@ class NVMConfigBundle : public ::google::protobuf::Message /* @@protoc_insertion
   ::google::protobuf::internal::ArenaStringPtr block_json_;
   ::google::protobuf::internal::ArenaStringPtr tx_json_;
   ::google::protobuf::internal::ArenaStringPtr module_id_;
+  ::google::protobuf::uint64 block_height_;
+  ::google::protobuf::uint64 chain_id_;
   ::google::protobuf::uint64 limits_exe_instruction_;
   ::google::protobuf::uint64 limits_total_mem_size_;
   ::google::protobuf::uint64 execution_timeout_;
@@ -438,19 +452,19 @@ class NVMCallbackResult : public ::google::protobuf::Message /* @@protoc_inserti
   ::std::string* release_func_name();
   void set_allocated_func_name(::std::string* func_name);
 
-  // string res = 2;
-  void clear_res();
-  static const int kResFieldNumber = 2;
-  const ::std::string& res() const;
-  void set_res(const ::std::string& value);
+  // string result = 2;
+  void clear_result();
+  static const int kResultFieldNumber = 2;
+  const ::std::string& result() const;
+  void set_result(const ::std::string& value);
   #if LANG_CXX11
-  void set_res(::std::string&& value);
+  void set_result(::std::string&& value);
   #endif
-  void set_res(const char* value);
-  void set_res(const char* value, size_t size);
-  ::std::string* mutable_res();
-  ::std::string* release_res();
-  void set_allocated_res(::std::string* res);
+  void set_result(const char* value);
+  void set_result(const char* value, size_t size);
+  ::std::string* mutable_result();
+  ::std::string* release_result();
+  void set_allocated_result(::std::string* result);
 
   // @@protoc_insertion_point(class_scope:NVMCallbackResult)
  private:
@@ -458,7 +472,7 @@ class NVMCallbackResult : public ::google::protobuf::Message /* @@protoc_inserti
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::RepeatedPtrField< ::std::string> extra_;
   ::google::protobuf::internal::ArenaStringPtr func_name_;
-  ::google::protobuf::internal::ArenaStringPtr res_;
+  ::google::protobuf::internal::ArenaStringPtr result_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_nvm_2eproto::TableStruct;
 };
@@ -1482,7 +1496,35 @@ inline void NVMConfigBundle::set_allocated_module_id(::std::string* module_id) {
   // @@protoc_insertion_point(field_set_allocated:NVMConfigBundle.module_id)
 }
 
-// bool enable_limits = 7;
+// uint64 block_height = 7;
+inline void NVMConfigBundle::clear_block_height() {
+  block_height_ = GOOGLE_ULONGLONG(0);
+}
+inline ::google::protobuf::uint64 NVMConfigBundle::block_height() const {
+  // @@protoc_insertion_point(field_get:NVMConfigBundle.block_height)
+  return block_height_;
+}
+inline void NVMConfigBundle::set_block_height(::google::protobuf::uint64 value) {
+  
+  block_height_ = value;
+  // @@protoc_insertion_point(field_set:NVMConfigBundle.block_height)
+}
+
+// uint64 chain_id = 8;
+inline void NVMConfigBundle::clear_chain_id() {
+  chain_id_ = GOOGLE_ULONGLONG(0);
+}
+inline ::google::protobuf::uint64 NVMConfigBundle::chain_id() const {
+  // @@protoc_insertion_point(field_get:NVMConfigBundle.chain_id)
+  return chain_id_;
+}
+inline void NVMConfigBundle::set_chain_id(::google::protobuf::uint64 value) {
+  
+  chain_id_ = value;
+  // @@protoc_insertion_point(field_set:NVMConfigBundle.chain_id)
+}
+
+// bool enable_limits = 9;
 inline void NVMConfigBundle::clear_enable_limits() {
   enable_limits_ = false;
 }
@@ -1496,7 +1538,7 @@ inline void NVMConfigBundle::set_enable_limits(bool value) {
   // @@protoc_insertion_point(field_set:NVMConfigBundle.enable_limits)
 }
 
-// uint64 limits_exe_instruction = 8;
+// uint64 limits_exe_instruction = 10;
 inline void NVMConfigBundle::clear_limits_exe_instruction() {
   limits_exe_instruction_ = GOOGLE_ULONGLONG(0);
 }
@@ -1510,7 +1552,7 @@ inline void NVMConfigBundle::set_limits_exe_instruction(::google::protobuf::uint
   // @@protoc_insertion_point(field_set:NVMConfigBundle.limits_exe_instruction)
 }
 
-// uint64 limits_total_mem_size = 9;
+// uint64 limits_total_mem_size = 11;
 inline void NVMConfigBundle::clear_limits_total_mem_size() {
   limits_total_mem_size_ = GOOGLE_ULONGLONG(0);
 }
@@ -1524,7 +1566,7 @@ inline void NVMConfigBundle::set_limits_total_mem_size(::google::protobuf::uint6
   // @@protoc_insertion_point(field_set:NVMConfigBundle.limits_total_mem_size)
 }
 
-// uint64 execution_timeout = 10;
+// uint64 execution_timeout = 12;
 inline void NVMConfigBundle::clear_execution_timeout() {
   execution_timeout_ = GOOGLE_ULONGLONG(0);
 }
@@ -1538,7 +1580,7 @@ inline void NVMConfigBundle::set_execution_timeout(::google::protobuf::uint64 va
   // @@protoc_insertion_point(field_set:NVMConfigBundle.execution_timeout)
 }
 
-// uint64 timeout_gas_limit_cost = 11;
+// uint64 timeout_gas_limit_cost = 13;
 inline void NVMConfigBundle::clear_timeout_gas_limit_cost() {
   timeout_gas_limit_cost_ = GOOGLE_ULONGLONG(0);
 }
@@ -1552,7 +1594,7 @@ inline void NVMConfigBundle::set_timeout_gas_limit_cost(::google::protobuf::uint
   // @@protoc_insertion_point(field_set:NVMConfigBundle.timeout_gas_limit_cost)
 }
 
-// uint64 max_limits_of_execution_instruction = 12;
+// uint64 max_limits_of_execution_instruction = 14;
 inline void NVMConfigBundle::clear_max_limits_of_execution_instruction() {
   max_limits_of_execution_instruction_ = GOOGLE_ULONGLONG(0);
 }
@@ -1566,7 +1608,7 @@ inline void NVMConfigBundle::set_max_limits_of_execution_instruction(::google::p
   // @@protoc_insertion_point(field_set:NVMConfigBundle.max_limits_of_execution_instruction)
 }
 
-// uint64 default_limits_of_total_mem_size = 13;
+// uint64 default_limits_of_total_mem_size = 15;
 inline void NVMConfigBundle::clear_default_limits_of_total_mem_size() {
   default_limits_of_total_mem_size_ = GOOGLE_ULONGLONG(0);
 }
@@ -1637,57 +1679,57 @@ inline void NVMCallbackResult::set_allocated_func_name(::std::string* func_name)
   // @@protoc_insertion_point(field_set_allocated:NVMCallbackResult.func_name)
 }
 
-// string res = 2;
-inline void NVMCallbackResult::clear_res() {
-  res_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+// string result = 2;
+inline void NVMCallbackResult::clear_result() {
+  result_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline const ::std::string& NVMCallbackResult::res() const {
-  // @@protoc_insertion_point(field_get:NVMCallbackResult.res)
-  return res_.GetNoArena();
+inline const ::std::string& NVMCallbackResult::result() const {
+  // @@protoc_insertion_point(field_get:NVMCallbackResult.result)
+  return result_.GetNoArena();
 }
-inline void NVMCallbackResult::set_res(const ::std::string& value) {
+inline void NVMCallbackResult::set_result(const ::std::string& value) {
   
-  res_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:NVMCallbackResult.res)
+  result_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:NVMCallbackResult.result)
 }
 #if LANG_CXX11
-inline void NVMCallbackResult::set_res(::std::string&& value) {
+inline void NVMCallbackResult::set_result(::std::string&& value) {
   
-  res_.SetNoArena(
+  result_.SetNoArena(
     &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:NVMCallbackResult.res)
+  // @@protoc_insertion_point(field_set_rvalue:NVMCallbackResult.result)
 }
 #endif
-inline void NVMCallbackResult::set_res(const char* value) {
+inline void NVMCallbackResult::set_result(const char* value) {
   GOOGLE_DCHECK(value != NULL);
   
-  res_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:NVMCallbackResult.res)
+  result_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:NVMCallbackResult.result)
 }
-inline void NVMCallbackResult::set_res(const char* value, size_t size) {
+inline void NVMCallbackResult::set_result(const char* value, size_t size) {
   
-  res_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+  result_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:NVMCallbackResult.res)
+  // @@protoc_insertion_point(field_set_pointer:NVMCallbackResult.result)
 }
-inline ::std::string* NVMCallbackResult::mutable_res() {
+inline ::std::string* NVMCallbackResult::mutable_result() {
   
-  // @@protoc_insertion_point(field_mutable:NVMCallbackResult.res)
-  return res_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  // @@protoc_insertion_point(field_mutable:NVMCallbackResult.result)
+  return result_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline ::std::string* NVMCallbackResult::release_res() {
-  // @@protoc_insertion_point(field_release:NVMCallbackResult.res)
+inline ::std::string* NVMCallbackResult::release_result() {
+  // @@protoc_insertion_point(field_release:NVMCallbackResult.result)
   
-  return res_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  return result_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline void NVMCallbackResult::set_allocated_res(::std::string* res) {
-  if (res != NULL) {
+inline void NVMCallbackResult::set_allocated_result(::std::string* result) {
+  if (result != NULL) {
     
   } else {
     
   }
-  res_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), res);
-  // @@protoc_insertion_point(field_set_allocated:NVMCallbackResult.res)
+  result_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), result);
+  // @@protoc_insertion_point(field_set_allocated:NVMCallbackResult.result)
 }
 
 // repeated string extra = 3;

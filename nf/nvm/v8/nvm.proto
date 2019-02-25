@@ -30,14 +30,16 @@ message NVMConfigBundle{
     string block_json = 4;
     string tx_json = 5;
     string module_id = 6;
+    uint64 block_height = 7;
+    uint64 chain_id = 8;
 
-    bool   enable_limits = 7;
-    uint64 limits_exe_instruction = 8;
-    uint64 limits_total_mem_size = 9;
-    uint64 execution_timeout = 10;
-    uint64 timeout_gas_limit_cost = 11;
-    uint64 max_limits_of_execution_instruction = 12;
-    uint64 default_limits_of_total_mem_size = 13;
+    bool   enable_limits = 9;
+    uint64 limits_exe_instruction = 10;
+    uint64 limits_total_mem_size = 11;
+    uint64 execution_timeout = 12;
+    uint64 timeout_gas_limit_cost = 13;
+    uint64 max_limits_of_execution_instruction = 14;
+    uint64 default_limits_of_total_mem_size = 15;
 }
 
 message NVMCallbackResult{

@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2017-2019 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -17,8 +17,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#ifndef _NEBULAS_NF_NVM_V8_LIB_TRACING_H_
-#define _NEBULAS_NF_NVM_V8_LIB_TRACING_H_
+#pragma once
 
 #include <v8.h>
 
@@ -34,5 +33,3 @@ int InjectTracingInstructionDelegate(char **result, Isolate *isolate,
                                      const char *source, int source_line_offset,
                                      Local<Context> context, TryCatch &trycatch,
                                      void *delegateContext);
-
-#endif // _NEBULAS_NF_NVM_V8_LIB_TRACING_H_
