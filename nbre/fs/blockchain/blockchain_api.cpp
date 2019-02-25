@@ -56,9 +56,10 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
 
     info.m_from = tx.from();
     info.m_to = tx.to();
-    info.m_tx_value = to_wei(neb::util::string_to_byte(tx.value()).to_hex());
+    info.m_tx_value =
+        util::hex_val_cast(neb::util::string_to_byte(tx.value()).to_hex());
     info.m_gas_price =
-        to_wei(neb::util::string_to_byte(tx.gas_price()).to_hex());
+        util::hex_val_cast(neb::util::string_to_byte(tx.gas_price()).to_hex());
     info.m_tx_type = tx.data().type();
 
     // get topic chain.transactionResult
@@ -185,5 +186,15 @@ blockchain_api::get_transaction_api(const std::string &tx_hash,
   }
   return std::move(corepb_txs_ptr);
 }
+
+namespace util {
+wei_t hex_val_cast(const std::string &hex_str) {
+  std::stringstream ss;
+  ss << std::hex << hex_str;
+  neb::wei_t wei;
+  ss >> wei;
+  return wei;
+}
+} // namespace util
 } // namespace fs
 } // namespace neb

@@ -77,6 +77,12 @@ public:
   const std::string &coinbase_addr() const { return m_coinbase_addr; }
   std::string &coinbase_addr() { return m_coinbase_addr; }
 
+  // shared memory name identity
+  inline const std::string &shm_name_identity() const {
+    return m_shm_name_identity;
+  }
+  inline std::string &shm_name_identity() { return m_shm_name_identity; }
+
   // nbre root directory
   inline const std::string &nbre_root_dir() const { return m_nbre_root_dir; }
   inline std::string &nbre_root_dir() { return m_nbre_root_dir; }
@@ -115,12 +121,25 @@ public:
   inline const uint16_t &nipc_port() const { return m_nipc_port; }
   inline uint16_t &nipc_port() { return m_nipc_port; }
 
+  inline const std::string &get_exit_msg(uint32_t exit_code) const {
+    assert(exit_code < m_exit_msg_list.size());
+    return m_exit_msg_list[exit_code];
+  };
+  inline void set_exit_msg(const std::string &exit_msg) {
+    m_exit_msg_list.push_back(exit_msg);
+  }
+
 protected:
+  // dip conf
   block_height_t m_dip_start_block;
   block_height_t m_dip_block_interval;
   std::string m_dip_reward_addr;
   std::string m_coinbase_addr;
 
+  // shm conf
+  std::string m_shm_name_identity;
+
+  // nbre init params conf
   std::string m_nbre_root_dir;
   std::string m_nbre_exe_name;
   std::string m_neb_db_dir;
@@ -130,5 +149,8 @@ protected:
   uint64_t m_nbre_start_height;
   std::string m_nipc_listen;
   uint16_t m_nipc_port;
+
+  // exit code and msg list conf
+  std::vector<std::string> m_exit_msg_list;
 };
 } // end namespace neb
