@@ -105,6 +105,8 @@ int main(int argc, char *argv[]) {
   auto ret = start_nbre_ipc(params);
   if (ret != ipc_status_succ) {
     to_quit = false;
+    nbre_ipc_shutdown();
+    return -1;
   }
 
   uint64_t height = 100;

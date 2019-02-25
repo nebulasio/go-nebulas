@@ -20,6 +20,7 @@
 #pragma once
 #include "common/common.h"
 #include "core/net_ipc/nipc_common.h"
+#include <ff/functionflow.h>
 #include <ff/network.h>
 
 namespace neb {
@@ -29,9 +30,14 @@ public:
   nipc_client() = default;
   ~nipc_client();
 
+  //! The handler f will run in a thread pool.
   template <typename T, typename Func> void add_handler(Func &&f) {
-    m_handlers.push_back(
-        [this, f](::ff::net::typed_pkg_hub &hub) { hub.to_recv_pkg<T>(f); });
+    m_handlers.push_back([this, f](::ff::net::typed_pkg_hub &hub) {
+      hub.to_recv_pkg<T>([f](std::shared_ptr<T> pkg) {
+        ff::para<> p;
+        p([pkg, f]() { f(pkg); });
+      });
+    });
   }
 
   bool start();

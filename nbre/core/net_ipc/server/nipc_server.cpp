@@ -48,47 +48,60 @@ bool nipc_server::start() {
   m_is_started = false;
   m_mutex.unlock();
 
-  m_thread = std::make_unique<std::thread>([this]() {
-    m_server = std::make_unique<::ff::net::net_nervure>();
-    m_pkg_hub = std::make_unique<::ff::net::typed_pkg_hub>();
-    add_all_callbacks();
-    m_server->add_pkg_hub(*m_pkg_hub);
-    m_server->add_tcp_server("127.0.0.1",
-                             neb::core::ipc_configuration::instance().port());
-    m_request_timer = std::make_unique<api_request_timer>(
-        &m_server->ioservice(), &ipc_callback_holder::instance());
+  std::atomic_bool got_exception_when_start_ipc;
 
+  m_thread = std::make_unique<std::thread>([&, this] {
+    try {
+      m_server = std::make_unique<::ff::net::net_nervure>();
+      m_pkg_hub = std::make_unique<::ff::net::typed_pkg_hub>();
+      add_all_callbacks();
+      m_server->add_pkg_hub(*m_pkg_hub);
+      m_server->add_tcp_server("127.0.0.1",
+                               neb::core::ipc_configuration::instance().port());
+      m_request_timer = std::make_unique<api_request_timer>(
+          &m_server->ioservice(), &ipc_callback_holder::instance());
 
-    m_server->get_event_handler()
-        ->listen<::ff::net::event::more::tcp_server_accept_connection>(
-            [this](::ff::net::tcp_connection_base_ptr conn) {
-              m_conn = conn;
-              m_mutex.lock();
-              m_is_started = true;
-              m_mutex.unlock();
-              m_request_timer->reset_conn(conn);
-            });
-    m_server->get_event_handler()
-        ->listen<::ff::net::event::tcp_lost_connection>(
-            [this](::ff::net::tcp_connection_base *) {
-              // TODO we may restart the client
-              m_conn.reset();
-              m_request_timer->reset_conn(nullptr);
-            });
+      m_server->get_event_handler()
+          ->listen<::ff::net::event::more::tcp_server_accept_connection>(
+              [this](::ff::net::tcp_connection_base_ptr conn) {
+                m_conn = conn;
+                m_mutex.lock();
+                m_is_started = true;
+                m_mutex.unlock();
+                m_request_timer->reset_conn(conn);
+              });
+      m_server->get_event_handler()
+          ->listen<::ff::net::event::tcp_lost_connection>(
+              [this](::ff::net::tcp_connection_base *) {
+                // We may restart the client. But we can ignore this and leave
+                // this to ipc_client_watcher
+                m_conn.reset();
+                m_request_timer->reset_conn(nullptr);
+              });
 
-    // We need start the client here
-    m_client_watcher =
-        std::unique_ptr<ipc_client_watcher>(new ipc_client_watcher(
-            neb::core::ipc_configuration::instance().nbre_exe_name()));
-    m_client_watcher->start();
-    m_server->run();
+      // We need start the client here
+      m_client_watcher =
+          std::unique_ptr<ipc_client_watcher>(new ipc_client_watcher(
+              neb::core::ipc_configuration::instance().nbre_exe_name()));
+      m_client_watcher->start();
+      m_server->run();
+    } catch (const std::exception &e) {
+      got_exception_when_start_ipc = true;
+      LOG(ERROR) << "get exception when start ipc, " << typeid(e).name() << ", "
+                 << e.what();
+      m_start_complete_cond_var.notify_one();
+    } catch (...) {
+      got_exception_when_start_ipc = true;
+      LOG(ERROR) << "get unknown exception when start ipc";
+      m_start_complete_cond_var.notify_one();
+    }
   });
   std::unique_lock<std::mutex> _l(m_mutex);
-  if (m_is_started) {
-    _l.unlock();
-  } else {
+  if (!m_is_started && !got_exception_when_start_ipc) {
     m_start_complete_cond_var.wait(_l);
   }
+  if (got_exception_when_start_ipc)
+    return false;
 
   return true;
 }
