@@ -49,32 +49,25 @@ void ipc_client_watcher::thread_func() {
       }
     }
 
-    LOG(INFO) << "to start nbre : " << m_path << ", "
-              << ipc_configuration::instance().port();
+    LOG(INFO) << "to start nbre : " << m_path;
     m_last_start_time = now;
     boost::process::ipstream stream;
     std::vector<std::string> v(
-        {std::to_string(ipc_configuration::instance().port())});
+        {ipc_configuration::instance().nipc_listen(),
+         std::to_string(ipc_configuration::instance().nipc_port())});
 
-    LOG(INFO) << "a0";
     boost::process::child client(m_path, boost::process::args(v));
-    // boost::process::child client(m_path, boost::process::args(v),
-    // boost::process::std_err > stream);
-    // boost::process::child client(m_path);
     if (client.valid()) {
       m_b_client_alive = true;
     }
 
-    LOG(INFO) << "a";
     std::string line;
     while (stream && std::getline(stream, line) && !line.empty()) {
       std::cerr << line << std::endl;
     }
 
-    LOG(INFO) << "b";
     std::error_code ec;
     client.wait(ec);
-    LOG(INFO) << "c";
     if (ec) {
       LOG(ERROR) << ec.message();
     }

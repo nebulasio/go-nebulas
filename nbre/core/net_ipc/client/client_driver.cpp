@@ -207,13 +207,13 @@ void client_driver::add_handlers() {
       ipc_configuration::instance().nbre_start_height() =
           ack->get<p_nbre_start_height>();
 
-      LOG(INFO) << ipc_configuration::instance().nbre_db_dir();
-      LOG(INFO) << ipc_configuration::instance().admin_pub_addr();
-
       std::string addr_base58 = ack->get<p_admin_pub_addr>().c_str();
       neb::util::bytes addr_bytes = neb::util::bytes::from_base58(addr_base58);
       ipc_configuration::instance().admin_pub_addr() =
           neb::util::byte_to_string(addr_bytes);
+
+      LOG(INFO) << ipc_configuration::instance().nbre_db_dir();
+      LOG(INFO) << addr_base58;
 
       //!
       // FLAGS_log_dir = ipc_configuration::instance().nbre_log_dir();

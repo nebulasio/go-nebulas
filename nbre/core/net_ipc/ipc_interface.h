@@ -83,11 +83,12 @@ typedef struct {
   const char *m_nbre_log_dir;
   const char *m_admin_pub_addr;
   uint64_t m_nbre_start_height;
-  uint16_t m_port;
+  const char *m_nipc_listen;
+  uint16_t m_nipc_port;
 } nbre_params_t;
 
 // nbre ipc start and shutdown
-int start_nbre_ipc(const nbre_params_t params);
+int start_nbre_ipc(nbre_params_t params);
 
 void nbre_ipc_shutdown();
 

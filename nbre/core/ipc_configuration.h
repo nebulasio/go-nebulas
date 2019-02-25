@@ -61,8 +61,14 @@ public:
     return m_nbre_start_height;
   }
   inline uint64_t &nbre_start_height() { return m_nbre_start_height; }
-  inline const uint16_t &port() const { return m_port; }
-  inline uint16_t &port() { return m_port; }
+
+  // nbre net ipc listen
+  inline const std::string &nipc_listen() const { return m_nipc_listen; }
+  inline std::string &nipc_listen() { return m_nipc_listen; }
+
+  // nbre net ipc port
+  inline const uint16_t &nipc_port() const { return m_nipc_port; }
+  inline uint16_t &nipc_port() { return m_nipc_port; }
 
 protected:
   std::string m_nbre_root_dir;
@@ -72,7 +78,8 @@ protected:
   std::string m_nbre_log_dir;
   std::string m_admin_pub_addr;
   uint64_t m_nbre_start_height;
-  uint16_t m_port;
+  std::string m_nipc_listen;
+  uint16_t m_nipc_port;
 };
 } // namespace core
 } // namespace neb

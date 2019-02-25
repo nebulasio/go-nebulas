@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
       neb::core::ipc_configuration::instance().nbre_db_dir().c_str(),
       neb::core::ipc_configuration::instance().nbre_log_dir().c_str(),
       "auth address here!"};
-  params.m_port = 6987;
+  params.m_nipc_port = 6987;
 
   auto ret = start_nbre_ipc(params);
   if (ret != ipc_status_succ) {
