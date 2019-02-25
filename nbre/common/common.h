@@ -68,4 +68,9 @@ const static char *magenta = "\033[1;35m";
 const static char *cyan = "\033[1;36m";
 const static char *reset = "\033[0m";
 }
+
+namespace ir_type {
+const static std::string llvm = "llvm";
+const static std::string cpp = "cpp";
+};
 }

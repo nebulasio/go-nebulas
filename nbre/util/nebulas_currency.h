@@ -22,7 +22,6 @@
 #include "common/common.h"
 
 namespace neb {
-namespace fs {
 
 template <int64_t ratio> class nas_currency_t {
 public:
@@ -139,15 +138,14 @@ auto nas_cast(const T2 &v) -> typename std::enable_if<
     is_nas_currency<T1>::value && is_nas_currency<T2>::value, T1>::type {
   return T1(v);
 }
-} // namespace fs
 } // end namespace neb
 
-neb::fs::nas operator"" _nas(long double x);
-neb::fs::nas operator"" _nas(const char *s);
+neb::nas operator"" _nas(long double x);
+neb::nas operator"" _nas(const char *s);
 
-neb::fs::wei operator"" _wei(long double x);
-neb::fs::wei operator"" _wei(const char *s);
+neb::wei operator"" _wei(long double x);
+neb::wei operator"" _wei(const char *s);
 
-std::ostream &operator<<(std::ostream &os, const neb::fs::nas &obj);
+std::ostream &operator<<(std::ostream &os, const neb::nas &obj);
 
-std::ostream &operator<<(std::ostream &os, const neb::fs::wei &obj);
+std::ostream &operator<<(std::ostream &os, const neb::wei &obj);

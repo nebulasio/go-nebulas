@@ -17,25 +17,33 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
+#pragma once
+#include "common/common.h"
+#include "common/configuration.h"
+#include "common/util/byte.h"
+#include "core/ipc_configuration.h"
+#include "util/command.h"
 
-#include "fs/blockchain/nebulas_currency.h"
+namespace neb {
+namespace cpp {
+class cpp_ir {
+public:
+  cpp_ir(const std::string &cpp_content);
 
-neb::fs::nas operator"" _nas(long double v) { return neb::fs::nas(v); }
-neb::fs::nas operator"" _nas(const char *s) {
-  return neb::fs::nas(std::atoi(s));
-}
+  neb::util::bytes llvm_ir_content();
 
-neb::fs::wei operator"" _wei(long double v) { return neb::fs::wei(v); }
-neb::fs::wei operator"" _wei(const char *s) {
-  return neb::fs::wei(std::atoi(s));
-}
+protected:
+  int make_ir_bitcode(const std::string &cpp_file,
+                      const std::string &ir_bc_file);
 
-std::ostream &operator<<(std::ostream &os, const neb::fs::nas &obj) {
-  os << obj.value() << "nas";
-  return os;
-}
+  std::string generate_fp();
 
-std::ostream &operator<<(std::ostream &os, const neb::fs::wei &obj) {
-  os << obj.value() << "wei";
-  return os;
-}
+protected:
+  std::string m_cpp_content;
+  std::string m_cpp_fp;
+  std::string m_llvm_ir_fp;
+  bool m_b_got_error;
+  static std::atomic_int s_file_counter;
+};
+} // namespace cpp
+} // namespace neb

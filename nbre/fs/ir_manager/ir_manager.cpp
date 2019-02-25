@@ -19,6 +19,7 @@
 //
 
 #include "fs/ir_manager/ir_manager.h"
+#include "common/common.h"
 #include "common/configuration.h"
 #include "common/util/byte.h"
 #include "common/util/json_parser.h"
@@ -27,6 +28,7 @@
 #include "fs/ir_manager/api/ir_api.h"
 #include "fs/ir_manager/ir_manager_helper.h"
 #include "fs/storage_holder.h"
+#include "jit/cpp_ir.h"
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_handler.h"
 #include "runtime/version.h"
@@ -198,11 +200,25 @@ void ir_manager::parse_irs_by_height(block_height_t height) {
     neb::util::json_parser::read_json(data.payload(), pt);
     neb::util::bytes payload_bytes =
         neb::util::bytes::from_base64(pt.get<std::string>("Data"));
+
+
     std::unique_ptr<nbre::NBREIR> nbre_ir = std::make_unique<nbre::NBREIR>();
     bool ret =
         nbre_ir->ParseFromArray(payload_bytes.value(), payload_bytes.size());
     if (!ret) {
       throw std::runtime_error("parse transaction payload failed");
+    }
+
+    if (nbre_ir->ir_type() == ::neb::ir_type::cpp) {
+      //! We need compile the code
+      cpp::cpp_ir ci(nbre_ir->ir());
+      neb::util::bytes ir = ci.llvm_ir_content();
+      nbre_ir->set_ir(neb::util::byte_to_string(ir));
+
+      auto bytes_long = nbre_ir->ByteSizeLong();
+      payload_bytes = neb::util::bytes(bytes_long);
+      nbre_ir->SerializeToArray((void *)payload_bytes.value(),
+                                payload_bytes.size());
     }
 
     const std::string &from = tx.from();
@@ -211,8 +227,8 @@ void ir_manager::parse_irs_by_height(block_height_t height) {
     // deploy auth table
     if (neb::configuration::instance().auth_module_name() == name &&
         neb::core::ipc_configuration::instance().admin_pub_addr() == from) {
-      ir_manager_helper::deploy_auth_table(m_storage, *nbre_ir.get(),
-                                           m_auth_table, payload_bytes);
+        ir_manager_helper::deploy_auth_table(m_storage, *nbre_ir.get(),
+                                             m_auth_table, payload_bytes);
       continue;
     }
 

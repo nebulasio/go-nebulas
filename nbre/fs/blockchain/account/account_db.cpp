@@ -19,9 +19,9 @@
 //
 
 #include "fs/blockchain/account/account_db.h"
-#include "fs/blockchain/nebulas_currency.h"
 #include "fs/blockchain/trie/trie.h"
 #include "fs/util.h"
+#include "util/nebulas_currency.h"
 
 namespace neb {
 namespace fs {
