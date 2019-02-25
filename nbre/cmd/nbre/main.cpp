@@ -50,9 +50,10 @@ int main(int argc, char *argv[]) {
   neb::program_name = "nbre";
 
   LOG(INFO) << "nbre started!";
-  assert(argc > 1);
-  neb::core::ipc_configuration::instance().port() = atoi(argv[1]);
-  // neb::shm_configuration::instance().shm_name_identity() = argv[1];
+  assert(argc > 2);
+  LOG(INFO) << "pass args " << argv[1] << ',' << argv[2];
+  neb::core::ipc_configuration::instance().nipc_listen() = argv[1];
+  neb::core::ipc_configuration::instance().nipc_port() = std::stoi(argv[2]);
 
   neb::core::client_driver d;
   d.init();

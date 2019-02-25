@@ -22,7 +22,7 @@ package nbre
 #cgo LDFLAGS: -L${SRCDIR}/native -lnbre_rt
 
 #include <stdlib.h>
-#include <native/ipc_interface.h>
+#include <native/nipc_interface.h>
 
 void NbreVersionFunc_cgo(int isc, void *holder, uint32_t major, uint32_t minor,uint32_t patch);
 void NbreIrListFunc_cgo(int isc, void *holder, const char *ir_name_list);
@@ -164,6 +164,9 @@ func (n *Nbre) Start() error {
 	cAdminAddr := C.CString(n.neb.Config().Nbre.AdminAddress)
 	defer C.free(unsafe.Pointer(cAdminAddr))
 
+  cIpcListen := C.CString(n.neb.Config().Nbre.IpcListen)
+	defer C.free(unsafe.Pointer(cIpcListen))
+
 	p := C.nbre_params_t{
 		m_nbre_root_dir:     cRootDir,
 		m_nbre_exe_name:     cNbrePath,
@@ -172,6 +175,8 @@ func (n *Nbre) Start() error {
 		m_nbre_log_dir:      cLogDir,
 		m_admin_pub_addr:    cAdminAddr,
 		m_nbre_start_height: C.uint64_t(n.neb.Config().Nbre.StartHeight),
+		m_nipc_listen:       cIpcListen,
+		m_nipc_port:         C.uint16_t(n.neb.Config().Nbre.IpcPort),
 	}
 
 	logging.CLog().WithFields(logrus.Fields{

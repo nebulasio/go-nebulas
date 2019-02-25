@@ -23,15 +23,18 @@
 
 std::shared_ptr<neb::core::nipc_server> _ipc;
 
-int start_nbre_ipc(const nbre_params_t params) {
+int start_nbre_ipc(nbre_params_t params) {
   try {
-    FLAGS_log_dir = params.m_nbre_log_dir;
-    google::InitGoogleLogging("nbre-server");
+    //!
+    // FLAGS_log_dir = params.m_nbre_log_dir;
+    // google::InitGoogleLogging("nbre-server");
 
     _ipc = std::make_shared<neb::core::nipc_server>();
     LOG(INFO) << "ipc server construct";
     _ipc->init_params(params);
 
+    LOG(INFO) << "ipc listen " << params.m_nipc_listen;
+    LOG(INFO) << "ipc port " << params.m_nipc_port;
     if (_ipc->start()) {
       LOG(INFO) << "start nbre succ";
       return ipc_status_succ;

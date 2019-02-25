@@ -39,8 +39,8 @@ void nipc_server::init_params(const nbre_params_t &params) {
       params.m_admin_pub_addr;
   neb::core::ipc_configuration::instance().nbre_start_height() =
       params.m_nbre_start_height;
-  neb::core::ipc_configuration::instance().port() = params.m_port;
-
+  neb::core::ipc_configuration::instance().nipc_listen() = params.m_nipc_listen;
+  neb::core::ipc_configuration::instance().nipc_port() = params.m_nipc_port;
 }
 
 bool nipc_server::start() {
@@ -56,8 +56,9 @@ bool nipc_server::start() {
       m_pkg_hub = std::make_unique<::ff::net::typed_pkg_hub>();
       add_all_callbacks();
       m_server->add_pkg_hub(*m_pkg_hub);
-      m_server->add_tcp_server("127.0.0.1",
-                               neb::core::ipc_configuration::instance().port());
+      m_server->add_tcp_server(
+          neb::core::ipc_configuration::instance().nipc_listen(),
+          neb::core::ipc_configuration::instance().nipc_port());
       m_request_timer = std::make_unique<api_request_timer>(
           &m_server->ioservice(), &ipc_callback_holder::instance());
 
@@ -129,6 +130,7 @@ void nipc_server::add_all_callbacks() {
     ack->set<p_nbre_root_dir>(conf.nbre_root_dir());
     ack->set<p_nbre_exe_name>(conf.nbre_exe_name());
     ack->set<p_neb_db_dir>(conf.neb_db_dir());
+    ack->set<p_nbre_db_dir>(conf.nbre_db_dir());
     ack->set<p_nbre_log_dir>(conf.nbre_log_dir());
     ack->set<p_admin_pub_addr>(conf.admin_pub_addr());
     ack->set<p_nbre_start_height>(conf.nbre_start_height());
