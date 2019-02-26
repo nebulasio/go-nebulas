@@ -83,8 +83,7 @@ void nebulas_rank::filter_empty_transactions_this_interval(
 
 transaction_graph_ptr_t nebulas_rank::build_graph_from_transactions(
     const std::vector<neb::fs::transaction_info_t> &trans) {
-  neb::rt::transaction_graph_ptr_t ret =
-      std::make_unique<neb::rt::transaction_graph>();
+  auto ret = std::make_unique<neb::rt::transaction_graph>();
 
   for (auto ite = trans.begin(); ite != trans.end(); ite++) {
     address_t from = ite->m_from;
@@ -119,8 +118,7 @@ std::unique_ptr<std::unordered_set<address_t>>
 nebulas_rank::get_normal_accounts(
     const std::vector<neb::fs::transaction_info_t> &txs) {
 
-  std::unique_ptr<std::unordered_set<address_t>> ret =
-      std::make_unique<std::unordered_set<address_t>>();
+  auto ret = std::make_unique<std::unordered_set<address_t>>();
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
     auto from = it->m_from;
