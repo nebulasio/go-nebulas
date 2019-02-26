@@ -53,9 +53,9 @@ void nbre_ir_versions_callback(ipc_status_code isc, void *handler,
   _l.unlock();
 }
 
-void nbre_nr_handler_callback(ipc_status_code isc, void *holder,
-                              const char *nr_handler_id) {
-  LOG(INFO) << nr_handler_id;
+void nbre_nr_handle_callback(ipc_status_code isc, void *holder,
+                             const char *nr_handle_id) {
+  LOG(INFO) << nr_handle_id;
   std::unique_lock<std::mutex> _l(local_mutex);
   to_quit = true;
   _l.unlock();
@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
   set_recv_nbre_version_callback(nbre_version_callback);
   set_recv_nbre_ir_list_callback(nbre_ir_list_callback);
   set_recv_nbre_ir_versions_callback(nbre_ir_versions_callback);
-  set_recv_nbre_nr_handler_callback(nbre_nr_handler_callback);
+  set_recv_nbre_nr_handle_callback(nbre_nr_handle_callback);
   set_recv_nbre_nr_result_callback(nbre_nr_result_callback);
   set_recv_nbre_dip_reward_callback(nbre_dip_reward_callback);
 
@@ -113,8 +113,8 @@ int main(int argc, char *argv[]) {
   ipc_nbre_ir_list(&local_mutex);
   // ipc_nbre_ir_versions(&local_mutex, "dip");
 
-  ipc_nbre_nr_handler(&local_mutex, 6600, 6650,
-                      neb::util::version(0, 1, 0).data());
+  ipc_nbre_nr_handle(&local_mutex, 6600, 6650,
+                     neb::util::version(0, 1, 0).data());
   while (true) {
     ipc_nbre_nr_result(&local_mutex,
                        "00000000000019c800000000000019fa0000000100000000");

@@ -27,7 +27,7 @@ package nbre
 void NbreVersionFunc_cgo(int isc, void *holder, uint32_t major, uint32_t minor,uint32_t patch);
 void NbreIrListFunc_cgo(int isc, void *holder, const char *ir_name_list);
 void NbreIrVersionsFunc_cgo(int isc, void *holder, const char *ir_versions);
-void NbreNrHandlerFunc_cgo(int isc, void *holder, const char *nr_handler);
+void NbreNrHandleFunc_cgo(int isc, void *holder, const char *nr_handle);
 void NbreNrResultFunc_cgo(int isc, void *holder, const char *nr_result);
 void NbreDipRewardFunc_cgo(int isc, void *holder, const char *dip_reward);
 */
@@ -197,7 +197,7 @@ func InitializeNbre() {
 	C.set_recv_nbre_version_callback((C.nbre_version_callback_t)(unsafe.Pointer(C.NbreVersionFunc_cgo)))
 	C.set_recv_nbre_ir_list_callback((C.nbre_ir_list_callback_t)(unsafe.Pointer(C.NbreIrListFunc_cgo)))
 	C.set_recv_nbre_ir_versions_callback((C.nbre_ir_versions_callback_t)(unsafe.Pointer(C.NbreIrVersionsFunc_cgo)))
-	C.set_recv_nbre_nr_handler_callback((C.nbre_nr_handler_callback_t)(unsafe.Pointer(C.NbreNrHandlerFunc_cgo)))
+	C.set_recv_nbre_nr_handle_callback((C.nbre_nr_handle_callback_t)(unsafe.Pointer(C.NbreNrHandleFunc_cgo)))
 	C.set_recv_nbre_nr_result_callback((C.nbre_nr_result_callback_t)(unsafe.Pointer(C.NbreNrResultFunc_cgo)))
 	C.set_recv_nbre_dip_reward_callback((C.nbre_dip_reward_callback_t)(unsafe.Pointer(C.NbreDipRewardFunc_cgo)))
 }
@@ -275,12 +275,12 @@ func (n *Nbre) handleNbreCommand(handler *handler, command string, args ...inter
 		start := args[0].(uint64)
 		end := args[1].(uint64)
 		version := args[2].(uint64)
-		C.ipc_nbre_nr_handler(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(start), C.uint64_t(end), C.uint64_t(version))
+		C.ipc_nbre_nr_handle(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(start), C.uint64_t(end), C.uint64_t(version))
 	case CommandNRList:
-		holder := args[0].(string)
-		cHolder := C.CString(holder)
-		defer C.free(unsafe.Pointer(cHolder))
-		C.ipc_nbre_nr_result(unsafe.Pointer(uintptr(handlerId)), cHolder)
+		handle := args[0].(string)
+		cHandle := C.CString(handle)
+		defer C.free(unsafe.Pointer(cHandle))
+		C.ipc_nbre_nr_result(unsafe.Pointer(uintptr(handlerId)), cHandle)
 	case CommandDIPList:
 		height := args[0].(uint64)
 		version := args[1].(uint64)

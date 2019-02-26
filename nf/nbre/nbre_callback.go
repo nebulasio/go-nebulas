@@ -51,10 +51,10 @@ func NbreIrVersionsFunc(code C.int, holder unsafe.Pointer, ir_versions *C.char) 
 	nbreHandled(code, holder, result, nil)
 }
 
-// NbreNrHandlerFunc returns nbre nr handler
-//export NbreNrHandlerFunc
-func NbreNrHandlerFunc(code C.int, holder unsafe.Pointer, nr_handler *C.char) {
-	result := C.GoString(nr_handler)
+// NbreNrHandleFunc returns nbre nr handle
+//export NbreNrHandleFunc
+func NbreNrHandleFunc(code C.int, holder unsafe.Pointer, nr_handle *C.char) {
+	result := C.GoString(nr_handle)
 	nbreHandled(code, holder, result, nil)
 }
 
