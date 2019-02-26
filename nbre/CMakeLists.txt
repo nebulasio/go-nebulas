@@ -134,7 +134,7 @@ if(Release)
 else()
 add_subdirectory(test)
 endif()
-#add_subdirectory(benchmark)
+add_subdirectory(benchmark)
 
 
 file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_common common/*.h common/*.hpp)
