@@ -25,7 +25,7 @@ package nbre
 void NbreVersionFunc(int isc, void *holder, uint32_t major, uint32_t minor,uint32_t patch);
 void NbreIrListFunc(int isc, void *holder, const char *ir_name_list);
 void NbreIrVersionsFunc(int isc, void *holder, const char *ir_versions);
-void NbreNrHandlerFunc(int isc, void *holder, const char *nr_handler);
+void NbreNrHandleFunc(int isc, void *holder, const char *nr_handle);
 void NbreNrResultFunc(int isc, void *holder, const char *nr_result);
 void NbreDipRewardFunc(int isc, void *holder, const char *dip_reward);
 
@@ -41,8 +41,8 @@ void NbreIrVersionsFunc_cgo(int isc, void *holder, const char *ir_versions) {
 	NbreIrVersionsFunc(isc, holder, ir_versions);
 };
 
-void NbreNrHandlerFunc_cgo(int isc, void *holder, const char *nr_handler) {
-	NbreNrHandlerFunc(isc, holder, nr_handler);
+void NbreNrHandleFunc_cgo(int isc, void *holder, const char *nr_handle) {
+	NbreNrHandleFunc(isc, holder, nr_handle);
 };
 
 void NbreNrResultFunc_cgo(int isc, void *holder, const char *nr_result) {

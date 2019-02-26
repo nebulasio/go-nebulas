@@ -270,14 +270,14 @@ void client_driver::add_handlers() {
         }
       });
 
-  m_client->add_handler<nbre_nr_handler_req>(
-      [this](std::shared_ptr<nbre_nr_handler_req> req) {
+  m_client->add_handler<nbre_nr_handle_req>(
+      [this](std::shared_ptr<nbre_nr_handle_req> req) {
         try {
-          auto ack = new_ack_pkg<nbre_nr_handler_ack>(req);
+          auto ack = new_ack_pkg<nbre_nr_handle_ack>(req);
           if (!neb::rt::nr::nr_handler::instance()
                    .get_nr_handler_id()
                    .empty()) {
-            ack->set<p_nr_handler>(std::string("nr handler not available"));
+            ack->set<p_nr_handle>(std::string("nr handler not available"));
             m_ipc_conn->send(ack);
             return;
           }
@@ -293,7 +293,7 @@ void client_driver::add_handlers() {
              << neb::util::number_to_byte<neb::util::bytes>(nr_version)
                     .to_hex();
 
-          ack->set<p_nr_handler>(ss.str());
+          ack->set<p_nr_handle>(ss.str());
           neb::rt::nr::nr_handler::instance().start(ss.str());
           m_ipc_conn->send(ack);
 
@@ -306,9 +306,9 @@ void client_driver::add_handlers() {
       [this](std::shared_ptr<nbre_nr_result_req> req) {
         try {
           auto ack = new_ack_pkg<nbre_nr_result_ack>(req);
-          std::string nr_handler_id = req->get<p_nr_handler>();
+          std::string nr_handle_id = req->get<p_nr_handle>();
           std::string nr_result =
-              neb::rt::nr::nr_handler::instance().get_nr_result(nr_handler_id);
+              neb::rt::nr::nr_handler::instance().get_nr_result(nr_handle_id);
           ack->set<p_nr_result>(nr_result);
           m_ipc_conn->send(ack);
         } catch (const std::exception &e) {

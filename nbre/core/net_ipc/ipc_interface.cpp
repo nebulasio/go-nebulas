@@ -197,21 +197,21 @@ void set_recv_nbre_ir_versions_callback(nbre_ir_versions_callback_t func) {
                                                                     _3);
 }
 
-// interface get nr handler
-int ipc_nbre_nr_handler(void *holder, uint64_t start_block, uint64_t end_block,
-                        uint64_t nr_version) {
-  return ipc_call<nbre_nr_handler_req, p_holder, p_start_block, p_end_block,
+// interface get nr handle
+int ipc_nbre_nr_handle(void *holder, uint64_t start_block, uint64_t end_block,
+                       uint64_t nr_version) {
+  return ipc_call<nbre_nr_handle_req, p_holder, p_start_block, p_end_block,
                   p_nr_version>::bind(holder, start_block, end_block,
                                       nr_version);
 }
-void set_recv_nbre_nr_handler_callback(nbre_nr_handler_callback_t func) {
-  ipc_callback<nbre_nr_handler_ack, p_holder, p_nr_handler>::bind(func, _2, _3);
+void set_recv_nbre_nr_handle_callback(nbre_nr_handle_callback_t func) {
+  ipc_callback<nbre_nr_handle_ack, p_holder, p_nr_handle>::bind(func, _2, _3);
 }
 
 // interface get nr result
-int ipc_nbre_nr_result(void *holder, const char *nr_handler) {
-  return ipc_call<nbre_nr_result_req, p_holder, p_nr_handler>::bind(holder,
-                                                                    nr_handler);
+int ipc_nbre_nr_result(void *holder, const char *nr_handle) {
+  return ipc_call<nbre_nr_result_req, p_holder, p_nr_handle>::bind(holder,
+                                                                   nr_handle);
 }
 void set_recv_nbre_nr_result_callback(nbre_nr_result_callback_t func) {
   ipc_callback<nbre_nr_result_ack, p_holder, p_nr_result>::bind(func, _2, _3);
