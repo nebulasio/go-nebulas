@@ -45,13 +45,8 @@ extern std::string program_name;
 
 typedef std::string module_t;
 typedef uint64_t version_t;
-typedef std::string address_t;
 typedef block_height_t start_block_t;
 typedef block_height_t end_block_t;
-typedef std::tuple<module_t, version_t, address_t, block_height_t,
-                   block_height_t>
-    auth_row_t;
-typedef std::vector<auth_row_t> auth_table_t;
 
 typedef boost::multiprecision::int128_t int128_t;
 typedef boost::multiprecision::uint128_t uint128_t;

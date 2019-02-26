@@ -46,8 +46,8 @@ transaction_db::read_transactions_with_address_type(
 
   std::vector<transaction_info_t> ret;
   for (auto &tx : txs) {
-    neb::util::bytes from_bytes = neb::util::string_to_byte(tx.m_from);
-    neb::util::bytes to_bytes = neb::util::string_to_byte(tx.m_to);
+    neb::util::bytes from_bytes = tx.m_from;
+    neb::util::bytes to_bytes = tx.m_to;
 
     if (from_bytes[1] == from_type && to_bytes[1] == to_type) {
       ret.push_back(tx);

@@ -88,8 +88,8 @@ transaction_graph_ptr_t nebulas_rank::build_graph_from_transactions(
       std::make_unique<neb::rt::transaction_graph>();
 
   for (auto ite = trans.begin(); ite != trans.end(); ite++) {
-    std::string from = ite->m_from;
-    std::string to = ite->m_to;
+    address_t from = ite->m_from;
+    address_t to = ite->m_to;
     wei_t value = ite->m_tx_value;
     int64_t timestamp = ite->m_timestamp;
     ret->add_edge(from, to, value, timestamp);
@@ -116,37 +116,38 @@ block_height_t nebulas_rank::get_max_height_this_block_interval(
   return 0;
 }
 
-std::unique_ptr<std::unordered_set<std::string>>
+std::unique_ptr<std::unordered_set<address_t>>
 nebulas_rank::get_normal_accounts(
     const std::vector<neb::fs::transaction_info_t> &txs) {
 
-  std::unordered_set<std::string> ret;
+  std::unique_ptr<std::unordered_set<address_t>> ret =
+      std::make_unique<std::unordered_set<address_t>>();
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
-    std::string from = it->m_from;
-    ret.insert(from);
+    auto from = it->m_from;
+    ret->insert(from);
 
-    std::string to = it->m_to;
-    ret.insert(to);
+    auto to = it->m_to;
+    ret->insert(to);
   }
-  return std::make_unique<std::unordered_set<std::string>>(ret);
+  return ret;
 }
 
-std::unique_ptr<std::unordered_map<std::string, floatxx_t>>
+std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
 nebulas_rank::get_account_balance_median(
-    const std::unordered_set<std::string> &accounts,
+    const std::unordered_set<address_t> &accounts,
     const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
     const account_db_ptr_t &db_ptr,
     std::unordered_map<address_t, wei_t> &addr_balance) {
 
-  std::unordered_map<std::string, floatxx_t> ret;
-  std::unordered_map<std::string, std::vector<wei_t>> addr_balance_v;
+  auto ret = std::make_unique<std::unordered_map<address_t, floatxx_t>>();
+  std::unordered_map<address_t, std::vector<wei_t>> addr_balance_v;
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
     block_height_t max_height_this_interval =
         get_max_height_this_block_interval(*it);
     for (auto ite = accounts.begin(); ite != accounts.end(); ite++) {
-      std::string addr = *ite;
+      address_t addr = *ite;
       wei_t balance =
           db_ptr->get_account_balance_internal(addr, max_height_this_interval);
       addr_balance_v[addr].push_back(balance);
@@ -164,11 +165,11 @@ nebulas_rank::get_account_balance_median(
     }
 
     floatxx_t normalized_median = db_ptr->get_normalized_value(median);
-    ret.insert(std::make_pair(it->first,
-                              neb::math::max(floatxx_t(0), normalized_median)));
+    ret->insert(std::make_pair(
+        it->first, neb::math::max(floatxx_t(0), normalized_median)));
   }
 
-  return std::make_unique<std::unordered_map<std::string, floatxx_t>>(ret);
+  return ret;
 }
 
 floatxx_t nebulas_rank::f_account_weight(floatxx_t in_val, floatxx_t out_val) {
@@ -178,12 +179,12 @@ floatxx_t nebulas_rank::f_account_weight(floatxx_t in_val, floatxx_t out_val) {
                                         math::sin(pi / 4.0 - atan_val));
 }
 
-std::unique_ptr<std::unordered_map<std::string, floatxx_t>>
+std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
 nebulas_rank::get_account_weight(
-    const std::unordered_map<std::string, neb::rt::in_out_val_t> &in_out_vals,
+    const std::unordered_map<address_t, neb::rt::in_out_val_t> &in_out_vals,
     const account_db_ptr_t &db_ptr) {
 
-  std::unordered_map<std::string, floatxx_t> ret;
+  auto ret = std::make_unique<std::unordered_map<address_t, floatxx_t>>();
 
   for (auto it = in_out_vals.begin(); it != in_out_vals.end(); it++) {
     wei_t in_val = it->second.m_in_val;
@@ -193,10 +194,10 @@ nebulas_rank::get_account_weight(
         db_ptr->get_normalized_value(conversion(in_val).to_float<floatxx_t>());
     floatxx_t normalized_out_val =
         db_ptr->get_normalized_value(conversion(out_val).to_float<floatxx_t>());
-    ret.insert(std::make_pair(
+    ret->insert(std::make_pair(
         it->first, f_account_weight(normalized_in_val, normalized_out_val)));
   }
-  return std::make_unique<std::unordered_map<std::string, floatxx_t>>(ret);
+  return ret;
 }
 
 floatxx_t nebulas_rank::f_account_rank(int64_t a, int64_t b, int64_t c,
@@ -209,13 +210,13 @@ floatxx_t nebulas_rank::f_account_rank(int64_t a, int64_t b, int64_t c,
   return ret;
 }
 
-std::unique_ptr<std::unordered_map<std::string, floatxx_t>>
+std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
 nebulas_rank::get_account_rank(
-    const std::unordered_map<std::string, floatxx_t> &account_median,
-    const std::unordered_map<std::string, floatxx_t> &account_weight,
+    const std::unordered_map<address_t, floatxx_t> &account_median,
+    const std::unordered_map<address_t, floatxx_t> &account_weight,
     const rank_params_t &rp) {
 
-  std::unordered_map<std::string, floatxx_t> ret;
+  auto ret = std::make_unique<std::unordered_map<address_t, floatxx_t>>();
 
   for (auto it_m = account_median.begin(); it_m != account_median.end();
        it_m++) {
@@ -224,7 +225,7 @@ nebulas_rank::get_account_rank(
       floatxx_t rank_val =
           f_account_rank(rp.m_a, rp.m_b, rp.m_c, rp.m_d, rp.m_theta, rp.m_mu,
                          rp.m_lambda, it_m->second, it_w->second);
-      ret.insert(std::make_pair(it_m->first, rank_val));
+      ret->insert(std::make_pair(it_m->first, rank_val));
     }
   }
 
@@ -281,7 +282,7 @@ nebulas_rank::get_account_rank(
   //}
   //}
   // ff::ff_wait(ff::all(pc));
-  return std::make_unique<std::unordered_map<std::string, floatxx_t>>(ret);
+  return ret;
 }
 
 std::unique_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
@@ -366,9 +367,9 @@ std::unique_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
   auto account_rank = *it_account_rank;
   LOG(INFO) << "account rank size: " << account_rank.size();
 
-  std::vector<nr_info_t> infos;
+  auto infos = std::make_unique<std::vector<nr_info_t>>();
   for (auto it = accounts.begin(); it != accounts.end(); it++) {
-    std::string addr = *it;
+    address_t addr = *it;
     if (account_median.find(addr) == account_median.end() ||
         account_rank.find(addr) == account_rank.end() ||
         in_out_degrees.find(addr) == in_out_degrees.end() ||
@@ -396,7 +397,7 @@ std::unique_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
                    account_median[addr],
                    account_weight[addr],
                    account_rank[addr]};
-    infos.push_back(info);
+    infos->push_back(info);
   }
 
   auto end_time = std::chrono::high_resolution_clock::now();
@@ -405,13 +406,13 @@ std::unique_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
                                                                 start_time)
                    .count()
             << " seconds";
-  return std::make_unique<std::vector<nr_info_t>>(infos);
+  return infos;
 }
 
 void nebulas_rank::convert_nr_info_to_ptree(const nr_info_t &info,
                                             boost::property_tree::ptree &p) {
 
-  neb::util::bytes addr_bytes = neb::util::string_to_byte(info.m_address);
+  neb::util::bytes addr_bytes = info.m_address;
 
   uint32_t in_degree = info.m_in_degree;
   uint32_t out_degree = info.m_out_degree;
@@ -492,14 +493,14 @@ nebulas_rank::json_to_nr_info(const std::string &nr_result) {
   boost::property_tree::json_parser::read_json(ss, pt);
 
   boost::property_tree::ptree nrs = pt.get_child("nrs");
-  std::vector<nr_info_t> infos;
+  auto infos = std::make_unique<std::vector<nr_info_t>>();
 
   BOOST_FOREACH (boost::property_tree::ptree::value_type &v, nrs) {
     boost::property_tree::ptree nr = v.second;
     nr_info_t info;
     neb::util::bytes addr_bytes =
         neb::util::bytes::from_base58(nr.get<std::string>("address"));
-    info.m_address = neb::util::byte_to_string(addr_bytes);
+    info.m_address = addr_bytes;
 
     info.m_in_degree = nr.get<uint32_t>("in_degree");
     info.m_out_degree = nr.get<uint32_t>("out_degree");
@@ -518,10 +519,10 @@ nebulas_rank::json_to_nr_info(const std::string &nr_result) {
         neb::math::from_string<floatxx_t>(nr.get<std::string>("weight"));
     info.m_nr_score =
         neb::math::from_string<floatxx_t>(nr.get<std::string>("score"));
-    infos.push_back(info);
+    infos->push_back(info);
   }
 
-  return std::make_unique<std::vector<nr_info_t>>(infos);
+  return infos;
 }
 
 } // namespace nr

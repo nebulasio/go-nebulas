@@ -19,6 +19,7 @@
 //
 
 #pragma once
+#include "common/address.h"
 #include "fs/blockchain.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/rocksdb_storage.h"

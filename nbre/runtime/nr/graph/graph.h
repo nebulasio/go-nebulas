@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
+#include "common/address.h"
 #include "common/common.h"
 #include <boost/graph/adjacency_list.hpp>
 
@@ -54,6 +55,8 @@ public:
   transaction_graph();
 
   void add_edge(const std::string &from, const std::string &to, wei_t val,
+                int64_t ts);
+  void add_edge(const address_t &from, const address_t &to, wei_t val,
                 int64_t ts);
 
   void write_to_graphviz(const std::string &filename);

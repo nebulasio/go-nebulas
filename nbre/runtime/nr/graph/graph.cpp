@@ -52,6 +52,11 @@ void transaction_graph::add_edge(const std::string &from, const std::string &to,
   boost::put(boost::vertex_name_t(), m_graph, to_vertex, to);
 }
 
+void transaction_graph::add_edge(const address_t &from, const address_t &to,
+                                 wei_t val, int64_t ts) {
+  add_edge(std::to_string(from), std::to_string(to), val, ts);
+}
+
 void transaction_graph::write_to_graphviz(const std::string &filename) {
   std::map<std::string, std::string> graph_attr, vertex_attr, edge_attr;
 
@@ -97,9 +102,9 @@ transaction_graph *build_graph_from_internal(
     for (boost::tie(oei, oei_end) = boost::out_edges(*vi, sgi); oei != oei_end;
          oei++) {
       auto source = boost::source(*oei, sgi);
-      std::string from = boost::get(boost::vertex_name_t(), sgi, source);
+      auto from = boost::get(boost::vertex_name_t(), sgi, source);
       auto target = boost::target(*oei, sgi);
-      std::string to = boost::get(boost::vertex_name_t(), sgi, target);
+      auto to = boost::get(boost::vertex_name_t(), sgi, target);
       wei_t w = boost::get(boost::edge_weight_t(), sgi, *oei);
       int64_t t = boost::get(boost::edge_timestamp_t(), sgi, *oei);
 

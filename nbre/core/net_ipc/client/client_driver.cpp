@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "core/net_ipc/client/client_driver.h"
+#include "common/address.h"
 #include "common/configuration.h"
 #include "core/ir_warden.h"
 #include "fs/ir_manager/api/ir_api.h"
@@ -194,13 +195,13 @@ void client_driver::add_handlers() {
       configuration::instance().nbre_start_height() =
           ack->get<p_nbre_start_height>();
 
-      std::string addr_base58 = ack->get<p_admin_pub_addr>().c_str();
-      neb::util::bytes addr_bytes = neb::util::bytes::from_base58(addr_base58);
-      configuration::instance().admin_pub_addr() =
-          neb::util::byte_to_string(addr_bytes);
+      std::string addr = ack->get<p_admin_pub_addr>().c_str();
+      // neb::util::bytes addr_bytes =
+      // neb::util::bytes::from_base58(addr_base58);
+      configuration::instance().admin_pub_addr() = to_address(addr);
 
       LOG(INFO) << configuration::instance().nbre_db_dir();
-      LOG(INFO) << addr_base58;
+      // LOG(INFO) << addr_base58;
 
       //!
       // FLAGS_log_dir = configuration::instance().nbre_log_dir();

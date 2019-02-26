@@ -83,6 +83,9 @@ public:
   bool operator!=(const fix_bytes<ByteLength> &v) const {
     return m_value != v.m_value;
   }
+  bool operator<(const fix_bytes<ByteLength> &v) const {
+    return memcmp(m_value, v.m_value, ByteLength) < 0;
+  }
 
   std::string to_base58() const {
     return internal::convert_byte_to_base58(value(), size());
@@ -153,6 +156,7 @@ public:
 
   bool operator==(const bytes &v) const;
   bool operator!=(const bytes &v) const;
+  bool operator<(const bytes &v) const;
 
   byte_t operator[](size_t index) const;
   byte_t &operator[](size_t index);
@@ -256,3 +260,24 @@ auto number_to_byte(T val) ->
 }
 }
 }
+namespace std {
+template <> struct hash<::neb::util::bytes> {
+  typedef ::neb::util::bytes argument_type;
+  typedef std::size_t result_type;
+  result_type operator()(argument_type const &s) const noexcept {
+    return std::hash<std::string>{}(byte_to_string(s));
+  }
+};
+
+template <size_t ByteLength> struct hash<::neb::util::fix_bytes<ByteLength>> {
+  typedef ::neb::util::fix_bytes<ByteLength> argument_type;
+  typedef std::size_t result_type;
+  result_type operator()(argument_type const &s) const noexcept {
+    return std::hash<std::string>{}(byte_to_string(s));
+  }
+};
+
+inline std::string to_string(const ::neb::util::bytes &s) {
+  return byte_to_string(s);
+}
+} // namespace std

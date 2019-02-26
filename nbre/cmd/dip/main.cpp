@@ -64,12 +64,12 @@ void dip(uint64_t height) {
   uint64_t days = 7;
   uint64_t dip_start_block = 1540000;
   uint64_t dip_block_interval = days * block_nums_of_a_day;
-  std::string dip_reward_addr =
-      std::string("n1YubAA3VVi2HEDw3VSaJ2ZcjzYKXL6SuQw");
+  neb::address_t dip_reward_addr =
+      neb::base58_to_address("n1YubAA3VVi2HEDw3VSaJ2ZcjzYKXL6SuQw");
 
   if (!height) {
     neb::rt::dip::init_dip_params(dip_start_block, dip_block_interval,
-                                  dip_reward_addr, std::string());
+                                  dip_reward_addr, neb::address_t());
     std::cout << std::string("{\"err\":\"init dip params\"}") << std::endl;
     return;
   }

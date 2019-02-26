@@ -211,7 +211,7 @@ void ir_manager_helper::show_auth_table(
   for (auto &r : auth_table) {
     std::string key = boost::str(boost::format("key <%1%, %2%, %3%>, ") %
                                  std::get<0>(r.first) % std::get<1>(r.first) %
-                                 std::get<2>(r.first));
+                                 std::to_string(std::get<2>(r.first)));
     std::string val = boost::str(boost::format("val <%1%, %2%>") %
                                  std::get<0>(r.second) % std::get<1>(r.second));
     LOG(INFO) << key << val;

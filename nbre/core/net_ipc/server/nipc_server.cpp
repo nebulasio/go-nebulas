@@ -34,7 +34,8 @@ void nipc_server::init_params(const nbre_params_t &params) {
   neb::configuration::instance().neb_db_dir() = params.m_neb_db_dir;
   neb::configuration::instance().nbre_db_dir() = params.m_nbre_db_dir;
   neb::configuration::instance().nbre_log_dir() = params.m_nbre_log_dir;
-  neb::configuration::instance().admin_pub_addr() = params.m_admin_pub_addr;
+  neb::configuration::instance().admin_pub_addr() =
+      base58_to_address(params.m_admin_pub_addr);
   neb::configuration::instance().nbre_start_height() =
       params.m_nbre_start_height;
   neb::configuration::instance().nipc_listen() = params.m_nipc_listen;
@@ -147,7 +148,7 @@ void nipc_server::add_all_callbacks() {
     ack->set<p_neb_db_dir>(conf.neb_db_dir());
     ack->set<p_nbre_db_dir>(conf.nbre_db_dir());
     ack->set<p_nbre_log_dir>(conf.nbre_log_dir());
-    ack->set<p_admin_pub_addr>(conf.admin_pub_addr());
+    ack->set<p_admin_pub_addr>(std::to_string(conf.admin_pub_addr()));
     ack->set<p_nbre_start_height>(conf.nbre_start_height());
     m_conn->send(ack);
   });

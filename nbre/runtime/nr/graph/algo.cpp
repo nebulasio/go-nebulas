@@ -314,7 +314,7 @@ void graph_algo::merge_topk_edges_with_same_from_and_same_to(
 std::unique_ptr<std::unordered_map<address_t, in_out_val_t>>
 graph_algo::get_in_out_vals(const transaction_graph::internal_graph_t &graph) {
 
-  std::unordered_map<std::string, in_out_val_t> ret;
+  auto ret = std::make_unique<std::unordered_map<address_t, in_out_val_t>>();
 
   transaction_graph::viterator_t vi, vi_end;
 
@@ -335,31 +335,31 @@ graph_algo::get_in_out_vals(const transaction_graph::internal_graph_t &graph) {
       out_val += val;
     }
 
-    std::string addr = boost::get(boost::vertex_name_t(), graph, *vi);
-    ret.insert(std::make_pair(addr, in_out_val_t{in_val, out_val}));
+    auto addr = to_address(boost::get(boost::vertex_name_t(), graph, *vi));
+    ret->insert(std::make_pair(addr, in_out_val_t{in_val, out_val}));
   }
-  return std::make_unique<std::unordered_map<std::string, in_out_val_t>>(ret);
+  return ret;
 }
 
 std::unique_ptr<std::unordered_map<address_t, wei_t>>
 graph_algo::get_stakes(const transaction_graph::internal_graph_t &graph) {
 
-  std::unordered_map<std::string, wei_t> ret;
+  auto ret = std::make_unique<std::unordered_map<address_t, wei_t>>();
 
   auto it_in_out_vals = get_in_out_vals(graph);
   auto in_out_vals = *it_in_out_vals;
   for (auto it = in_out_vals.begin(); it != in_out_vals.end(); it++) {
-    ret.insert(
+    ret->insert(
         std::make_pair(it->first, it->second.m_in_val - it->second.m_out_val));
   }
-  return std::make_unique<std::unordered_map<std::string, wei_t>>(ret);
+  return ret;
 }
 
 std::unique_ptr<std::unordered_map<address_t, in_out_degree_t>>
 graph_algo::get_in_out_degrees(
     const transaction_graph::internal_graph_t &graph) {
 
-  std::unordered_map<std::string, in_out_degree_t> ret;
+  auto ret = std::make_unique<std::unordered_map<address_t, in_out_degree_t>>();
 
   transaction_graph::viterator_t vi, vi_end;
 
@@ -378,25 +378,24 @@ graph_algo::get_in_out_degrees(
       out_degree++;
     }
 
-    std::string addr = boost::get(boost::vertex_name_t(), graph, *vi);
-    ret.insert(std::make_pair(addr, in_out_degree_t{in_degree, out_degree}));
+    auto addr = to_address(boost::get(boost::vertex_name_t(), graph, *vi));
+    ret->insert(std::make_pair(addr, in_out_degree_t{in_degree, out_degree}));
   }
-  return std::make_unique<std::unordered_map<std::string, in_out_degree_t>>(
-      ret);
+  return ret;
 }
 
 std::unique_ptr<std::unordered_map<address_t, uint32_t>>
 graph_algo::get_degree_sum(const transaction_graph::internal_graph_t &graph) {
 
-  std::unordered_map<std::string, uint32_t> ret;
+  auto ret = std::make_unique<std::unordered_map<address_t, uint32_t>>();
 
   auto it_in_out_degrees = get_in_out_degrees(graph);
   auto in_out_degrees = *it_in_out_degrees;
   for (auto it = in_out_degrees.begin(); it != in_out_degrees.end(); it++) {
-    ret.insert(std::make_pair(it->first, it->second.m_in_degree +
-                                             it->second.m_out_degree));
+    ret->insert(std::make_pair(it->first, it->second.m_in_degree +
+                                              it->second.m_out_degree));
   }
-  return std::make_unique<std::unordered_map<std::string, uint32_t>>(ret);
+  return ret;
 }
 } // namespace rt
 } // namespace neb
