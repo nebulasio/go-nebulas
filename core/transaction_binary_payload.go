@@ -96,9 +96,11 @@ func (payload *BinaryPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 			PayloadSourceType: deploy.SourceType,
 			FunctionName: ContractAcceptFunc,
 			ContractArgs: "",
+			ListenAddr: block.nvm.GetNVMListenAddr(),
+			ChainID: block.ChainID(),
 		}
 		
-		result, exeErr := engine.Call(nvmConf, block.nvm.GetNVMListenAddr())
+		result, exeErr := engine.Call(nvmConf)
 		gasCount := engine.ExecutionInstructions()
 
 		instructions, err := util.NewUint128FromInt(int64(gasCount))

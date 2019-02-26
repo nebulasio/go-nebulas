@@ -109,6 +109,7 @@ type V8Engine struct {
 	lcsHandler                              uint64
 	gcsHandler                              uint64
 	serverListenAddr						string
+	chainID 								uint32
 	startExeTime							time.Time
 	executionTimeOut						uint64
 }
@@ -126,22 +127,15 @@ func NewV8Engine(ctx *Context) *V8Engine {
 	engine := &V8Engine{
 		ctx:      ctx,
 		modules:  NewModules(),
-		strictDisallowUsageOfInstructionCounter: 1, // enable by default.
+		strictDisallowUsageOfInstructionCounter: 1, 	// enable by default.
 		enableLimits:                            true,
 		limitsOfExecutionInstructions:           0,
 		limitsOfTotalMemorySize:                 0,
 		actualCountOfExecutionInstructions:      0,
 		actualTotalMemorySize:                   0,
 		executionTimeOut:			  			 0,
+		chainID:								 1,		// default,set to be mainnet
 	}
-
-	/*
-	(func() {
-		enginesLock.Lock()
-		defer enginesLock.Unlock()
-		engines[engine.v8engine] = engine
-	})()
-	*/
 
 	(func() {
 		storagesLock.Lock()
@@ -223,8 +217,9 @@ func (e *V8Engine) CheckTimeout() bool {
 }
 
 // Call function in a script
-func (e *V8Engine) Call(config *core.NVMConfig, listenAddr string) (string, error) {
-	e.serverListenAddr = listenAddr
+func (e *V8Engine) Call(config *core.NVMConfig) (string, error) {
+	e.serverListenAddr = config.ListenAddr
+	e.chainID = config.ChainID
 
 	function := config.FunctionName
 	if core.PublicFuncNameChecker.MatchString(function) == false {
@@ -237,8 +232,9 @@ func (e *V8Engine) Call(config *core.NVMConfig, listenAddr string) (string, erro
 	return e.RunScriptSource(config)
 }
 
-func (e *V8Engine) DeployAndInit(config *core.NVMConfig, listenAddr string) (string, error){
-	e.serverListenAddr = listenAddr
+func (e *V8Engine) DeployAndInit(config *core.NVMConfig) (string, error){
+	e.serverListenAddr = config.ListenAddr
+	e.chainID = config.ChainID
 	config.FunctionName = core.ContractInitFunc
 	return e.RunScriptSource(config)
 }
@@ -331,7 +327,8 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 	configBundle := &NVMConfigBundle{ScriptSrc:config.PayloadSource, ScriptType:config.PayloadSourceType, EnableLimits: true, RunnableSrc: runnableSource, 
 		MaxLimitsOfExecutionInstruction:MaxLimitsOfExecutionInstructions, DefaultLimitsOfTotalMemSize:core.DefaultLimitsOfTotalMemorySize,
 		LimitsExeInstruction: e.limitsOfExecutionInstructions, LimitsTotalMemSize: e.limitsOfTotalMemorySize, ExecutionTimeout: e.executionTimeOut,
-		BlockJson:formatArgs(string(blockJSON)), TxJson: formatArgs(string(txJSON)), ModuleId: moduleID}
+		BlockJson:formatArgs(string(blockJSON)), TxJson: formatArgs(string(txJSON)), 
+		ModuleId: moduleID, ChainId: e.chainID, BlockHeight: e.ctx.block.Height()}
 
 	callbackResult := &NVMCallbackResult{Result:""}
 
@@ -372,12 +369,6 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			}).Error("Failed to receive data response from server")
 			return "", ErrRPCConnection
 		}
-
-		logging.CLog().WithFields(logrus.Fields{
-			"response_type": dataResponse.GetResponseType(),
-			"response_indx": dataResponse.GetResponseIndx(),
-			"module": "nvm",
-		}).Info(">>>>>>>Receiving a call back from the v8 process to handle")
 
 		if(dataResponse.GetResponseType() == NVMDataExchangeTypeFinal && dataResponse.GetFinalResponse() != nil){
 
@@ -456,16 +447,24 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 					e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
 				}
 			}
+			if len(result) == 0 {
+				result = "\"\""
+			}
+			
+			logging.CLog().WithFields(logrus.Fields{
+				"result": result,
+			}).Info("<><><><><><> The contract execution result!")
+
 			return result, nil
 
 		}else{
-			//TODO start to handle the callback and send result back to server
 			serverLcsHandler := dataResponse.GetLcsHandler()
 			serverGcsHandler := dataResponse.GetGcsHandler()
 			callbackResponse := dataResponse.GetCallbackResponse()
 			responseFuncName := callbackResponse.GetFuncName()
 			responseFuncParams := callbackResponse.GetFuncParams()
 			
+			/*
 			logging.CLog().WithFields(logrus.Fields{
 				"response_type": dataResponse.GetResponseType,
 				"response_indx": dataResponse.GetResponseIndx,
@@ -473,6 +472,7 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 				"response_function_para": responseFuncParams[0],
 				"module": "nvm",
 			}).Info(">>>>>>>Now is receiving a call back from the v8 process to handle")
+			*/
 
 			// check the callback type
 			callbackResult := &NVMCallbackResult{}

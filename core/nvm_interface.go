@@ -23,6 +23,8 @@ type NVMConfig struct {
 	PayloadSourceType string
 	FunctionName string
 	ContractArgs string
+	ListenAddr string
+	ChainID uint32
 }
 
 func (c *NVMConfig) GetPayloadSource() string {

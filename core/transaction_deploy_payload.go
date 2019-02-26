@@ -138,9 +138,10 @@ func (payload *DeployPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 		PayloadSource: payload.Source,
 		PayloadSourceType: payload.SourceType,
 		ContractArgs: payload.Args,
+		ListenAddr: block.nvm.GetNVMListenAddr(),
+		ChainID: block.ChainID(),
 	}
-
-	result, exeErr := engine.DeployAndInit(nvmConf, block.nvm.GetNVMListenAddr())
+	result, exeErr := engine.DeployAndInit(nvmConf)
 	gasCount := engine.ExecutionInstructions()
 
 	instructions, err := util.NewUint128FromInt(int64(gasCount))
@@ -155,5 +156,12 @@ func (payload *DeployPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 	if exeErr != nil && exeErr == ErrExecutionFailed && len(result) > 0 {
 		exeErr = fmt.Errorf("Deploy: %s", result)
 	}
+
+	logging.CLog().WithFields(logrus.Fields{
+			"instructions": instructions,
+			"result": result, 
+			"exeErr": exeErr,
+		}).Info(">>>>>Contract deploy result")
+	 
 	return instructions, result, exeErr
 }

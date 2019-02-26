@@ -70,10 +70,6 @@
 // constants
 static const uint32_t NVM_CURRENCY_LEVEL = 1;
 
-class NVMEngine;
-
-static NVMEngine *gNVMEngine = nullptr;
-
 typedef struct{
   std::string source;
   uint64_t sourceLineOffset;
@@ -93,8 +89,6 @@ class NVMEngine final: public NVMService::Service{
       m_concurrency_scale = concurrency;
       m_src_offset = 0;
       srcModuleCache = std::unique_ptr<std::map<std::string, CacheSrcItem>>(new std::map<std::string, CacheSrcItem>());
-
-      std::cout<<"Now we're starting the engine"<<std::endl;
     }
 
     int GetRunnableSourceCode(const std::string&, std::string&);

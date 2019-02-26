@@ -275,8 +275,8 @@ type NVM interface {
 // SmartContractEngine interface
 type SmartContractEngine interface {
 	SetExecutionLimits(uint64, uint64) error
-	DeployAndInit(config *NVMConfig, listenAddr string) (string, error)
-	Call(config *NVMConfig, listenAddr string) (string, error)
+	DeployAndInit(config *NVMConfig) (string, error)
+	Call(config *NVMConfig) (string, error)
 	ExecutionInstructions() uint64
 	Dispose()
 
