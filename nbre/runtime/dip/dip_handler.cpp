@@ -71,17 +71,35 @@ void dip_handler::init_dip_params(block_height_t height) {
     try {
       jit_driver &jd = jit_driver::instance();
       LOG(INFO) << "to init dip params";
-      jd.run_ir<std::string>("dip", std::numeric_limits<uint64_t>::max(),
-                             neb::configuration::instance().dip_func_name(), 0);
+      auto ret = jd.run_ir<std::string>(
+          "dip", std::numeric_limits<uint64_t>::max(),
+          neb::configuration::instance().dip_func_name(), 0);
 
-      m_dip_history.push_back(dip_meta_t{
-          neb::configuration::instance().dip_start_block(),
-          neb::configuration::instance().dip_block_interval(), tmp.first});
+      dip_meta_t info{neb::configuration::instance().dip_start_block(),
+                      neb::configuration::instance().dip_block_interval(),
+                      neb::configuration::instance().dip_reward_addr(),
+                      neb::configuration::instance().coinbase_addr(),
+                      tmp.first};
+#if 0
+      {
+        // pass dip params by jit driver exe result
+        boost::property_tree::ptree pt;
+        std::stringstream ss(ret);
+        boost::property_tree::json_parser::read_json(ss, pt);
+        dip_meta_t info{pt.get<block_height_t>("start_block"),
+                        pt.get<block_height_t>("block_interval"),
+                        base58_to_address(pt.get<std::string>("reward_addr")),
+                        base58_to_address(pt.get<std::string>("coinbase_addr")),
+                        tmp.first};
+      }
+#endif
+      m_dip_history.push_back(info);
 
       LOG(INFO) << "show dip history";
       for (auto &ele : m_dip_history) {
         LOG(INFO) << ele.m_start_block << ',' << ele.m_block_interval << ','
-                  << ele.m_version;
+                  << ele.m_reward_addr.to_base58() << ','
+                  << ele.m_coinbase_addr.to_base58() << ',' << ele.m_version;
       }
     } catch (const std::exception &e) {
       LOG(INFO) << "dip params init failed " << e.what();
@@ -225,11 +243,12 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   }
 
   LOG(INFO) << "dip history size " << m_dip_history.size();
-  auto it_height = std::upper_bound(
-      m_dip_history.begin(), m_dip_history.end(), dip_meta_t{height, 0, 0},
-      [](const dip_meta_t &d1, const dip_meta_t &d2) {
-        return d1.m_start_block < d2.m_start_block;
-      });
+  dip_meta_t tmp{height, 0, neb::util::bytes(), neb::util::bytes(), 0};
+  auto it_height =
+      std::upper_bound(m_dip_history.begin(), m_dip_history.end(), tmp,
+                       [](const dip_meta_t &d1, const dip_meta_t &d2) {
+                         return d1.m_start_block < d2.m_start_block;
+                       });
 
   it_height--;
   block_height_t dip_start_block = it_height->m_start_block;

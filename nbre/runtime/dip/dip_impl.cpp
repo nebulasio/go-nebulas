@@ -24,6 +24,8 @@
 #include "common/configuration.h"
 #include "runtime/dip/dip_reward.h"
 #include "runtime/nr/impl/nebulas_rank.h"
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 namespace neb {
 namespace rt {
@@ -72,6 +74,21 @@ void init_dip_params(compatible_uint64_t dip_start_block,
             << coinbase_addr;
 }
 
+std::string dip_param_list(compatible_uint64_t dip_start_block,
+                           compatible_uint64_t dip_block_interval,
+                           const std::string &dip_reward_addr,
+                           const std::string &coinbase_addr) {
+  boost::property_tree::ptree pt;
+  pt.put("start_block", dip_start_block);
+  pt.put("block_interval", dip_block_interval);
+  pt.put("reward_addr", dip_reward_addr);
+  pt.put("coinbase_addr", coinbase_addr);
+
+  std::stringstream ss;
+  boost::property_tree::json_parser::write_json(ss, pt, false);
+  std::string json_str = ss.str();
+  return json_str;
+}
 } // namespace dip
 } // namespace rt
 } // namespace neb

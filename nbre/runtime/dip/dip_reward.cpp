@@ -69,7 +69,7 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
   LOG(INFO) << "sum votes " << sum_votes;
 
   floatxx_t reward_sum(0);
-  std::vector<dip_info_t> dip_infos;
+  auto dip_infos = std::make_unique<std::vector<dip_info_t>>();
   for (auto &v : *it_dapp_votes) {
     dip_info_t info;
     info.m_contract = std::to_string(v.first);
@@ -84,15 +84,15 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
 
     info.m_reward =
         neb::math::to_string(neb::conversion().from_float(reward_in_wei));
-    dip_infos.push_back(info);
+    dip_infos->push_back(info);
   }
-  LOG(INFO) << "dip info size " << dip_infos.size();
+  LOG(INFO) << "dip info size " << dip_infos->size();
   LOG(INFO) << "reward sum " << reward_sum << ", bonus total " << bonus_total;
   // assert(reward_sum <= bonus_total);
   LOG(INFO) << "reward sum " << reward_sum;
-  back_to_coinbase(dip_infos, bonus_total - reward_sum);
+  back_to_coinbase(*dip_infos, bonus_total - reward_sum);
   LOG(INFO) << "back to coinbase";
-  return std::make_unique<std::vector<dip_info_t>>(dip_infos);
+  return dip_infos;
 }
 
 void dip_reward::back_to_coinbase(std::vector<dip_info_t> &dip_infos,
@@ -172,7 +172,7 @@ dip_reward::json_to_dip_info(const std::string &dip_reward) {
   boost::property_tree::json_parser::read_json(ss, pt);
 
   boost::property_tree::ptree dips = pt.get_child("dips");
-  std::vector<dip_info_t> infos;
+  auto infos = std::make_unique<std::vector<dip_info_t>>();
 
   BOOST_FOREACH (boost::property_tree::ptree::value_type &v, dips) {
     boost::property_tree::ptree nr = v.second;
@@ -184,9 +184,9 @@ dip_reward::json_to_dip_info(const std::string &dip_reward) {
     info.m_deployer = neb::util::byte_to_string(deployer_bytes);
     info.m_contract = neb::util::byte_to_string(contract_bytes);
     info.m_reward = nr.get<std::string>("reward");
-    infos.push_back(info);
+    infos->push_back(info);
   }
-  return std::make_unique<std::vector<dip_info_t>>(infos);
+  return infos;
 }
 
 std::unique_ptr<
@@ -194,14 +194,15 @@ std::unique_ptr<
 dip_reward::account_call_contract_count(
     const std::vector<neb::fs::transaction_info_t> &txs) {
 
-  std::unordered_map<address_t, std::unordered_map<address_t, uint32_t>> cnt;
+  auto cnt = std::make_unique<
+      std::unordered_map<address_t, std::unordered_map<address_t, uint32_t>>>();
 
   for (auto &tx : txs) {
     address_t acc_addr = tx.m_from;
     address_t contract_addr = tx.m_to;
-    auto it = cnt.find(acc_addr);
+    auto it = cnt->find(acc_addr);
 
-    if (it != cnt.end()) {
+    if (it != cnt->end()) {
       std::unordered_map<address_t, uint32_t> &tmp = it->second;
       if (tmp.find(contract_addr) != tmp.end()) {
         tmp[contract_addr]++;
@@ -211,12 +212,10 @@ dip_reward::account_call_contract_count(
     } else {
       std::unordered_map<address_t, uint32_t> tmp;
       tmp.insert(std::make_pair(contract_addr, 1));
-      cnt.insert(std::make_pair(acc_addr, tmp));
+      cnt->insert(std::make_pair(acc_addr, tmp));
     }
   }
-  return std::make_unique<
-      std::unordered_map<address_t, std::unordered_map<address_t, uint32_t>>>(
-      cnt);
+  return cnt;
 }
 
 std::unique_ptr<
@@ -225,7 +224,8 @@ dip_reward::account_to_contract_votes(
     const std::vector<neb::fs::transaction_info_t> &txs,
     const std::vector<neb::rt::nr::nr_info_t> &nr_infos) {
 
-  std::unordered_map<address_t, std::unordered_map<address_t, floatxx_t>> ret;
+  auto ret = std::make_unique<std::unordered_map<
+      address_t, std::unordered_map<address_t, floatxx_t>>>();
 
   auto it_cnt = account_call_contract_count(txs);
   auto cnt = *it_cnt;
@@ -247,33 +247,30 @@ dip_reward::account_to_contract_votes(
     for (auto &e : it_acc->second) {
       std::unordered_map<address_t, floatxx_t> tmp;
       tmp.insert(std::make_pair(e.first, e.second * score / sum_votes));
-      ret.insert(std::make_pair(addr, tmp));
+      ret->insert(std::make_pair(addr, tmp));
     }
   }
-  return std::make_unique<
-      std::unordered_map<address_t, std::unordered_map<address_t, floatxx_t>>>(
-      ret);
+  return ret;
 }
 
 std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
 dip_reward::dapp_votes(const std::unordered_map<
                        address_t, std::unordered_map<address_t, floatxx_t>>
                            &acc_contract_votes) {
-  std::unordered_map<address_t, floatxx_t> ret;
+  auto ret = std::make_unique<std::unordered_map<address_t, floatxx_t>>();
 
   for (auto &it : acc_contract_votes) {
     for (auto &ite : it.second) {
-      auto iter = ret.find(ite.first);
-      if (iter != ret.end()) {
+      auto iter = ret->find(ite.first);
+      if (iter != ret->end()) {
         floatxx_t &tmp = iter->second;
         tmp += neb::math::sqrt(ite.second);
       } else {
-        ret.insert(std::make_pair(ite.first, neb::math::sqrt(ite.second)));
+        ret->insert(std::make_pair(ite.first, neb::math::sqrt(ite.second)));
       }
     }
   }
-
-  return std::make_unique<std::unordered_map<address_t, floatxx_t>>(ret);
+  return ret;
 }
 
 floatxx_t dip_reward::participate_lambda(
