@@ -30,7 +30,7 @@ namespace fs {
 
 class account_db {
 public:
-  account_db(blockchain_api *blockchain_ptr);
+  account_db(blockchain_api_base *blockchain_ptr);
 
   wei_t get_balance(const address_t &addr, block_height_t height);
   address_t get_contract_deployer(const address_t &address_t,
@@ -49,7 +49,7 @@ private:
   std::unordered_map<address_t, std::vector<block_height_t>> m_addr_height_list;
   std::unordered_map<block_height_t, std::unordered_map<address_t, wei_t>>
       m_height_addr_val;
-  blockchain_api *m_blockchain;
+  blockchain_api_base *m_blockchain;
 };
 } // namespace fs
 } // namespace neb

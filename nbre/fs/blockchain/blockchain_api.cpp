@@ -28,8 +28,12 @@
 namespace neb {
 namespace fs {
 
+blockchain_api_base::~blockchain_api_base() {}
+
 blockchain_api::blockchain_api(blockchain *blockchain_ptr)
     : m_blockchain(blockchain_ptr) {}
+
+blockchain_api::~blockchain_api() {}
 
 std::unique_ptr<std::vector<transaction_info_t>>
 blockchain_api::get_block_transactions_api(block_height_t height) {

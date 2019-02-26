@@ -44,16 +44,62 @@ int main(int argc, char *argv[]) {
 #include "common/configuration.h"
 #include "core/net_ipc/client/client_driver.h"
 #include "fs/util.h"
+#include <boost/program_options.hpp>
+
+namespace po = boost::program_options;
+
+po::variables_map get_variables_map(int argc, char *argv[]) {
+  po::options_description desc("NBRE (Nebulas Blockchain Runtime Environment)");
+  // clang-format off
+  desc.add_options()("help", "show help message")
+    ("use-test-blockchain", "use test blockchain")
+    ("log-to-stderr", "glog to stderr")
+    ("ipc-port", po::value<std::uint16_t>(), "ipc network port")
+    ("ipc_ip", po::value<std::string>(), "ipc network ip");
+
+  // clang-format on
+
+  po::variables_map vm;
+  po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::notify(vm);
+  if (vm.count("help")) {
+    std::cout << desc << "\n";
+    exit(1);
+  }
+
+  if (vm.count("use-test-blockchain")) {
+    neb::use_test_blockchain = true;
+  } else {
+    neb::use_test_blockchain = false;
+  }
+
+  if (vm.count("log-to-stderr")) {
+    neb::glog_log_to_stderr = true;
+  } else {
+    neb::glog_log_to_stderr = false;
+  }
+
+  if (!vm.count("ipc-port")) {
+    std::cout << "You must specify \"ipc-port\"!";
+    exit(1);
+  }
+  if (!vm.count("ipc-ip")) {
+    std::cout << "You must specify \"ipc-ip\"!";
+    exit(1);
+  }
+
+  neb::configuration::instance().nipc_listen() = vm["ipc-ip"].as<std::string>();
+  neb::configuration::instance().nipc_port() = vm["ipc-port"].as<uint16_t>();
+
+  return vm;
+}
 
 int main(int argc, char *argv[]) {
   FLAGS_logtostderr = true;
   neb::program_name = "nbre";
 
+  get_variables_map(argc, argv);
   LOG(INFO) << "nbre started!";
-  assert(argc > 2);
-  neb::configuration::instance().nipc_listen() = argv[1];
-  neb::configuration::instance().nipc_port() = std::stoi(argv[2]);
-
   neb::core::client_driver d;
   d.init();
   d.run();

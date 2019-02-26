@@ -17,29 +17,23 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
 #pragma once
-
 #include "fs/blockchain/blockchain_api.h"
 
 namespace neb {
 namespace fs {
 
-class transaction_db {
+class blockchain_api_test : public blockchain_api_base {
 public:
-  transaction_db(blockchain_api_base *blockchain_ptr);
+  virtual ~blockchain_api_test();
+  virtual std::unique_ptr<std::vector<transaction_info_t>>
+  get_block_transactions_api(block_height_t height);
 
-  std::unique_ptr<std::vector<transaction_info_t>>
-  read_transactions_from_db_with_duration(block_height_t start_block,
-                                          block_height_t end_block);
+  virtual std::unique_ptr<corepb::Account>
+  get_account_api(const address_t &addr, block_height_t height);
 
-  static std::unique_ptr<std::vector<transaction_info_t>>
-  read_transactions_with_address_type(
-      const std::vector<transaction_info_t> &txs, byte_t from_type,
-      byte_t to_type);
-
-private:
-  blockchain_api_base *m_blockchain;
+  virtual std::unique_ptr<corepb::Transaction>
+  get_transaction_api(const std::string &tx_hash, block_height_t height);
 };
 } // namespace fs
 } // namespace neb

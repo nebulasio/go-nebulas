@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "core/net_ipc/ipc_interface.h"
+#include "common/configuration.h"
 #include "core/net_ipc/nipc_pkg.h"
 #include "core/net_ipc/server/nipc_server.h"
 
@@ -25,9 +26,10 @@ std::shared_ptr<neb::core::nipc_server> _ipc;
 
 int start_nbre_ipc(nbre_params_t params) {
   try {
-    //!
-    // FLAGS_log_dir = params.m_nbre_log_dir;
-    // google::InitGoogleLogging("nbre-server");
+    if (!neb::glog_log_to_stderr) {
+      FLAGS_log_dir = params.m_nbre_log_dir;
+      google::InitGoogleLogging("nbre-server");
+    }
 
     _ipc = std::make_shared<neb::core::nipc_server>();
     LOG(INFO) << "ipc server construct";

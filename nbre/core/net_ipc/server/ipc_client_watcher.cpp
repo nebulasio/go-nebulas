@@ -53,8 +53,15 @@ void ipc_client_watcher::thread_func() {
     m_last_start_time = now;
     boost::process::ipstream stream;
     std::vector<std::string> v(
-        {configuration::instance().nipc_listen(),
+        {"--ipc-ip", configuration::instance().nipc_listen(), "--ipc-port",
          std::to_string(configuration::instance().nipc_port())});
+
+    if (glog_log_to_stderr) {
+      v.push_back("--log-to-stderr");
+    }
+    if (use_test_blockchain) {
+      v.push_back("--use-test-blockchain");
+    }
 
     boost::process::child client(m_path, boost::process::args(v));
     if (client.valid()) {

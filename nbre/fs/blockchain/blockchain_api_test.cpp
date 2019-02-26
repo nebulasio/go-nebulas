@@ -17,29 +17,33 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
-#pragma once
-
-#include "fs/blockchain/blockchain_api.h"
+#include "fs/blockchain/blockchain_api_test.h"
 
 namespace neb {
 namespace fs {
 
-class transaction_db {
-public:
-  transaction_db(blockchain_api_base *blockchain_ptr);
+blockchain_api_test::~blockchain_api_test() {}
 
-  std::unique_ptr<std::vector<transaction_info_t>>
-  read_transactions_from_db_with_duration(block_height_t start_block,
-                                          block_height_t end_block);
+std::unique_ptr<std::vector<transaction_info_t>>
+blockchain_api_test::get_block_transactions_api(block_height_t height) {
+  auto ret = std::make_unique<std::vector<transaction_info_t>>();
 
-  static std::unique_ptr<std::vector<transaction_info_t>>
-  read_transactions_with_address_type(
-      const std::vector<transaction_info_t> &txs, byte_t from_type,
-      byte_t to_type);
+  return ret;
+}
 
-private:
-  blockchain_api_base *m_blockchain;
-};
+std::unique_ptr<corepb::Account>
+blockchain_api_test::get_account_api(const address_t &addr,
+                                     block_height_t height) {
+  auto ret = std::make_unique<corepb::Account>();
+  return ret;
+}
+
+std::unique_ptr<corepb::Transaction>
+blockchain_api_test::get_transaction_api(const std::string &tx_hash,
+                                         block_height_t height) {
+  auto ret = std::make_unique<corepb::Transaction>();
+
+  return ret;
+}
 } // namespace fs
 } // namespace neb

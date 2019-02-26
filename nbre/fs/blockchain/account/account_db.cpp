@@ -26,7 +26,7 @@
 namespace neb {
 namespace fs {
 
-account_db::account_db(blockchain_api *blockchain_ptr)
+account_db::account_db(blockchain_api_base *blockchain_ptr)
     : m_blockchain(blockchain_ptr) {}
 
 wei_t account_db::get_balance(const address_t &addr, block_height_t height) {

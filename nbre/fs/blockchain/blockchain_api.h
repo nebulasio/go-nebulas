@@ -51,16 +51,30 @@ struct event_info_t {
   wei_t m_gas_used;
 };
 
-class blockchain_api {
+class blockchain_api_base {
+public:
+  virtual ~blockchain_api_base();
+  virtual std::unique_ptr<std::vector<transaction_info_t>>
+  get_block_transactions_api(block_height_t height) = 0;
+
+  virtual std::unique_ptr<corepb::Account>
+  get_account_api(const address_t &addr, block_height_t height) = 0;
+  virtual std::unique_ptr<corepb::Transaction>
+  get_transaction_api(const std::string &tx_hash, block_height_t height) = 0;
+};
+
+class blockchain_api : public blockchain_api_base {
 public:
   blockchain_api(blockchain *blockchain_ptr);
+  virtual ~blockchain_api();
 
-  std::unique_ptr<std::vector<transaction_info_t>>
+  virtual std::unique_ptr<std::vector<transaction_info_t>>
   get_block_transactions_api(block_height_t height);
 
-  std::unique_ptr<corepb::Account> get_account_api(const address_t &addr,
-                                                   block_height_t height);
-  std::unique_ptr<corepb::Transaction>
+  virtual std::unique_ptr<corepb::Account>
+  get_account_api(const address_t &addr, block_height_t height);
+
+  virtual std::unique_ptr<corepb::Transaction>
   get_transaction_api(const std::string &tx_hash, block_height_t height);
 
 private:
@@ -73,5 +87,6 @@ private:
 private:
   blockchain *m_blockchain;
 };
+
 } // namespace fs
 } // namespace neb

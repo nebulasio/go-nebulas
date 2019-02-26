@@ -81,6 +81,8 @@ int main(int argc, char *argv[]) {
   FLAGS_logtostderr = true;
 
   //::google::InitGoogleLogging(argv[0]);
+  neb::glog_log_to_stderr = true;
+  neb::use_test_blockchain = true;
 
   const char *root_dir = neb::configuration::instance().nbre_root_dir().c_str();
   std::string nbre_path = neb::fs::join_path(root_dir, "bin/nbre");

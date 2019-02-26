@@ -154,4 +154,7 @@ protected:
   // exit code and msg list conf
   std::vector<std::string> m_exit_msg_list;
 };
+
+extern bool use_test_blockchain;
+extern bool glog_log_to_stderr;
 } // end namespace neb

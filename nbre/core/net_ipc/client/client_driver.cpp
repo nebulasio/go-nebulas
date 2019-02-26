@@ -203,9 +203,10 @@ void client_driver::add_handlers() {
       LOG(INFO) << configuration::instance().nbre_db_dir();
       // LOG(INFO) << addr_base58;
 
-      //!
-      // FLAGS_log_dir = configuration::instance().nbre_log_dir();
-      // google::InitGoogleLogging("nbre-client");
+      if (!glog_log_to_stderr) {
+        FLAGS_log_dir = configuration::instance().nbre_log_dir();
+        google::InitGoogleLogging("nbre-client");
+      }
 
       init_nbre();
       init_timer_thread();

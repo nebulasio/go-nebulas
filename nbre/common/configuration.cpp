@@ -46,5 +46,7 @@ configuration::configuration() {
 
 configuration::~configuration() = default;
 
+bool use_test_blockchain = false;
+bool glog_log_to_stderr = false;
 } // namespace neb
 

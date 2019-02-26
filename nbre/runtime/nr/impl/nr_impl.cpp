@@ -22,6 +22,7 @@
 #include "common/common.h"
 #include "common/configuration.h"
 #include "common/util/conversion.h"
+#include "fs/blockchain/blockchain_api_test.h"
 #include "runtime/nr/impl/nebulas_rank.h"
 #include "util/nebulas_currency.h"
 
@@ -37,10 +38,19 @@ std::string entry_point_nr_impl(compatible_uint64_t start_block,
                                 nr_float_t mu, nr_float_t lambda) {
 
   std::string neb_db_path = neb::configuration::instance().neb_db_dir();
-  neb::fs::blockchain bc(neb_db_path);
-  neb::fs::blockchain_api ba(&bc);
-  transaction_db_ptr_t tdb_ptr = std::make_unique<neb::fs::transaction_db>(&ba);
-  account_db_ptr_t adb_ptr = std::make_unique<neb::fs::account_db>(&ba);
+
+  std::unique_ptr<neb::fs::blockchain_api_base> pba;
+  if (neb::use_test_blockchain) {
+    pba = std::unique_ptr<neb::fs::blockchain_api_base>(
+        new neb::fs::blockchain_api_test());
+  } else {
+    // neb::fs::blockchain bc(neb_db_path);
+    // neb::fs::blockchain_api ba(&bc);
+    // pba = std::unique_ptr<neb::fs::blockchain_api_base>(new neb::fs::block)
+  }
+  transaction_db_ptr_t tdb_ptr =
+      std::make_unique<neb::fs::transaction_db>(pba.get());
+  account_db_ptr_t adb_ptr = std::make_unique<neb::fs::account_db>(pba.get());
 
   LOG(INFO) << "start block: " << start_block << " , end block: " << end_block;
   neb::rt::nr::rank_params_t rp{a, b, c, d, theta, mu, lambda};

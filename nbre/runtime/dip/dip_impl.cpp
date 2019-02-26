@@ -21,6 +21,7 @@
 #include "runtime/dip/dip_impl.h"
 #include "common/common.h"
 #include "common/configuration.h"
+#include "fs/blockchain/blockchain_api_test.h"
 #include "runtime/dip/dip_reward.h"
 #include "runtime/nr/impl/nebulas_rank.h"
 
@@ -35,11 +36,19 @@ std::string entry_point_dip_impl(compatible_uint64_t start_block,
                                  dip_float_t alpha, dip_float_t beta) {
 
   std::string neb_db_path = neb::configuration::instance().neb_db_dir();
-  neb::fs::blockchain bc(neb_db_path);
-  neb::fs::blockchain_api ba(&bc);
+  std::unique_ptr<neb::fs::blockchain_api_base> pba;
+  if (neb::use_test_blockchain) {
+    pba = std::unique_ptr<neb::fs::blockchain_api_base>(
+        new neb::fs::blockchain_api_test());
+  } else {
+    // neb::fs::blockchain bc(neb_db_path);
+    // neb::fs::blockchain_api ba(&bc);
+    // pba = std::unique_ptr<neb::fs::blockchain_api_base>(new neb::fs::block)
+  }
   nr::transaction_db_ptr_t tdb_ptr =
-      std::make_unique<neb::fs::transaction_db>(&ba);
-  nr::account_db_ptr_t adb_ptr = std::make_unique<neb::fs::account_db>(&ba);
+      std::make_unique<neb::fs::transaction_db>(pba.get());
+  nr::account_db_ptr_t adb_ptr =
+      std::make_unique<neb::fs::account_db>(pba.get());
 
   auto ret = dip_reward::get_dip_reward(
       start_block, end_block, height, nr_result, tdb_ptr, adb_ptr, alpha, beta);

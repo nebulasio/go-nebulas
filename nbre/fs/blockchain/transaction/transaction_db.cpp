@@ -23,7 +23,7 @@
 namespace neb {
 namespace fs {
 
-transaction_db::transaction_db(blockchain_api *blockchain_ptr)
+transaction_db::transaction_db(blockchain_api_base *blockchain_ptr)
     : m_blockchain(blockchain_ptr) {}
 
 std::unique_ptr<std::vector<transaction_info_t>>
