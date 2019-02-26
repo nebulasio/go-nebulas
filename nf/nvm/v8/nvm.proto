@@ -31,7 +31,7 @@ message NVMConfigBundle{
     string tx_json = 5;
     string module_id = 6;
     uint64 block_height = 7;
-    uint64 chain_id = 8;
+    uint32 chain_id = 8;
 
     bool   enable_limits = 9;
     uint64 limits_exe_instruction = 10;

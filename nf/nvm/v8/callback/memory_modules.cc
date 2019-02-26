@@ -134,7 +134,7 @@ void AddModule(void *handler, const char *filename, const char *source, int line
   char id[128];
   sprintf(id, "%zu:%s", (uintptr_t)handler, filepath);
 
-  //if(modules.find(std::string(id)) == modules.end()){
+  if(modules.find(std::string(id)) == modules.end()){
     m.lock();
     SourceInfo srcInfo;
     srcInfo.lineOffset = lineOffset;
@@ -144,7 +144,7 @@ void AddModule(void *handler, const char *filename, const char *source, int line
     
     LogDebugf("AddModule: %s -> %s %d", filename, filepath, lineOffset);
     std::cout<<"[ ---- Addmodule ---- ] AddModule: "<<filename<<" --> "<<filepath<<" "<<lineOffset<<std::endl;
-  //}
+  }
 }
 
 char *GetModuleSource(void *handler, const char *filename) {

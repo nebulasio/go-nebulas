@@ -296,7 +296,7 @@ void AddDescriptorsImpl() {
       "t_src\030\001 \001(\t\022\023\n\013script_type\030\002 \001(\t\022\024\n\014runn"
       "able_src\030\003 \001(\t\022\022\n\nblock_json\030\004 \001(\t\022\017\n\007tx"
       "_json\030\005 \001(\t\022\021\n\tmodule_id\030\006 \001(\t\022\024\n\014block_"
-      "height\030\007 \001(\004\022\020\n\010chain_id\030\010 \001(\004\022\025\n\renable"
+      "height\030\007 \001(\004\022\020\n\010chain_id\030\010 \001(\r\022\025\n\renable"
       "_limits\030\t \001(\010\022\036\n\026limits_exe_instruction\030"
       "\n \001(\004\022\035\n\025limits_total_mem_size\030\013 \001(\004\022\031\n\021"
       "execution_timeout\030\014 \001(\004\022\036\n\026timeout_gas_l"
@@ -400,8 +400,8 @@ NVMConfigBundle::NVMConfigBundle(const NVMConfigBundle& from)
     module_id_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.module_id_);
   }
   ::memcpy(&block_height_, &from.block_height_,
-    static_cast<size_t>(reinterpret_cast<char*>(&enable_limits_) -
-    reinterpret_cast<char*>(&block_height_)) + sizeof(enable_limits_));
+    static_cast<size_t>(reinterpret_cast<char*>(&default_limits_of_total_mem_size_) -
+    reinterpret_cast<char*>(&block_height_)) + sizeof(default_limits_of_total_mem_size_));
   // @@protoc_insertion_point(copy_constructor:NVMConfigBundle)
 }
 
@@ -413,8 +413,8 @@ void NVMConfigBundle::SharedCtor() {
   tx_json_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   module_id_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(&block_height_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&enable_limits_) -
-      reinterpret_cast<char*>(&block_height_)) + sizeof(enable_limits_));
+      reinterpret_cast<char*>(&default_limits_of_total_mem_size_) -
+      reinterpret_cast<char*>(&block_height_)) + sizeof(default_limits_of_total_mem_size_));
 }
 
 NVMConfigBundle::~NVMConfigBundle() {
@@ -458,8 +458,8 @@ void NVMConfigBundle::Clear() {
   tx_json_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   module_id_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(&block_height_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&enable_limits_) -
-      reinterpret_cast<char*>(&block_height_)) + sizeof(enable_limits_));
+      reinterpret_cast<char*>(&default_limits_of_total_mem_size_) -
+      reinterpret_cast<char*>(&block_height_)) + sizeof(default_limits_of_total_mem_size_));
   _internal_metadata_.Clear();
 }
 
@@ -583,13 +583,13 @@ bool NVMConfigBundle::MergePartialFromCodedStream(
         break;
       }
 
-      // uint64 chain_id = 8;
+      // uint32 chain_id = 8;
       case 8: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
             static_cast< ::google::protobuf::uint8>(64u /* 64 & 0xFF */)) {
 
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
                  input, &chain_id_)));
         } else {
           goto handle_unusual;
@@ -786,9 +786,9 @@ void NVMConfigBundle::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteUInt64(7, this->block_height(), output);
   }
 
-  // uint64 chain_id = 8;
+  // uint32 chain_id = 8;
   if (this->chain_id() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt64(8, this->chain_id(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(8, this->chain_id(), output);
   }
 
   // bool enable_limits = 9;
@@ -911,9 +911,9 @@ void NVMConfigBundle::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(7, this->block_height(), target);
   }
 
-  // uint64 chain_id = 8;
+  // uint32 chain_id = 8;
   if (this->chain_id() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(8, this->chain_id(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(8, this->chain_id(), target);
   }
 
   // bool enable_limits = 9;
@@ -1017,11 +1017,16 @@ size_t NVMConfigBundle::ByteSizeLong() const {
         this->block_height());
   }
 
-  // uint64 chain_id = 8;
+  // uint32 chain_id = 8;
   if (this->chain_id() != 0) {
     total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::UInt64Size(
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
         this->chain_id());
+  }
+
+  // bool enable_limits = 9;
+  if (this->enable_limits() != 0) {
+    total_size += 1 + 1;
   }
 
   // uint64 limits_exe_instruction = 10;
@@ -1064,11 +1069,6 @@ size_t NVMConfigBundle::ByteSizeLong() const {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::UInt64Size(
         this->default_limits_of_total_mem_size());
-  }
-
-  // bool enable_limits = 9;
-  if (this->enable_limits() != 0) {
-    total_size += 1 + 1;
   }
 
   int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
@@ -1128,6 +1128,9 @@ void NVMConfigBundle::MergeFrom(const NVMConfigBundle& from) {
   if (from.chain_id() != 0) {
     set_chain_id(from.chain_id());
   }
+  if (from.enable_limits() != 0) {
+    set_enable_limits(from.enable_limits());
+  }
   if (from.limits_exe_instruction() != 0) {
     set_limits_exe_instruction(from.limits_exe_instruction());
   }
@@ -1145,9 +1148,6 @@ void NVMConfigBundle::MergeFrom(const NVMConfigBundle& from) {
   }
   if (from.default_limits_of_total_mem_size() != 0) {
     set_default_limits_of_total_mem_size(from.default_limits_of_total_mem_size());
-  }
-  if (from.enable_limits() != 0) {
-    set_enable_limits(from.enable_limits());
   }
 }
 
@@ -1189,13 +1189,13 @@ void NVMConfigBundle::InternalSwap(NVMConfigBundle* other) {
     GetArenaNoVirtual());
   swap(block_height_, other->block_height_);
   swap(chain_id_, other->chain_id_);
+  swap(enable_limits_, other->enable_limits_);
   swap(limits_exe_instruction_, other->limits_exe_instruction_);
   swap(limits_total_mem_size_, other->limits_total_mem_size_);
   swap(execution_timeout_, other->execution_timeout_);
   swap(timeout_gas_limit_cost_, other->timeout_gas_limit_cost_);
   swap(max_limits_of_execution_instruction_, other->max_limits_of_execution_instruction_);
   swap(default_limits_of_total_mem_size_, other->default_limits_of_total_mem_size_);
-  swap(enable_limits_, other->enable_limits_);
   _internal_metadata_.Swap(&other->_internal_metadata_);
 }
 

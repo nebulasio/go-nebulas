@@ -257,11 +257,17 @@ class NVMConfigBundle : public ::google::protobuf::Message /* @@protoc_insertion
   ::google::protobuf::uint64 block_height() const;
   void set_block_height(::google::protobuf::uint64 value);
 
-  // uint64 chain_id = 8;
+  // uint32 chain_id = 8;
   void clear_chain_id();
   static const int kChainIdFieldNumber = 8;
-  ::google::protobuf::uint64 chain_id() const;
-  void set_chain_id(::google::protobuf::uint64 value);
+  ::google::protobuf::uint32 chain_id() const;
+  void set_chain_id(::google::protobuf::uint32 value);
+
+  // bool enable_limits = 9;
+  void clear_enable_limits();
+  static const int kEnableLimitsFieldNumber = 9;
+  bool enable_limits() const;
+  void set_enable_limits(bool value);
 
   // uint64 limits_exe_instruction = 10;
   void clear_limits_exe_instruction();
@@ -299,12 +305,6 @@ class NVMConfigBundle : public ::google::protobuf::Message /* @@protoc_insertion
   ::google::protobuf::uint64 default_limits_of_total_mem_size() const;
   void set_default_limits_of_total_mem_size(::google::protobuf::uint64 value);
 
-  // bool enable_limits = 9;
-  void clear_enable_limits();
-  static const int kEnableLimitsFieldNumber = 9;
-  bool enable_limits() const;
-  void set_enable_limits(bool value);
-
   // @@protoc_insertion_point(class_scope:NVMConfigBundle)
  private:
 
@@ -316,14 +316,14 @@ class NVMConfigBundle : public ::google::protobuf::Message /* @@protoc_insertion
   ::google::protobuf::internal::ArenaStringPtr tx_json_;
   ::google::protobuf::internal::ArenaStringPtr module_id_;
   ::google::protobuf::uint64 block_height_;
-  ::google::protobuf::uint64 chain_id_;
+  ::google::protobuf::uint32 chain_id_;
+  bool enable_limits_;
   ::google::protobuf::uint64 limits_exe_instruction_;
   ::google::protobuf::uint64 limits_total_mem_size_;
   ::google::protobuf::uint64 execution_timeout_;
   ::google::protobuf::uint64 timeout_gas_limit_cost_;
   ::google::protobuf::uint64 max_limits_of_execution_instruction_;
   ::google::protobuf::uint64 default_limits_of_total_mem_size_;
-  bool enable_limits_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_nvm_2eproto::TableStruct;
 };
@@ -1510,15 +1510,15 @@ inline void NVMConfigBundle::set_block_height(::google::protobuf::uint64 value) 
   // @@protoc_insertion_point(field_set:NVMConfigBundle.block_height)
 }
 
-// uint64 chain_id = 8;
+// uint32 chain_id = 8;
 inline void NVMConfigBundle::clear_chain_id() {
-  chain_id_ = GOOGLE_ULONGLONG(0);
+  chain_id_ = 0u;
 }
-inline ::google::protobuf::uint64 NVMConfigBundle::chain_id() const {
+inline ::google::protobuf::uint32 NVMConfigBundle::chain_id() const {
   // @@protoc_insertion_point(field_get:NVMConfigBundle.chain_id)
   return chain_id_;
 }
-inline void NVMConfigBundle::set_chain_id(::google::protobuf::uint64 value) {
+inline void NVMConfigBundle::set_chain_id(::google::protobuf::uint32 value) {
   
   chain_id_ = value;
   // @@protoc_insertion_point(field_set:NVMConfigBundle.chain_id)
