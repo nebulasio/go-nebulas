@@ -20,7 +20,6 @@
 
 #pragma once
 
-#include "common/address.h"
 #include "common/math/softfloat.hpp"
 #include "runtime/stdrt.h"
 #include <string>
@@ -40,8 +39,8 @@ std::string entry_point_dip_impl(compatible_uint64_t start_block,
 
 void init_dip_params(compatible_uint64_t dip_start_block,
                      compatible_uint64_t dip_block_interval,
-                     const address_t &dip_reward_addr,
-                     const address_t &coinbase_addr);
+                     const std::string &dip_reward_addr,
+                     const std::string &coinbase_addr);
 } // namespace dip
 } // namespace rt
 } // namespace neb

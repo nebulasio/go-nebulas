@@ -29,7 +29,7 @@ namespace fs {
 
 std::unique_ptr<std::vector<std::string>>
 ir_api::get_ir_list(rocksdb_storage *rs) {
-  std::vector<std::string> v;
+  auto ret = std::make_unique<std::vector<std::string>>();
 
   std::string ir_list = neb::configuration::instance().ir_list_name();
   neb::util::bytes ir_list_bytes;
@@ -37,7 +37,7 @@ ir_api::get_ir_list(rocksdb_storage *rs) {
     ir_list_bytes = rs->get(ir_list);
   } catch (const std::exception &e) {
     LOG(INFO) << "ir list empty, get ir list failed " << e.what();
-    return std::make_unique<std::vector<std::string>>(v);
+    return ret;
   }
 
   boost::property_tree::ptree root;
@@ -47,14 +47,14 @@ ir_api::get_ir_list(rocksdb_storage *rs) {
   BOOST_FOREACH (boost::property_tree::ptree::value_type &name,
                  root.get_child(ir_list)) {
     boost::property_tree::ptree pt = name.second;
-    v.push_back(pt.get<std::string>(std::string()));
+    ret->push_back(pt.get<std::string>(std::string()));
   }
-  return std::make_unique<std::vector<std::string>>(v);
+  return ret;
 }
 
 std::unique_ptr<std::vector<version_t>>
 ir_api::get_ir_versions(const std::string &name, rocksdb_storage *rs) {
-  std::vector<version_t> v;
+  auto ret = std::make_unique<std::vector<version_t>>();
 
   neb::util::bytes ir_versions_bytes;
   try {
@@ -62,7 +62,7 @@ ir_api::get_ir_versions(const std::string &name, rocksdb_storage *rs) {
   } catch (const std::exception &e) {
     LOG(INFO) << "ir with name " << name << " versions empty, get " << name
               << " versions failed " << e.what();
-    return std::make_unique<std::vector<version_t>>(v);
+    return ret;
   }
 
   boost::property_tree::ptree root;
@@ -72,15 +72,15 @@ ir_api::get_ir_versions(const std::string &name, rocksdb_storage *rs) {
   BOOST_FOREACH (boost::property_tree::ptree::value_type &version,
                  root.get_child(name)) {
     boost::property_tree::ptree pt = version.second;
-    v.push_back(pt.get<version_t>(std::string()));
+    ret->push_back(pt.get<version_t>(std::string()));
   }
 
-  sort(v.begin(), v.end(), [](const version_t &v1, const version_t &v2) {
+  sort(ret->begin(), ret->end(), [](const version_t &v1, const version_t &v2) {
     neb::util::version obj_v1(v1);
     neb::util::version obj_v2(v2);
     return obj_v1 > obj_v2;
   });
-  return std::make_unique<std::vector<version_t>>(v);
+  return ret;
 }
 } // namespace fs
 } // namespace neb
