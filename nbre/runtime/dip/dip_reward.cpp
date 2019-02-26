@@ -76,9 +76,8 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
   auto dip_infos = std::make_unique<std::vector<dip_info_t>>();
   for (auto &v : *it_dapp_votes) {
     dip_info_t info;
-    info.m_contract = std::to_string(v.first);
-    info.m_deployer =
-        std::to_string(adb_ptr->get_contract_deployer(v.first, end_block));
+    info.m_contract = v.first;
+    info.m_deployer = adb_ptr->get_contract_deployer(v.first, end_block);
 
     floatxx_t reward_in_wei =
         v.second * v.second *
@@ -105,7 +104,7 @@ void dip_reward::back_to_coinbase(std::vector<dip_info_t> &dip_infos,
 
   if (!coinbase_addr.empty() && reward_left > 0) {
     dip_info_t info;
-    info.m_deployer = std::to_string(coinbase_addr);
+    info.m_deployer = coinbase_addr;
     info.m_reward =
         neb::math::to_string(neb::conversion().from_float(reward_left));
     dip_infos.push_back(info);
@@ -142,15 +141,11 @@ std::string dip_reward::dip_info_to_json(
   LOG(INFO) << "dip info size " << dip_infos.size();
   for (auto &info : dip_infos) {
     boost::property_tree::ptree p;
-    neb::util::bytes deployer_bytes =
-        neb::util::string_to_byte(info.m_deployer);
-    neb::util::bytes contract_bytes =
-        neb::util::string_to_byte(info.m_contract);
 
     std::vector<std::pair<std::string, std::string>> kv_pair(
-        {{"address", deployer_bytes.to_base58()},
+        {{"address", info.m_deployer.to_base58()},
          {"reward", info.m_reward},
-         {"contract", contract_bytes.to_base58()}});
+         {"contract", info.m_contract.to_base58()}});
     for (auto &ele : kv_pair) {
       p.put(ele.first, ele.second);
     }
@@ -185,8 +180,8 @@ dip_reward::json_to_dip_info(const std::string &dip_reward) {
         neb::util::bytes::from_base58(nr.get<std::string>("address"));
     neb::util::bytes contract_bytes =
         neb::util::bytes::from_base58(nr.get<std::string>("contract"));
-    info.m_deployer = neb::util::byte_to_string(deployer_bytes);
-    info.m_contract = neb::util::byte_to_string(contract_bytes);
+    info.m_deployer = deployer_bytes;
+    info.m_contract = contract_bytes;
     info.m_reward = nr.get<std::string>("reward");
     infos->push_back(info);
   }

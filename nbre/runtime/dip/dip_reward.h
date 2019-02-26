@@ -28,8 +28,8 @@ namespace rt {
 namespace dip {
 
 struct dip_info_t {
-  std::string m_deployer;
-  std::string m_contract;
+  address_t m_deployer;
+  address_t m_contract;
   std::string m_reward;
 };
 
