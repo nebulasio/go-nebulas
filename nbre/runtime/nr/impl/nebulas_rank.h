@@ -31,7 +31,7 @@ namespace rt {
 namespace nr {
 
 struct nr_info_t {
-  std::string m_address;
+  address_t m_address;
   uint32_t m_in_degree;
   uint32_t m_out_degree;
   uint32_t m_degrees;
@@ -87,25 +87,25 @@ private:
 
   static auto
   get_normal_accounts(const std::vector<neb::fs::transaction_info_t> &txs)
-      -> std::unique_ptr<std::unordered_set<std::string>>;
+      -> std::unique_ptr<std::unordered_set<address_t>>;
 
   static auto get_account_balance_median(
-      const std::unordered_set<std::string> &accounts,
+      const std::unordered_set<address_t> &accounts,
       const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
       const account_db_ptr_t &db_ptr,
       std::unordered_map<address_t, wei_t> &addr_balance)
-      -> std::unique_ptr<std::unordered_map<std::string, floatxx_t>>;
+      -> std::unique_ptr<std::unordered_map<address_t, floatxx_t>>;
 
   static auto get_account_weight(
-      const std::unordered_map<std::string, neb::rt::in_out_val_t> &in_out_vals,
+      const std::unordered_map<address_t, neb::rt::in_out_val_t> &in_out_vals,
       const account_db_ptr_t &db_ptr)
-      -> std::unique_ptr<std::unordered_map<std::string, floatxx_t>>;
+      -> std::unique_ptr<std::unordered_map<address_t, floatxx_t>>;
 
   static auto get_account_rank(
-      const std::unordered_map<std::string, floatxx_t> &account_median,
-      const std::unordered_map<std::string, floatxx_t> &account_weight,
+      const std::unordered_map<address_t, floatxx_t> &account_median,
+      const std::unordered_map<address_t, floatxx_t> &account_weight,
       const rank_params_t &rp)
-      -> std::unique_ptr<std::unordered_map<std::string, floatxx_t>>;
+      -> std::unique_ptr<std::unordered_map<address_t, floatxx_t>>;
 
 private:
   static transaction_graph_ptr_t build_graph_from_transactions(

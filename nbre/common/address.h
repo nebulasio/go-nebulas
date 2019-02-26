@@ -19,29 +19,22 @@
 //
 
 #pragma once
-
-#include "common/address.h"
-#include "common/math/softfloat.hpp"
-#include "runtime/stdrt.h"
-#include <string>
+#include "common/common.h"
+#include "common/util/byte.h"
 
 namespace neb {
-namespace rt {
-namespace dip {
+typedef std::string base58_address_t;
+typedef neb::util::bytes address_t;
 
-using dip_float_t = float32;
-using version_t = compatible_uint64_t;
+address_t base58_to_address(const base58_address_t &addr);
+base58_address_t address_to_base58(const address_t &addr);
 
-std::string entry_point_dip_impl(compatible_uint64_t start_block,
-                                 compatible_uint64_t end_block,
-                                 version_t version, compatible_uint64_t height,
-                                 const std::string &nr_result,
-                                 dip_float_t alpha, dip_float_t beta);
+typedef std::tuple<module_t, version_t, address_t, block_height_t,
+                   block_height_t>
+    auth_row_t;
+typedef std::vector<auth_row_t> auth_table_t;
 
-void init_dip_params(compatible_uint64_t dip_start_block,
-                     compatible_uint64_t dip_block_interval,
-                     const address_t &dip_reward_addr,
-                     const address_t &coinbase_addr);
-} // namespace dip
-} // namespace rt
+inline address_t to_address(const std::string &addr) {
+  return util::string_to_byte(addr);
+}
 } // namespace neb

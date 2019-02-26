@@ -156,6 +156,10 @@ bool bytes::operator==(const bytes &v) const {
 }
 bool bytes::operator!=(const bytes &v) const { return !operator==(v); }
 
+bool bytes::operator<(const bytes &v) const {
+  return std::to_string(*this) < std::to_string(v);
+}
+
 byte_t bytes::operator[](size_t index) const { return m_value.get()[index]; }
 byte_t &bytes::operator[](size_t index) { return m_value.get()[index]; }
 

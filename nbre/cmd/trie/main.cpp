@@ -218,8 +218,7 @@ void trie_balance(const neb::block_height_t start_block,
       neb::wei_t balance_expect =
           boost::lexical_cast<neb::wei_t>(balance_expect_str);
 
-      neb::util::bytes addr_bytes = neb::util::bytes::from_base58(addr);
-      std::string addr_str = neb::util::byte_to_string(addr_bytes);
+      auto addr_str = neb::base58_to_address(addr);
       auto corepb_account_ptr = ba.get_account_api(addr_str, h);
       std::string balance_str = corepb_account_ptr->balance();
       std::string hex_str = neb::util::string_to_byte(balance_str).to_hex();
@@ -241,11 +240,9 @@ void trie_contract_deployer() {
 
   std::vector<std::string> v{"n1g6JZsQS1uRUySdwvuFJ7FYT4dFoyoSN5q"};
   for (auto &addr : v) {
-    neb::util::bytes contract_bytes = neb::util::bytes::from_base58(addr);
-    std::string addr_str = ad.get_contract_deployer(
-        neb::util::byte_to_string(contract_bytes), 1000000);
-    neb::util::bytes addr_bytes = neb::util::string_to_byte(addr_str);
-    LOG(INFO) << addr_bytes.to_base58();
+    auto contract_bytes = neb::base58_to_address(addr);
+    auto addr_str = ad.get_contract_deployer(contract_bytes, 1000000);
+    LOG(INFO) << std::to_string(addr_str);
   }
 }
 

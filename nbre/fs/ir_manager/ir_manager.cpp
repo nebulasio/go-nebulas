@@ -220,7 +220,8 @@ void ir_manager::parse_irs_by_height(block_height_t height) {
                                 payload_bytes.size());
     }
 
-    const std::string &from = tx.from();
+    // const std::string &from = tx.from();
+    address_t from = to_address(tx.from());
     const std::string &name = nbre_ir->name();
 
     // deploy auth table
@@ -237,7 +238,7 @@ void ir_manager::parse_irs_by_height(block_height_t height) {
     if (it == m_auth_table.end()) {
       LOG(INFO) << boost::str(
           boost::format("tuple <%1%, %2%, %3%> not in auth table") % name %
-          version % from);
+          version % std::to_string(from));
       ir_manager_helper::show_auth_table(m_auth_table);
       continue;
     }

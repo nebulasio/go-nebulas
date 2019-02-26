@@ -30,8 +30,8 @@ TEST(test_fs, read_inter_transaction_from_db_with_duration) {
 
   auto txs = tdb.read_transactions_from_db_with_duration(204223, 204224);
   for (auto &tx : *txs) {
-    LOG(INFO) << neb::util::string_to_byte(tx.m_from).to_base58();
-    LOG(INFO) << neb::util::string_to_byte(tx.m_to).to_base58();
+    LOG(INFO) << neb::address_to_base58(tx.m_from);
+    LOG(INFO) << neb::address_to_base58(tx.m_to);
     LOG(INFO) << tx.m_tx_value;
     LOG(INFO) << tx.m_timestamp;
   }

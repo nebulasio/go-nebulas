@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include "common/address.h"
 #include "common/common.h"
 #include "common/util/singleton.h"
 #include "fs/rocksdb_storage.h"

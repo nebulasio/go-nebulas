@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include "common/address.h"
 #include "common/common.h"
 #include "common/math.h"
 #include "fs/blockchain/transaction/transaction_db.h"

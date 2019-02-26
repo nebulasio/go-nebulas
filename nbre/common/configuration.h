@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
+#include "common/address.h"
 #include "common/common.h"
 #include "util/singleton.h"
 
@@ -70,12 +71,12 @@ public:
   inline block_height_t &dip_block_interval() { return m_dip_block_interval; }
 
   // dip reward address
-  const std::string &dip_reward_addr() const { return m_dip_reward_addr; }
-  std::string &dip_reward_addr() { return m_dip_reward_addr; }
+  const address_t &dip_reward_addr() const { return m_dip_reward_addr; }
+  address_t &dip_reward_addr() { return m_dip_reward_addr; }
 
   // coinbase address
-  const std::string &coinbase_addr() const { return m_coinbase_addr; }
-  std::string &coinbase_addr() { return m_coinbase_addr; }
+  const address_t &coinbase_addr() const { return m_coinbase_addr; }
+  address_t &coinbase_addr() { return m_coinbase_addr; }
 
   // shared memory name identity
   inline const std::string &shm_name_identity() const {
@@ -104,8 +105,8 @@ public:
   inline std::string &nbre_log_dir() { return m_nbre_log_dir; }
 
   // nbre storage auth table admin address
-  inline const std::string &admin_pub_addr() const { return m_admin_pub_addr; }
-  inline std::string &admin_pub_addr() { return m_admin_pub_addr; }
+  inline const address_t &admin_pub_addr() const { return m_admin_pub_addr; }
+  inline address_t &admin_pub_addr() { return m_admin_pub_addr; }
 
   // nbre start height
   inline const uint64_t &nbre_start_height() const {
@@ -133,8 +134,8 @@ protected:
   // dip conf
   block_height_t m_dip_start_block;
   block_height_t m_dip_block_interval;
-  std::string m_dip_reward_addr;
-  std::string m_coinbase_addr;
+  address_t m_dip_reward_addr;
+  address_t m_coinbase_addr;
 
   // shm conf
   std::string m_shm_name_identity;
@@ -145,7 +146,7 @@ protected:
   std::string m_neb_db_dir;
   std::string m_nbre_db_dir;
   std::string m_nbre_log_dir;
-  std::string m_admin_pub_addr;
+  address_t m_admin_pub_addr;
   uint64_t m_nbre_start_height;
   std::string m_nipc_listen;
   uint16_t m_nipc_port;

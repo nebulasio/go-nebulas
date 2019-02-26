@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include "common/address.h"
 #include "runtime/nr/impl/nebulas_rank.h"
 
 namespace neb {

@@ -19,6 +19,7 @@
 //
 #pragma once
 
+#include "common/address.h"
 #include "common/common.h"
 #include "fs/storage.h"
 #include <rocksdb/db.h>

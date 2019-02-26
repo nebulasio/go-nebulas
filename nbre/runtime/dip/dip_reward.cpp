@@ -56,8 +56,7 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
   LOG(INFO) << "dapp votes size " << it_dapp_votes->size();
 
   // bonus pool in total
-  std::string dip_reward_addr =
-      neb::configuration::instance().dip_reward_addr();
+  address_t dip_reward_addr = neb::configuration::instance().dip_reward_addr();
   wei_t balance = adb_ptr->get_balance(dip_reward_addr, end_block);
   floatxx_t bonus_total = conversion(balance).to_float<floatxx_t>();
   LOG(INFO) << "bonus total " << bonus_total;
@@ -73,8 +72,9 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
   std::vector<dip_info_t> dip_infos;
   for (auto &v : *it_dapp_votes) {
     dip_info_t info;
-    info.m_contract = v.first;
-    info.m_deployer = adb_ptr->get_contract_deployer(v.first, end_block);
+    info.m_contract = std::to_string(v.first);
+    info.m_deployer =
+        std::to_string(adb_ptr->get_contract_deployer(v.first, end_block));
 
     floatxx_t reward_in_wei =
         v.second * v.second *
@@ -98,10 +98,10 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
 void dip_reward::back_to_coinbase(std::vector<dip_info_t> &dip_infos,
                                   floatxx_t reward_left) {
 
-  std::string coinbase_addr = neb::configuration::instance().coinbase_addr();
+  address_t coinbase_addr = neb::configuration::instance().coinbase_addr();
   if (!coinbase_addr.empty() && reward_left > 0) {
     dip_info_t info;
-    info.m_deployer = coinbase_addr;
+    info.m_deployer = std::to_string(coinbase_addr);
     info.m_reward =
         neb::math::to_string(neb::conversion().from_float(reward_left));
     dip_infos.push_back(info);
@@ -197,8 +197,8 @@ dip_reward::account_call_contract_count(
   std::unordered_map<address_t, std::unordered_map<address_t, uint32_t>> cnt;
 
   for (auto &tx : txs) {
-    std::string acc_addr = tx.m_from;
-    std::string contract_addr = tx.m_to;
+    address_t acc_addr = tx.m_from;
+    address_t contract_addr = tx.m_to;
     auto it = cnt.find(acc_addr);
 
     if (it != cnt.end()) {
@@ -231,7 +231,7 @@ dip_reward::account_to_contract_votes(
   auto cnt = *it_cnt;
 
   for (auto &info : nr_infos) {
-    std::string addr = info.m_address;
+    address_t addr = info.m_address;
     floatxx_t score = info.m_nr_score * info.m_nr_score;
 
     auto it_acc = cnt.find(addr);
@@ -281,14 +281,14 @@ floatxx_t dip_reward::participate_lambda(
     const std::vector<neb::fs::transaction_info_t> &txs,
     const std::vector<neb::rt::nr::nr_info_t> &nr_infos) {
 
-  std::unordered_set<std::string> addr_set;
+  std::unordered_set<address_t> addr_set;
   for (auto &tx : txs) {
     addr_set.insert(tx.m_from);
   }
 
   std::vector<floatxx_t> participate_nr;
   for (auto &info : nr_infos) {
-    std::string addr = info.m_address;
+    address_t addr = info.m_address;
     if (addr_set.find(addr) != addr_set.end()) {
       participate_nr.push_back(info.m_nr_score);
     }

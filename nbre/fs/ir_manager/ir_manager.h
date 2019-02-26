@@ -19,6 +19,7 @@
 //
 
 #pragma once
+#include "common/address.h"
 #include "common/common.h"
 #include "fs/ir_manager/ir_manager_helper.h"
 

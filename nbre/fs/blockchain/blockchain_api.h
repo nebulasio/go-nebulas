@@ -19,6 +19,7 @@
 //
 
 #pragma once
+#include "common/address.h"
 #include "fs/blockchain.h"
 
 namespace neb {
@@ -31,8 +32,8 @@ wei_t hex_val_cast(const std::string &hex_str);
 struct transaction_info_t {
   block_height_t m_height;
   int32_t m_status;
-  std::string m_from;
-  std::string m_to;
+  address_t m_from;
+  address_t m_to;
   std::string m_tx_type;
   wei_t m_tx_value;
   int64_t m_timestamp;
@@ -41,7 +42,7 @@ struct transaction_info_t {
 };
 
 struct account_info_t {
-  std::string m_address;
+  address_t m_address;
   wei_t m_balance;
 };
 
