@@ -29,7 +29,7 @@ namespace neb {
 namespace rt {
 namespace dip {
 
-struct dip_meta_t {
+struct dip_params_t {
   block_height_t m_start_block;
   block_height_t m_block_interval;
   address_t m_reward_addr;
@@ -42,26 +42,28 @@ public:
   dip_handler();
 
   void deploy(version_t version, block_height_t available_height);
-
   void init_dip_params(block_height_t height);
-  void start(neb::block_height_t height, const dip_meta_t *dip_meta = nullptr);
+  void start(neb::block_height_t height,
+             const dip_params_t *dip_params = nullptr);
 
+  std::unique_ptr<dip_params_t> get_dip_params(neb::block_height_t height);
   std::string get_dip_reward(neb::block_height_t height);
 
-  void read_dip_reward_from_storage();
-  void write_dip_reward_to_storage(neb::block_height_t hash_height,
-                                   const std::string &dip_reward);
+  void load_dip_rewards();
 
 private:
   std::string get_dip_reward_when_missing(neb::block_height_t height,
-                                          const dip_meta_t &dip_meta);
+                                          const dip_params_t &dip_params);
+
+  void write_to_storage(neb::block_height_t hash_height,
+                        const std::string &dip_reward);
 
 private:
   neb::fs::rocksdb_storage *m_storage;
   mutable std::mutex m_sync_mutex;
   std::map<neb::block_height_t, std::string> m_dip_reward;
-  // dip meta info history
-  std::vector<dip_meta_t> m_dip_history;
+  // dip params info list
+  std::vector<dip_params_t> m_dip_params_list;
 
   bool m_has_curr;
   std::pair<version_t, block_height_t> m_curr;

@@ -147,7 +147,7 @@ void client_driver_base::init_timer_thread() {
 void client_driver_base::init_nbre() {
 
   auto rs = neb::fs::storage_holder::instance().nbre_db_ptr();
-  neb::rt::dip::dip_handler::instance().read_dip_reward_from_storage();
+  neb::rt::dip::dip_handler::instance().load_dip_rewards();
 
   try {
     auto nbre_max_height_bytes =
