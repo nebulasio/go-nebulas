@@ -223,7 +223,7 @@ void trie_balance(const neb::block_height_t start_block,
       auto corepb_account_ptr = ba.get_account_api(addr_str, h);
       std::string balance_str = corepb_account_ptr->balance();
       std::string hex_str = neb::util::string_to_byte(balance_str).to_hex();
-      neb::wei_t balance_actual = neb::to_wei(hex_str);
+      neb::wei_t balance_actual = neb::fs::util::hex_val_cast(hex_str);
 
       LOG(INFO) << addr << ',' << h << " expect:" << balance_expect
                 << " actual:" << balance_actual;

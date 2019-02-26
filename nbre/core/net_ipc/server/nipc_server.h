@@ -66,7 +66,7 @@ private:
   bool check_path_exists();
   void add_all_callbacks();
 
-public:
+protected:
   std::unique_ptr<::ff::net::net_nervure> m_server;
   ::ff::net::tcp_connection_base_ptr m_conn;
   std::unique_ptr<std::thread> m_thread;

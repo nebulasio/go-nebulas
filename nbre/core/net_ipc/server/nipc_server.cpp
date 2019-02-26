@@ -20,6 +20,8 @@
 #include "core/net_ipc/server/nipc_server.h"
 #include "common/configuration.h"
 #include "core/net_ipc/nipc_pkg.h"
+#include "fs/util.h"
+#include <boost/format.hpp>
 
 namespace neb {
 namespace core {
@@ -37,6 +39,24 @@ void nipc_server::init_params(const nbre_params_t &params) {
       params.m_nbre_start_height;
   neb::configuration::instance().nipc_listen() = params.m_nipc_listen;
   neb::configuration::instance().nipc_port() = params.m_nipc_port;
+
+  // read errno_list file
+  {
+    std::string errno_file =
+        neb::fs::join_path(neb::configuration::instance().nbre_root_dir(),
+                           std::string("util/errno_list"));
+    std::ifstream ifs;
+    ifs.open(errno_file.c_str(), std::ios::in | std::ios::binary);
+    if (!ifs.is_open()) {
+      throw std::invalid_argument(
+          boost::str(boost::format("can't open file %1%") % errno_file));
+    }
+    std::string line;
+    while (std::getline(ifs, line) && !line.empty()) {
+      neb::configuration::instance().set_exit_msg(line);
+    }
+    ifs.close();
+  }
 }
 
 bool nipc_server::start() {

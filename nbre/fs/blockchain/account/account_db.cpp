@@ -33,7 +33,7 @@ wei_t account_db::get_balance(const address_t &addr, block_height_t height) {
   auto corepb_account_ptr = m_blockchain->get_account_api(addr, height);
   std::string balance_str = corepb_account_ptr->balance();
   std::string hex_str = neb::util::string_to_byte(balance_str).to_hex();
-  return to_wei(hex_str);
+  return util::hex_val_cast(hex_str);
 }
 
 address_t account_db::get_contract_deployer(const address_t &addr,

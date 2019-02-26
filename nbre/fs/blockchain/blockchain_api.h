@@ -24,6 +24,10 @@
 namespace neb {
 namespace fs {
 
+namespace util {
+wei_t hex_val_cast(const std::string &hex_str);
+} // namespace util
+
 struct transaction_info_t {
   block_height_t m_height;
   int32_t m_status;

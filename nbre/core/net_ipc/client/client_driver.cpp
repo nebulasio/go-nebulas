@@ -21,6 +21,7 @@
 #include "common/configuration.h"
 #include "core/ir_warden.h"
 #include "fs/ir_manager/api/ir_api.h"
+#include "fs/storage_holder.h"
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_handler.h"
 #include "runtime/nr/impl/nr_handler.h"
@@ -144,17 +145,7 @@ void client_driver_base::init_timer_thread() {
 
 void client_driver_base::init_nbre() {
 
-  std::string nbre_db_dir = neb::configuration::instance().nbre_db_dir();
-  neb::fs::storage_open_flag open_flag = neb::fs::storage_open_for_readonly;
-  if (!boost::filesystem::exists(
-          boost::filesystem::path(nbre_db_dir + "/CURRENT"))) {
-    // open flag readwrite for initing rocksdb CURRNET file
-    open_flag = neb::fs::storage_open_for_readwrite;
-  }
-
-  std::unique_ptr<neb::fs::rocksdb_storage> rs =
-      std::make_unique<neb::fs::rocksdb_storage>();
-  rs->open_database(nbre_db_dir, open_flag);
+  auto rs = neb::fs::storage_holder::instance().nbre_db_ptr();
   neb::rt::dip::dip_handler::instance().read_dip_reward_from_storage();
 
   try {
@@ -166,7 +157,6 @@ void client_driver_base::init_nbre() {
   } catch (const std::exception &e) {
     LOG(INFO) << "nbre max height not init " << e.what();
   }
-  rs->close_database();
 }
 
 } // end namespace internal
@@ -230,12 +220,8 @@ void client_driver::add_handlers() {
         try {
           auto ack = new_ack_pkg<nbre_ir_list_ack>(req);
 
-          std::unique_ptr<neb::fs::rocksdb_storage> rs =
-              std::make_unique<neb::fs::rocksdb_storage>();
-          rs->open_database(neb::configuration::instance().nbre_db_dir(),
-                            neb::fs::storage_open_for_readonly);
-          auto irs_ptr = neb::fs::ir_api::get_ir_list(rs.get());
-          rs->close_database();
+          auto rs = neb::fs::storage_holder::instance().nbre_db_ptr();
+          auto irs_ptr = neb::fs::ir_api::get_ir_list(rs);
 
           boost::property_tree::ptree pt, root;
           for (auto &ir : *irs_ptr) {
@@ -262,13 +248,9 @@ void client_driver::add_handlers() {
           auto ack = new_ack_pkg<nbre_ir_versions_ack>(req);
           auto ir_name = req->get<p_ir_name>();
 
-          std::unique_ptr<neb::fs::rocksdb_storage> rs =
-              std::make_unique<neb::fs::rocksdb_storage>();
-          rs->open_database(neb::configuration::instance().nbre_db_dir(),
-                            neb::fs::storage_open_for_readonly);
+          auto rs = neb::fs::storage_holder::instance().nbre_db_ptr();
           auto ir_versions_ptr =
-              neb::fs::ir_api::get_ir_versions(ir_name.c_str(), rs.get());
-          rs->close_database();
+              neb::fs::ir_api::get_ir_versions(ir_name.c_str(), rs);
 
           boost::property_tree::ptree pt, root;
           for (auto &v : *ir_versions_ptr) {

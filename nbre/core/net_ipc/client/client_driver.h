@@ -51,7 +51,6 @@ protected:
 protected:
   std::unique_ptr<nipc_client> m_client;
   ::ff::net::tcp_connection_base_ptr m_ipc_conn;
-  std::unique_ptr<std::thread> m_client_thread;
   std::atomic_bool m_exit_flag;
   std::unique_ptr<std::thread> m_timer_thread;
   std::unique_ptr<timer_loop> m_timer_loop;
