@@ -38,21 +38,20 @@ class dip_handler : public util::singleton<dip_handler> {
 public:
   dip_handler();
 
-  void init_dip_params(block_height_t height);
-
-  void start(neb::block_height_t height, const dip_meta_t *dip_meta = nullptr);
   void deploy(version_t version, block_height_t available_height);
+
+  void init_dip_params(block_height_t height);
+  void start(neb::block_height_t height, const dip_meta_t *dip_meta = nullptr);
 
   std::string get_dip_reward(neb::block_height_t height);
 
   void read_dip_reward_from_storage();
+  void write_dip_reward_to_storage(neb::block_height_t hash_height,
+                                   const std::string &dip_reward);
 
 private:
   std::string get_dip_reward_when_missing(neb::block_height_t height,
                                           const dip_meta_t &dip_meta);
-
-  void write_dip_reward_to_storage(neb::block_height_t hash_height,
-                                   const std::string &dip_reward);
 
 private:
   neb::fs::rocksdb_storage *m_storage;
