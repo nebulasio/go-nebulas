@@ -68,26 +68,26 @@ std::unique_ptr<nbre::NBREIR> ir_manager::read_ir(const std::string &name,
 std::unique_ptr<std::vector<nbre::NBREIR>>
 ir_manager::read_irs(const std::string &name, block_height_t height,
                      bool depends) {
-  std::vector<nbre::NBREIR> irs;
+  auto irs = std::make_unique<std::vector<nbre::NBREIR>>();
 
   neb::util::bytes bytes_versions;
   try {
     bytes_versions = m_storage->get(name);
   } catch (const std::exception &e) {
     LOG(INFO) << "get ir " << name << " failed " << e.what();
-    return std::make_unique<std::vector<nbre::NBREIR>>(irs);
+    return irs;
   }
 
   std::unordered_set<std::string> ir_set;
   auto versions_ptr = ir_api::get_ir_versions(name, m_storage);
   for (auto version : *versions_ptr) {
-    read_ir_depends(name, version, height, depends, ir_set, irs);
-    if (!irs.empty()) {
+    read_ir_depends(name, version, height, depends, ir_set, *irs);
+    if (!irs->empty()) {
       break;
     }
   }
 
-  return std::make_unique<std::vector<nbre::NBREIR>>(irs);
+  return irs;
 }
 
 void ir_manager::read_ir_depends(const std::string &name, uint64_t version,

@@ -32,9 +32,9 @@ namespace nr {
 
 nr_handler::nr_handler() {}
 
-std::string nr_handler::get_nr_handler_id() {
+std::string nr_handler::get_nr_handle() {
   std::unique_lock<std::mutex> _l(m_sync_mutex);
-  return m_nr_handler_id;
+  return m_nr_handle;
 }
 
 void nr_handler::run_if_default(block_height_t start_block,
@@ -48,11 +48,11 @@ void nr_handler::run_if_default(block_height_t start_block,
       auto nr_result = jd.run_ir<std::string>(
           "nr", start_block, neb::configuration::instance().nr_func_name(),
           start_block, end_block);
-      m_nr_result.set(m_nr_handler_id, nr_result);
-      m_nr_handler_id.clear();
+      m_nr_result.set(m_nr_handle, nr_result);
+      m_nr_handle.clear();
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute nr failed " << e.what();
-      m_nr_handler_id.clear();
+      m_nr_handle.clear();
     }
   });
 }
@@ -80,36 +80,35 @@ void nr_handler::run_if_specify(block_height_t start_block,
           name_version, irs, neb::configuration::instance().nr_func_name(),
           start_block, end_block);
 
-      m_nr_result.set(m_nr_handler_id, nr_result);
-      m_nr_handler_id.clear();
+      m_nr_result.set(m_nr_handle, nr_result);
+      m_nr_handle.clear();
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute nr failed " << e.what();
-      m_nr_handler_id.clear();
+      m_nr_handle.clear();
     }
   });
 }
 
-void nr_handler::start(std::string nr_handler_id) {
+void nr_handler::start(std::string nr_handle) {
   std::unique_lock<std::mutex> _l(m_sync_mutex);
 
-  m_nr_handler_id = nr_handler_id;
-  if (!m_nr_handler_id.empty() && m_nr_result.exists(m_nr_handler_id)) {
-    m_nr_handler_id.clear();
+  m_nr_handle = nr_handle;
+  if (!m_nr_handle.empty() && m_nr_result.exists(m_nr_handle)) {
+    m_nr_handle.clear();
     return;
   }
 
-  neb::util::bytes nr_handler_bytes =
-      neb::util::bytes::from_hex(m_nr_handler_id);
+  neb::util::bytes nr_handle_bytes = neb::util::bytes::from_hex(m_nr_handle);
 
   size_t bytes = sizeof(uint64_t) / sizeof(byte_t);
-  assert(nr_handler_bytes.size() == 3 * bytes);
+  assert(nr_handle_bytes.size() == 3 * bytes);
 
   uint64_t start_block = neb::util::byte_to_number<uint64_t>(
-      neb::util::bytes(nr_handler_bytes.value(), bytes));
+      neb::util::bytes(nr_handle_bytes.value(), bytes));
   uint64_t end_block = neb::util::byte_to_number<uint64_t>(
-      neb::util::bytes(nr_handler_bytes.value() + bytes, bytes));
+      neb::util::bytes(nr_handle_bytes.value() + bytes, bytes));
   uint64_t nr_version = neb::util::byte_to_number<uint64_t>(
-      neb::util::bytes(nr_handler_bytes.value() + 2 * bytes, bytes));
+      neb::util::bytes(nr_handle_bytes.value() + 2 * bytes, bytes));
 
   if (!nr_version) {
     run_if_default(start_block, end_block);
@@ -119,11 +118,11 @@ void nr_handler::start(std::string nr_handler_id) {
   run_if_specify(start_block, end_block, nr_version);
 }
 
-std::string nr_handler::get_nr_result(const std::string &nr_handler_id) {
+std::string nr_handler::get_nr_result(const std::string &nr_handle) {
   std::unique_lock<std::mutex> _l(m_sync_mutex);
 
   std::string nr_result;
-  auto ret = m_nr_result.get(nr_handler_id, nr_result);
+  auto ret = m_nr_result.get(nr_handle, nr_result);
   if (!ret) {
     return std::string(
         "{\"err\":\"nr hash expired or nr result not complete yet\"}");

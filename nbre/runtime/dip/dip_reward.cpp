@@ -21,6 +21,7 @@
 #include "runtime/dip/dip_reward.h"
 #include "common/configuration.h"
 #include "common/util/conversion.h"
+#include "runtime/dip/dip_handler.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -56,7 +57,10 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
   LOG(INFO) << "dapp votes size " << it_dapp_votes->size();
 
   // bonus pool in total
-  address_t dip_reward_addr = neb::configuration::instance().dip_reward_addr();
+  auto dip_params = dip_handler::instance().get_dip_params(end_block);
+  address_t dip_reward_addr = dip_params->m_reward_addr;
+  address_t coinbase_addr = dip_params->m_coinbase_addr;
+
   wei_t balance = adb_ptr->get_balance(dip_reward_addr, end_block);
   floatxx_t bonus_total = conversion(balance).to_float<floatxx_t>();
   LOG(INFO) << "bonus total " << bonus_total;
@@ -69,12 +73,11 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
   LOG(INFO) << "sum votes " << sum_votes;
 
   floatxx_t reward_sum(0);
-  std::vector<dip_info_t> dip_infos;
+  auto dip_infos = std::make_unique<std::vector<dip_info_t>>();
   for (auto &v : *it_dapp_votes) {
     dip_info_t info;
-    info.m_contract = std::to_string(v.first);
-    info.m_deployer =
-        std::to_string(adb_ptr->get_contract_deployer(v.first, end_block));
+    info.m_contract = v.first;
+    info.m_deployer = adb_ptr->get_contract_deployer(v.first, end_block);
 
     floatxx_t reward_in_wei =
         v.second * v.second *
@@ -84,24 +87,24 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
 
     info.m_reward =
         neb::math::to_string(neb::conversion().from_float(reward_in_wei));
-    dip_infos.push_back(info);
+    dip_infos->push_back(info);
   }
-  LOG(INFO) << "dip info size " << dip_infos.size();
+  LOG(INFO) << "dip info size " << dip_infos->size();
   LOG(INFO) << "reward sum " << reward_sum << ", bonus total " << bonus_total;
   // assert(reward_sum <= bonus_total);
   LOG(INFO) << "reward sum " << reward_sum;
-  back_to_coinbase(dip_infos, bonus_total - reward_sum);
+  back_to_coinbase(*dip_infos, bonus_total - reward_sum, coinbase_addr);
   LOG(INFO) << "back to coinbase";
-  return std::make_unique<std::vector<dip_info_t>>(dip_infos);
+  return dip_infos;
 }
 
 void dip_reward::back_to_coinbase(std::vector<dip_info_t> &dip_infos,
-                                  floatxx_t reward_left) {
+                                  floatxx_t reward_left,
+                                  const address_t &coinbase_addr) {
 
-  address_t coinbase_addr = neb::configuration::instance().coinbase_addr();
   if (!coinbase_addr.empty() && reward_left > 0) {
     dip_info_t info;
-    info.m_deployer = std::to_string(coinbase_addr);
+    info.m_deployer = coinbase_addr;
     info.m_reward =
         neb::math::to_string(neb::conversion().from_float(reward_left));
     dip_infos.push_back(info);
@@ -138,15 +141,11 @@ std::string dip_reward::dip_info_to_json(
   LOG(INFO) << "dip info size " << dip_infos.size();
   for (auto &info : dip_infos) {
     boost::property_tree::ptree p;
-    neb::util::bytes deployer_bytes =
-        neb::util::string_to_byte(info.m_deployer);
-    neb::util::bytes contract_bytes =
-        neb::util::string_to_byte(info.m_contract);
 
     std::vector<std::pair<std::string, std::string>> kv_pair(
-        {{"address", deployer_bytes.to_base58()},
+        {{"address", info.m_deployer.to_base58()},
          {"reward", info.m_reward},
-         {"contract", contract_bytes.to_base58()}});
+         {"contract", info.m_contract.to_base58()}});
     for (auto &ele : kv_pair) {
       p.put(ele.first, ele.second);
     }
@@ -172,7 +171,7 @@ dip_reward::json_to_dip_info(const std::string &dip_reward) {
   boost::property_tree::json_parser::read_json(ss, pt);
 
   boost::property_tree::ptree dips = pt.get_child("dips");
-  std::vector<dip_info_t> infos;
+  auto infos = std::make_unique<std::vector<dip_info_t>>();
 
   BOOST_FOREACH (boost::property_tree::ptree::value_type &v, dips) {
     boost::property_tree::ptree nr = v.second;
@@ -181,12 +180,12 @@ dip_reward::json_to_dip_info(const std::string &dip_reward) {
         neb::util::bytes::from_base58(nr.get<std::string>("address"));
     neb::util::bytes contract_bytes =
         neb::util::bytes::from_base58(nr.get<std::string>("contract"));
-    info.m_deployer = neb::util::byte_to_string(deployer_bytes);
-    info.m_contract = neb::util::byte_to_string(contract_bytes);
+    info.m_deployer = deployer_bytes;
+    info.m_contract = contract_bytes;
     info.m_reward = nr.get<std::string>("reward");
-    infos.push_back(info);
+    infos->push_back(info);
   }
-  return std::make_unique<std::vector<dip_info_t>>(infos);
+  return infos;
 }
 
 std::unique_ptr<
@@ -194,14 +193,15 @@ std::unique_ptr<
 dip_reward::account_call_contract_count(
     const std::vector<neb::fs::transaction_info_t> &txs) {
 
-  std::unordered_map<address_t, std::unordered_map<address_t, uint32_t>> cnt;
+  auto cnt = std::make_unique<
+      std::unordered_map<address_t, std::unordered_map<address_t, uint32_t>>>();
 
   for (auto &tx : txs) {
     address_t acc_addr = tx.m_from;
     address_t contract_addr = tx.m_to;
-    auto it = cnt.find(acc_addr);
+    auto it = cnt->find(acc_addr);
 
-    if (it != cnt.end()) {
+    if (it != cnt->end()) {
       std::unordered_map<address_t, uint32_t> &tmp = it->second;
       if (tmp.find(contract_addr) != tmp.end()) {
         tmp[contract_addr]++;
@@ -211,12 +211,10 @@ dip_reward::account_call_contract_count(
     } else {
       std::unordered_map<address_t, uint32_t> tmp;
       tmp.insert(std::make_pair(contract_addr, 1));
-      cnt.insert(std::make_pair(acc_addr, tmp));
+      cnt->insert(std::make_pair(acc_addr, tmp));
     }
   }
-  return std::make_unique<
-      std::unordered_map<address_t, std::unordered_map<address_t, uint32_t>>>(
-      cnt);
+  return cnt;
 }
 
 std::unique_ptr<
@@ -225,7 +223,8 @@ dip_reward::account_to_contract_votes(
     const std::vector<neb::fs::transaction_info_t> &txs,
     const std::vector<neb::rt::nr::nr_info_t> &nr_infos) {
 
-  std::unordered_map<address_t, std::unordered_map<address_t, floatxx_t>> ret;
+  auto ret = std::make_unique<std::unordered_map<
+      address_t, std::unordered_map<address_t, floatxx_t>>>();
 
   auto it_cnt = account_call_contract_count(txs);
   auto cnt = *it_cnt;
@@ -247,33 +246,30 @@ dip_reward::account_to_contract_votes(
     for (auto &e : it_acc->second) {
       std::unordered_map<address_t, floatxx_t> tmp;
       tmp.insert(std::make_pair(e.first, e.second * score / sum_votes));
-      ret.insert(std::make_pair(addr, tmp));
+      ret->insert(std::make_pair(addr, tmp));
     }
   }
-  return std::make_unique<
-      std::unordered_map<address_t, std::unordered_map<address_t, floatxx_t>>>(
-      ret);
+  return ret;
 }
 
 std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
 dip_reward::dapp_votes(const std::unordered_map<
                        address_t, std::unordered_map<address_t, floatxx_t>>
                            &acc_contract_votes) {
-  std::unordered_map<address_t, floatxx_t> ret;
+  auto ret = std::make_unique<std::unordered_map<address_t, floatxx_t>>();
 
   for (auto &it : acc_contract_votes) {
     for (auto &ite : it.second) {
-      auto iter = ret.find(ite.first);
-      if (iter != ret.end()) {
+      auto iter = ret->find(ite.first);
+      if (iter != ret->end()) {
         floatxx_t &tmp = iter->second;
         tmp += neb::math::sqrt(ite.second);
       } else {
-        ret.insert(std::make_pair(ite.first, neb::math::sqrt(ite.second)));
+        ret->insert(std::make_pair(ite.first, neb::math::sqrt(ite.second)));
       }
     }
   }
-
-  return std::make_unique<std::unordered_map<address_t, floatxx_t>>(ret);
+  return ret;
 }
 
 floatxx_t dip_reward::participate_lambda(

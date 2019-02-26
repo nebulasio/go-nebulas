@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
+#include "common/address.h"
 #include "runtime/dip/dip_impl.h"
 #include "runtime/dip/dip_reward.h"
 #include <vector>
@@ -64,12 +65,12 @@ void dip(uint64_t height) {
   uint64_t days = 7;
   uint64_t dip_start_block = 1540000;
   uint64_t dip_block_interval = days * block_nums_of_a_day;
-  neb::address_t dip_reward_addr =
-      neb::base58_to_address("n1YubAA3VVi2HEDw3VSaJ2ZcjzYKXL6SuQw");
+  neb::base58_address_t dip_reward_addr =
+      std::string("n1YubAA3VVi2HEDw3VSaJ2ZcjzYKXL6SuQw");
 
   if (!height) {
     neb::rt::dip::init_dip_params(dip_start_block, dip_block_interval,
-                                  dip_reward_addr, neb::address_t());
+                                  dip_reward_addr, std::string());
     std::cout << std::string("{\"err\":\"init dip params\"}") << std::endl;
     return;
   }
@@ -94,8 +95,10 @@ int main(int argc, char *argv[]) {
   using dip_info_t = neb::rt::dip::dip_info_t;
   using floatxx_t = neb::floatxx_t;
   std::vector<dip_info_t> v;
-  v.push_back(dip_info_t{"addr1", "1.1"});
-  v.push_back(dip_info_t{"addr2", "2.1"});
+  v.push_back(
+      dip_info_t{neb::to_address("addr1"), neb::to_address("addr3"), "1.1"});
+  v.push_back(
+      dip_info_t{neb::to_address("addr2"), neb::to_address("addr4"), "2.1"});
 
   std::cout << neb::rt::dip::dip_reward::dip_info_to_json(v) << std::endl;
 

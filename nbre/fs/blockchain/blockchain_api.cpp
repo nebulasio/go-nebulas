@@ -38,12 +38,12 @@ blockchain_api::~blockchain_api() {}
 std::unique_ptr<std::vector<transaction_info_t>>
 blockchain_api::get_block_transactions_api(block_height_t height) {
 
+  auto ret = std::make_unique<std::vector<transaction_info_t>>();
   // special for  block height 1
   if (height <= 1) {
-    return std::make_unique<std::vector<transaction_info_t>>();
+    return ret;
   }
 
-  std::vector<transaction_info_t> txs;
   auto block = m_blockchain->load_block_with_height(height);
 
   int64_t timestamp = block->header().timestamp();
@@ -77,10 +77,10 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
 
     // ignore failed transactions
     if (info.m_status) {
-      txs.push_back(info);
+      ret->push_back(info);
     }
   }
-  return std::make_unique<std::vector<transaction_info_t>>(txs);
+  return ret;
 }
 
 std::unique_ptr<event_info_t>
@@ -126,7 +126,8 @@ blockchain_api::json_parse_event(const std::string &json) {
   int32_t status = pt.get<int32_t>("status");
   wei_t gas_used = boost::lexical_cast<wei_t>(pt.get<std::string>("gas_used"));
 
-  return std::make_unique<event_info_t>(event_info_t{status, gas_used});
+  auto ret = std::make_unique<event_info_t>(event_info_t{status, gas_used});
+  return ret;
 }
 
 std::unique_ptr<corepb::Account>
@@ -141,29 +142,27 @@ blockchain_api::get_account_api(const address_t &addr, block_height_t height) {
 
   // get trie node
   trie t(rs_ptr);
-  neb::util::bytes addr_bytes = addr;
   neb::util::bytes trie_node_bytes;
-  bool is_found =
-      t.get_trie_node(state_root_bytes, addr_bytes, trie_node_bytes);
+  bool is_found = t.get_trie_node(state_root_bytes, addr, trie_node_bytes);
+  auto corepb_account_ptr = std::make_unique<corepb::Account>();
   if (!is_found) {
-    std::make_unique<account_info_t>(account_info_t{addr, 0});
+    corepb_account_ptr->set_address(std::to_string(addr));
+    corepb_account_ptr->set_balance(std::to_string(0));
+    return corepb_account_ptr;
   }
 
-  std::unique_ptr<corepb::Account> corepb_account_ptr =
-      std::make_unique<corepb::Account>();
   bool ret = corepb_account_ptr->ParseFromArray(trie_node_bytes.value(),
                                                 trie_node_bytes.size());
   if (!ret) {
     throw std::runtime_error("parse corepb Account failed");
   }
-  return std::move(corepb_account_ptr);
+  return corepb_account_ptr;
 }
 
 std::unique_ptr<corepb::Transaction>
 blockchain_api::get_transaction_api(const std::string &tx_hash,
                                     block_height_t height) {
-  std::unique_ptr<corepb::Transaction> corepb_txs_ptr =
-      std::make_unique<corepb::Transaction>();
+  auto corepb_txs_ptr = std::make_unique<corepb::Transaction>();
 
   auto rs_ptr = m_blockchain->get_blockchain_storage();
   // suppose height is the latest block height
@@ -179,7 +178,7 @@ blockchain_api::get_transaction_api(const std::string &tx_hash,
   neb::util::bytes trie_node_bytes;
   bool ret = t.get_trie_node(txs_root_bytes, tx_hash_bytes, trie_node_bytes);
   if (!ret) {
-    return std::move(corepb_txs_ptr);
+    return corepb_txs_ptr;
   }
 
   ret = corepb_txs_ptr->ParseFromArray(trie_node_bytes.value(),
@@ -187,7 +186,7 @@ blockchain_api::get_transaction_api(const std::string &tx_hash,
   if (!ret) {
     throw std::runtime_error("parse corepb Transaction failed");
   }
-  return std::move(corepb_txs_ptr);
+  return corepb_txs_ptr;
 }
 
 namespace util {

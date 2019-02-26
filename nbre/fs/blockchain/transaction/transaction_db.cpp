@@ -30,13 +30,13 @@ std::unique_ptr<std::vector<transaction_info_t>>
 transaction_db::read_transactions_from_db_with_duration(
     block_height_t start_block, block_height_t end_block) {
 
-  std::vector<transaction_info_t> txs;
+  auto ret = std::make_unique<std::vector<transaction_info_t>>();
 
   for (block_height_t h = start_block; h < end_block; h++) {
     auto ret = m_blockchain->get_block_transactions_api(h);
-    txs.insert(txs.end(), ret->begin(), ret->end());
+    ret->insert(ret->end(), ret->begin(), ret->end());
   }
-  return std::make_unique<std::vector<transaction_info_t>>(txs);
+  return ret;
 }
 
 std::unique_ptr<std::vector<transaction_info_t>>
@@ -44,16 +44,16 @@ transaction_db::read_transactions_with_address_type(
     const std::vector<transaction_info_t> &txs, byte_t from_type,
     byte_t to_type) {
 
-  std::vector<transaction_info_t> ret;
+  auto ret = std::make_unique<std::vector<transaction_info_t>>();
   for (auto &tx : txs) {
     neb::util::bytes from_bytes = tx.m_from;
     neb::util::bytes to_bytes = tx.m_to;
 
     if (from_bytes[1] == from_type && to_bytes[1] == to_type) {
-      ret.push_back(tx);
+      ret->push_back(tx);
     }
   }
-  return std::make_unique<std::vector<transaction_info_t>>(ret);
+  return ret;
 }
 
 } // namespace fs

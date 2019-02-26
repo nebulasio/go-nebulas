@@ -147,7 +147,7 @@ void client_driver_base::init_timer_thread() {
 void client_driver_base::init_nbre() {
 
   auto rs = neb::fs::storage_holder::instance().nbre_db_ptr();
-  neb::rt::dip::dip_handler::instance().read_dip_reward_from_storage();
+  neb::rt::dip::dip_handler::instance().load_dip_rewards();
 
   try {
     auto nbre_max_height_bytes =
@@ -276,9 +276,7 @@ void client_driver::add_handlers() {
       [this](std::shared_ptr<nbre_nr_handle_req> req) {
         try {
           auto ack = new_ack_pkg<nbre_nr_handle_ack>(req);
-          if (!neb::rt::nr::nr_handler::instance()
-                   .get_nr_handler_id()
-                   .empty()) {
+          if (!neb::rt::nr::nr_handler::instance().get_nr_handle().empty()) {
             ack->set<p_nr_handle>(std::string("nr handler not available"));
             m_ipc_conn->send(ack);
             return;
@@ -308,9 +306,9 @@ void client_driver::add_handlers() {
       [this](std::shared_ptr<nbre_nr_result_req> req) {
         try {
           auto ack = new_ack_pkg<nbre_nr_result_ack>(req);
-          std::string nr_handle_id = req->get<p_nr_handle>();
+          std::string nr_handle = req->get<p_nr_handle>();
           std::string nr_result =
-              neb::rt::nr::nr_handler::instance().get_nr_result(nr_handle_id);
+              neb::rt::nr::nr_handler::instance().get_nr_result(nr_handle);
           ack->set<p_nr_result>(nr_result);
           m_ipc_conn->send(ack);
         } catch (const std::exception &e) {

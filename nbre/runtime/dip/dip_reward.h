@@ -28,8 +28,8 @@ namespace rt {
 namespace dip {
 
 struct dip_info_t {
-  std::string m_deployer;
-  std::string m_contract;
+  address_t m_deployer;
+  address_t m_contract;
   std::string m_reward;
 };
 
@@ -77,7 +77,8 @@ private:
                       boost::property_tree::ptree &root);
 
   static void back_to_coinbase(std::vector<dip_info_t> &dip_infos,
-                               floatxx_t reward_left);
+                               floatxx_t reward_left,
+                               const address_t &coinbase_addr);
 
   static void ignore_account_transfer_contract(
       std::vector<neb::fs::transaction_info_t> &txs,

@@ -37,11 +37,11 @@ nebulas_rank::split_transactions_by_block_interval(
     const std::vector<neb::fs::transaction_info_t> &txs,
     int32_t block_interval) {
 
-  std::vector<std::vector<neb::fs::transaction_info_t>> ret;
+  auto ret =
+      std::make_unique<std::vector<std::vector<neb::fs::transaction_info_t>>>();
 
   if (block_interval < 1 || txs.empty()) {
-    return std::make_unique<
-        std::vector<std::vector<neb::fs::transaction_info_t>>>(ret);
+    return ret;
   }
 
   auto it = txs.begin();
@@ -58,17 +58,16 @@ nebulas_rank::split_transactions_by_block_interval(
     if (h < b + block_interval) {
       v.push_back(*it++);
     } else {
-      ret.push_back(v);
+      ret->push_back(v);
       v.clear();
       b += block_interval;
     }
     if (it == txs.end()) {
-      ret.push_back(v);
+      ret->push_back(v);
       break;
     }
   }
-  return std::make_unique<
-      std::vector<std::vector<neb::fs::transaction_info_t>>>(ret);
+  return ret;
 }
 
 void nebulas_rank::filter_empty_transactions_this_interval(
@@ -84,8 +83,7 @@ void nebulas_rank::filter_empty_transactions_this_interval(
 
 transaction_graph_ptr_t nebulas_rank::build_graph_from_transactions(
     const std::vector<neb::fs::transaction_info_t> &trans) {
-  neb::rt::transaction_graph_ptr_t ret =
-      std::make_unique<neb::rt::transaction_graph>();
+  auto ret = std::make_unique<neb::rt::transaction_graph>();
 
   for (auto ite = trans.begin(); ite != trans.end(); ite++) {
     address_t from = ite->m_from;
@@ -120,8 +118,7 @@ std::unique_ptr<std::unordered_set<address_t>>
 nebulas_rank::get_normal_accounts(
     const std::vector<neb::fs::transaction_info_t> &txs) {
 
-  std::unique_ptr<std::unordered_set<address_t>> ret =
-      std::make_unique<std::unordered_set<address_t>>();
+  auto ret = std::make_unique<std::unordered_set<address_t>>();
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
     auto from = it->m_from;
@@ -229,59 +226,6 @@ nebulas_rank::get_account_rank(
     }
   }
 
-  // parallel run
-  // std::mutex __l;
-  // typedef std::tuple<std::string, floatxx_t, floatxx_t> item_t;
-  // std::vector<item_t> vcs;
-
-  // for (auto it_m = account_median.begin(); it_m != account_median.end();
-  // it_m++) {
-  // auto it_w = account_weight.find(it_m->first);
-  // if (it_w != account_weight.end()) {
-  // vcs.push_back(std::make_tuple(it_m->first, it_m->second, it_w->second));
-  //}
-  //}
-  // ff::paragroup pg;
-  // typedef std::unordered_map<std::string, floatxx_t> ret_type_t;
-  // ff::thread_local_var<ret_type_t> thread_ret;
-  // pg.for_each(
-  // vcs.begin(), vcs.end(), [&rp, &thread_ret](item_t it) {
-  //// thread_local static std::unordered_map<std::string, floatxx_t>
-  //// local_ret;
-  // floatxx_t rank_val =
-  // f_account_rank(rp.m_a, rp.m_b, rp.m_c, rp.m_d, rp.m_mu, rp.m_lambda,
-  // std::get<1>(it), std::get<2>(it));
-
-  //// local_ret.insert(std::make_pair(std::get<0>(it), rank_val));
-  ////__l.lock();
-  // thread_ret.current().insert(std::make_pair(std::get<0>(it), rank_val));
-  ////__l.unlock();
-  //});
-  // ff::ff_wait(ff::all(pg));
-  // thread_ret.for_each([&ret](ret_type_t local_ret) {
-  // for (auto it : local_ret) {
-  // ret.insert(it);
-  //}
-  //});
-
-  // ff::paracontainer pc;
-  // for (auto it_m = account_median.begin(); it_m != account_median.end();
-  // it_m++) {
-  // auto it_w = account_weight.find(it_m->first);
-  // if (it_w != account_weight.end()) {
-  // ff::para<> p;
-  // p([&rp, &__l, it_m, it_w, &ret]() {
-  // floatxx_t rank_val =
-  // f_account_rank(rp.m_a, rp.m_b, rp.m_c, rp.m_d, rp.m_mu, rp.m_lambda,
-  // it_m->second, it_w->second);
-  //__l.lock();
-  // ret.insert(std::make_pair(it_m->first, rank_val));
-  //__l.unlock();
-  //});
-  // pc.add(p);
-  //}
-  //}
-  // ff::ff_wait(ff::all(pc));
   return ret;
 }
 
@@ -499,7 +443,7 @@ nebulas_rank::json_to_nr_info(const std::string &nr_result) {
     boost::property_tree::ptree nr = v.second;
     nr_info_t info;
     neb::util::bytes addr_bytes =
-        neb::util::bytes::from_base58(nr.get<std::string>("address"));
+        neb::util::bytes::from_base58(nr.get<base58_address_t>("address"));
     info.m_address = addr_bytes;
 
     info.m_in_degree = nr.get<uint32_t>("in_degree");
