@@ -51,7 +51,6 @@ int main(int argc, char *argv[]) {
 
   LOG(INFO) << "nbre started!";
   assert(argc > 2);
-  LOG(INFO) << "pass args " << argv[1] << ',' << argv[2];
   neb::configuration::instance().nipc_listen() = argv[1];
   neb::configuration::instance().nipc_port() = std::stoi(argv[2]);
 

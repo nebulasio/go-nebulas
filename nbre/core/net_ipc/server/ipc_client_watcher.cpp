@@ -73,9 +73,8 @@ void ipc_client_watcher::thread_func() {
     }
     if (client.exit_code() != 0) {
       uint32_t exit_code = client.exit_code();
-      LOG(ERROR) << "nbre abnormal quit " << exit_code << ", msg: "
-                 << neb::configuration::instance().get_exit_msg(exit_code)
-                 << ", line " << line;
+      LOG(ERROR) << "nbre abnormal quit, exit code: " << exit_code << ", msg: "
+                 << neb::configuration::instance().get_exit_msg(exit_code);
     }
     m_b_client_alive = false;
   }
