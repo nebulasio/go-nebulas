@@ -640,6 +640,12 @@ func recordInnerContractEvent(err error, from string, to string, value string, w
 
 }
 
+// In earlier versions of inter-contract invocation, inconsistent logic resulted in inconsistent data on the chain, requiring adaptation.
+func earlierTestnetInnerTxCompatibility(engine *V8Engine) bool {
+	testnetUpdateHeight := uint64(845750)
+	return engine.ctx.tx.ChainID() == core.TestNetID && engine.ctx.block.Height() < testnetUpdateHeight
+}
+
 // InnerContractFunc multi run contract. output[c standard]: if err return nil else return "*"
 //export InnerContractFunc
 func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char, v *C.char, args *C.char, gasCnt *C.size_t) *C.char {
@@ -663,38 +669,117 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		return nil
 	}
 
-	payload, err := getPayloadByAddress(ws, C.GoString(address))
-	if err != nil {
-		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
-		return nil
-	}
-	deploy := payload.deploy
+	var (
+		newCtx   *Context
+		deploy   *core.DeployPayload
+		fromAddr *core.Address
+		toValue  *util.Uint128
+	)
 
 	parentTx := engine.ctx.tx
-	from := engine.ctx.contract.Address()
-	fromAddr, err := core.AddressParseFromBytes(from)
-	if err != nil {
-		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
-		return nil
-	}
-	//transfer
 	innerTxValueStr := C.GoString(v)
-	toValue, err := util.NewUint128FromString(innerTxValueStr)
-	if err != nil {
-		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
-		return nil
-	}
-	iRet := TransferByAddress(handler, fromAddr, addr, toValue)
-	if iRet != 0 {
-		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, ErrInnerTransferFailed.Error(), true)
-		return nil
+	if earlierTestnetInnerTxCompatibility(engine) {
+		contract, err := core.CheckContract(addr, ws)
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+		logging.VLog().Infof("inner contract:%v", contract.ContractMeta()) //FIXME: ver limit
+
+		payload, err := getPayloadByAddress(ws, C.GoString(address))
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+		deploy = payload.deploy
+		//run
+		payloadType := core.TxPayloadCallType
+		callpayload, err := core.NewCallPayload(C.GoString(funcName), C.GoString(args))
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+		newPayloadHex, err := callpayload.ToBytes()
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+
+		from := engine.ctx.contract.Address()
+		fromAddr, err = core.AddressParseFromBytes(from)
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+		//transfer
+		// var transferCostGas uint64
+		toValue, err = util.NewUint128FromString(innerTxValueStr)
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+		iRet := TransferByAddress(handler, fromAddr, addr, toValue)
+		if iRet != 0 {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, ErrInnerTransferFailed.Error(), true)
+			return nil
+		}
+
+		newTx, err := parentTx.NewInnerTransaction(parentTx.To(), addr, toValue, payloadType, newPayloadHex)
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), false)
+			logging.VLog().WithFields(logrus.Fields{
+				"from":  fromAddr.String(),
+				"to":    addr.String(),
+				"value": innerTxValueStr,
+				"err":   err,
+			}).Error("failed to create new tx")
+			return nil
+		}
+		// event address need to user
+		var head unsafe.Pointer
+		if engine.ctx.head == nil {
+			head = unsafe.Pointer(engine.v8engine)
+		} else {
+			head = engine.ctx.head
+		}
+		newCtx, err = NewInnerContext(engine.ctx.block, newTx, contract, engine.ctx.state, head, engine.ctx.index+1, engine.ctx.contextRand)
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+	} else {
+		payload, err := getPayloadByAddress(ws, C.GoString(address))
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+		deploy = payload.deploy
+
+		from := engine.ctx.contract.Address()
+		fromAddr, err = core.AddressParseFromBytes(from)
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+		//transfer
+		toValue, err = util.NewUint128FromString(innerTxValueStr)
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+		iRet := TransferByAddress(handler, fromAddr, addr, toValue)
+		if iRet != 0 {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, ErrInnerTransferFailed.Error(), true)
+			return nil
+		}
+
+		newCtx, err = createInnerContext(engine, fromAddr, addr, toValue, C.GoString(funcName), C.GoString(args))
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
 	}
 
-	newCtx, err := createInnerContext(engine, fromAddr, addr, toValue, C.GoString(funcName), C.GoString(args))
-	if err != nil {
-		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
-		return nil
-	}
 	remainInstruction, remainMem := engine.GetNVMLeftResources()
 	if remainInstruction <= uint64(InnerContractGasBase) {
 		logging.VLog().WithFields(logrus.Fields{
