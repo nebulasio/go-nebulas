@@ -221,6 +221,10 @@ func (n *Nbre) loop() {
 // If ir transactions are missed, nbre looks for database completion
 func (n *Nbre) checkIRUpdate() {
 	block := n.neb.BlockChain().LIB()
+	if block.Height() < n.neb.Config().Nbre.StartHeight {
+		return
+	}
+
 	// Initialize lib for the first time
 	if n.libHeight == 0 {
 		n.libHeight = block.Height()
@@ -242,27 +246,31 @@ func (n *Nbre) checkIRUpdate() {
 				logging.VLog().WithFields(logrus.Fields{
 					"block": libBlock,
 					"err":   err,
-				}).Debug("Failed to convert the lib block to proto data.")
+				}).Error("Failed to convert the lib block to proto data.")
 				return
 			}
 			bytes, err = proto.Marshal(pbBlock)
 			if err != nil {
 				logging.VLog().WithFields(logrus.Fields{
-					"block": block,
+					"block": libBlock,
 					"err":   err,
-				}).Debug("Failed to marshal the lib block.")
+				}).Error("Failed to marshal the lib block.")
 				return
 			}
 		}
 		_, err := n.Execute(CommandIRBlock, libBlock.Height(), bytes)
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
-				"block": block,
+				"block": libBlock,
 				"err":   err,
 			}).Error("Failed to execute the ir block command.")
 			return
 		}
 		n.libHeight++
+		logging.VLog().WithFields(logrus.Fields{
+			"height": libBlock.Height(),
+			"block":  libBlock,
+		}).Debug("Update ir block.")
 	}
 }
 
