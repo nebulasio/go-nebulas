@@ -115,44 +115,6 @@ void run_module() {
   }
 }
 
-// TEST(test_jit, doule_addModule) {
-
-// llvm::InitializeNativeTarget();
-// llvm::InitializeNativeTargetAsmPrinter();
-// llvm::sys::Process::PreventCoreFiles();
-// std::string errMsg;
-// llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr, &errMsg);
-
-// std::thread t_1(run_module);
-// std::thread t_2(run_module);
-// t_1.join();
-// t_2.join();
-
-//{
-// llvm::LLVMContext context;
-// auto modules = get_modules(context);
-// neb::jit::jit_engine je;
-// je.init(std::move(modules), "_Z9test_funcPN3neb4core6driverEPv");
-// je.run<int, neb::core::driver *, void *>(nullptr, nullptr);
-//}
-//{
-// llvm::LLVMContext context;
-// auto modules = get_modules(context);
-// neb::jit::jit_engine je;
-// je.init(std::move(modules), "_Z9test_funcPN3neb4core6driverEPv");
-// je.run<int, neb::core::driver *, void *>(nullptr, nullptr);
-//}
-//{
-// llvm::LLVMContext context;
-// auto modules = get_modules(context);
-// neb::jit::jit_engine je;
-// je.init(std::move(modules), "_Z9test_funcPN3neb4core6driverEPv");
-// je.run<int, neb::core::driver *, void *>(nullptr, nullptr);
-//}
-
-// llvm::llvm_shutdown();
-//}
-
 void Run_One(const std::string &path, const std::string &func_name) {
   std::ifstream ifs;
   ifs.open(path.c_str(), std::ios::in | std::ios::binary);

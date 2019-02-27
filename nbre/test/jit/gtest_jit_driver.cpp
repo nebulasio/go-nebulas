@@ -84,41 +84,5 @@ TEST(test_jit, doule_addModule) {
   std::cout << "end" << std::endl;
   llvm::runOrcLazyJIT(nullptr, std::move(modules), "", nullptr);
 
-  // llvm::LLVMContext context;
-  // llvm::SMDiagnostic error;
-  // std::vector<std::unique_ptr<llvm::Module>> modules;
-  // auto module = llvm::parseIRFile("/home/pluo/luopeng.bc", error, context);
-  // std::cout << error.getMessage().data() << std::endl;
-  // EXPECT_EQ(error.getMessage().data(), "");
-  // EXPECT_TRUE(module);
-  // modules.push_back(llvm::parseIRFile("/home/pluo/luopeng.bc", error,
-  // context));
-  // modules.push_back(
-  //    llvm::parseIR(mem_buf->getMemBufferRef(), error, context, true));
-
-  // llvm::EngineBuilder EB;
-  // EB.setOptLevel(llvm::CodeGenOpt::Default);
-  // auto TM = std::unique_ptr<llvm::TargetMachine>(EB.selectTarget());
-  // llvm::Triple T(TM->getTargetTriple());
-  // auto CompileCallbackMgr = llvm::orc::createLocalCompileCallbackManager(T,
-  // 0); EXPECT_TRUE(CompileCallbackMgr);
-
-  // auto IndirectStubsMgrBuilder =
-  // llvm::orc::createLocalIndirectStubsManagerBuilder(T);
-  // EXPECT_TRUE(IndirectStubsMgrBuilder);
-
-  //// Everything looks good. Build the JIT.
-  // bool OrcInlineStubs = true;
-  // llvm::OrcLazyJIT J(std::move(TM), std::move(CompileCallbackMgr),
-  // std::move(IndirectStubsMgrBuilder), OrcInlineStubs);
-
-  //// Add the module, look up main and run it.
-  // for (auto &M : modules) {
-  //// outs() << *(M.get());
-  // llvm::outs().flush();
-
-  // cantFail(J.addModule(std::shared_ptr<llvm::Module>(std::move(M))),
-  // nullptr);
-  //}
   std::cout << "end" << std::endl;
 }
