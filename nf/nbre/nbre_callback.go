@@ -71,3 +71,9 @@ func NbreDipRewardFunc(code C.int, holder unsafe.Pointer, dip_reward *C.char) {
 	result := C.GoString(dip_reward)
 	nbreHandled(code, holder, result, nil)
 }
+
+// NbreIrBlockFunc returns ir block
+//export NbreIrBlockFunc
+func NbreIrBlockFunc(code C.int, holder unsafe.Pointer) {
+	nbreHandled(code, holder, nil, nil)
+}
