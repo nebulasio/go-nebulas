@@ -331,6 +331,19 @@ void client_driver::add_handlers() {
                      << " with what: " << e.what();
         }
       });
+
+  m_client->add_handler<nbre_ir_block_req>(
+      [this](std::shared_ptr<nbre_ir_block_req> req) {
+        try {
+          auto ack = new_ack_pkg<nbre_ir_block_ack>(req);
+          auto height = req->get<p_height>();
+          auto ir_block = req->get<p_ir_block>();
+          m_ipc_conn->send(ack);
+        } catch (const std::exception &e) {
+          LOG(ERROR) << "got exception " << typeid(e).name()
+                     << " with what: " << e.what();
+        }
+      });
 }
 } // namespace core
 } // namespace neb
