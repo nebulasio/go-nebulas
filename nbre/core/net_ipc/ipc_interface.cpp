@@ -228,3 +228,12 @@ void set_recv_nbre_dip_reward_callback(nbre_dip_reward_callback_t func) {
   ipc_callback<nbre_dip_reward_ack, p_holder, p_dip_reward>::bind(func, _2, _3);
 }
 
+// interface send ir block
+int ipc_nbre_ir_block(void *holder, uint64_t height, const char *block_bytes) {
+  return ipc_call<nbre_ir_block_req, p_holder, p_height, p_ir_block>::bind(
+      holder, height, block_bytes);
+}
+void set_recv_nbre_ir_block_callback(nbre_ir_block_callback_t func) {
+  ipc_callback<nbre_ir_block_ack, p_holder>::bind(func, _2);
+}
+

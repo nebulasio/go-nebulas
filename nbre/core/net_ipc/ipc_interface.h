@@ -76,6 +76,9 @@ void set_recv_nbre_dip_reward_callback(nbre_dip_reward_callback_t func);
 
 // interface send ir block
 int ipc_nbre_ir_block(void *holder, uint64_t height, const char *block_bytes);
+typedef void (*nbre_ir_block_callback_t)(enum ipc_status_code isc,
+                                         void *holder);
+void set_recv_nbre_ir_block_callback(nbre_ir_block_callback_t func);
 
 typedef struct {
   const char *m_nbre_root_dir;
