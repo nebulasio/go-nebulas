@@ -21,7 +21,7 @@ GO = $(PB:.proto=.pb.go)
 all: $(GO)
 
 %.pb.go: %.proto
-	protoc -I/usr/local/include -I. -I../../../../../../src --gogo_out=. $<
+	protoc -I/usr/local/include -I. -I../../../../../../src --gogofaster_out=. $<
 
 clean:
 	rm *.pb.go
