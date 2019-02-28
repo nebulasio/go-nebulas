@@ -62,9 +62,6 @@ blockchain::load_block_with_height(block_height_t height) {
 std::unique_ptr<corepb::Block>
 blockchain::load_block_with_tag_string(const std::string &tag) {
 
-  m_storage->close_database();
-  m_storage->open_database(m_path, m_open_flag);
-
   std::unique_ptr<corepb::Block> block = std::make_unique<corepb::Block>();
   neb::util::bytes tail_hash =
       m_storage->get_bytes(neb::util::string_to_byte(tag));

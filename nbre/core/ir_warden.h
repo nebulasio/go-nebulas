@@ -39,21 +39,23 @@ public:
 
   std::unique_ptr<nbre::NBREIR> get_ir_by_name_version(const std::string &name,
                                                        uint64_t version);
-
   std::unique_ptr<std::vector<nbre::NBREIR>>
   get_ir_by_name_height(const std::string &name, uint64_t height,
                         bool depends = true);
+
   bool is_sync_already() const;
-
   void wait_until_sync();
-
   void on_timer();
+
+  void on_receive_ir_block(block_height_t height,
+                           const std::string &block_bytes);
 
 private:
   std::unique_ptr<fs::ir_manager> m_ir_manager;
   bool m_is_sync_already;
   mutable std::mutex m_sync_mutex;
   std::condition_variable m_sync_cond_var;
+  std::queue<std::pair<block_height_t, std::string>> m_queue;
 };
 }
 }

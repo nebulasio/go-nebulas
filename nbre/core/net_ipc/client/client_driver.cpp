@@ -338,6 +338,7 @@ void client_driver::add_handlers() {
           auto ack = new_ack_pkg<nbre_ir_block_ack>(req);
           auto height = req->get<p_height>();
           auto ir_block = req->get<p_ir_block>();
+          ir_warden::instance().on_receive_ir_block(height, ir_block);
           m_ipc_conn->send(ack);
         } catch (const std::exception &e) {
           LOG(ERROR) << "got exception " << typeid(e).name()

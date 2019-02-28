@@ -38,7 +38,7 @@ public:
   std::unique_ptr<std::vector<nbre::NBREIR>>
   read_irs(const std::string &name, block_height_t height, bool depends);
 
-  void parse_irs_till_latest();
+  void parse_irs(std::queue<std::pair<block_height_t, std::string>> &q_block);
 
 private:
   void read_ir_depends(const std::string &name, uint64_t version,
@@ -46,8 +46,12 @@ private:
                        std::unordered_set<std::string> &ir_set,
                        std::vector<nbre::NBREIR> &irs);
 
-  void parse_irs();
-  void parse_irs_by_height(block_height_t height);
+  void parse_next_block(block_height_t height, const std::string &block_seri);
+  void parse_when_missing_block(block_height_t start_block,
+                                block_height_t end_height);
+
+  void parse_irs_by_height(block_height_t height, const corepb::Block *block);
+  void parse_with_height(block_height_t height, const corepb::Block *block);
 
   void deploy_if_dip(const std::string &name, uint64_t version,
                      block_height_t available_height);
