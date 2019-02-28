@@ -273,4 +273,12 @@ if [ ! -f $CUR_DIR/lib/include/softfloat.h ]; then
   make clean
 fi
 
+if [ ! -f $CUR_DIR/3rd_party/cryptopp/sha3.h ]; then
+  cd $CUR_DIR/3rd_party/cryptopp
+  unzip cryptopp810.zip
+fi
+if [ ! -d $CUR_DIR/lib/include/cryptopp/ ]; then
+  build_with_make cryptopp
+fi
+
 cd $CUR_DIR
