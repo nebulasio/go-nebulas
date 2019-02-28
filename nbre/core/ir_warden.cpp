@@ -57,13 +57,19 @@ void ir_warden::wait_until_sync() {
 }
 
 void ir_warden::on_timer() {
-  m_ir_manager->parse_irs_till_latest();
   std::unique_lock<std::mutex> _l(m_sync_mutex);
+  m_ir_manager->parse_irs(m_queue);
   if (!m_is_sync_already) {
     m_is_sync_already = true;
     _l.unlock();
     m_sync_cond_var.notify_one();
   }
+}
+
+void ir_warden::on_receive_ir_block(block_height_t height,
+                                    const std::string &block_bytes) {
+  std::unique_lock<std::mutex> _l(m_sync_mutex);
+  m_queue.push(std::make_pair(height, block_bytes));
 }
 
 ir_warden::ir_warden() : m_is_sync_already(false) {

@@ -87,7 +87,7 @@ std::unique_ptr<event_info_t>
 blockchain_api::get_transaction_result_api(const neb::util::bytes &events_root,
                                            const neb::util::bytes &tx_hash) {
 
-  auto rs_ptr = m_blockchain->get_blockchain_storage();
+  auto rs_ptr = m_blockchain->storage_ptr();
   trie t(rs_ptr);
   neb::util::bytes txs_result;
 
@@ -133,7 +133,7 @@ blockchain_api::json_parse_event(const std::string &json) {
 std::unique_ptr<corepb::Account>
 blockchain_api::get_account_api(const address_t &addr, block_height_t height) {
 
-  auto rs_ptr = m_blockchain->get_blockchain_storage();
+  auto rs_ptr = m_blockchain->storage_ptr();
   auto block = m_blockchain->load_block_with_height(height);
 
   // get block header account state
@@ -164,7 +164,7 @@ blockchain_api::get_transaction_api(const std::string &tx_hash,
                                     block_height_t height) {
   auto corepb_txs_ptr = std::make_unique<corepb::Transaction>();
 
-  auto rs_ptr = m_blockchain->get_blockchain_storage();
+  auto rs_ptr = m_blockchain->storage_ptr();
   // suppose height is the latest block height
   auto block = m_blockchain->load_block_with_height(height);
 

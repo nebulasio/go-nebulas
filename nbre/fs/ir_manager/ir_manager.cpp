@@ -134,54 +134,77 @@ void ir_manager::read_ir_depends(const std::string &name, uint64_t version,
   return;
 }
 
-void ir_manager::parse_irs_till_latest() {
-
-  std::chrono::system_clock::time_point start_time =
-      std::chrono::system_clock::now();
-  std::chrono::system_clock::time_point end_time;
-  std::chrono::seconds time_spend;
-  std::chrono::seconds time_interval = std::chrono::seconds(
-      neb::configuration::instance().ir_warden_time_interval());
-
-  do {
-    parse_irs();
-    end_time = std::chrono::system_clock::now();
-    time_spend =
-        std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
-    start_time = end_time;
-  } while (time_spend > time_interval);
-}
-
-void ir_manager::parse_irs() {
-
-  block_height_t start_height = ir_manager_helper::nbre_block_height(m_storage);
-  block_height_t end_height = ir_manager_helper::lib_block_height(m_blockchain);
+void ir_manager::parse_irs(
+    std::queue<std::pair<block_height_t, std::string>> &q_block) {
 
   ir_manager_helper::load_auth_table(m_storage, m_auth_table);
+  block_height_t last_height = ir_manager_helper::nbre_block_height(m_storage);
 
-  std::string failed_flag =
-      neb::configuration::instance().nbre_failed_flag_name();
+  while (!q_block.empty()) {
+    auto ele = q_block.front();
+    q_block.pop();
+    block_height_t h = ele.first;
 
-  //! TODO: we may consider parallel here!
-  for (block_height_t h = start_height + 1; h <= end_height; h++) {
-    // LOG(INFO) << h;
-
-    if (!ir_manager_helper::has_failed_flag(m_storage, failed_flag)) {
-      ir_manager_helper::set_failed_flag(m_storage, failed_flag);
-      parse_irs_by_height(h);
+    if (h < last_height + 1) {
+      continue;
     }
-    m_storage->put(
-        std::string(neb::configuration::instance().nbre_max_height_name(),
-                    std::allocator<char>()),
-        neb::util::number_to_byte<neb::util::bytes>(h));
-    ir_manager_helper::del_failed_flag(m_storage, failed_flag);
+    if (h > last_height + 1) {
+      parse_when_missing_block(last_height + 1, h);
+    }
 
-    neb::rt::dip::dip_handler::instance().start(h);
+    parse_next_block(h, ele.second);
+    last_height = h;
   }
 }
 
-void ir_manager::parse_irs_by_height(block_height_t height) {
-  auto block = m_blockchain->load_block_with_height(height);
+void ir_manager::parse_when_missing_block(block_height_t start_height,
+                                          block_height_t end_height) {
+  auto bc_ptr = neb::fs::storage_holder::instance().neb_db_ptr();
+  for (block_height_t h = start_height; h < end_height; h++) {
+    auto block = bc_ptr->load_block_with_height(h);
+    parse_with_height(h, block.get());
+  }
+}
+
+void ir_manager::parse_next_block(block_height_t height,
+                                  const std::string &block_seri) {
+  if (block_seri.empty()) {
+    parse_with_height(height, nullptr);
+    return;
+  }
+
+  auto block_bytes = util::string_to_byte(block_seri);
+  std::unique_ptr<corepb::Block> block = std::make_unique<corepb::Block>();
+  bool ret = block->ParseFromArray(block_bytes.value(), block_bytes.size());
+  if (!ret) {
+    throw std::runtime_error("parse block failed");
+  }
+  parse_with_height(height, block.get());
+}
+
+void ir_manager::parse_with_height(block_height_t height,
+                                   const corepb::Block *block) {
+  std::string failed_flag =
+      neb::configuration::instance().nbre_failed_flag_name();
+
+  if (!ir_manager_helper::has_failed_flag(m_storage, failed_flag)) {
+    ir_manager_helper::set_failed_flag(m_storage, failed_flag);
+    parse_irs_by_height(height, block);
+  }
+  m_storage->put(
+      std::string(neb::configuration::instance().nbre_max_height_name(),
+                  std::allocator<char>()),
+      neb::util::number_to_byte<neb::util::bytes>(height));
+  ir_manager_helper::del_failed_flag(m_storage, failed_flag);
+
+  neb::rt::dip::dip_handler::instance().start(height);
+}
+
+void ir_manager::parse_irs_by_height(block_height_t height,
+                                     const corepb::Block *block) {
+  if (block == nullptr) {
+    return;
+  }
 
   for (auto &tx : block->transactions()) {
     auto &data = tx.data();
@@ -199,7 +222,6 @@ void ir_manager::parse_irs_by_height(block_height_t height) {
     neb::util::json_parser::read_json(data.payload(), pt);
     neb::util::bytes payload_bytes =
         neb::util::bytes::from_base64(pt.get<std::string>("Data"));
-
 
     std::unique_ptr<nbre::NBREIR> nbre_ir = std::make_unique<nbre::NBREIR>();
     bool ret =

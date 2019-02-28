@@ -46,8 +46,6 @@ std::string entry_point_dip_impl(compatible_uint64_t start_block,
         new neb::fs::blockchain_api_test());
   } else {
     bc = std::make_unique<neb::fs::blockchain>(neb_db_path);
-    // neb::fs::blockchain bc(neb_db_path);
-    // neb::fs::blockchain_api ba(&bc);
     pba = std::unique_ptr<neb::fs::blockchain_api_base>(
         new neb::fs::blockchain_api(bc.get()));
   }

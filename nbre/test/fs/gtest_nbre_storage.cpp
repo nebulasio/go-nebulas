@@ -31,7 +31,8 @@ TEST(test_fs, write_nbre_until_sync) {
   std::shared_ptr<neb::fs::ir_manager> nbre_ptr =
       std::make_shared<neb::fs::ir_manager>();
 
-  nbre_ptr->parse_irs_till_latest();
+  std::queue<std::pair<neb::block_height_t, std::string>> q;
+  nbre_ptr->parse_irs(q);
   nbre_ptr.reset();
 
   neb::fs::rocksdb_storage rs_write;

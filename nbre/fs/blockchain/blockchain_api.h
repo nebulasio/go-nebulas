@@ -73,7 +73,6 @@ public:
 
   virtual std::unique_ptr<corepb::Account>
   get_account_api(const address_t &addr, block_height_t height);
-
   virtual std::unique_ptr<corepb::Transaction>
   get_transaction_api(const std::string &tx_hash, block_height_t height);
 
@@ -81,7 +80,6 @@ private:
   std::unique_ptr<event_info_t>
   get_transaction_result_api(const neb::util::bytes &events_root,
                              const neb::util::bytes &tx_hash);
-
   std::unique_ptr<event_info_t> json_parse_event(const std::string &json);
 
 private:
