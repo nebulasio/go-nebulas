@@ -54,8 +54,8 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
   desc.add_options()("help", "show help message")
     ("use-test-blockchain", "use test blockchain")
     ("log-to-stderr", "glog to stderr")
-    ("ipc-port", po::value<std::uint16_t>(), "ipc network port")
-    ("ipc_ip", po::value<std::string>(), "ipc network ip");
+    ("ipc-ip", po::value<std::string>(), "ipc network ip")
+    ("ipc-port", po::value<std::uint16_t>(), "ipc network port");
 
   // clang-format on
 
@@ -79,12 +79,12 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
     neb::glog_log_to_stderr = false;
   }
 
-  if (!vm.count("ipc-port")) {
-    std::cout << "You must specify \"ipc-port\"!";
+  if (!vm.count("ipc-ip")) {
+    std::cout << "You must specify \"ipc-ip\"!" << std::endl;
     exit(1);
   }
-  if (!vm.count("ipc-ip")) {
-    std::cout << "You must specify \"ipc-ip\"!";
+  if (!vm.count("ipc-port")) {
+    std::cout << "You must specify \"ipc-port\"!" << std::endl;
     exit(1);
   }
 
