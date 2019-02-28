@@ -21,6 +21,8 @@ package nbre
 import (
 	"errors"
 
+	"github.com/nebulasio/go-nebulas/core"
+
 	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/neblet/pb"
@@ -48,10 +50,12 @@ var (
 	CommandNRHandler  = "nrHandler"
 	CommandNRList     = "nrList"
 	CommandDIPList    = "dipList"
+	CommandIRBlock    = "irBlock"
 )
 
 type Neblet interface {
 	Config() *nebletpb.Config
+	BlockChain() *core.BlockChain
 }
 
 type Version struct {

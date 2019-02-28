@@ -30,11 +30,14 @@ void NbreIrVersionsFunc_cgo(int isc, void *holder, const char *ir_versions);
 void NbreNrHandleFunc_cgo(int isc, void *holder, const char *nr_handle);
 void NbreNrResultFunc_cgo(int isc, void *holder, const char *nr_result);
 void NbreDipRewardFunc_cgo(int isc, void *holder, const char *dip_reward);
+void NbreIrBlockFunc_cgo(int isc, void *holder);
 */
 import "C"
 import (
 	"sync"
 	"time"
+
+	"github.com/gogo/protobuf/proto"
 
 	"unsafe"
 
@@ -77,6 +80,10 @@ type handler struct {
 // Nbre type of Nbre
 type Nbre struct {
 	neb Neblet
+
+	libHeight uint64
+
+	quitCh chan int
 }
 
 // NewNbre create new Nbre
@@ -85,7 +92,9 @@ func NewNbre(neb Neblet) core.Nbre {
 		InitializeNbre()
 	})
 	return &Nbre{
-		neb: neb,
+		neb:       neb,
+		libHeight: 0,
+		quitCh:    make(chan int, 1),
 	}
 }
 
@@ -164,7 +173,7 @@ func (n *Nbre) Start() error {
 	cAdminAddr := C.CString(n.neb.Config().Nbre.AdminAddress)
 	defer C.free(unsafe.Pointer(cAdminAddr))
 
-  cIpcListen := C.CString(n.neb.Config().Nbre.IpcListen)
+	cIpcListen := C.CString(n.neb.Config().Nbre.IpcListen)
 	defer C.free(unsafe.Pointer(cIpcListen))
 
 	p := C.nbre_params_t{
@@ -189,7 +198,80 @@ func (n *Nbre) Start() error {
 	if int(cResult) != 0 {
 		return ErrNbreStartFailed
 	}
+
+	go n.loop()
 	return nil
+}
+
+func (n *Nbre) loop() {
+
+	timerChan := time.NewTicker(time.Second * 15).C
+	for {
+		select {
+		case <-n.quitCh:
+			logging.CLog().Info("Stopped nbre ir loop.")
+			return
+		case <-timerChan:
+			n.checkIRUpdate()
+		}
+	}
+}
+
+// checkIRUpdate check lib block for ir transactions packaged.
+// If ir transactions are missed, nbre looks for database completion
+func (n *Nbre) checkIRUpdate() {
+	block := n.neb.BlockChain().LIB()
+	if block.Height() < n.neb.Config().Nbre.StartHeight {
+		return
+	}
+
+	// Initialize lib for the first time
+	if n.libHeight == 0 {
+		n.libHeight = block.Height()
+	}
+	for block.Height() >= n.libHeight {
+		libBlock := n.neb.BlockChain().GetBlockOnCanonicalChainByHeight(n.libHeight)
+		count := 0
+		for _, tx := range libBlock.Transactions() {
+			if tx.Type() == core.TxPayloadProtocolType {
+				count++
+			}
+		}
+		var (
+			bytes []byte
+		)
+		if count > 0 {
+			pbBlock, err := libBlock.ToProto()
+			if err != nil {
+				logging.VLog().WithFields(logrus.Fields{
+					"block": libBlock,
+					"err":   err,
+				}).Error("Failed to convert the lib block to proto data.")
+				return
+			}
+			bytes, err = proto.Marshal(pbBlock)
+			if err != nil {
+				logging.VLog().WithFields(logrus.Fields{
+					"block": libBlock,
+					"err":   err,
+				}).Error("Failed to marshal the lib block.")
+				return
+			}
+		}
+		_, err := n.Execute(CommandIRBlock, libBlock.Height(), bytes)
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"block": libBlock,
+				"err":   err,
+			}).Error("Failed to execute the ir block command.")
+			return
+		}
+		n.libHeight++
+		logging.VLog().WithFields(logrus.Fields{
+			"height": libBlock.Height(),
+			"block":  libBlock,
+		}).Debug("Update ir block.")
+	}
 }
 
 // InitializeNbre initialize nbre
@@ -200,6 +282,7 @@ func InitializeNbre() {
 	C.set_recv_nbre_nr_handle_callback((C.nbre_nr_handle_callback_t)(unsafe.Pointer(C.NbreNrHandleFunc_cgo)))
 	C.set_recv_nbre_nr_result_callback((C.nbre_nr_result_callback_t)(unsafe.Pointer(C.NbreNrResultFunc_cgo)))
 	C.set_recv_nbre_dip_reward_callback((C.nbre_dip_reward_callback_t)(unsafe.Pointer(C.NbreDipRewardFunc_cgo)))
+	C.set_recv_nbre_ir_block_callback((C.nbre_ir_block_callback_t)(unsafe.Pointer(C.NbreIrBlockFunc_cgo)))
 }
 
 // Execute execute command
@@ -285,6 +368,14 @@ func (n *Nbre) handleNbreCommand(handler *handler, command string, args ...inter
 		height := args[0].(uint64)
 		version := args[1].(uint64)
 		C.ipc_nbre_dip_reward(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height), C.uint64_t(version))
+	case CommandIRBlock:
+		height := args[0].(uint64)
+		var cBytes *C.char
+		if args[1] != nil {
+			bytes := args[1].([]byte)
+			cBytes = (*C.char)(unsafe.Pointer(&bytes[0]))
+		}
+		C.ipc_nbre_ir_block(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height), cBytes)
 	default:
 		handler.result = nil
 		handler.err = ErrCommandNotFound
@@ -341,6 +432,10 @@ func nbreHandled(code C.int, holder unsafe.Pointer, result interface{}, handleEr
 // Stop stop nbre
 func (n *Nbre) Stop() {
 	logging.CLog().Info("Stopping Nbre.")
+
+	// stop ir check loop
+	n.quitCh <- 1
+
 	select {
 	case <-n.shutdown():
 		return
