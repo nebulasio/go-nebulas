@@ -18,89 +18,39 @@
 // <http://www.gnu.org/licenses/>.
 //
 
+#include "common/common.h"
 #include "common/math.h"
-#include <cmath>
 #include <gtest/gtest.h>
+#define PRECESION 1e-5
 
-TEST(test_common_math, simple) {
-  float64 e = neb::math::constants<float64>::e();
-  std::cout << "e: " << e << std::endl;
-  float64 pi = neb::math::constants<float64>::pi();
-  std::cout << "pi: " << pi << std::endl;
-  float64 ln2 = neb::math::constants<float64>::ln2();
-  std::cout << "ln2: " << ln2 << std::endl;
+TEST(test_common_math, constants) {
+  neb::floatxx_t actual_e = neb::math::constants<neb::floatxx_t>::e();
+  neb::floatxx_t actual_pi = neb::math::constants<neb::floatxx_t>::pi();
+  neb::floatxx_t actual_ln2 = neb::math::constants<neb::floatxx_t>::ln2();
 
-  auto t = neb::math::exp(float64(2));
-  std::cout << "e^2: " << t << std::endl;
+  float expect_e = std::exp(1.0);
+  float expect_pi = std::acos(-1.0);
+  float expect_ln2 = std::log(2.0);
 
-  float64 ie = e.integer_val();
-  float64 ipi = pi.integer_val();
-  float64 iln2 = ln2.integer_val();
-  std::cout << "ie: " << ie << std::endl;
-  std::cout << "ipi: " << ipi << std::endl;
-  std::cout << "iln2: " << iln2 << std::endl;
-  std::cout << "xxxxxxxxxxxxx" << std::endl;
-
-  auto epi = neb::math::exp(pi);
-  auto pi_4 = neb::math::arctan(float64(1));
-  auto sin = neb::math::sin(pi / 4);
-
-  auto lne = neb::math::ln(e);
-  std::cout << "e^pi: " << epi << std::endl;
-  std::cout << "pi/4: " << pi_4 << std::endl;
-  std::cout << "sin(pi/4): " << sin << std::endl;
-  std::cout << "ln(e): " << lne << std::endl;
+  EXPECT_TRUE(neb::math::abs(actual_e, neb::floatxx_t(expect_e)) < PRECESION);
+  EXPECT_TRUE(neb::math::abs(actual_pi, neb::floatxx_t(expect_pi)) < PRECESION);
+  EXPECT_TRUE(neb::math::abs(actual_ln2, neb::floatxx_t(expect_ln2)) <
+              PRECESION);
 }
-bool equal(float64 a, float64 b) {
-  if (a - b < 1e-6 && b - a < 1e-6) {
-    return true;
-  }
-  return false;
-}
-TEST(test_common_math, math_functions) {
-  std::cout.precision(10);
-  // exp
-  for (int i = -9; i < 9; ++i) {
-    auto e = neb::math::exp(float64(i));
-    std::cout << "neb::exp(" << i << "): " << e << std::endl;
-    std::cout << "diff from std: " << e - float64(std::exp(i)) << std::endl;
-    EXPECT_TRUE(equal(e, float64(std::exp(i))));
-  }
-  // arctan
-  for (int i = -9; i < 9; ++i) {
-    auto pi = neb::math::arctan(float64(1));
-    std::cout << "neb::arctan(" << 1 << "): " << pi << std::endl;
-    std::cout << "diff from std: " << pi - float64(std::atan(1)) << std::endl;
-    EXPECT_TRUE(equal(pi, float64(std::atan(1))));
-    std::cout << "atan(2): " << std::atan(2) << std::endl;
-  }
-  // sin
-  for (int i = -9; i < 9; ++i) {
-    auto s = neb::math::sin(float64(i));
-    std::cout << "neb::sin(" << i << "): " << s << std::endl;
-    std::cout << "diff from std: " << s - float64(std::sin(i)) << std::endl;
-    EXPECT_TRUE(equal(s, float64(std::sin(i))));
-  }
-  // ln
-  for (int i = 1; i < 10; ++i) {
-    auto l = neb::math::ln(float64(i));
-    std::cout << "neb::ln(" << i << "): " << l << std::endl;
-    std::cout << "diff from std: " << l - float64(std::log(i)) << std::endl;
-    // EXPECT_TRUE(equal(l, float64(std::log(i))));
-  }
-  // log2
-  for (int i = 1; i < 10; ++i) {
-    auto l2 = neb::math::log2(float64(i));
-    std::cout << "neb::log2(" << i << "): " << l2 << std::endl;
-    std::cout << "diff from std: " << l2 - float64(std::log2(i)) << std::endl;
-    // EXPECT_TRUE(equal(l2, float64(std::log2(i))));
-  }
-  // exp
-  for (int i = -10; i < 10; ++i) {
-    float64 e = neb::math::constants<float64>::e();
-    auto p = neb::math::pow(e, i);
-    std::cout << "neb::pow(e, " << i << "): " << p << std::endl;
-    std::cout << "diff form std: " << p - std::exp(i) << std::endl;
-    // EXPECT_TRUE(equal(p, float64(std::exp(i))));
-  }
+
+TEST(test_common_math, exp) {
+  EXPECT_EQ(neb::math::exp(neb::floatxx_t(0)), 1);
+
+  neb::floatxx_t actual_x = neb::math::exp(neb::floatxx_t(1));
+  float expect_x = std::exp(1.0);
+  EXPECT_TRUE(neb::math::abs(actual_x, neb::floatxx_t(expect_x)) < PRECESION);
+
+  actual_x = neb::math::exp(neb::floatxx_t(-1));
+  expect_x = std::exp(-1.0);
+  EXPECT_TRUE(neb::math::abs(actual_x, neb::floatxx_t(expect_x)) < PRECESION);
+
+  actual_x = neb::math::exp(neb::floatxx_t(80));
+  expect_x = std::exp(80.0);
+  LOG(INFO) << actual_x << ',' << expect_x << ',' << actual_x - expect_x;
+  EXPECT_TRUE(neb::math::abs(actual_x, neb::floatxx_t(expect_x)) < PRECESION);
 }

@@ -25,8 +25,9 @@
 #include <gtest/gtest.h>
 
 TEST(test_boost_read_json, simple) {
-  std::string fp = neb::fs::join_path(
-      neb::configuration::instance().nbre_root_dir(), "test/data/nasir.json");
+  std::string fp =
+      neb::fs::join_path(neb::configuration::instance().nbre_root_dir(),
+                         "test/data/common/nasir.json");
 
   boost::property_tree::ptree json_root;
   boost::property_tree::read_json(fp, json_root);
@@ -35,7 +36,7 @@ TEST(test_boost_read_json, simple) {
 TEST(test_common_json_util, read_json) {
   std::string fp =
       neb::fs::join_path(neb::configuration::instance().nbre_root_dir(),
-                         "test/data/json_util.json");
+                         "test/data/common/json_util.json");
   neb::ir_conf_reader json_reader(fp);
   EXPECT_EQ(json_reader.self_ref().name(), "nr");
   EXPECT_EQ(json_reader.self_ref().version().major_version(), 0);
@@ -56,6 +57,8 @@ TEST(test_common_json_util, throw_json) {
   EXPECT_THROW(neb::ir_conf_reader json_reader("xxx"),
                neb::json_general_failure);
 
-  EXPECT_THROW(neb::ir_conf_reader json_reader("../test/data/test_throw_exceptions.json"),
-               neb::json_general_failure);
+  std::string fp =
+      neb::fs::join_path(neb::configuration::instance().nbre_root_dir(),
+                         "test/data/common/test_throw_exceptions.json");
+  EXPECT_THROW(neb::ir_conf_reader json_reader(fp), neb::json_general_failure);
 }
