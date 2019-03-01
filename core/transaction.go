@@ -571,6 +571,13 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 		return submitTx(tx, block, ws, tx.gasLimit, ErrOutOfGasLimit, "Failed to check gasLimit >= allGas", "")
 	}
 
+	logging.CLog().WithFields(logrus.Fields{
+		"allGas":   allGas,
+		"exeResult":   exeResult,
+    	"exeGasMariana": gasExecution,
+		"height": block.Height(),
+	}).Info(">>>>>>>>>>>>>>>> Get total gas used")
+
 	// step9. over
 	return submitTx(tx, block, ws, allGas, exeErr, "Failed to execute payload", exeResult)
 }

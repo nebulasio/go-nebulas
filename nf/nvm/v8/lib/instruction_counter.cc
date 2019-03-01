@@ -20,6 +20,8 @@
 #include "instruction_counter.h"
 #include "logger.h"
 
+#include <iostream>
+
 static char sInstructionCounter[] = "_instruction_counter";
 
 static InstructionCounterIncrListener sListener = NULL;
@@ -81,6 +83,8 @@ void IncrCounterCallback(const FunctionCallbackInfo<Value> &info) {
   size_t *cnt = static_cast<size_t *>(count->Value());
   *cnt += val;
 
+  std::cout<<"*************** IncrCounterCallback Increased instruction count is: "<<val<<std::endl;
+
   if (sListener != NULL) {
     sListener(isolate, *cnt, listenerContext->Value());
   }
@@ -101,6 +105,8 @@ void IncrCounter(Isolate *isolate, Local<Context> context, size_t val) {
     return;
   }
 
+  std::cout<<"************** Increase counter with value: "<<val<<std::endl;
+
   // TODO, opt the code, get rid of unnecessary fetches
   Local<Object> global = context->Global();
   HandleScope handle_scope(isolate);
@@ -120,7 +126,6 @@ void IncrCounter(Isolate *isolate, Local<Context> context, size_t val) {
   }
 }
 
-void SetInstructionCounterIncrListener(
-    InstructionCounterIncrListener listener) {
+void SetInstructionCounterIncrListener(InstructionCounterIncrListener listener) {
   sListener = listener;
 }

@@ -72,6 +72,10 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
 
     char *traceableSource =
         InjectTracingInstructions(e, data, &lineOffset, strict_disallow_usage);
+
+    if(FG_DEBUG)
+      std::cout<<"The tracebale source code is: "<<traceableSource<<std::endl;
+
     if (traceableSource == nullptr) {
       LogErrorf("Inject tracing instructions failed.\n");
       fprintf(stderr, "Inject tracing instructions failed.\n");
@@ -185,7 +189,6 @@ void Initialization(){
   InitializeCrypto(Sha256, Sha3256, Ripemd160, RecoverAddress, Md5, Base64);
 }
 
-
 void InitializeDataStructure(){
   srcModuleCache = std::unique_ptr<std::map<std::string, CacheSrcItem>>(new std::map<std::string, CacheSrcItem>());
 }
@@ -208,13 +211,17 @@ char *InjectTracingInstructionsThread(V8Engine *e, const char *source,
   memset(&ctx, 0x00, sizeof(ctx));
   SetRunScriptArgs(&ctx, e, INSTRUCTION, source, *source_line_offset, allow_usage);
 	bool btn = CreateScriptThread(&ctx);
-  std::cout<<">>>>>> Finishing injecting tracing instructions thread"<<std::endl;
+  if(FG_DEBUG)
+    std::cout<<">>>>>> Finishing injecting tracing instructions thread"<<std::endl;
   if (btn == false) {
     LogErrorf("Failed to create script thread");
-    fprintf(stderr, "Failed to create script thread");
     return nullptr;
   }
   *source_line_offset = ctx.output.line_offset;
+
+  if(FG_DEBUG)
+    std::cout<<"*********** injected traceable source code: "<<std::endl<<ctx.output.result<<std::endl;
+
   return ctx.output.result;
 }
 
@@ -291,7 +298,8 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
   int timeout = ctx->e->timeout;
   bool is_kill = false;
 
-  std::cout<<"Now is in create script thread"<<std::endl;
+  if(FG_DEBUG)
+    std::cout<<"Now is in create script thread"<<std::endl;
 
   //thread safe
   while(1) {
@@ -310,7 +318,8 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
       }
       int diff = MicroSecondDiff(tcEnd, tcBegin);
       if (diff >= timeout && is_kill == false) {
-        std::cout<<"%%%%%%%%%%%% checking termination condition"<<std::endl;
+        if(FG_DEBUG)
+          std::cout<<"%%%%%%%%%%%% checking termination condition"<<std::endl;
         LogErrorf("CreateScriptThread timeout timeout:%d diff:%d\n", timeout, diff);
         fprintf(stderr, "CreateScriptThread timeout timeout:%d diff:%d\n", timeout, diff);
         TerminateExecution(ctx->e);
@@ -340,15 +349,18 @@ int NVMEngine::GetRunnableSourceCode(const std::string& sourceType, std::string&
   std::string sourceHash = sha256(std::string(jsSource));
   auto searchRecord = srcModuleCache->find(sourceHash);
   if(searchRecord != srcModuleCache->end()){
-    std::cout<<">>>>>> Found existing runnable source module"<<std::endl;
+    if(FG_DEBUG)
+      std::cout<<">>>>>> Found existing runnable source module"<<std::endl;
     CacheSrcItem cachedSourceItem = searchRecord->second;
     this->m_traceable_src = cachedSourceItem.traceableSource;
     this->m_traceale_src_line_offset = cachedSourceItem.traceableSourceLineOffset;
     return 0;
 
   }else{
-    std::cout<<">>>>>>>>>> Injecting tracking instructions in thread"<<std::endl;
+    if(FG_DEBUG)
+      std::cout<<">>>>>>>>>> Injecting tracking instructions in thread"<<std::endl;
     char* traceableSource = InjectTracingInstructionsThread(this->engine, jsSource, &this->m_src_offset, this->m_allow_usage);
+
     if(traceableSource != nullptr){
       this->m_traceable_src = std::string(traceableSource);
       this->m_traceale_src_line_offset = 0;
@@ -357,7 +369,9 @@ int NVMEngine::GetRunnableSourceCode(const std::string& sourceType, std::string&
       return 0;
     }
 
-    std::cout<<">>>>Traceable source code is: "<<traceableSource<<std::endl;
+    if(FG_DEBUG && traceableSource!=nullptr){
+      std::cout<<">>>>Traceable source code is: "<<traceableSource<<std::endl;
+    }
   }
  
   return NVM_INJECT_TRACING_INSTRUCTION_ERR;
@@ -369,7 +383,6 @@ int NVMEngine::StartScriptExecution(std::string& contractSource, const std::stri
     // create engine and inject tracing instructions
     if(this->engine == nullptr){
       this->engine = CreateEngine();
-      std::cout<<"************** NOW is creating the new V8 engine! **********"<<std::endl;
     }
 
     this->engine->limits_of_executed_instructions = configBundle.limits_exe_instruction();
@@ -387,10 +400,8 @@ int NVMEngine::StartScriptExecution(std::string& contractSource, const std::stri
     // check limitations
     if(configBundle.block_height() >= GetNVMMemoryLimitWithoutInjectHeight()) {
       ReadMemoryStatistics(this->engine);
-      uint64_t actualCountOfExecutionInstructions = (uint64_t)this->engine->stats.count_of_executed_instructions;
       uint64_t actualTotalMemorySize = (uint64_t)this->engine->stats.total_memory_size;
       uint64_t mem = actualTotalMemorySize + DefaultLimitsOfTotalMemorySize;
-      std::cout<<">>>>>>> Curent actual count of exe instructions are: "<<actualCountOfExecutionInstructions<<std::endl;
       LogInfof("mem limit reset in V8, actualTotalMemorySize: %ld, limit: %ld, tx.hash: %s", actualTotalMemorySize, DefaultLimitsOfTotalMemorySize, configBundle.tx_json().c_str());
       this->engine->limits_of_total_memory_size = mem;
     }
@@ -496,15 +507,18 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
         this->m_exe_result = nullptr;
       }
 
-      std::cout<<"\n\n\n\n\n\n"<<std::endl;
+      if(FG_DEBUG)
+        std::cout<<"\n\n\n\n\n\n"<<std::endl;
       
     }else{
       // throw exception since the request type is not allowed
-      std::cout<<"Illegal request type"<<std::endl;
+      if(FG_DEBUG)
+        std::cout<<"Illegal request type"<<std::endl;
     }
 
   }catch(const std::exception& e){
-    std::cout<<e.what()<<std::endl;
+    if(FG_DEBUG)
+      std::cout<<e.what()<<std::endl;
   }
 
   if(this->engine != nullptr){
@@ -527,8 +541,6 @@ void NVMEngine::LocalTest(){
     std::stringstream buffer;
     buffer<<sourceFP.rdbuf();
     scriptSrc = buffer.str();
-
-    std::cout<<"Readout source is: "<<scriptSrc<<std::endl;
     sourceFP.close();
   }
 
@@ -537,8 +549,6 @@ void NVMEngine::LocalTest(){
     std::stringstream buffer;
     buffer<<runnableSrcFP.rdbuf();
     runnableSrc = buffer.str();
-
-    std::cout<<"The runnable source is: "<<runnableSrc<<std::endl;
     runnableSrcFP.close();
   }
 
@@ -548,10 +558,12 @@ void NVMEngine::LocalTest(){
 
   int ret = this->StartScriptExecution(scriptSrc, scriptType, runnableSrc, moduleID, *configBundle);
 
-  if(this->m_exe_result != nullptr)
-    std::cout<<">>>>Hey running is done, and running result is: "<<this->m_exe_result<<std::endl;
-  else
-    std::cout<<">>>>Hey running is done, and the running result is null! and the ret is: "<<ret<<std::endl;
+  if(FG_DEBUG){
+    if(this->m_exe_result != nullptr)
+      std::cout<<">>>>Hey running is done, and running result is: "<<this->m_exe_result<<std::endl;
+    else
+      std::cout<<">>>>Hey running is done, and the running result is null! and the ret is: "<<ret<<std::endl;
+  }
 
   if(this->m_exe_result != nullptr)
     free(this->m_exe_result);
@@ -578,7 +590,14 @@ const NVMCallbackResult* NVMEngine::Callback(void* handler, NVMCallbackResponse*
           if(requestType.compare(DATA_EXHG_CALL_BACK) == 0){
             result = &(request->callback_result());
             getResultFlag = true;
-            std::cout<<"-- Callback response from the GOLANG side with function: "<<callback_response->func_name()<<std::endl;
+            if(FG_DEBUG){
+              std::cout<<"-- Callback response from the GOLANG side with function: "<<callback_response->func_name()<<std::endl;
+              // check gas cnt one by one
+              std::cout<<"********** CALLBACK result of "<<callback_response->func_name()<<" is: "<<result->result()<<std::endl;
+              for(int i=0; i<result->extra_size(); i++){
+                std::cout<<"************* CALLBACK extra: "<<result->extra(i)<<std::endl;
+              }
+            }
           }
           break;
         }
@@ -614,7 +633,6 @@ void RunServer(const char* addr_str){
 
   if(gNVMEngine == nullptr){
     gNVMEngine = new NVMEngine(NVM_CURRENCY_LEVEL);
-    std::cout<<"***************** NOW is creating NVM engine ****************"<<std::endl;
   }
 
   grpc::ServerBuilder builder;

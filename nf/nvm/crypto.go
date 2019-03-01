@@ -18,8 +18,6 @@
 
 package nvm
 
-import "C"
-
 import (
 	"crypto/md5"
 

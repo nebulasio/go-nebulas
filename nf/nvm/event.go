@@ -18,7 +18,6 @@
 
 package nvm
 
-import "C"
 import (
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util/logging"

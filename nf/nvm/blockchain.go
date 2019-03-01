@@ -18,11 +18,6 @@
 
 package nvm
 
-/*
-#include "v8/lib/nvm_error.h"
-*/
-import "C"
-
 import (
 	"encoding/json"
 
@@ -52,7 +47,7 @@ func GetTxByHashFunc(handler uint64, hash string) (string, uint64) {
 
 	txHash, err := byteutils.FromHex(hash)
 	if err != nil {
-		return res, 0
+		return res, gasCnt
 	}
 	txBytes, err := engine.ctx.state.GetTx(txHash)
 	if err != nil {
@@ -61,7 +56,7 @@ func GetTxByHashFunc(handler uint64, hash string) (string, uint64) {
 			"key":     hash,
 			"err":     err,
 		}).Debug("GetTxByHashFunc get tx failed.")
-		return res, 0
+		return res, gasCnt
 	}
 	sTx, err := toSerializableTransactionFromBytes(txBytes)
 	if err != nil {
@@ -70,7 +65,7 @@ func GetTxByHashFunc(handler uint64, hash string) (string, uint64) {
 			"key":     hash,
 			"err":     err,
 		}).Debug("GetTxByHashFunc get tx failed.")
-		return res, 0
+		return res, gasCnt
 	}
 	txJSON, err := json.Marshal(sTx)
 	if err != nil {
@@ -79,7 +74,7 @@ func GetTxByHashFunc(handler uint64, hash string) (string, uint64) {
 			"key":     hash,
 			"err":     err,
 		}).Debug("GetTxByHashFunc get tx failed.")
-		return res, 0
+		return res, gasCnt
 	}
 
 	return string(txJSON), gasCnt
@@ -281,7 +276,7 @@ func TransferFunc(handler uint64, to string, v string) (int, uint64) {
 				"address": addr,
 				"err":     err,
 			}).Fatal("failed to add balance")
-			//			recordTransferFailureEvent(TransferSubBalance, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
+			// recordTransferFailureEvent(TransferSubBalance, cAddr.String(), addr.String(), amount.String(), height, wsState, txHash)
 			// return TransferAddBalance
 		}
 	}

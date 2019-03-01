@@ -23,6 +23,8 @@
 #include "logger.h"
 #include <math.h>
 
+#include <iostream>
+
 static StorageGetFunc GET = NULL;
 static StoragePutFunc PUT = NULL;
 static StorageDelFunc DEL = NULL;
@@ -131,8 +133,7 @@ void StorageGetCallback(const FunctionCallbackInfo<Value> &info) {
   }
 
   size_t cnt = 0;
-  char *value =
-      GET(handler->Value(), *String::Utf8Value(key->ToString()), &cnt);
+  char *value = GET(handler->Value(), *String::Utf8Value(key->ToString()), &cnt);
   if (value == NULL) {
     info.GetReturnValue().SetNull();
   } else {
@@ -140,8 +141,10 @@ void StorageGetCallback(const FunctionCallbackInfo<Value> &info) {
     free(value);
   }
 
+  std::cout<<"***********  StorageGet increase counter to be: "<<cnt<<std::endl;
+
   // record storage usage.
-  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
+  //IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
 }
 
 void StoragePutCallback(const FunctionCallbackInfo<Value> &info) {

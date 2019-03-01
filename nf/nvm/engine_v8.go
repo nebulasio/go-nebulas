@@ -359,7 +359,6 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 
 	// start counting for execution
 	e.startExeTime = time.Now()
-	var counter uint32 = 1		// for debugging purpose
 	for {
 		dataResponse, err := stream.Recv()
 		if err != nil{
@@ -421,12 +420,10 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 				} else if e.ctx.block.Height() >= core.NewNvmExeTimeoutConsumeGasHeight {
 					if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
 						e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
-
 						//actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
 
 					} else {
 						e.actualCountOfExecutionInstructions = TimeoutGasLimitCost
-						
 						//actualCountOfExecutionInstructions = TimeoutGasLimitCost
 					}
 				}
@@ -447,13 +444,10 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 					e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
 				}
 			}
-			if len(result) == 0 {
-				result = "\"\""
-			}
 			
 			logging.CLog().WithFields(logrus.Fields{
 				"result": result,
-			}).Info("<><><><><><> The contract execution result!")
+			}).Info(">>>>>>> The contract execution result!")
 
 			return result, nil
 
@@ -463,117 +457,91 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			callbackResponse := dataResponse.GetCallbackResponse()
 			responseFuncName := callbackResponse.GetFuncName()
 			responseFuncParams := callbackResponse.GetFuncParams()
-			
-			/*
-			logging.CLog().WithFields(logrus.Fields{
-				"response_type": dataResponse.GetResponseType,
-				"response_indx": dataResponse.GetResponseIndx,
-				"response_function_name": dataResponse.GetCallbackResponse().FuncName,
-				"response_function_para": responseFuncParams[0],
-				"module": "nvm",
-			}).Info(">>>>>>>Now is receiving a call back from the v8 process to handle")
-			*/
 
 			// check the callback type
 			callbackResult := &NVMCallbackResult{}
 			callbackResult.FuncName = responseFuncName
 
-			if responseFuncName == ATTACH_LIB_VERSION_DELEGATE_FUNC{
+			switch responseFuncName{
+			case ATTACH_LIB_VERSION_DELEGATE_FUNC:
 				pathName := AttachLibVersionDelegateFunc(serverLcsHandler, responseFuncParams[0])
 				callbackResult.Result = pathName
-
-			}else if responseFuncName == STORAGE_GET {
+			case STORAGE_GET:
 				value, gasCnt := StorageGetFunc(serverLcsHandler, responseFuncParams[0])
 				callbackResult.Result = value
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
-			} else if responseFuncName == STORAGE_PUT {
+			case STORAGE_PUT:
 				resCode, gasCnt := StoragePutFunc(serverLcsHandler, responseFuncParams[0], responseFuncParams[1])
 				callbackResult.Result = fmt.Sprintf("%v", resCode)
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
-			} else if responseFuncName == STORAGE_DEL {
+			case STORAGE_DEL:
 				resCode, gasCnt := StorageDelFunc(serverLcsHandler, responseFuncParams[0])
 				callbackResult.Result = fmt.Sprintf("%v", resCode)
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
-			} else if responseFuncName == GET_TX_BY_HASH {
+			case GET_TX_BY_HASH:
 				resStr, gasCnt := GetTxByHashFunc(serverLcsHandler, responseFuncParams[0])
 				callbackResult.Result = resStr
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
-			} else if responseFuncName == GET_ACCOUNT_STATE {
+			case GET_ACCOUNT_STATE:
 				resCode, resStr, exceptionInfo, gasCnt := GetAccountStateFunc(serverLcsHandler, responseFuncParams[0])
 				callbackResult.Result = fmt.Sprintf("%v", resCode)
 				callbackResult.Extra = append(callbackResult.Extra, resStr)
 				callbackResult.Extra = append(callbackResult.Extra, exceptionInfo)
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
-			} else if responseFuncName == TRANSFER {
+			case TRANSFER:
 				resCode, gasCnt := TransferFunc(serverLcsHandler, responseFuncParams[0], responseFuncParams[1])
 				callbackResult.Result = fmt.Sprintf("%v", resCode)
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
-			} else if responseFuncName == VERIFY_ADDR {
+			case VERIFY_ADDR:
 				resCode, gasCnt := VerifyAddressFunc(serverLcsHandler, responseFuncParams[0])
 				callbackResult.Result = fmt.Sprintf("%v", resCode)
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
-			} else if responseFuncName == GET_PRE_BLOCK_HASH {
+			case GET_PRE_BLOCK_HASH:
 				offset, _ := strconv.ParseInt(responseFuncParams[0], 10, 64)
 				resCode, resStr, exceptionInfo, gasCnt := GetPreBlockHashFunc(serverLcsHandler, uint64(offset))
 				callbackResult.Result = fmt.Sprintf("%v", resCode)
 				callbackResult.Extra = append(callbackResult.Extra, resStr)
 				callbackResult.Extra = append(callbackResult.Extra, exceptionInfo)
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
-			} else if responseFuncName == GET_PRE_BLOCK_SEED {
+			case GET_PRE_BLOCK_SEED:
 				offset, _ := strconv.ParseInt(responseFuncParams[0], 10, 64)
 				resCode, resStr, exceptionInfo, gasCnt := GetPreBlockSeedFunc(serverLcsHandler, uint64(offset))
 				callbackResult.Result = fmt.Sprintf("%v", resCode)
 				callbackResult.Extra = append(callbackResult.Extra, resStr)
 				callbackResult.Extra = append(callbackResult.Extra, exceptionInfo)
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))				
-
-			} else if responseFuncName == EVENT_TRIGGER_FUNC {
+				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))	
+			case EVENT_TRIGGER_FUNC:
 				gasCnt := EventTriggerFunc(serverLcsHandler, responseFuncParams[0], responseFuncParams[1])
 				callbackResult.Result = fmt.Sprintf("%v", gasCnt)
-
-			} else if responseFuncName == SHA_256_FUNC {
+			case SHA_256_FUNC:
 				resStr, gasCnt := Sha256Func(responseFuncParams[0])
 				callbackResult.Result = resStr
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
-			} else if responseFuncName == SHA_3256_FUNC {
+			case SHA_3256_FUNC:
 				resStr, gasCnt := Sha3256Func(responseFuncParams[0])
 				callbackResult.Result = resStr
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
-			} else if responseFuncName == RIPEMD_160_FUNC {
+			case RIPEMD_160_FUNC:
 				resStr, gasCnt := Ripemd160Func(responseFuncParams[0])
 				callbackResult.Result = resStr
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
-			} else if responseFuncName == RECOVER_ADDRESS_FUNC {
+			case RECOVER_ADDRESS_FUNC:
 				alg, _ := strconv.Atoi(responseFuncParams[0])
 				resStr, gasCnt := RecoverAddressFunc(alg, responseFuncParams[1], responseFuncParams[2])
 				callbackResult.Result = resStr
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
-			} else if responseFuncName == MD5_FUNC {
+			case MD5_FUNC:
 				resStr, gasCnt := Md5Func(responseFuncParams[0])
 				callbackResult.Result = resStr
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
-			} else if responseFuncName == BASE64_FUNC {
+			case BASE64_FUNC:
 				resStr, gasCnt := Base64Func(responseFuncParams[0])
 				callbackResult.Result = resStr
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
-			} else {
+			default:
 				logging.CLog().WithFields(logrus.Fields{
-						"func": responseFuncName,
-						"params": responseFuncParams,
+					"func": responseFuncName,
+					"params": responseFuncParams,
 				}).Error("Invalid callback function name")
 			}
 
@@ -590,12 +558,9 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 		}
 		
 		if(e.CheckTimeout()){
-			logging.CLog().Info("+++++++++= Now is timeout!!!!")
 			return "", ErrExecutionTimeout
 			break
 		}
-		counter += 1
-		logging.CLog().Info("Counter is: ", counter)
 	}
 
 	return "", ErrUnexpected

@@ -143,7 +143,9 @@ void AddModule(void *handler, const char *filename, const char *source, int line
     m.unlock();
     
     LogDebugf("AddModule: %s -> %s %d", filename, filepath, lineOffset);
-    std::cout<<"[ ---- Addmodule ---- ] AddModule: "<<filename<<" --> "<<filepath<<" "<<lineOffset<<std::endl;
+    
+    if(FG_DEBUG)
+      std::cout<<"[ ---- Addmodule ---- ] AddModule: "<<filename<<" --> "<<filepath<<" "<<lineOffset<<std::endl;
   }
 }
 
