@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
+	proto "github.com/nebulasio/go-nebulas/common/protobuf"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto"

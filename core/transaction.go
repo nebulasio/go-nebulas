@@ -29,7 +29,7 @@ import (
 
 	"encoding/json"
 
-	"github.com/gogo/protobuf/proto"
+	proto "github.com/nebulasio/go-nebulas/common/protobuf"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"

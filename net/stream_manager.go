@@ -29,7 +29,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/gogo/protobuf/proto"
+	proto "github.com/nebulasio/go-nebulas/common/protobuf"
 	libnet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/nebulasio/go-nebulas/util/logging"

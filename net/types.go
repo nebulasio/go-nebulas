@@ -22,7 +22,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/gogo/protobuf/proto"
+	proto "github.com/nebulasio/go-nebulas/common/protobuf"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 )

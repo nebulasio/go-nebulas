@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
+	proto "github.com/nebulasio/go-nebulas/common/protobuf"
 	"github.com/nebulasio/go-nebulas/common/trie/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/storage"

@@ -20,7 +20,7 @@ package pbopt
 
 import "fmt"
 
-type CustomizedProtobufMessage interface {
+type Message interface {
 	Reset()
 	String() string
 	ProtoMessage()
@@ -49,7 +49,7 @@ var (
 )
 
 // simplify func Marshal from protobuf
-func Marshal(pb CustomizedProtobufMessage) ([]byte, error) {
+func Marshal(pb Message) ([]byte, error) {
 	if m, ok := pb.(Marshaler); ok {
 		return m.Marshal()
 	}
@@ -57,7 +57,7 @@ func Marshal(pb CustomizedProtobufMessage) ([]byte, error) {
 }
 
 // simplify func Unmarshal from protobuf
-func Unmarshal(buf []byte, pb CustomizedProtobufMessage) error {
+func Unmarshal(buf []byte, pb Message) error {
 	pb.Reset()
 	if u, ok := pb.(Unmarshaler); ok {
 		return u.Unmarshal(buf)

@@ -21,7 +21,7 @@ package trie
 import (
 	"errors"
 
-	pbopt "github.com/nebulasio/go-nebulas/common/protobuf"
+	proto "github.com/nebulasio/go-nebulas/common/protobuf"
 
 	triepb "github.com/nebulasio/go-nebulas/common/trie/pb"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
@@ -72,13 +72,13 @@ type node struct {
 	Val   [][]byte
 }
 
-func (n *node) ToProto() (pbopt.CustomizedProtobufMessage, error) {
+func (n *node) ToProto() (proto.Message, error) {
 	return &triepb.Node{
 		Val: n.Val,
 	}, nil
 }
 
-func (n *node) FromProto(msg pbopt.CustomizedProtobufMessage) error {
+func (n *node) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*triepb.Node); ok {
 		if msg != nil {
 			bytes, err := msg.Marshal()
@@ -142,7 +142,7 @@ func (t *Trie) fetchNode(hash []byte) (*node, error) {
 	}
 
 	pb := new(triepb.Node)
-	if err := pbopt.Unmarshal(ir, pb); err != nil {
+	if err := proto.Unmarshal(ir, pb); err != nil {
 		return nil, err
 	}
 	n := new(node)
@@ -158,7 +158,7 @@ func (t *Trie) commitNode(n *node) error {
 	if err != nil {
 		return err
 	}
-	n.Bytes, err = pbopt.Marshal(pb)
+	n.Bytes, err = proto.Marshal(pb)
 	if err != nil {
 		return err
 	}
@@ -697,7 +697,7 @@ func routeToKey(route []byte) []byte {
 func emptyBranchNode() *node {
 	empty := &node{Val: [][]byte{nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}}
 	pb, _ := empty.ToProto()
-	empty.Bytes, _ = pbopt.Marshal(pb)
+	empty.Bytes, _ = proto.Marshal(pb)
 	empty.Hash = hash.Sha3256(empty.Bytes)
 	return empty
 }

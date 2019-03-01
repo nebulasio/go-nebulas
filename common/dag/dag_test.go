@@ -21,7 +21,7 @@ package dag
 import (
 	"testing"
 
-	"github.com/gogo/protobuf/proto"
+	proto "github.com/nebulasio/go-nebulas/common/protobuf"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
 	"github.com/stretchr/testify/assert"
 )
