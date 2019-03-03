@@ -205,6 +205,7 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
   ~0u,  // no _weak_field_map_
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMCallbackResult, func_name_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMCallbackResult, result_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMCallbackResult, not_null_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMCallbackResult, extra_),
   ~0u,  // no _has_bits_
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMDataRequest, _internal_metadata_),
@@ -254,11 +255,11 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
 static const ::google::protobuf::internal::MigrationSchema schemas[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, sizeof(::NVMConfigBundle)},
   { 20, -1, sizeof(::NVMCallbackResult)},
-  { 28, -1, sizeof(::NVMDataRequest)},
-  { 39, -1, sizeof(::NVMStatsBundle)},
-  { 46, -1, sizeof(::NVMFinalResponse)},
-  { 54, -1, sizeof(::NVMCallbackResponse)},
-  { 61, -1, sizeof(::NVMDataResponse)},
+  { 29, -1, sizeof(::NVMDataRequest)},
+  { 40, -1, sizeof(::NVMStatsBundle)},
+  { 47, -1, sizeof(::NVMFinalResponse)},
+  { 55, -1, sizeof(::NVMCallbackResponse)},
+  { 62, -1, sizeof(::NVMDataResponse)},
 };
 
 static ::google::protobuf::Message const * const file_default_instances[] = {
@@ -302,30 +303,30 @@ void AddDescriptorsImpl() {
       "execution_timeout\030\014 \001(\004\022\036\n\026timeout_gas_l"
       "imit_cost\030\r \001(\004\022+\n#max_limits_of_executi"
       "on_instruction\030\016 \001(\004\022(\n default_limits_o"
-      "f_total_mem_size\030\017 \001(\004\"E\n\021NVMCallbackRes"
-      "ult\022\021\n\tfunc_name\030\001 \001(\t\022\016\n\006result\030\002 \001(\t\022\r"
-      "\n\005extra\030\003 \003(\t\"\274\001\n\016NVMDataRequest\022\024\n\014requ"
-      "est_type\030\001 \001(\t\022\024\n\014request_indx\030\002 \001(\r\022\023\n\013"
-      "lcs_handler\030\003 \001(\004\022\023\n\013gcs_handler\030\004 \001(\004\022+"
-      "\n\017callback_result\030\005 \001(\0132\022.NVMCallbackRes"
-      "ult\022\'\n\rconfig_bundle\030\006 \001(\0132\020.NVMConfigBu"
-      "ndle\"]\n\016NVMStatsBundle\022-\n%actual_count_o"
-      "f_execution_instruction\030\001 \001(\004\022\034\n\024actual_"
-      "used_mem_size\030\002 \001(\004\"V\n\020NVMFinalResponse\022"
-      "\016\n\006result\030\001 \001(\005\022\013\n\003msg\030\002 \001(\t\022%\n\014stats_bu"
-      "ndle\030\003 \001(\0132\017.NVMStatsBundle\"=\n\023NVMCallba"
-      "ckResponse\022\021\n\tfunc_name\030\001 \001(\t\022\023\n\013func_pa"
-      "rams\030\002 \003(\t\"\305\001\n\017NVMDataResponse\022\025\n\rrespon"
-      "se_type\030\001 \001(\t\022\025\n\rresponse_indx\030\002 \001(\r\022\023\n\013"
-      "lcs_handler\030\003 \001(\004\022\023\n\013gcs_handler\030\004 \001(\004\022)"
-      "\n\016final_response\030\005 \001(\0132\021.NVMFinalRespons"
-      "e\022/\n\021callback_response\030\006 \001(\0132\024.NVMCallba"
-      "ckResponse2J\n\nNVMService\022<\n\021SmartContrac"
-      "tCall\022\017.NVMDataRequest\032\020.NVMDataResponse"
-      "\"\000(\0010\001b\006proto3"
+      "f_total_mem_size\030\017 \001(\004\"W\n\021NVMCallbackRes"
+      "ult\022\021\n\tfunc_name\030\001 \001(\t\022\016\n\006result\030\002 \001(\t\022\020"
+      "\n\010not_null\030\003 \001(\010\022\r\n\005extra\030\004 \003(\t\"\274\001\n\016NVMD"
+      "ataRequest\022\024\n\014request_type\030\001 \001(\t\022\024\n\014requ"
+      "est_indx\030\002 \001(\r\022\023\n\013lcs_handler\030\003 \001(\004\022\023\n\013g"
+      "cs_handler\030\004 \001(\004\022+\n\017callback_result\030\005 \001("
+      "\0132\022.NVMCallbackResult\022\'\n\rconfig_bundle\030\006"
+      " \001(\0132\020.NVMConfigBundle\"]\n\016NVMStatsBundle"
+      "\022-\n%actual_count_of_execution_instructio"
+      "n\030\001 \001(\004\022\034\n\024actual_used_mem_size\030\002 \001(\004\"V\n"
+      "\020NVMFinalResponse\022\016\n\006result\030\001 \001(\005\022\013\n\003msg"
+      "\030\002 \001(\t\022%\n\014stats_bundle\030\003 \001(\0132\017.NVMStatsB"
+      "undle\"=\n\023NVMCallbackResponse\022\021\n\tfunc_nam"
+      "e\030\001 \001(\t\022\023\n\013func_params\030\002 \003(\t\"\305\001\n\017NVMData"
+      "Response\022\025\n\rresponse_type\030\001 \001(\t\022\025\n\rrespo"
+      "nse_indx\030\002 \001(\r\022\023\n\013lcs_handler\030\003 \001(\004\022\023\n\013g"
+      "cs_handler\030\004 \001(\004\022)\n\016final_response\030\005 \001(\013"
+      "2\021.NVMFinalResponse\022/\n\021callback_response"
+      "\030\006 \001(\0132\024.NVMCallbackResponse2J\n\nNVMServi"
+      "ce\022<\n\021SmartContractCall\022\017.NVMDataRequest"
+      "\032\020.NVMDataResponse\"\000(\0010\001b\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 1214);
+      descriptor, 1232);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "nvm.proto", &protobuf_RegisterTypes);
 }
@@ -1212,6 +1213,7 @@ void NVMCallbackResult::InitAsDefaultInstance() {
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int NVMCallbackResult::kFuncNameFieldNumber;
 const int NVMCallbackResult::kResultFieldNumber;
+const int NVMCallbackResult::kNotNullFieldNumber;
 const int NVMCallbackResult::kExtraFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
@@ -1235,12 +1237,14 @@ NVMCallbackResult::NVMCallbackResult(const NVMCallbackResult& from)
   if (from.result().size() > 0) {
     result_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.result_);
   }
+  not_null_ = from.not_null_;
   // @@protoc_insertion_point(copy_constructor:NVMCallbackResult)
 }
 
 void NVMCallbackResult::SharedCtor() {
   func_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   result_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  not_null_ = false;
 }
 
 NVMCallbackResult::~NVMCallbackResult() {
@@ -1276,6 +1280,7 @@ void NVMCallbackResult::Clear() {
   extra_.Clear();
   func_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   result_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  not_null_ = false;
   _internal_metadata_.Clear();
 }
 
@@ -1321,10 +1326,24 @@ bool NVMCallbackResult::MergePartialFromCodedStream(
         break;
       }
 
-      // repeated string extra = 3;
+      // bool not_null = 3;
       case 3: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(26u /* 26 & 0xFF */)) {
+            static_cast< ::google::protobuf::uint8>(24u /* 24 & 0xFF */)) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &not_null_)));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // repeated string extra = 4;
+      case 4: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(34u /* 34 & 0xFF */)) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
                 input, this->add_extra()));
           DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -1384,14 +1403,19 @@ void NVMCallbackResult::SerializeWithCachedSizes(
       2, this->result(), output);
   }
 
-  // repeated string extra = 3;
+  // bool not_null = 3;
+  if (this->not_null() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(3, this->not_null(), output);
+  }
+
+  // repeated string extra = 4;
   for (int i = 0, n = this->extra_size(); i < n; i++) {
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->extra(i).data(), static_cast<int>(this->extra(i).length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
       "NVMCallbackResult.extra");
     ::google::protobuf::internal::WireFormatLite::WriteString(
-      3, this->extra(i), output);
+      4, this->extra(i), output);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -1430,14 +1454,19 @@ void NVMCallbackResult::SerializeWithCachedSizes(
         2, this->result(), target);
   }
 
-  // repeated string extra = 3;
+  // bool not_null = 3;
+  if (this->not_null() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(3, this->not_null(), target);
+  }
+
+  // repeated string extra = 4;
   for (int i = 0, n = this->extra_size(); i < n; i++) {
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
       this->extra(i).data(), static_cast<int>(this->extra(i).length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
       "NVMCallbackResult.extra");
     target = ::google::protobuf::internal::WireFormatLite::
-      WriteStringToArray(3, this->extra(i), target);
+      WriteStringToArray(4, this->extra(i), target);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -1457,7 +1486,7 @@ size_t NVMCallbackResult::ByteSizeLong() const {
       ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()));
   }
-  // repeated string extra = 3;
+  // repeated string extra = 4;
   total_size += 1 *
       ::google::protobuf::internal::FromIntSize(this->extra_size());
   for (int i = 0, n = this->extra_size(); i < n; i++) {
@@ -1477,6 +1506,11 @@ size_t NVMCallbackResult::ByteSizeLong() const {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::StringSize(
         this->result());
+  }
+
+  // bool not_null = 3;
+  if (this->not_null() != 0) {
+    total_size += 1 + 1;
   }
 
   int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
@@ -1515,6 +1549,9 @@ void NVMCallbackResult::MergeFrom(const NVMCallbackResult& from) {
 
     result_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.result_);
   }
+  if (from.not_null() != 0) {
+    set_not_null(from.not_null());
+  }
 }
 
 void NVMCallbackResult::CopyFrom(const ::google::protobuf::Message& from) {
@@ -1546,6 +1583,7 @@ void NVMCallbackResult::InternalSwap(NVMCallbackResult* other) {
     GetArenaNoVirtual());
   result_.Swap(&other->result_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
     GetArenaNoVirtual());
+  swap(not_null_, other->not_null_);
   _internal_metadata_.Swap(&other->_internal_metadata_);
 }
 

@@ -416,10 +416,10 @@ class NVMCallbackResult : public ::google::protobuf::Message /* @@protoc_inserti
 
   // accessors -------------------------------------------------------
 
-  // repeated string extra = 3;
+  // repeated string extra = 4;
   int extra_size() const;
   void clear_extra();
-  static const int kExtraFieldNumber = 3;
+  static const int kExtraFieldNumber = 4;
   const ::std::string& extra(int index) const;
   ::std::string* mutable_extra(int index);
   void set_extra(int index, const ::std::string& value);
@@ -466,6 +466,12 @@ class NVMCallbackResult : public ::google::protobuf::Message /* @@protoc_inserti
   ::std::string* release_result();
   void set_allocated_result(::std::string* result);
 
+  // bool not_null = 3;
+  void clear_not_null();
+  static const int kNotNullFieldNumber = 3;
+  bool not_null() const;
+  void set_not_null(bool value);
+
   // @@protoc_insertion_point(class_scope:NVMCallbackResult)
  private:
 
@@ -473,6 +479,7 @@ class NVMCallbackResult : public ::google::protobuf::Message /* @@protoc_inserti
   ::google::protobuf::RepeatedPtrField< ::std::string> extra_;
   ::google::protobuf::internal::ArenaStringPtr func_name_;
   ::google::protobuf::internal::ArenaStringPtr result_;
+  bool not_null_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_nvm_2eproto::TableStruct;
 };
@@ -1732,7 +1739,21 @@ inline void NVMCallbackResult::set_allocated_result(::std::string* result) {
   // @@protoc_insertion_point(field_set_allocated:NVMCallbackResult.result)
 }
 
-// repeated string extra = 3;
+// bool not_null = 3;
+inline void NVMCallbackResult::clear_not_null() {
+  not_null_ = false;
+}
+inline bool NVMCallbackResult::not_null() const {
+  // @@protoc_insertion_point(field_get:NVMCallbackResult.not_null)
+  return not_null_;
+}
+inline void NVMCallbackResult::set_not_null(bool value) {
+  
+  not_null_ = value;
+  // @@protoc_insertion_point(field_set:NVMCallbackResult.not_null)
+}
+
+// repeated string extra = 4;
 inline int NVMCallbackResult::extra_size() const {
   return extra_.size();
 }

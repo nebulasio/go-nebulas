@@ -49,14 +49,14 @@ char* StorageGet(void* handler, const char *key, size_t *cnt){
   res->add_func_params(std::string(key));
 
   const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
-  size_t other_count = (size_t)std::stoull(callback_res->extra(0));
-
-  std::cout<<"^^^^^^^^^^^^^^^^^^^ Storage get gas count is: "<<other_count<<std::endl;
-  
+  *cnt = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
+  bool not_null_flag = callback_res->not_null();
+  if(!not_null_flag)
+    return NULL;
+
   char* cStr = (char*)calloc(resString.length()+1, sizeof(char));
   strcpy(cStr, resString.c_str());
-
   return cStr;
 }
 

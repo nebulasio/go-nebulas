@@ -30,46 +30,58 @@ import (
 )
 
 // Sha256Func ..
-//export Sha256Func
-//return: sha result(string), gasCnt(uint64)
-func Sha256Func(s string) (string, uint64) {
+//return: sha result(string), gasCnt(uint64), notNil(bool)
+func Sha256Func(s string) (string, uint64, bool) {
 	var gasCnt uint64 = 0
 	gasCnt = uint64(len(s) + CryptoSha256GasBase)
 
 	r := hash.Sha256([]byte(s))
-	return byteutils.Hex(r), gasCnt
+
+	notNil := true
+	if r == nil {
+		notNil = false
+	}
+
+	return byteutils.Hex(r), gasCnt, notNil
 }
 
 // Sha3256Func ..
-//export Sha3256Func
-//return: sha result(string), gasCnt(uint64)
-func Sha3256Func(s string) (string, uint64) {
+//return: sha result(string), gasCnt(uint64), notNil(bool)
+func Sha3256Func(s string) (string, uint64, bool) {
 	var gasCnt uint64 = 0
 	gasCnt = uint64(len(s) + CryptoSha3256GasBase)
 
 	r := hash.Sha3256([]byte(s))
-	return byteutils.Hex(r), gasCnt
+	notNil := true
+	if r == nil {
+		notNil = false
+	}
+	return byteutils.Hex(r), gasCnt, notNil
 }
 
 // Ripemd160Func ..
-//export Ripemd160Func
-//return execution result(string), gasCnt(uint64)
-func Ripemd160Func(s string) (string, uint64) {
+//return execution result(string), gasCnt(uint64), notNil(bool)
+func Ripemd160Func(s string) (string, uint64, bool) {
 	var gasCnt uint64 = 0
 	gasCnt = uint64(len(s) + CryptoRipemd160GasBase)
 
 	r := hash.Ripemd160([]byte(s))
-	return byteutils.Hex(r), gasCnt
+
+	notNil := true
+	if r == nil {
+		notNil = false
+	}
+
+	return byteutils.Hex(r), gasCnt, notNil
 }
 
 // RecoverAddressFunc ..
-//export RecoverAddressFunc
 //params: alg(int), d(string), s(string)
-//return: execution result(string), gasCnt(uint64)
-func RecoverAddressFunc(alg int, d, s string) (string, uint64) {
+//return: execution result(string), gasCnt(uint64), notNil(bool)
+func RecoverAddressFunc(alg int, d, s string) (string, uint64, bool) {
 
-	gasCnt := uint64(CryptoRecoverAddressGasBase)
-	result := ""
+	var gasCnt uint64 = uint64(CryptoRecoverAddressGasBase)
+	var result string = ""
 
 	plain, err := byteutils.FromHex(d)
 	if err != nil {
@@ -79,7 +91,7 @@ func RecoverAddressFunc(alg int, d, s string) (string, uint64) {
 			"alg":  alg,
 			"err":  err,
 		}).Debug("convert hash to byte array error.")
-		return result, gasCnt
+		return result, gasCnt, false
 	}
 	cipher, err := byteutils.FromHex(s)
 	if err != nil {
@@ -89,7 +101,7 @@ func RecoverAddressFunc(alg int, d, s string) (string, uint64) {
 			"alg":  alg,
 			"err":  err,
 		}).Debug("convert sign to byte array error.")
-		return result, gasCnt
+		return result, gasCnt, false
 	}
 	addr, err := core.RecoverSignerFromSignature(keystore.Algorithm(alg), plain, cipher)
 	if err != nil {
@@ -99,26 +111,37 @@ func RecoverAddressFunc(alg int, d, s string) (string, uint64) {
 			"alg":  alg,
 			"err":  err,
 		}).Debug("recover address error.")
-		return result, gasCnt
+		return result, gasCnt, false
 	}
 
-	return addr.String(),gasCnt
+	return addr.String(),gasCnt, true
 }
 
 // Md5Func ..
-//export Md5Func
-func Md5Func(s string) (string, uint64) {
+func Md5Func(s string) (string, uint64, bool) {
 	gasCnt := uint64(len(s) + CryptoMd5GasBase)
 
 	r := md5.Sum([]byte(s))
-	return byteutils.Hex(r[:]), gasCnt
+
+	// this empty slice check is a bit inconsistent with other functions
+	notNil := true
+	if len(r) == 0 {
+		notNil = false;
+	}
+
+	return byteutils.Hex(r[:]), gasCnt, notNil
 }
 
 // Base64Func ..
-//export Base64Func
-func Base64Func(s string) (string, uint64) {
+func Base64Func(s string) (string, uint64, bool) {
 	gasCnt := uint64(len(s) + CryptoBase64GasBase)
 
 	r := hash.Base64Encode([]byte(s))
-	return string(r), gasCnt
+
+	notNil := true
+	if r == nil {
+		notNil = false
+	}
+
+	return string(r), gasCnt, notNil
 }

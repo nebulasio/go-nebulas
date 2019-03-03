@@ -36,6 +36,11 @@ char *GetTxByHash(void *handler, const char *hash, size_t *gasCnt) {
   const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
   std::string resStr = callback_res->result();
+  bool not_null_flag = callback_res->not_null();
+
+  if(!not_null_flag)
+    return NULL;
+
   char* ret = (char*)calloc(resStr.length()+1, sizeof(char));
   strcpy(ret, resStr.c_str());
 
@@ -50,15 +55,24 @@ int GetAccountState(void *handler, const char *address, size_t *gasCnt, char **r
 
   const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
   int ret = (int)std::stoi(callback_res->result());
+  bool not_null_flag = callback_res->not_null();
   std::string resStr = callback_res->extra(0);
-  std::string infoStr = callback_res->extra(1);
+  std::string exceptionInfoStr = callback_res->extra(1);
   *gasCnt = (size_t)std::stoull(callback_res->extra(2));
 
-  *result = (char*)calloc(resStr.length()+1, sizeof(char));
-  strcpy(*result, resStr.c_str());
-  if(infoStr.length()>0){
-    *info = (char*)calloc(infoStr.length()+1, sizeof(char));
-    strcpy(*info, infoStr.c_str());
+  // since the string value assigned to exceptionInfoStr is determined on golang side, we can just use length to check if it's NULL or not
+  if(exceptionInfoStr.length() > 0){
+    *info = (char*)calloc(exceptionInfoStr.length()+1, sizeof(char));
+    strcpy(*info, exceptionInfoStr.c_str());
+  }else{
+    *info = NULL;
+  }
+
+  if(not_null_flag){
+    *result = (char*)calloc(resStr.length()+1, sizeof(char));
+    strcpy(*result, resStr.c_str());
+  }else{
+    *result = NULL;
   }
 
   return ret;
@@ -99,15 +113,25 @@ int GetPreBlockHash(void *handler, unsigned long long offset, size_t *gasCnt, ch
 
   const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
   int ret = (int)std::stoi(callback_res->result());
+  bool not_null_flag = callback_res->not_null();
   std::string resStr = callback_res->extra(0);
-  std::string infoStr = callback_res->extra(1);
-  *result = (char*)calloc(resStr.length()+1, sizeof(char));
-  strcpy(*result, resStr.c_str());
-  if(infoStr.length() > 0){
-    *info = (char*)calloc(infoStr.length()+1, sizeof(char));
-    strcpy(*info, infoStr.c_str());
-  }
+  std::string exceptionInfoStr = callback_res->extra(1);
   *gasCnt = (size_t)std::stoull(callback_res->extra(2));
+
+  // The string value assigned to exceptionInfoStr is determined on golang side, just use length to check if it's NULL or not
+  if(exceptionInfoStr.length() > 0){
+    *info = (char*)calloc(exceptionInfoStr.length()+1, sizeof(char));
+    strcpy(*info, exceptionInfoStr.c_str());
+  }else{
+    *info = NULL;
+  }
+
+  if(not_null_flag){
+    *result = (char*)calloc(resStr.length()+1, sizeof(char));
+    strcpy(*result, resStr.c_str());
+  }else{
+    *result = NULL;
+  }
   
   return ret;  
 }
@@ -120,16 +144,26 @@ int GetPreBlockSeed(void *handler, unsigned long long offset, size_t *gasCnt, ch
 
   const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
   int ret = (int)std::stoi(callback_res->result());
+  bool not_null_flag = callback_res->not_null();
   std::string resStr = callback_res->extra(0);
-  std::string infoStr = callback_res->extra(1);
-  *result = (char*)calloc(resStr.length()+1, sizeof(char));
-  strcpy(*result, resStr.c_str());
-  if(infoStr.length() > 0){
-    *info = (char*)calloc(infoStr.length()+1, sizeof(char));
-    strcpy(*info, infoStr.c_str());
-  }
+  std::string exceptionInfoStr = callback_res->extra(1);
   *gasCnt = (size_t)std::stoull(callback_res->extra(2));
-  
+
+  // The string value assigned to exceptionInfoStr is determined on golang side, just use length to check if it's NULL or not
+  if(exceptionInfoStr.length() > 0){
+    *info = (char*)calloc(exceptionInfoStr.length()+1, sizeof(char));
+    strcpy(*info, exceptionInfoStr.c_str());
+  }else{
+    *info = NULL;
+  }
+
+  if(not_null_flag){
+    *result = (char*)calloc(resStr.length()+1, sizeof(char));
+    strcpy(*result, resStr.c_str());
+  }else{
+    *result = NULL;
+  }
+    
   return ret;
 }
 

@@ -467,8 +467,9 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 				pathName := AttachLibVersionDelegateFunc(serverLcsHandler, responseFuncParams[0])
 				callbackResult.Result = pathName
 			case STORAGE_GET:
-				value, gasCnt := StorageGetFunc(serverLcsHandler, responseFuncParams[0])
+				value, gasCnt, notNil := StorageGetFunc(serverLcsHandler, responseFuncParams[0])
 				callbackResult.Result = value
+				callbackResult.NotNull = notNil
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
 			case STORAGE_PUT:
 				resCode, gasCnt := StoragePutFunc(serverLcsHandler, responseFuncParams[0], responseFuncParams[1])
@@ -479,12 +480,14 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 				callbackResult.Result = fmt.Sprintf("%v", resCode)
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
 			case GET_TX_BY_HASH:
-				resStr, gasCnt := GetTxByHashFunc(serverLcsHandler, responseFuncParams[0])
+				resStr, gasCnt, notNil := GetTxByHashFunc(serverLcsHandler, responseFuncParams[0])
 				callbackResult.Result = resStr
+				callbackResult.NotNull = notNil
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
 			case GET_ACCOUNT_STATE:
-				resCode, resStr, exceptionInfo, gasCnt := GetAccountStateFunc(serverLcsHandler, responseFuncParams[0])
+				resCode, resStr, exceptionInfo, gasCnt, notNil := GetAccountStateFunc(serverLcsHandler, responseFuncParams[0])
 				callbackResult.Result = fmt.Sprintf("%v", resCode)
+				callbackResult.NotNull = notNil
 				callbackResult.Extra = append(callbackResult.Extra, resStr)
 				callbackResult.Extra = append(callbackResult.Extra, exceptionInfo)
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
@@ -498,45 +501,53 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
 			case GET_PRE_BLOCK_HASH:
 				offset, _ := strconv.ParseInt(responseFuncParams[0], 10, 64)
-				resCode, resStr, exceptionInfo, gasCnt := GetPreBlockHashFunc(serverLcsHandler, uint64(offset))
+				resCode, resStr, exceptionInfo, gasCnt, notNil := GetPreBlockHashFunc(serverLcsHandler, uint64(offset))
 				callbackResult.Result = fmt.Sprintf("%v", resCode)
+				callbackResult.NotNull = notNil
 				callbackResult.Extra = append(callbackResult.Extra, resStr)
 				callbackResult.Extra = append(callbackResult.Extra, exceptionInfo)
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
 			case GET_PRE_BLOCK_SEED:
 				offset, _ := strconv.ParseInt(responseFuncParams[0], 10, 64)
-				resCode, resStr, exceptionInfo, gasCnt := GetPreBlockSeedFunc(serverLcsHandler, uint64(offset))
+				resCode, resStr, exceptionInfo, gasCnt, notNil := GetPreBlockSeedFunc(serverLcsHandler, uint64(offset))
 				callbackResult.Result = fmt.Sprintf("%v", resCode)
+				callbackResult.NotNull = notNil
 				callbackResult.Extra = append(callbackResult.Extra, resStr)
 				callbackResult.Extra = append(callbackResult.Extra, exceptionInfo)
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))	
+				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
 			case EVENT_TRIGGER_FUNC:
 				gasCnt := EventTriggerFunc(serverLcsHandler, responseFuncParams[0], responseFuncParams[1])
 				callbackResult.Result = fmt.Sprintf("%v", gasCnt)
 			case SHA_256_FUNC:
-				resStr, gasCnt := Sha256Func(responseFuncParams[0])
+				resStr, gasCnt, notNil := Sha256Func(responseFuncParams[0])
 				callbackResult.Result = resStr
+				callbackResult.NotNull = notNil
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
 			case SHA_3256_FUNC:
-				resStr, gasCnt := Sha3256Func(responseFuncParams[0])
+				resStr, gasCnt, notNil := Sha3256Func(responseFuncParams[0])
 				callbackResult.Result = resStr
+				callbackResult.NotNull = notNil
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
 			case RIPEMD_160_FUNC:
-				resStr, gasCnt := Ripemd160Func(responseFuncParams[0])
+				resStr, gasCnt, notNil := Ripemd160Func(responseFuncParams[0])
 				callbackResult.Result = resStr
+				callbackResult.NotNull = notNil
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
 			case RECOVER_ADDRESS_FUNC:
 				alg, _ := strconv.Atoi(responseFuncParams[0])
-				resStr, gasCnt := RecoverAddressFunc(alg, responseFuncParams[1], responseFuncParams[2])
+				resStr, gasCnt, notNil := RecoverAddressFunc(alg, responseFuncParams[1], responseFuncParams[2])
 				callbackResult.Result = resStr
+				callbackResult.NotNull = notNil
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
 			case MD5_FUNC:
-				resStr, gasCnt := Md5Func(responseFuncParams[0])
+				resStr, gasCnt, notNil := Md5Func(responseFuncParams[0])
 				callbackResult.Result = resStr
+				callbackResult.NotNull = notNil
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
 			case BASE64_FUNC:
-				resStr, gasCnt := Base64Func(responseFuncParams[0])
+				resStr, gasCnt, notNil := Base64Func(responseFuncParams[0])
 				callbackResult.Result = resStr
+				callbackResult.NotNull = notNil
 				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
 			default:
 				logging.CLog().WithFields(logrus.Fields{

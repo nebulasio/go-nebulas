@@ -58,16 +58,17 @@ func parseStorageKey(key string) (string, string, error) {
 }
 
 // StorageGetFunc export StorageGetFunc
-//export StorageGetFunc
-func StorageGetFunc(handler uint64, k string) (string, uint64) {
+// return: string(value), uint64(gasCnt), bool(not nil?true:false)
+func StorageGetFunc(handler uint64, k string) (string, uint64, bool) {
 	
 	// calculate Gas.
 	var gasCnt uint64 = 0
+	var emptyValue string = ""
 
 	_, storage := getEngineByStorageHandler(handler)
 	if storage == nil {
 		logging.VLog().Error("Failed to get storage handler.")
-		return "", gasCnt
+		return emptyValue, gasCnt, false
 	}
 
 	domainKey, itemKey, err := parseStorageKey(k)
@@ -77,7 +78,7 @@ func StorageGetFunc(handler uint64, k string) (string, uint64) {
 			"key":     k,
 			"err":     err,
 		}).Debug("Invalid storage key.")
-		return "", gasCnt
+		return emptyValue, gasCnt, false
 	}
 
 	val, err := storage.Get(trie.HashDomains(domainKey, itemKey))
@@ -87,12 +88,19 @@ func StorageGetFunc(handler uint64, k string) (string, uint64) {
 				"handler": uint64(uintptr(handler)),
 				"key":     k,
 				"err":     err,
-			}).Debug("StorageGetFunc get key failed.")
+			}).Error("StorageGetFunc get key failed.")
+
+		}else{
+			logging.CLog().WithFields(logrus.Fields{
+				"handler": uint64(uintptr(handler)),
+				"key":     k,
+				"err":     err,
+			}).Error("+++++++++++++++++++++++++++ StorageGetFunc get key failed.")
 		}
-		return "", gasCnt
+		return emptyValue, gasCnt, false
 	}
 
-	return string(val), gasCnt
+	return string(val), gasCnt, true
 }
 
 // StoragePutFunc export StoragePutFunc
@@ -100,16 +108,23 @@ func StorageGetFunc(handler uint64, k string) (string, uint64) {
 func StoragePutFunc(handler uint64, k string, value string) (int, uint64) {
 
 	var gasCnt uint64 = 0
+	var InvalidRes int = 1
 
 	_, storage := getEngineByStorageHandler(handler)
 	if storage == nil {
 		logging.VLog().Error("Failed to get storage handler.")
-		return 1, gasCnt
+		return InvalidRes, gasCnt
 	}
 	v := []byte(value)
 
 	// calculate Gas.
 	gasCnt = uint64(len(k) + len(v))
+	
+	logging.CLog().WithFields(logrus.Fields{
+		"gasCnt": gasCnt,
+		"k": uint64(len(k)),
+		"v": uint64(len(v)),
+	}).Info("Storage put gas count!")
 
 	domainKey, itemKey, err := parseStorageKey(k)
 	if err != nil {
@@ -118,7 +133,7 @@ func StoragePutFunc(handler uint64, k string, value string) (int, uint64) {
 			"key":     k,
 			"err":     err,
 		}).Debug("Invalid storage key.")
-		return 1, gasCnt
+		return InvalidRes, gasCnt
 	}
 
 	err = storage.Put(trie.HashDomains(domainKey, itemKey), v)
@@ -128,7 +143,7 @@ func StoragePutFunc(handler uint64, k string, value string) (int, uint64) {
 			"key":     k,
 			"err":     err,
 		}).Debug("StoragePutFunc put key failed.")
-		return 1, gasCnt
+		return InvalidRes, gasCnt
 	}
 
 	return 0, gasCnt
@@ -139,11 +154,12 @@ func StoragePutFunc(handler uint64, k string, value string) (int, uint64) {
 func StorageDelFunc(handler uint64, k string) (int, uint64) {
 
 	var gasCnt uint64 = 0
+	var InvalidRes int = 1
 
 	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
 		logging.VLog().Error("Failed to get storage handler.")
-		return 1, gasCnt
+		return InvalidRes, gasCnt
 	}
 
 	domainKey, itemKey, err := parseStorageKey(k)
@@ -153,7 +169,7 @@ func StorageDelFunc(handler uint64, k string) (int, uint64) {
 			"key":     k,
 			"err":     err,
 		}).Debug("invalid storage key.")
-		return 1, gasCnt
+		return InvalidRes, gasCnt
 	}
 
 	err = storage.Del(trie.HashDomains(domainKey, itemKey))
@@ -163,7 +179,7 @@ func StorageDelFunc(handler uint64, k string) (int, uint64) {
 			"key":     k,
 			"err":     err,
 		}).Debug("StorageDelFunc del key failed.")
-		return 1, gasCnt
+		return InvalidRes, gasCnt
 	}
 
 	return 0, gasCnt
