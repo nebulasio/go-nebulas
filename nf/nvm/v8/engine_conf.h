@@ -19,8 +19,8 @@
 #pragma once
 
 // Basic configuration and settings of the V8 engine
-int ExecutionFailedErr  = 1;
-int ExecutionTimeOutErr = 2;
+const int ExecutionFailedErr  = 1;
+const int ExecutionTimeOutErr = 2;
 
 typedef unsigned long long uint64;
 

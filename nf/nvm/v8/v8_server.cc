@@ -27,7 +27,8 @@ static int enable_tracer_injection = 0;
 static int strict_disallow_usage = 0;
 static size_t limits_of_executed_instructions = 0;
 static size_t limits_of_total_memory_size = 0;
-//static int print_injection_result = 0;
+
+bool FG_DEBUG = true;
 
 class NVMEngine;
 NVMEngine *gNVMEngine = nullptr;
@@ -219,7 +220,7 @@ char *InjectTracingInstructionsThread(V8Engine *e, const char *source,
   }
   *source_line_offset = ctx.output.line_offset;
 
-  if(FG_DEBUG)
+  if(FG_DEBUG && ctx.output.result != nullptr)
     std::cout<<"*********** injected traceable source code: "<<std::endl<<ctx.output.result<<std::endl;
 
   return ctx.output.result;

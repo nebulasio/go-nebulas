@@ -69,7 +69,6 @@
 
 // constants
 static const uint32_t NVM_CURRENCY_LEVEL = 1;
-static bool FG_DEBUG = true;
 
 typedef struct{
   std::string source;
