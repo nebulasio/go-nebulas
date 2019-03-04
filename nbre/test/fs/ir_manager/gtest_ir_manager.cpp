@@ -20,7 +20,7 @@
 
 #include "fs/ir_manager/ir_manager.h"
 #include "fs/util.h"
-#include "gtest_common.h"
+#include "test/fs/gtest_common.h"
 #include <gtest/gtest.h>
 
 TEST(test_fs, write_nbre_until_sync) {

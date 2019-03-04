@@ -2,10 +2,10 @@ add_executable(test_fs main.cpp
   gtest_util.cpp
   gtest_rocksdb_storage.cpp
   gtest_blockchain.cpp
-  gtest_nbre_storage.cpp
-  gtest_trie.cpp
-  gtest_transaction_db.cpp
-  gtest_account_db.cpp
+  ir_manager/gtest_ir_manager.cpp
+  blockchain/gtest_trie.cpp
+  blockchain/gtest_transaction_db.cpp
+  blockchain/gtest_account_db.cpp
   )
 
 target_link_libraries(test_fs nbre_rt ${gtest_lib})

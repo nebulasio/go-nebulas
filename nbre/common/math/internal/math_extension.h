@@ -53,25 +53,19 @@ template <typename T> T exp(const T &x) {
 
   T ret = one;
   T i = one;
-  T prev = one;
-  T px = x;
+  T tail = x;
 
   while (true) {
     T tmp;
 
-    tmp = ret + px / prev;
+    tmp = ret + tail;
     if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
-      break;
-    }
-    if (to_string(tmp).compare("inf") == 0 &&
-        to_string(ret).compare("inf") == 0) {
       break;
     }
 
     ret = tmp;
     i += one;
-    px = px * x;
-    prev = prev * i;
+    tail *= x / i;
   }
 
   return ret;
@@ -81,14 +75,15 @@ template <typename T> T arctan(const T &x) {
   T zero = softfloat_cast<uint32_t, typename T::value_type>(0);
   T one = softfloat_cast<uint32_t, typename T::value_type>(1);
   T two = softfloat_cast<uint32_t, typename T::value_type>(2);
-  T x2 = x * x;
+  T half_pi = constants<T>::pi() / two;
 
   if (x > one) {
-    return neb::math::constants<T>::pi() / 2 - arctan(one / x);
+    return half_pi - arctan(one / x);
   } else if (x < zero - one) {
-    return zero - neb::math::constants<T>::pi() / 2 - arctan(one / x);
+    return zero - half_pi - arctan(one / x);
   }
 
+  T x2 = x * x;
   T ret = zero;
   T i = one;
   T s = x;
@@ -114,73 +109,109 @@ template <typename T> T arctan(const T &x) {
 
 template <typename T> T sin(const T &x) {
   T zero = softfloat_cast<uint32_t, typename T::value_type>(0);
+  if (x < zero) {
+    return zero - sin(zero - x);
+  }
+
   T one = softfloat_cast<uint32_t, typename T::value_type>(1);
   T two = softfloat_cast<uint32_t, typename T::value_type>(2);
-  T x2 = x * x;
+  T double_pi = two * constants<T>::pi();
+  if (x > double_pi) {
+    T tmp = (x / double_pi).integer_val();
+    return sin(x - tmp * double_pi);
+  }
 
+  T x2 = x * x;
   T ret = zero;
   T i = one;
-  T ji = one;
-  T s = x;
+  T tail = x;
   bool odd = false;
 
   while (true) {
     T tmp;
     if (odd) {
-      tmp = ret - s / ji;
+      tmp = ret - tail;
     } else {
-      tmp = ret + s / ji;
+      tmp = ret + tail;
     }
     if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
       break;
     }
     ret = tmp;
     odd = !odd;
-    i += one;
-    ji = ji * i;
-    i += one;
-    ji = ji * i;
-    s = s * x2;
+    tail *= (x2 / ((i + one) * (i + two)));
+    i += two;
   }
   return ret;
 }
 
 template <typename T> T ln(const T &x) {
-    T one = softfloat_cast<uint32_t, typename T::value_type>(1);
-    T two = softfloat_cast<uint32_t, typename T::value_type>(2);
-    T v;
-    auto func = [&](T v) {
-      T ret = softfloat_cast<uint32_t, typename T::value_type>(0);
-      bool odd = true;
+  T zero = softfloat_cast<uint32_t, typename T::value_type>(0);
+  T one = softfloat_cast<uint32_t, typename T::value_type>(1);
+  T two = softfloat_cast<uint32_t, typename T::value_type>(2);
 
-      T s = v;
-      T i = one;
+  auto func = [&](T x) {
+    T ret = zero;
+    bool odd = true;
 
-      while (true) {
-        T tmp;
-        if (odd) {
-          tmp = ret + s / i;
-        } else {
-          tmp = ret - s / i;
-        }
+    T s = x;
+    T i = one;
 
-        if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
-          break;
-        }
-        ret = tmp;
-        i += one;
-        odd = !odd;
-        s = s * v;
+    while (true) {
+      T tmp;
+
+      if (odd) {
+        tmp = ret + s / i;
+      } else {
+        tmp = ret - s / i;
       }
-      return ret;
-    };
-    if (x <= two) {
-      v = x - one;
-      return func(v);
-    } else {
-      return -func(one / x - one);
+      if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
+        break;
+      }
+
+      ret = tmp;
+      odd = !odd;
+      i += one;
+      s = s * x;
     }
+    return ret;
+  };
+
+  if (x > two) {
+    return zero - func(one / x - one);
+  }
+  return func(x - one);
 }
+
+template <typename T> T fast_ln(const T &x) {
+  T zero = softfloat_cast<uint32_t, typename T::value_type>(0);
+  T one = softfloat_cast<uint32_t, typename T::value_type>(1);
+  T two = softfloat_cast<uint32_t, typename T::value_type>(2);
+
+  auto func = [&](T x) {
+    T ret = zero;
+    T s = two * x;
+    T i = one;
+    T x2 = x * x;
+
+    while (true) {
+      T tmp;
+
+      tmp = ret + s / i;
+      if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
+        break;
+      }
+
+      ret = tmp;
+      i += two;
+      s = s * x2;
+    }
+    return ret;
+  };
+
+  return func((x - one) / (x + one));
+}
+
 namespace internal {
 union float16_detail_t {
   float16_t v;

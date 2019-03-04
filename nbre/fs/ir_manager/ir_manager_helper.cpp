@@ -96,8 +96,8 @@ void ir_manager_helper::run_auth_table(
   for (auto &r : rows) {
     assert(std::tuple_size<std::remove_reference<decltype(r)>::type>::value ==
            5);
-    auth_key_t k =
-        std::make_tuple(std::get<0>(r), std::get<1>(r), std::get<2>(r));
+    auth_key_t k = std::make_tuple(std::get<0>(r), std::get<1>(r),
+                                   to_address(std::get<2>(r)));
     auth_val_t v = std::make_tuple(std::get<3>(r), std::get<4>(r));
     auth_table.insert(std::make_pair(k, v));
   }
@@ -211,7 +211,7 @@ void ir_manager_helper::show_auth_table(
   for (auto &r : auth_table) {
     std::string key = boost::str(boost::format("key <%1%, %2%, %3%>, ") %
                                  std::get<0>(r.first) % std::get<1>(r.first) %
-                                 std::to_string(std::get<2>(r.first)));
+                                 std::get<2>(r.first).to_base58());
     std::string val = boost::str(boost::format("val <%1%, %2%>") %
                                  std::get<0>(r.second) % std::get<1>(r.second));
     LOG(INFO) << key << val;
