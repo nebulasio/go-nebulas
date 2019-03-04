@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 project(nebulas-blockchain-runtime-environment)
 add_definitions(-std=c++14)
-add_definitions(-stdlib=libc++)
-add_definitions(-nodefaultlibs)
 
 if(Release)
   message(STATUS "This is a Release version")
