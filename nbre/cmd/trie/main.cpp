@@ -19,6 +19,7 @@
 //
 
 #include "common/configuration.h"
+#include "fs/bc_storage_session.h"
 #include "fs/blockchain.h"
 #include "fs/blockchain/account/account_db.h"
 #include "fs/blockchain/blockchain_api.h"
@@ -63,9 +64,9 @@ void trie_event(const neb::block_height_t start_block,
   std::uniform_int_distribution<> dis(start_block, end_block);
 
   std::string neb_db = neb::configuration::instance().neb_db_dir();
-  neb::fs::rocksdb_storage rs;
-  rs.open_database(neb_db, neb::fs::storage_open_for_readonly);
-  neb::fs::trie t(&rs);
+  neb::fs::bc_storage_session::instance().init(
+      neb_db, neb::fs::storage_open_for_readonly);
+  neb::fs::trie t;
 
   std::vector<neb::block_height_t> v{end_block};
 
@@ -76,8 +77,10 @@ void trie_event(const neb::block_height_t start_block,
     neb::block_height_t height = h;
     std::shared_ptr<corepb::Block> block = std::make_shared<corepb::Block>();
     neb::util::bytes height_hash =
-        rs.get_bytes(neb::util::number_to_byte<neb::util::bytes>(height));
-    neb::util::bytes block_bytes = rs.get_bytes(height_hash);
+        neb::fs::bc_storage_session::instance().get_bytes(
+            neb::util::number_to_byte<neb::util::bytes>(height));
+    neb::util::bytes block_bytes =
+        neb::fs::bc_storage_session::instance().get_bytes(height_hash);
 
     bool ret = block->ParseFromArray(block_bytes.value(), block_bytes.size());
     if (!ret) {
@@ -127,7 +130,6 @@ void trie_event(const neb::block_height_t start_block,
       // assert(ret == true);
     }
   }
-  rs.close_database();
 }
 
 std::string get_stdout_from_command(std::string &cmd) {

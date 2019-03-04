@@ -116,8 +116,8 @@ if [ ! -d $CUR_DIR/lib/include/boost ]; then
   cd boost_1_67_0
   ./bootstrap.sh --with-toolset=clang --prefix=$CUR_DIR/lib/
   ./b2 clean
-  ./b2 toolset=clang --with-date_time --with-graph --with-program_options --with-filesystem --with-system -j$PARALLEL
-  ./b2 install toolset=clang --with-date_time --with-graph --with-program_options --with-filesystem --with-system --prefix=$CUR_DIR/lib/
+  ./b2 toolset=clang --with-date_time --with-graph --with-program_options --with-filesystem --with-system --with-thread -j$PARALLEL
+  ./b2 install toolset=clang --with-date_time --with-graph --with-program_options --with-filesystem --with-system --with-thread --prefix=$CUR_DIR/lib/
 fi
 
 #if [ "$OS" = "Linux" ]; then

@@ -19,25 +19,31 @@
 //
 
 #pragma once
-
-#include "common/util/byte.h"
+#include "common/common.h"
 #include "common/util/singleton.h"
-#include "fs/blockchain.h"
 #include "fs/rocksdb_storage.h"
+#include "fs/storage.h"
+#include <boost/thread/shared_lock_guard.hpp>
+#include <boost/thread/shared_mutex.hpp>
 
 namespace neb {
 namespace fs {
-class storage_holder : public util::singleton<storage_holder> {
+class bc_storage_session : public util::singleton<bc_storage_session> {
 public:
-  storage_holder();
-  ~storage_holder();
+  bc_storage_session();
+  ~bc_storage_session();
 
-  inline rocksdb_storage *nbre_db_ptr() { return m_storage.get(); }
-  inline blockchain *neb_db_ptr() { return m_blockchain.get(); }
+  void init(const std::string &path, enum storage_open_flag flag);
 
-private:
+  util::bytes get_bytes(const util::bytes &key);
+  void put_bytes(const util::bytes &key, const util::bytes &value);
+
+protected:
   std::unique_ptr<rocksdb_storage> m_storage;
-  std::unique_ptr<blockchain> m_blockchain;
+  boost::shared_mutex m_mutex;
+  std::string m_path;
+  bool m_init_already;
+  enum storage_open_flag m_open_flag;
 };
 } // namespace fs
 } // namespace neb

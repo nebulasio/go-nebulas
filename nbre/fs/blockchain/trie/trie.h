@@ -66,9 +66,8 @@ typedef std::unique_ptr<trie_node> trie_node_ptr;
 
 class trie {
 public:
-  trie(const hash_t &hash, rocksdb_storage *db_ptr);
-
-  trie(rocksdb_storage *db_ptr);
+  trie(const hash_t &hash);
+  trie();
 
   bool get_trie_node(const neb::util::bytes &root_hash,
                      const neb::util::bytes &key, neb::util::bytes &trie_node);
@@ -141,7 +140,6 @@ public:
   }
 
 private:
-  rocksdb_storage *m_storage;
   hash_t m_root_hash;
 };
 } // namespace fs

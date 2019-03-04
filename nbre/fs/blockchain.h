@@ -38,11 +38,10 @@ public:
   blockchain(const blockchain &bc) = delete;
   blockchain &operator=(const blockchain &bc) = delete;
 
-  // std::unique_ptr<corepb::Block> load_tail_block();
   std::unique_ptr<corepb::Block> load_LIB_block();
   std::unique_ptr<corepb::Block> load_block_with_height(block_height_t height);
 
-  inline rocksdb_storage *storage_ptr() { return m_storage.get(); }
+  // inline rocksdb_storage *storage_ptr() { return m_storage.get(); }
 
   void write_LIB_block(corepb::Block *block);
 
@@ -51,7 +50,7 @@ private:
   load_block_with_tag_string(const std::string &tag);
 
 private:
-  std::unique_ptr<rocksdb_storage> m_storage;
+  // std::unique_ptr<rocksdb_storage> m_storage;
   std::string m_path;
   enum storage_open_flag m_open_flag;
 }; // end class blockchain

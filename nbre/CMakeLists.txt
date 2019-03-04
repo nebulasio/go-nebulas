@@ -86,6 +86,7 @@ if(UNIX AND NOT APPLE)
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_system.so
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_date_time.so
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_graph.so
+    ${PROJECT_SOURCE_DIR}/lib/lib/libboost_thread.so
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_program_options.so)
   set(extra_libs
     ${PROJECT_SOURCE_DIR}/lib/lib/libglog.so
@@ -104,6 +105,7 @@ elseif(UNIX)
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_system.dylib
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_date_time.dylib
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_graph.dylib
+    ${PROJECT_SOURCE_DIR}/lib/lib/libboost_thread.dylib
     ${PROJECT_SOURCE_DIR}/lib/lib/libboost_program_options.dylib)
   set(extra_libs
     ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.dylib
