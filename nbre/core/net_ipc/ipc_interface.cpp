@@ -228,12 +228,27 @@ void set_recv_nbre_dip_reward_callback(nbre_dip_reward_callback_t func) {
   ipc_callback<nbre_dip_reward_ack, p_holder, p_dip_reward>::bind(func, _2, _3);
 }
 
-// interface send ir block
-int ipc_nbre_ir_block(void *holder, uint64_t height, const char *block_bytes) {
-  return ipc_call<nbre_ir_block_req, p_holder, p_height, p_ir_block>::bind(
-      holder, height, block_bytes);
+// interface send ir transactions
+std::unique_ptr<std::vector<std::string>> _txs_ptr;
+uint64_t _height;
+int ipc_nbre_ir_transactions_create(void *holder, uint64_t height) {
+  _txs_ptr = std::make_unique<std::vector<std::string>>();
+  _height = height;
+  return ipc_status_succ;
 }
-void set_recv_nbre_ir_block_callback(nbre_ir_block_callback_t func) {
-  ipc_callback<nbre_ir_block_ack, p_holder>::bind(func, _2);
+int ipc_nbre_ir_transactions_append(void *holder, uint64_t height,
+                                    const char *tx_bytes) {
+  if (height != _height) {
+    return ipc_status_fail;
+  }
+  _txs_ptr->push_back(tx_bytes);
+  return ipc_status_succ;
+}
+int ipc_nbre_ir_transactions_send(void *holder, uint64_t height) {
+  if (height != _height) {
+    return ipc_status_fail;
+  }
+  return ipc_call<nbre_ir_transactions_req, p_holder, p_height,
+                  p_ir_transactions>::bind(holder, _height, *_txs_ptr);
 }
 
