@@ -17,8 +17,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#ifndef _NEBULAS_NF_NVM_V8_ERROR_H_
-#define _NEBULAS_NF_NVM_V8_ERROR_H_
+#pragma once
 
 /*
 success or crash
@@ -62,5 +61,3 @@ enum nvmErrno {
   NVM_TRANSPILE_SCRIPT_ERR = -6,
   NVM_INJECT_TRACING_INSTRUCTION_ERR = -7,
 };
-
-#endif //_NEBULAS_NF_NVM_V8_ENGINE_ERROR_H_

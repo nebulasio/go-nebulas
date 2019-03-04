@@ -74,12 +74,11 @@ void RunScriptSourceDelegate(V8Engine *e, const char *data,
     char *traceableSource =
         InjectTracingInstructions(e, data, &lineOffset, strict_disallow_usage);
 
-    if(FG_DEBUG)
-      std::cout<<"The tracebale source code is: "<<traceableSource<<std::endl;
-
     if (traceableSource == nullptr) {
       LogErrorf("Inject tracing instructions failed.\n");
-      fprintf(stderr, "Inject tracing instructions failed.\n");
+      if(FG_DEBUG)
+        std::cout<<"Inject tracing instructions failed."<<std::endl;
+
     } else {
       char *out = nullptr;
       int ret = RunScriptSource(&out, e, traceableSource, lineOffset,
@@ -212,8 +211,6 @@ char *InjectTracingInstructionsThread(V8Engine *e, const char *source,
   memset(&ctx, 0x00, sizeof(ctx));
   SetRunScriptArgs(&ctx, e, INSTRUCTION, source, *source_line_offset, allow_usage);
 	bool btn = CreateScriptThread(&ctx);
-  if(FG_DEBUG)
-    std::cout<<">>>>>> Finishing injecting tracing instructions thread"<<std::endl;
   if (btn == false) {
     LogErrorf("Failed to create script thread");
     return nullptr;
@@ -232,6 +229,7 @@ char *TranspileTypeScriptModuleThread(V8Engine *e, const char *source,
   memset(&ctx, 0x00, sizeof(ctx));
   SetRunScriptArgs(&ctx, e, INSTRUCTIONTS, source, *source_line_offset, 1);
 	bool btn = CreateScriptThread(&ctx);
+
   if (btn == false) {
     return nullptr;
   }
@@ -269,6 +267,7 @@ void *ExecuteThread(void *args) {
                 (void *)ctx->input.gcs, ExecuteSourceDataDelegate, nullptr);
     LogInfof("iRtn:%d--result:%s\n", ctx->output.ret, ctx->output.result);
     fprintf(stderr, "iRtn:%d--result:%s\n", ctx->output.ret, ctx->output.result);
+    
   }
 
   ctx->is_finished = true;
@@ -287,6 +286,7 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
   if (rtn != 0) {
     LogErrorf("CreateScriptThread get start time err:%d\n", rtn);
     fprintf(stderr, "CreateScriptThread get start time err:%d\n", rtn);
+
     return false;
   }
   rtn = pthread_create(&thread, &attribute, ExecuteThread, (void *)ctx);
@@ -298,9 +298,6 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
   
   int timeout = ctx->e->timeout;
   bool is_kill = false;
-
-  if(FG_DEBUG)
-    std::cout<<"Now is in create script thread"<<std::endl;
 
   //thread safe
   while(1) {
@@ -349,17 +346,14 @@ int NVMEngine::GetRunnableSourceCode(const std::string& sourceType, std::string&
 
   std::string sourceHash = sha256(std::string(jsSource));
   auto searchRecord = srcModuleCache->find(sourceHash);
+
   if(searchRecord != srcModuleCache->end()){
-    if(FG_DEBUG)
-      std::cout<<">>>>>> Found existing runnable source module"<<std::endl;
     CacheSrcItem cachedSourceItem = searchRecord->second;
     this->m_traceable_src = cachedSourceItem.traceableSource;
     this->m_traceale_src_line_offset = cachedSourceItem.traceableSourceLineOffset;
     return 0;
 
   }else{
-    if(FG_DEBUG)
-      std::cout<<">>>>>>>>>> Injecting tracking instructions in thread"<<std::endl;
     char* traceableSource = InjectTracingInstructionsThread(this->engine, jsSource, &this->m_src_offset, this->m_allow_usage);
 
     if(traceableSource != nullptr){
@@ -412,16 +406,19 @@ int NVMEngine::StartScriptExecution(std::string& contractSource, const std::stri
     SetRunScriptArgs(&ctx, this->engine, RUNSCRIPT, this->m_runnable_src.c_str(), this->m_traceale_src_line_offset, 1);
     ctx.input.lcs = this->m_lcs_handler;
     ctx.input.gcs = this->m_gcs_handler;
-    bool btn = CreateScriptThread(&ctx);
+    bool btn = CreateScriptThread(&ctx);      // start exe thread
     if (btn == false) {
       return NVM_UNEXPECTED_ERR;
     }
 
-    if(ctx.output.result != nullptr){
+    if(ctx.output.result != nullptr && ctx.output.result != NULL){
       size_t strLength = strlen(ctx.output.result) + 1;
       this->m_exe_result = (char*)calloc(strLength, sizeof(char));
       strcpy(this->m_exe_result, ctx.output.result);
     }
+
+    if(FG_DEBUG && ctx.output.result!=nullptr)
+      std::cout<<"$$$$$$$$$$$$  The ret is: "<<ctx.output.ret<<", while the result is: "<<ctx.output.result<<std::endl;
 
     return ctx.output.ret;
 }
@@ -481,14 +478,15 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
       this->m_lcs_handler = (uintptr_t)lcsHandler;
       this->m_gcs_handler = (uintptr_t)gcsHandler;
       int ret = this->StartScriptExecution(scriptSrc, scriptType, runnableSrc, moduleID, configBundle);
-      
-      if(this->m_exe_result == nullptr){
-        this->m_exe_result = (char*)calloc(1, sizeof(char));
-      }
 
       NVMDataResponse *response = new NVMDataResponse();
       NVMFinalResponse *finalResponse = new NVMFinalResponse();
       finalResponse->set_result(ret);
+      finalResponse->set_not_null(this->m_exe_result != nullptr);
+
+      if(this->m_exe_result == nullptr){
+        this->m_exe_result = (char*)calloc(1, sizeof(char));
+      }
       finalResponse->set_msg(this->m_exe_result);
 
       NVMStatsBundle *statsBundle = new NVMStatsBundle();
@@ -508,8 +506,6 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
         this->m_exe_result = nullptr;
       }
 
-      if(FG_DEBUG)
-        std::cout<<"\n\n\n\n\n\n"<<std::endl;
       
     }else{
       // throw exception since the request type is not allowed

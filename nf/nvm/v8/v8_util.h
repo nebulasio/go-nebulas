@@ -125,7 +125,6 @@ class NVMEngine final: public NVMService::Service{
     const std::string DATA_EXHG_CALL_BACK = "callback";
     const std::string DATA_EXHG_FINAL = "final";
 
-    //static lru_cache<std::string, std::string, CacheCleanCounter=3000> m_lru_cache;
     grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest> *m_stm;    // stream used to send request from server
     int m_response_indx = 0;                                            // index of the data request/response pair
 

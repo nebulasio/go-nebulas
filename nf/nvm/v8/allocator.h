@@ -16,11 +16,10 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#ifndef _NEBULAS_NF_NVM_V8_ALLOCATOR_H_
-#define _NEBULAS_NF_NVM_V8_ALLOCATOR_H_
+#pragma once
 
 #include <stdint.h>
-#include <v8.h>
+#include "v8.h"
 
 using namespace v8;
 
@@ -55,5 +54,3 @@ private:
   size_t total_allocated_size_;
   size_t peak_allocated_size_;
 };
-
-#endif // _NEBULAS_NF_NVM_V8_ALLOCATOR_H_

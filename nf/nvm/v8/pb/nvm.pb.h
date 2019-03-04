@@ -854,10 +854,10 @@ class NVMFinalResponse : public ::google::protobuf::Message /* @@protoc_insertio
   ::std::string* release_msg();
   void set_allocated_msg(::std::string* msg);
 
-  // .NVMStatsBundle stats_bundle = 3;
+  // .NVMStatsBundle stats_bundle = 4;
   bool has_stats_bundle() const;
   void clear_stats_bundle();
-  static const int kStatsBundleFieldNumber = 3;
+  static const int kStatsBundleFieldNumber = 4;
   private:
   const ::NVMStatsBundle& _internal_stats_bundle() const;
   public:
@@ -872,6 +872,12 @@ class NVMFinalResponse : public ::google::protobuf::Message /* @@protoc_insertio
   ::google::protobuf::int32 result() const;
   void set_result(::google::protobuf::int32 value);
 
+  // bool not_null = 3;
+  void clear_not_null();
+  static const int kNotNullFieldNumber = 3;
+  bool not_null() const;
+  void set_not_null(bool value);
+
   // @@protoc_insertion_point(class_scope:NVMFinalResponse)
  private:
 
@@ -879,6 +885,7 @@ class NVMFinalResponse : public ::google::protobuf::Message /* @@protoc_insertio
   ::google::protobuf::internal::ArenaStringPtr msg_;
   ::NVMStatsBundle* stats_bundle_;
   ::google::protobuf::int32 result_;
+  bool not_null_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_nvm_2eproto::TableStruct;
 };
@@ -2132,7 +2139,21 @@ inline void NVMFinalResponse::set_allocated_msg(::std::string* msg) {
   // @@protoc_insertion_point(field_set_allocated:NVMFinalResponse.msg)
 }
 
-// .NVMStatsBundle stats_bundle = 3;
+// bool not_null = 3;
+inline void NVMFinalResponse::clear_not_null() {
+  not_null_ = false;
+}
+inline bool NVMFinalResponse::not_null() const {
+  // @@protoc_insertion_point(field_get:NVMFinalResponse.not_null)
+  return not_null_;
+}
+inline void NVMFinalResponse::set_not_null(bool value) {
+  
+  not_null_ = value;
+  // @@protoc_insertion_point(field_set:NVMFinalResponse.not_null)
+}
+
+// .NVMStatsBundle stats_bundle = 4;
 inline bool NVMFinalResponse::has_stats_bundle() const {
   return this != internal_default_instance() && stats_bundle_ != NULL;
 }

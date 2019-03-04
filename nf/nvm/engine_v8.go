@@ -310,7 +310,7 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			"err": err,
 		}).Error("Failed to connect with V8 server")
 
-		// try to re-launch the process
+		//TODO: try to re-launch the process
 		
 	}
 	defer conn.Close()
@@ -376,6 +376,7 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			ret := finalResponse.Result
 			result := finalResponse.Msg
 			stats := finalResponse.StatsBundle
+			notNil := finalResponse.NotNull
 
 			// check the result here
 			logging.CLog().WithFields(
@@ -408,10 +409,10 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 
 			//set err
 			if ret == NVM_TRANSPILE_SCRIPT_ERR {
-				return result, ErrTranspileTypeScriptFailed
+				err = ErrTranspileTypeScriptFailed
 
 			} else if ret == NVM_INJECT_TRACING_INSTRUCTION_ERR {
-				return result, ErrInjectTracingInstructionFailed
+				err = ErrInjectTracingInstructionFailed
 
 			} else if ret == NVM_EXE_TIMEOUT_ERR {
 				err = ErrExecutionTimeout
@@ -429,10 +430,12 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 				}
 			} else if ret == NVM_UNEXPECTED_ERR {
 				err = core.ErrUnexpected
+
 			} else {
 				if ret != NVM_SUCCESS {
 					err = core.ErrExecutionFailed
 				}
+
 				if e.limitsOfExecutionInstructions > 0 &&
 					e.limitsOfExecutionInstructions < e.actualCountOfExecutionInstructions {
 					// Reach instruction limits.
@@ -444,12 +447,17 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 					e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
 				}
 			}
+
+			//set result			
+			if !notNil && ret == NVM_SUCCESS {
+				result = "\"\"" // default JSON String.
+			}
 			
 			logging.CLog().WithFields(logrus.Fields{
 				"result": result,
 			}).Info(">>>>>>> The contract execution result!")
 
-			return result, nil
+			return result, err
 
 		}else{
 			serverLcsHandler := dataResponse.GetLcsHandler()

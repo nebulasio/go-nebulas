@@ -18,7 +18,6 @@
 //
 
 #pragma once
-// #include <v8.h>
 
 #if BUILDING_DLL
 #define EXPORT __attribute__((__visibility__("default")))

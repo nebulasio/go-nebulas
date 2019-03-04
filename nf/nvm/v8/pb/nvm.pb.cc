@@ -232,6 +232,7 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
   ~0u,  // no _weak_field_map_
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMFinalResponse, result_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMFinalResponse, msg_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMFinalResponse, not_null_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMFinalResponse, stats_bundle_),
   ~0u,  // no _has_bits_
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::NVMCallbackResponse, _internal_metadata_),
@@ -258,8 +259,8 @@ static const ::google::protobuf::internal::MigrationSchema schemas[] GOOGLE_PROT
   { 29, -1, sizeof(::NVMDataRequest)},
   { 40, -1, sizeof(::NVMStatsBundle)},
   { 47, -1, sizeof(::NVMFinalResponse)},
-  { 55, -1, sizeof(::NVMCallbackResponse)},
-  { 62, -1, sizeof(::NVMDataResponse)},
+  { 56, -1, sizeof(::NVMCallbackResponse)},
+  { 63, -1, sizeof(::NVMDataResponse)},
 };
 
 static ::google::protobuf::Message const * const file_default_instances[] = {
@@ -312,21 +313,22 @@ void AddDescriptorsImpl() {
       "\0132\022.NVMCallbackResult\022\'\n\rconfig_bundle\030\006"
       " \001(\0132\020.NVMConfigBundle\"]\n\016NVMStatsBundle"
       "\022-\n%actual_count_of_execution_instructio"
-      "n\030\001 \001(\004\022\034\n\024actual_used_mem_size\030\002 \001(\004\"V\n"
+      "n\030\001 \001(\004\022\034\n\024actual_used_mem_size\030\002 \001(\004\"h\n"
       "\020NVMFinalResponse\022\016\n\006result\030\001 \001(\005\022\013\n\003msg"
-      "\030\002 \001(\t\022%\n\014stats_bundle\030\003 \001(\0132\017.NVMStatsB"
-      "undle\"=\n\023NVMCallbackResponse\022\021\n\tfunc_nam"
-      "e\030\001 \001(\t\022\023\n\013func_params\030\002 \003(\t\"\305\001\n\017NVMData"
-      "Response\022\025\n\rresponse_type\030\001 \001(\t\022\025\n\rrespo"
-      "nse_indx\030\002 \001(\r\022\023\n\013lcs_handler\030\003 \001(\004\022\023\n\013g"
-      "cs_handler\030\004 \001(\004\022)\n\016final_response\030\005 \001(\013"
-      "2\021.NVMFinalResponse\022/\n\021callback_response"
-      "\030\006 \001(\0132\024.NVMCallbackResponse2J\n\nNVMServi"
-      "ce\022<\n\021SmartContractCall\022\017.NVMDataRequest"
-      "\032\020.NVMDataResponse\"\000(\0010\001b\006proto3"
+      "\030\002 \001(\t\022\020\n\010not_null\030\003 \001(\010\022%\n\014stats_bundle"
+      "\030\004 \001(\0132\017.NVMStatsBundle\"=\n\023NVMCallbackRe"
+      "sponse\022\021\n\tfunc_name\030\001 \001(\t\022\023\n\013func_params"
+      "\030\002 \003(\t\"\305\001\n\017NVMDataResponse\022\025\n\rresponse_t"
+      "ype\030\001 \001(\t\022\025\n\rresponse_indx\030\002 \001(\r\022\023\n\013lcs_"
+      "handler\030\003 \001(\004\022\023\n\013gcs_handler\030\004 \001(\004\022)\n\016fi"
+      "nal_response\030\005 \001(\0132\021.NVMFinalResponse\022/\n"
+      "\021callback_response\030\006 \001(\0132\024.NVMCallbackRe"
+      "sponse2J\n\nNVMService\022<\n\021SmartContractCal"
+      "l\022\017.NVMDataRequest\032\020.NVMDataResponse\"\000(\001"
+      "0\001b\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 1232);
+      descriptor, 1250);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "nvm.proto", &protobuf_RegisterTypes);
 }
@@ -2324,6 +2326,7 @@ void NVMFinalResponse::InitAsDefaultInstance() {
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int NVMFinalResponse::kResultFieldNumber;
 const int NVMFinalResponse::kMsgFieldNumber;
+const int NVMFinalResponse::kNotNullFieldNumber;
 const int NVMFinalResponse::kStatsBundleFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
@@ -2347,15 +2350,17 @@ NVMFinalResponse::NVMFinalResponse(const NVMFinalResponse& from)
   } else {
     stats_bundle_ = NULL;
   }
-  result_ = from.result_;
+  ::memcpy(&result_, &from.result_,
+    static_cast<size_t>(reinterpret_cast<char*>(&not_null_) -
+    reinterpret_cast<char*>(&result_)) + sizeof(not_null_));
   // @@protoc_insertion_point(copy_constructor:NVMFinalResponse)
 }
 
 void NVMFinalResponse::SharedCtor() {
   msg_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(&stats_bundle_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&result_) -
-      reinterpret_cast<char*>(&stats_bundle_)) + sizeof(result_));
+      reinterpret_cast<char*>(&not_null_) -
+      reinterpret_cast<char*>(&stats_bundle_)) + sizeof(not_null_));
 }
 
 NVMFinalResponse::~NVMFinalResponse() {
@@ -2393,7 +2398,9 @@ void NVMFinalResponse::Clear() {
     delete stats_bundle_;
   }
   stats_bundle_ = NULL;
-  result_ = 0;
+  ::memset(&result_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&not_null_) -
+      reinterpret_cast<char*>(&result_)) + sizeof(not_null_));
   _internal_metadata_.Clear();
 }
 
@@ -2437,10 +2444,24 @@ bool NVMFinalResponse::MergePartialFromCodedStream(
         break;
       }
 
-      // .NVMStatsBundle stats_bundle = 3;
+      // bool not_null = 3;
       case 3: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(26u /* 26 & 0xFF */)) {
+            static_cast< ::google::protobuf::uint8>(24u /* 24 & 0xFF */)) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &not_null_)));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // .NVMStatsBundle stats_bundle = 4;
+      case 4: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(34u /* 34 & 0xFF */)) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadMessage(
                input, mutable_stats_bundle()));
         } else {
@@ -2490,10 +2511,15 @@ void NVMFinalResponse::SerializeWithCachedSizes(
       2, this->msg(), output);
   }
 
-  // .NVMStatsBundle stats_bundle = 3;
+  // bool not_null = 3;
+  if (this->not_null() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(3, this->not_null(), output);
+  }
+
+  // .NVMStatsBundle stats_bundle = 4;
   if (this->has_stats_bundle()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      3, this->_internal_stats_bundle(), output);
+      4, this->_internal_stats_bundle(), output);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -2526,11 +2552,16 @@ void NVMFinalResponse::SerializeWithCachedSizes(
         2, this->msg(), target);
   }
 
-  // .NVMStatsBundle stats_bundle = 3;
+  // bool not_null = 3;
+  if (this->not_null() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(3, this->not_null(), target);
+  }
+
+  // .NVMStatsBundle stats_bundle = 4;
   if (this->has_stats_bundle()) {
     target = ::google::protobuf::internal::WireFormatLite::
       InternalWriteMessageToArray(
-        3, this->_internal_stats_bundle(), deterministic, target);
+        4, this->_internal_stats_bundle(), deterministic, target);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -2557,7 +2588,7 @@ size_t NVMFinalResponse::ByteSizeLong() const {
         this->msg());
   }
 
-  // .NVMStatsBundle stats_bundle = 3;
+  // .NVMStatsBundle stats_bundle = 4;
   if (this->has_stats_bundle()) {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::MessageSize(
@@ -2569,6 +2600,11 @@ size_t NVMFinalResponse::ByteSizeLong() const {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::Int32Size(
         this->result());
+  }
+
+  // bool not_null = 3;
+  if (this->not_null() != 0) {
+    total_size += 1 + 1;
   }
 
   int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
@@ -2608,6 +2644,9 @@ void NVMFinalResponse::MergeFrom(const NVMFinalResponse& from) {
   if (from.result() != 0) {
     set_result(from.result());
   }
+  if (from.not_null() != 0) {
+    set_not_null(from.not_null());
+  }
 }
 
 void NVMFinalResponse::CopyFrom(const ::google::protobuf::Message& from) {
@@ -2638,6 +2677,7 @@ void NVMFinalResponse::InternalSwap(NVMFinalResponse* other) {
     GetArenaNoVirtual());
   swap(stats_bundle_, other->stats_bundle_);
   swap(result_, other->result_);
+  swap(not_null_, other->not_null_);
   _internal_metadata_.Swap(&other->_internal_metadata_);
 }
 

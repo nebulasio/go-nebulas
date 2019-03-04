@@ -20,6 +20,7 @@
 #include "typescript.h"
 #include "logger.h"
 #include "util.h"
+#include <iostream>
 
 #include <string.h>
 
@@ -46,6 +47,8 @@ int TypeScriptTranspileDelegate(char **result, Isolate *isolate,
   s = ReplaceAll(s, "\r", "\\r");
   s = ReplaceAll(s, "\"", "\\\"");
 
+  std::cout<<">>>>>> Created a string containing JS source code ONE"<<std::endl;
+
   char *runnableSource = NULL;
   asprintf(&runnableSource, ts_transpile_source_template, s.c_str());
 
@@ -55,28 +58,41 @@ int TypeScriptTranspileDelegate(char **result, Isolate *isolate,
           .ToLocalChecked();
   free(runnableSource);
 
+  std::cout<<">>>>>>  Created a string containing JS source code"<<std::endl;
+
   // Compile the source code.
   ScriptOrigin sourceSrcOrigin(
       String::NewFromUtf8(isolate, "_tsc_execution.js"),
       Integer::New(isolate, source_line_offset));
   MaybeLocal<Script> script = Script::Compile(context, src, &sourceSrcOrigin);
 
+  std::cout<<">>>>>>  Compiling the source code, while the src is: "<<sourceSrcOrigin<<std::endl;
+
   if (script.IsEmpty()) {
     PrintException(context, trycatch);
     return 1;
   }
 
+  std::cout<<">>>>>>  Script is not empty, which is: "<<std::endl;
+
   // Run the script to get the result.
   MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
+
+  std::cout<<">>>>>>  ret is empty? "<<ret.IsEmpty()<<std::endl;
+
   if (ret.IsEmpty()) {
     PrintException(context, trycatch);
     return 1;
   }
 
+  std::cout<<">>>>>>  before local check"<<std::endl;
+
   Local<Value> checked_ret = ret.ToLocalChecked();
   if (!checked_ret->IsObject()) {
     return 1;
   }
+
+  std::cout<<">>>>>>  After running the source code"<<std::endl;
 
   Local<Object> obj = Local<Object>::Cast(checked_ret);
   Local<Value> jsSource = obj->Get(String::NewFromUtf8(isolate, "jsSource"));

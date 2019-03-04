@@ -68,7 +68,8 @@ message NVMStatsBundle{
 message NVMFinalResponse{
     int32 result = 1;
     string msg = 2;
-    NVMStatsBundle stats_bundle = 3;
+    bool not_null = 3;
+    NVMStatsBundle stats_bundle = 4;
 }
 
 message NVMCallbackResponse{
