@@ -28,4 +28,24 @@ base58_address_t address_to_base58(const address_t &addr) {
   return addr.to_base58();
 }
 
+bool is_valid_address(const address_t &addr) {
+  if (addr.size() != NAS_ADDRESS_LEN)
+    return false;
+  if (addr[0] != NAS_ADDRESS_MAGIC_NUM)
+    return false;
+  if (addr[1] != NAS_ADDRESS_CONTRACT_MAGIC_NUM &&
+      addr[1] != NAS_ADDRESS_ACCOUNT_MAGIC_NUM)
+    return false;
+  return true;
+}
+bool is_contract_address(const address_t &addr) {
+  if (is_valid_address(addr) && addr[1] == NAS_ADDRESS_CONTRACT_MAGIC_NUM)
+    return true;
+  return false;
+}
+bool is_normal_address(const address_t &addr) {
+  if (is_valid_address(addr) && addr[1] == NAS_ADDRESS_ACCOUNT_MAGIC_NUM)
+    return true;
+  return false;
+}
 } // namespace neb

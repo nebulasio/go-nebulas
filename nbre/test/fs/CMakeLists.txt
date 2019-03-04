@@ -14,3 +14,9 @@ gtest_discover_tests(test_fs)
 add_test(NAME test_fs
   COMMAND test_fs)
 
+add_executable(rocksdb_read rocksdb_read.cpp)
+add_executable(rocksdb_write rocksdb_write.cpp)
+
+target_link_libraries(rocksdb_read nbre_rt )
+target_link_libraries(rocksdb_write nbre_rt )
+

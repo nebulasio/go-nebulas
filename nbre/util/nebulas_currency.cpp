@@ -27,11 +27,11 @@ neb::wei operator"" _wei(long double v) { return neb::wei(v); }
 neb::wei operator"" _wei(const char *s) { return neb::wei(std::atoi(s)); }
 
 std::ostream &operator<<(std::ostream &os, const neb::nas &obj) {
-  os << obj.value() << "nas";
+  os << obj.value() << "wei";
   return os;
 }
 
 std::ostream &operator<<(std::ostream &os, const neb::wei &obj) {
-  os << obj.value() << "wei";
+  os << std::hex << obj.wei_value() << "wei";
   return os;
 }

@@ -35,10 +35,10 @@ blockchain::~blockchain() {
     m_storage->close_database();
 }
 
-std::unique_ptr<corepb::Block> blockchain::load_tail_block() {
-  return load_block_with_tag_string(
-      std::string(Block_Tail, std::allocator<char>()));
-}
+// std::unique_ptr<corepb::Block> blockchain::load_tail_block() {
+// return load_block_with_tag_string(
+// std::string(Block_Tail, std::allocator<char>()));
+//}
 
 std::unique_ptr<corepb::Block> blockchain::load_LIB_block() {
   return load_block_with_tag_string(
@@ -73,6 +73,17 @@ blockchain::load_block_with_tag_string(const std::string &tag) {
     throw std::runtime_error("parse block failed");
   }
   return block;
+}
+
+void blockchain::write_LIB_block(corepb::Block *block) {
+  if (block == nullptr)
+    return;
+
+  std::string key_str = std::string(Block_LIB, std::allocator<char>());
+  auto size = block->ByteSizeLong();
+  neb::util::bytes val(size);
+  block->SerializeToArray(val.value(), size);
+  m_storage->put_bytes(util::string_to_byte(key_str), val);
 }
 } // namespace fs
 } // namespace neb

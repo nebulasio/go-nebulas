@@ -20,6 +20,7 @@
 
 #pragma once
 #include "common/common.h"
+#include "common/util/byte.h"
 
 namespace neb {
 
@@ -28,6 +29,8 @@ public:
   typedef boost::multiprecision::int128_t nas_currency_value_t;
 
   nas_currency_t() : m_value(0) {}
+  nas_currency_t(const nas_currency_value_t &v) : m_value(v) {}
+
   template <int64_t r>
   nas_currency_t(const nas_currency_t<r> &v) : m_value(v.wei_value()){};
 
@@ -138,6 +141,47 @@ auto nas_cast(const T2 &v) -> typename std::enable_if<
     is_nas_currency<T1>::value && is_nas_currency<T2>::value, T1>::type {
   return T1(v);
 }
+
+typedef util::fix_bytes<16> nas_storage_t;
+
+template <typename T> nas_storage_t nas_to_storage(const T &v) {
+  nas::nas_currency_value_t cv = v.wei_value();
+
+  uint64_t high = static_cast<uint64_t>(cv >> 64);
+  nas::nas_currency_value_t mask(0xFFFFFFFFFFFFFFFF);
+  auto lm = cv & mask;
+  uint64_t low = static_cast<uint64_t>(lm);
+  nas_storage_t ret;
+  uint64_t *low_ptr = (uint64_t *)ret.value();
+  *low_ptr = boost::endian::native_to_big(high);
+  uint64_t *high_ptr = (uint64_t *)(ret.value() + 8);
+  *high_ptr = boost::endian::native_to_big(low);
+
+  return ret;
+}
+
+template <typename T> T storage_to_nas(const nas_storage_t &v) {
+  uint64_t low;
+  uint64_t high;
+  low = *(uint64_t *)(v.value());
+  high = *(uint64_t *)(v.value() + 8);
+
+  low = boost::endian::big_to_native(low);
+  high = boost::endian::big_to_native(high);
+  nas::nas_currency_value_t cv(low);
+  cv = cv << 64;
+  cv += nas::nas_currency_value_t(high);
+
+  return nas(cv);
+}
+
+inline wei_t storage_to_wei(const neb::util::bytes &v) {
+  return storage_to_nas<nas>(util::to_fix_bytes<nas_storage_t>(v)).wei_value();
+}
+inline neb::util::bytes wei_to_storage(const wei_t &v) {
+  return util::from_fix_bytes(nas_to_storage(nas(v)));
+}
+
 } // end namespace neb
 
 neb::nas operator"" _nas(long double x);

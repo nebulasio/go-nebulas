@@ -86,6 +86,8 @@ public:
   bool operator<(const fix_bytes<ByteLength> &v) const {
     return memcmp(m_value, v.m_value, ByteLength) < 0;
   }
+  byte_t operator[](size_t index) const { return m_value[index]; }
+  byte_t &operator[](size_t index) { return m_value[index]; }
 
   std::string to_base58() const {
     return internal::convert_byte_to_base58(value(), size());
@@ -131,6 +133,8 @@ public:
       throw std::invalid_argument("invalid hex string for from_hex");
     return ret;
   }
+
+  bool empty() const { return m_value.empty(); }
 
 protected:
   std::array<byte_t, ByteLength> m_value;
@@ -257,6 +261,16 @@ auto number_to_byte(T val) ->
   T *rval = (T *)b.value();
   *rval = v;
   return b;
+}
+template <typename FixBytesType> FixBytesType to_fix_bytes(const bytes &val) {
+  FixBytesType ret;
+  assert(val.size() == ret.size());
+  memcpy(ret.value(), val.value(), ret.size());
+  return ret;
+}
+
+template <typename FixBytesType> bytes from_fix_bytes(const FixBytesType &val) {
+  return bytes(val.value(), val.size());
 }
 }
 }

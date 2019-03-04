@@ -24,6 +24,7 @@
 #include "fs/blockchain/blockchain_api.h"
 #include "fs/blockchain/trie/trie.h"
 #include "fs/util.h"
+#include "util/nebulas_currency.h"
 
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -221,8 +222,8 @@ void trie_balance(const neb::block_height_t start_block,
       auto addr_str = neb::base58_to_address(addr);
       auto corepb_account_ptr = ba.get_account_api(addr_str, h);
       std::string balance_str = corepb_account_ptr->balance();
-      std::string hex_str = neb::util::string_to_byte(balance_str).to_hex();
-      neb::wei_t balance_actual = neb::fs::util::hex_val_cast(hex_str);
+      neb::wei_t balance_actual =
+          neb::storage_to_wei(neb::util::string_to_byte(balance_str));
 
       LOG(INFO) << addr << ',' << h << " expect:" << balance_expect
                 << " actual:" << balance_actual;
