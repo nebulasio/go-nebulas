@@ -24,18 +24,29 @@
 #include "common/common.h"
 #include "common/util/singleton.h"
 #include "fs/rocksdb_storage.h"
+#include <ff/network.h>
+
+define_nt(start_block, neb::block_height_t);
+define_nt(block_interval, neb::block_height_t);
+define_nt(reward_addr, std::string);
+define_nt(coinbase_addr, std::string);
+define_nt(version, uint64_t);
 
 namespace neb {
 namespace rt {
 namespace dip {
 
-struct dip_params_t {
-  block_height_t m_start_block;
-  block_height_t m_block_interval;
-  address_t m_reward_addr;
-  address_t m_coinbase_addr;
-  version_t m_version;
-};
+typedef ::ff::net::ntpackage<1, start_block, block_interval, reward_addr,
+                             coinbase_addr, version>
+    dip_params_t;
+
+// struct dip_params_t {
+// block_height_t m_start_block;
+// block_height_t m_block_interval;
+// address_t m_reward_addr;
+// address_t m_coinbase_addr;
+// version_t m_version;
+//};
 
 class dip_handler : public util::singleton<dip_handler> {
 public:
@@ -46,7 +57,7 @@ public:
   void start(neb::block_height_t height,
              const dip_params_t *dip_params = nullptr);
 
-  std::unique_ptr<dip_params_t> get_dip_params(neb::block_height_t height);
+  const dip_params_t &get_dip_params(neb::block_height_t height);
   std::string get_dip_reward(neb::block_height_t height);
 
   void load_dip_rewards();
