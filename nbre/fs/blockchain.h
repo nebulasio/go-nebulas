@@ -21,6 +21,7 @@
 #pragma once
 #include "common/address.h"
 #include "common/common.h"
+#include "fs/bc_storage_session.h"
 #include "fs/proto/block.pb.h"
 #include "fs/rocksdb_storage.h"
 
@@ -32,27 +33,15 @@ public:
   static constexpr char const *Block_LIB = "blockchain_lib";
   static constexpr char const *Block_Tail = "blockchain_tail";
 
-  blockchain(const std::string &path,
-             enum storage_open_flag open_flag = storage_open_default);
-  ~blockchain();
-  blockchain(const blockchain &bc) = delete;
-  blockchain &operator=(const blockchain &bc) = delete;
+  static std::unique_ptr<corepb::Block> load_LIB_block();
+  static std::unique_ptr<corepb::Block>
+  load_block_with_height(block_height_t height);
 
-  std::unique_ptr<corepb::Block> load_LIB_block();
-  std::unique_ptr<corepb::Block> load_block_with_height(block_height_t height);
-
-  // inline rocksdb_storage *storage_ptr() { return m_storage.get(); }
-
-  void write_LIB_block(corepb::Block *block);
+  static void write_LIB_block(corepb::Block *block);
 
 private:
-  std::unique_ptr<corepb::Block>
+  static std::unique_ptr<corepb::Block>
   load_block_with_tag_string(const std::string &tag);
-
-private:
-  // std::unique_ptr<rocksdb_storage> m_storage;
-  std::string m_path;
-  enum storage_open_flag m_open_flag;
 }; // end class blockchain
 } // end namespace fs
 } // end namespace neb

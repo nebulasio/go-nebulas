@@ -30,8 +30,7 @@ namespace fs {
 
 blockchain_api_base::~blockchain_api_base() {}
 
-blockchain_api::blockchain_api(blockchain *blockchain_ptr)
-    : m_blockchain(blockchain_ptr) {}
+blockchain_api::blockchain_api() {}
 
 blockchain_api::~blockchain_api() {}
 
@@ -44,7 +43,7 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
     return ret;
   }
 
-  auto block = m_blockchain->load_block_with_height(height);
+  auto block = blockchain::load_block_with_height(height);
 
   int64_t timestamp = block->header().timestamp();
 
@@ -130,7 +129,7 @@ blockchain_api::json_parse_event(const std::string &json) {
 std::unique_ptr<corepb::Account>
 blockchain_api::get_account_api(const address_t &addr, block_height_t height) {
 
-  auto block = m_blockchain->load_block_with_height(height);
+  auto block = blockchain::load_block_with_height(height);
 
   // get block header account state
   std::string state_root_str = block->header().state_root();
@@ -161,7 +160,7 @@ blockchain_api::get_transaction_api(const std::string &tx_hash,
   auto corepb_txs_ptr = std::make_unique<corepb::Transaction>();
 
   // suppose height is the latest block height
-  auto block = m_blockchain->load_block_with_height(height);
+  auto block = blockchain::load_block_with_height(height);
 
   // get block header transaction root
   std::string txs_root_str = block->header().txs_root();

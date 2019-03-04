@@ -40,14 +40,12 @@ std::string entry_point_dip_impl(compatible_uint64_t start_block,
 
   std::string neb_db_path = neb::configuration::instance().neb_db_dir();
   std::unique_ptr<neb::fs::blockchain_api_base> pba;
-  std::unique_ptr<neb::fs::blockchain> bc;
   if (neb::use_test_blockchain) {
     pba = std::unique_ptr<neb::fs::blockchain_api_base>(
         new neb::fs::blockchain_api_test());
   } else {
-    bc = std::make_unique<neb::fs::blockchain>(neb_db_path);
     pba = std::unique_ptr<neb::fs::blockchain_api_base>(
-        new neb::fs::blockchain_api(bc.get()));
+        new neb::fs::blockchain_api());
   }
   nr::transaction_db_ptr_t tdb_ptr =
       std::make_unique<neb::fs::transaction_db>(pba.get());

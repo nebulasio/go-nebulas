@@ -25,8 +25,10 @@
 TEST(test_fs, read_blockchain_transcations) {
   std::string db_path = get_db_path_for_read();
 
-  neb::fs::blockchain block_chain(db_path);
-  block_ptr_t block = block_chain.load_block_with_height(1);
+  neb::fs::bc_storage_session::instance().init(db_path,
+                                               neb::fs::storage_open_default);
+
+  block_ptr_t block = neb::fs::blockchain::load_block_with_height(1);
   auto header = block->header();
   EXPECT_EQ(header.timestamp(), 0);
 
@@ -139,9 +141,10 @@ TEST(test_fs, load_LIB_block) {
 
   std::string db_path = get_db_path_for_read();
 
-  std::shared_ptr<neb::fs::blockchain> blockchain_ptr =
-      std::make_shared<neb::fs::blockchain>(db_path);
-  std::shared_ptr<corepb::Block> block_ptr = blockchain_ptr->load_LIB_block();
+  neb::fs::bc_storage_session::instance().init(db_path,
+                                               neb::fs::storage_open_default);
+  std::shared_ptr<corepb::Block> block_ptr =
+      neb::fs::blockchain::load_LIB_block();
 
   EXPECT_EQ(block_ptr->height(), 23078);
   EXPECT_EQ(block_ptr->transactions_size(), 0);

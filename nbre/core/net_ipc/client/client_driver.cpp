@@ -21,6 +21,7 @@
 #include "common/address.h"
 #include "common/configuration.h"
 #include "core/ir_warden.h"
+#include "fs/bc_storage_session.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "fs/storage_holder.h"
 #include "jit/jit_driver.h"
@@ -155,6 +156,10 @@ void client_driver_base::init_nbre() {
     auto nbre_max_height =
         neb::util::byte_to_number<block_height_t>(nbre_max_height_bytes);
     neb::rt::dip::dip_handler::instance().init_dip_params(nbre_max_height);
+
+    neb::fs::bc_storage_session::instance().init(
+        neb::configuration::instance().neb_db_dir(),
+        neb::fs::storage_open_for_readonly);
   } catch (const std::exception &e) {
     LOG(INFO) << "nbre max height not init " << e.what();
   }

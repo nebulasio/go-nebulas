@@ -24,8 +24,7 @@
 
 TEST(test_fs, read_inter_transaction_from_db_with_duration) {
   std::string neb_db_path = neb::configuration::instance().neb_db_dir();
-  neb::fs::blockchain b(neb_db_path);
-  neb::fs::blockchain_api ba(&b);
+  neb::fs::blockchain_api ba;
   neb::fs::transaction_db tdb(&ba);
 
   auto txs = tdb.read_transactions_from_db_with_duration(204223, 204224);

@@ -24,6 +24,7 @@
 #include "common/util/byte.h"
 #include "common/util/json_parser.h"
 #include "common/util/version.h"
+#include "fs/bc_storage_session.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "fs/ir_manager/ir_manager_helper.h"
 #include "fs/storage_holder.h"
@@ -39,7 +40,6 @@ namespace fs {
 
 ir_manager::ir_manager() {
   m_storage = storage_holder::instance().nbre_db_ptr();
-  m_blockchain = storage_holder::instance().neb_db_ptr();
 }
 
 ir_manager::~ir_manager() { m_storage->close_database(); }
@@ -159,9 +159,8 @@ void ir_manager::parse_irs(
 
 void ir_manager::parse_when_missing_block(block_height_t start_height,
                                           block_height_t end_height) {
-  auto bc_ptr = neb::fs::storage_holder::instance().neb_db_ptr();
   for (block_height_t h = start_height; h < end_height; h++) {
-    auto block = bc_ptr->load_block_with_height(h);
+    auto block = blockchain::load_block_with_height(h);
     parse_with_height(h, block.get());
   }
 }

@@ -24,16 +24,6 @@
 
 namespace neb {
 namespace fs {
-
-blockchain::blockchain(const std::string &path,
-                       enum storage_open_flag open_flag)
-    : m_path(path), m_open_flag(open_flag) {
-  bc_storage_session::instance().init(path, open_flag);
-}
-
-blockchain::~blockchain() {
-}
-
 std::unique_ptr<corepb::Block> blockchain::load_LIB_block() {
   return load_block_with_tag_string(
       std::string(Block_LIB, std::allocator<char>()));

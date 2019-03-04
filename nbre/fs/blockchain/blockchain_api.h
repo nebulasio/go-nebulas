@@ -61,7 +61,7 @@ public:
 
 class blockchain_api : public blockchain_api_base {
 public:
-  blockchain_api(blockchain *blockchain_ptr);
+  blockchain_api();
   virtual ~blockchain_api();
 
   virtual std::unique_ptr<std::vector<transaction_info_t>>
@@ -77,9 +77,6 @@ private:
   get_transaction_result_api(const neb::util::bytes &events_root,
                              const neb::util::bytes &tx_hash);
   std::unique_ptr<event_info_t> json_parse_event(const std::string &json);
-
-private:
-  blockchain *m_blockchain;
 };
 
 } // namespace fs

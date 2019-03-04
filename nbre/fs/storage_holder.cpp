@@ -28,9 +28,6 @@ storage_holder::storage_holder() {
   m_storage = std::make_unique<rocksdb_storage>();
   m_storage->open_database(neb::configuration::instance().nbre_db_dir(),
                            storage_open_for_readwrite);
-
-  m_blockchain = std::make_unique<blockchain>(
-      neb::configuration::instance().neb_db_dir(), storage_open_for_readonly);
 }
 
 storage_holder::~storage_holder() { m_storage->close_database(); }

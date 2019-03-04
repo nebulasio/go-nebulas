@@ -209,8 +209,7 @@ void trie_balance(const neb::block_height_t start_block,
   std::uniform_int_distribution<> dis(start_block, end_block);
 
   std::string neb_db = neb::configuration::instance().neb_db_dir();
-  neb::fs::blockchain bc(neb_db);
-  neb::fs::blockchain_api ba(&bc);
+  neb::fs::blockchain_api ba;
 
   std::vector<std::string> v{"n1KxWR8ycXg7Kb9CPTtNjTTEpvka269PniB"};
 
@@ -237,8 +236,7 @@ void trie_balance(const neb::block_height_t start_block,
 void trie_contract_deployer() {
 
   std::string neb_db = std::getenv("NEB_DB_DIR");
-  neb::fs::blockchain bc(neb_db);
-  neb::fs::blockchain_api ba(&bc);
+  neb::fs::blockchain_api ba;
   neb::fs::account_db ad(&ba);
 
   std::vector<std::string> v{"n1g6JZsQS1uRUySdwvuFJ7FYT4dFoyoSN5q"};

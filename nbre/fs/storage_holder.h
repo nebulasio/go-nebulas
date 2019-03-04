@@ -33,11 +33,11 @@ public:
   ~storage_holder();
 
   inline rocksdb_storage *nbre_db_ptr() { return m_storage.get(); }
-  inline blockchain *neb_db_ptr() { return m_blockchain.get(); }
+  // inline blockchain *neb_db_ptr() { return m_blockchain.get(); }
 
 private:
   std::unique_ptr<rocksdb_storage> m_storage;
-  std::unique_ptr<blockchain> m_blockchain;
+  // std::unique_ptr<blockchain> m_blockchain;
 };
 } // namespace fs
 } // namespace neb

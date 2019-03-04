@@ -61,11 +61,9 @@ void ir_block_gen(const std::string &conf_fp, const neb::util::bytes &bytes) {
   read_block_json_file(conf_fp, pt);
 
   std::string db_path = get_db_path_for_read();
-  std::shared_ptr<neb::fs::blockchain> blockchain_ptr =
-      std::make_shared<neb::fs::blockchain>(db_path);
 
   std::shared_ptr<corepb::Block> lib_block_ptr =
-      blockchain_ptr->load_LIB_block();
+      neb::fs::blockchain::load_LIB_block();
   neb::block_height_t lib_height = lib_block_ptr->height();
   std::cout << "block height " << lib_height + 1 << std::endl;
 
@@ -98,8 +96,6 @@ void ir_block_gen(const std::string &conf_fp, const neb::util::bytes &bytes) {
   if (!ret) {
     throw std::runtime_error("serialize block proto failed");
   }
-
-  blockchain_ptr.reset();
 
   neb::fs::rocksdb_storage rs;
   rs.open_database(db_path, neb::fs::storage_open_for_readwrite);

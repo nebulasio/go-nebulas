@@ -58,7 +58,6 @@ private:
 
 private:
   rocksdb_storage *m_storage;
-  blockchain *m_blockchain;
   std::map<auth_key_t, auth_val_t> m_auth_table;
 };
 } // namespace fs
