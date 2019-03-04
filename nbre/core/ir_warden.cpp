@@ -66,10 +66,12 @@ void ir_warden::on_timer() {
   }
 }
 
-void ir_warden::on_receive_ir_block(block_height_t height,
-                                    const std::string &block_bytes) {
+void ir_warden::on_receive_ir_transactions(
+    block_height_t height, const std::vector<std::string> &ir_txs) {
   std::unique_lock<std::mutex> _l(m_sync_mutex);
-  m_queue.push(std::make_pair(height, block_bytes));
+  for (auto &tx : ir_txs) {
+    m_queue.push(std::make_pair(height, tx));
+  }
 }
 
 ir_warden::ir_warden() : m_is_sync_already(false) {

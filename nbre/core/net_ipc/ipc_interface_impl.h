@@ -71,9 +71,7 @@ define_ipc_pkg(nbre_dip_reward_req, p_holder, p_height, p_version)
 define_ipc_pkg(nbre_dip_reward_ack, p_holder, p_dip_reward)
 define_ipc_api(nbre_dip_reward_req, nbre_dip_reward_ack)
 
-define_ipc_param(std::string, p_ir_block)
-define_ipc_pkg(nbre_ir_block_req, p_holder, p_height, p_ir_block)
-define_ipc_pkg(nbre_ir_block_ack, p_holder)
-define_ipc_api(nbre_ir_block_req, nbre_ir_block_ack)
+define_ipc_param(std::vector<std::string>, p_ir_transactions)
+define_ipc_pkg(nbre_ir_transactions_req, p_holder, p_height, p_ir_transactions)
 
     // clang-format on

@@ -47,8 +47,8 @@ public:
   void wait_until_sync();
   void on_timer();
 
-  void on_receive_ir_block(block_height_t height,
-                           const std::string &block_bytes);
+  void on_receive_ir_transactions(block_height_t height,
+                                  const std::vector<std::string> &ir_txs);
 
 private:
   std::unique_ptr<fs::ir_manager> m_ir_manager;
