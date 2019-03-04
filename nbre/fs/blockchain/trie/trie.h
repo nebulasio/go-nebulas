@@ -21,49 +21,128 @@
 #pragma once
 #include "common/common.h"
 #include "common/util/byte.h"
+#include "crypto/hash.h"
+#include "fs/blockchain/trie/byte_shared.h"
 #include "fs/proto/trie.pb.h"
 #include "fs/rocksdb_storage.h"
 
 namespace neb {
 namespace fs {
 
-enum class trie_node_type {
-  trie_node_unknown = 0,
-  trie_node_extension,
-  trie_node_leaf,
-  trie_node_branch,
-};
+typedef int32_t trie_node_type;
+constexpr static int32_t trie_node_unknown = 0;
+constexpr static int32_t trie_node_extension = 1;
+constexpr static int32_t trie_node_leaf = 2;
+constexpr static int32_t trie_node_branch = 3;
 
 class trie_node {
 public:
+  trie_node(trie_node_type type);
   trie_node(const neb::util::bytes &triepb_bytes);
+
+  trie_node(const std::vector<neb::util::bytes> &val);
 
   trie_node_type get_trie_node_type();
 
-  inline neb::util::bytes val_at(size_t index) { return m_val[index]; }
+  inline const neb::util::bytes &val_at(size_t index) const {
+    return m_val[index];
+  }
+  inline neb::util::bytes &val_at(size_t index) { return m_val[index]; }
+
+  void change_to_type(trie_node_type new_type);
+
+  inline const hash_t &hash() const { return m_hash; }
+
+  inline hash_t &hash() { return m_hash; }
+
+  std::unique_ptr<triepb::Node> to_proto() const;
 
 private:
   std::vector<neb::util::bytes> m_val;
+  hash_t m_hash;
 };
+
+typedef std::unique_ptr<trie_node> trie_node_ptr;
 
 class trie {
 public:
+  trie(const hash_t &hash, rocksdb_storage *db_ptr);
+
   trie(rocksdb_storage *db_ptr);
 
   bool get_trie_node(const neb::util::bytes &root_hash,
                      const neb::util::bytes &key, neb::util::bytes &trie_node);
 
+  hash_t put(const hash_t &key, const neb::util::bytes &val);
+
+  trie_node_ptr create_node(const std::vector<neb::util::bytes> &val);
+
+  void commit_node(trie_node *node);
+
+  inline const hash_t &root_hash() const { return m_root_hash; }
+  inline hash_t &root_hash() { return m_root_hash; }
+  inline bool empty() const { return m_root_hash.size() == 0; }
+
 private:
   std::unique_ptr<trie_node> fetch_node(const neb::util::bytes &hash);
+  std::unique_ptr<trie_node> fetch_node(const hash_t &hash);
+
+  hash_t update(const hash_t &root, const neb::util::bytes &route,
+                const neb::util::bytes &val);
+
+  hash_t update_when_meet_branch(trie_node *root_node,
+                                 const neb::util::bytes &route,
+                                 const neb::util::bytes &val);
+  hash_t update_when_meet_ext(trie_node *root_node,
+                              const neb::util::bytes &route,
+                              const neb::util::bytes &val);
+  hash_t update_when_meet_leaf(trie_node *root_node,
+                               const neb::util::bytes &route,
+                               const neb::util::bytes &val);
 
 public:
-  static neb::util::bytes key_to_route(const neb::util::bytes &key);
   static neb::util::bytes route_to_key(const neb::util::bytes &route);
-  static size_t prefix_len(const neb::byte_t *s, size_t s_len,
-                           const neb::byte_t *t, size_t t_len);
+  template <typename T> static neb::util::bytes key_to_route(const T &key) {
+
+    size_t size = key.size() << 1;
+    neb::util::bytes value(size);
+
+    if (size > 0) {
+      for (size_t i = 0; i < key.size(); i++) {
+        byte_shared byte(key[i]);
+        value[i << 1] = byte.bits_high();
+        value[(i << 1) + 1] = byte.bits_low();
+      }
+    }
+    return value;
+  }
+  template <typename T1, typename T2>
+  static size_t prefix_len(const T1 &s, const T2 &t) {
+    auto s_len = s.size();
+    auto t_len = t.size();
+    size_t min_len = std::min(s_len, t_len);
+    for (size_t i = 0; i < min_len; i++) {
+      if (s[i] != t[i]) {
+        return i;
+      }
+    }
+    return min_len;
+  }
+  template <typename T1>
+  static size_t prefix_len(const T1 &s, const byte_t *t, size_t t_len) {
+    auto s_len = s.size();
+    size_t min_len = std::min(s_len, t_len);
+    for (size_t i = 0; i < min_len; i++) {
+      if (s[i] != t[i]) {
+        return i;
+      }
+    }
+    return min_len;
+  }
 
 private:
   rocksdb_storage *m_storage;
+  hash_t m_root_hash;
 };
 } // namespace fs
 } // namespace neb

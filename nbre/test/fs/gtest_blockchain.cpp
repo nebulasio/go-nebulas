@@ -134,24 +134,6 @@ TEST(test_fs, throw_operation_db) {
   EXPECT_THROW(rs.get("no_exist"), neb::fs::storage_general_failure);
 }
 
-TEST(test_fs, load_tail_block) {
-
-  std::string db_path = get_db_path_for_read();
-
-  std::shared_ptr<neb::fs::blockchain> blockchain_ptr =
-      std::make_shared<neb::fs::blockchain>(db_path);
-  std::shared_ptr<corepb::Block> block_ptr = blockchain_ptr->load_tail_block();
-
-  EXPECT_EQ(block_ptr->height(), 23082);
-  EXPECT_EQ(block_ptr->transactions_size(), 0);
-
-  auto header = block_ptr->header();
-  auto hash_bytes = neb::util::string_to_byte(header.hash());
-  EXPECT_EQ(hash_bytes.to_hex(),
-            "cc6fdc81b59d86a213d7ce28feeb99fa3d1eed266362e6ea31398a54610a5b75");
-  EXPECT_EQ(header.timestamp(), 1531895325);
-  EXPECT_EQ(header.chain_id(), 1003);
-}
 
 TEST(test_fs, load_LIB_block) {
 

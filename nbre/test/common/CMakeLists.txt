@@ -9,7 +9,7 @@ add_executable(test_timer_loop test_timer_loop.cpp)
 
 
 target_link_libraries(test_common nbre_rt ${gtest_lib})
-target_link_libraries(test_timer_loop nbre_rt)
+target_link_libraries(test_timer_loop nbre_rt ${gtest_lib})
 
 gtest_discover_tests(test_common)
 

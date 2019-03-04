@@ -8,6 +8,7 @@ if(Release)
   message(STATUS "This is a Release version")
   add_definitions(-O2)
   add_definitions(-DNBRE_PATH=${PROJECT_SOURCE_DIR})
+  add_definitions(-DNDEBUG)
 else(Release)
   add_definitions(-g)
   add_definitions(-DNBRE_PATH=${PROJECT_SOURCE_DIR})
@@ -77,7 +78,9 @@ set(jit_libs nbre_jit ${llvm_libs})
 set(fs_libs nbre_fs nbre_fs_proto bz2 z zstd snappy lz4)
 
 if(UNIX AND NOT APPLE)
-  set(common_libs ${common_libs} ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.so)
+  set(common_libs ${common_libs}
+    ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.so
+    ${PROJECT_SOURCE_DIR}/lib/lib/libcryptopp.so)
   set(protobuf_lib ${PROJECT_SOURCE_DIR}/lib/lib/libprotobuf.so)
   set(cpp_lib ${PROJECT_SOURCE_DIR}/lib/lib/libc++.so)
   set(Boost_LIBRARIES
@@ -93,7 +96,9 @@ if(UNIX AND NOT APPLE)
     bz2 z zstd snappy lz4
     )
 elseif(UNIX)
-  set(common_libs ${common_libs} ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.dylib)
+  set(common_libs ${common_libs}
+    ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.dylib
+    ${PROJECT_SOURCE_DIR}/lib/lib/libcryptopp.dylib)
   set(protobuf_lib ${PROJECT_SOURCE_DIR}/lib/lib/libprotobuf.dylib)
   set(cpp_lib ${PROJECT_SOURCE_DIR}/lib/lib/libc++.dylib)
   set(Boost_LIBRARIES
@@ -108,7 +113,10 @@ elseif(UNIX)
     ${PROJECT_SOURCE_DIR}/lib/lib/libbz2.1.dylib
     rocksdb z zstd snappy lz4) #TODO add rocksdb here
 endif()
-set(common_libs nbre_common pthread ${common_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES})
+set(common_libs nbre_common pthread
+  ${common_libs}
+  ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES}
+  )
 
 
 message(STATUS "nbre src " ${nbre_src})
@@ -119,15 +127,25 @@ file(GLOB_RECURSE nbre_fs_src fs/*.cpp)
 file(GLOB_RECURSE nbre_fs_proto_src fs/proto/*.pb.cc)
 file(GLOB_RECURSE nbre_core_src core/*.cpp)
 file(GLOB_RECURSE nbre_util_src util/*.cpp)
+file(GLOB_RECURSE nbre_crypto_src crypto/*.cpp)
 
 list(FILTER nbre_core_src EXCLUDE REGEX "core/driver.cpp")
 list(FILTER nbre_core_src EXCLUDE REGEX "core/neb_ipc*")
 
-add_library(nbre_rt SHARED ${nbre_jit_src} ${nbre_rt_src} ${nbre_common_src} ${nbre_fs_src} ${nbre_fs_proto_src} ${nbre_core_src} ${nbre_util_src})
+add_library(nbre_rt SHARED
+  ${nbre_jit_src}
+  ${nbre_rt_src}
+  ${nbre_common_src}
+  ${nbre_fs_src}
+  ${nbre_fs_proto_src}
+  ${nbre_core_src}
+  ${nbre_util_src}
+  ${nbre_crypto_src}
+  )
 if(UNIX AND NOT APPLE)
-  target_link_libraries(nbre_rt ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.so ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} ${extra_libs} ff_functionflow ff_net softfloat c++)
+  target_link_libraries(nbre_rt ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.so ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} ${extra_libs} ff_functionflow ff_net softfloat c++ cryptopp)
 elseif(UNIX)
-  target_link_libraries(nbre_rt ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.dylib ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} ${extra_libs} ff_functionflow ff_net softfloat c++)
+  target_link_libraries(nbre_rt ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.dylib ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} ${extra_libs} ff_functionflow ff_net softfloat c++ cryptopp)
 endif()
 
 if(Release)
@@ -142,8 +160,14 @@ file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_core core/*.h core/*.hpp)
 file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_rt rt/*.h rt/*.hpp)
 file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_fs fs/*.h fs/*.hpp)
 file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_util util/*.h util/*.hpp)
+file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_crypto crypto/*.h crypto/*.hpp)
 
-set(DEPLOY_FILES_AND_DIRS ${DEPLOY_FILES_AND_DIRS_common} ${DEPLOY_FILES_AND_DIRS_core} ${DEPLOY_FILES_AND_DIRS_rt} ${DEPLOY_FILES_AND_DIRS_fs} ${DEPLOY_FILES_AND_DIRS_util})
+set(DEPLOY_FILES_AND_DIRS ${DEPLOY_FILES_AND_DIRS_common}
+  ${DEPLOY_FILES_AND_DIRS_core}
+  ${DEPLOY_FILES_AND_DIRS_rt}
+  ${DEPLOY_FILES_AND_DIRS_fs}
+  ${DEPLOY_FILES_AND_DIRS_util}
+  ${DEPLOY_FILES_AND_DIRS_crypto})
 
 MACRO(INSTALL_HEADERS_WITH_DIRECTORY HEADER_LIST)
 

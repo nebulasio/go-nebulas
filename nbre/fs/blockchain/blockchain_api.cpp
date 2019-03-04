@@ -21,7 +21,7 @@
 #include "fs/blockchain/blockchain_api.h"
 #include "fs/blockchain/trie/trie.h"
 #include "fs/util.h"
-
+#include "util/nebulas_currency.h"
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -60,10 +60,9 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
 
     info.m_from = to_address(tx.from());
     info.m_to = to_address(tx.to());
-    info.m_tx_value =
-        util::hex_val_cast(neb::util::string_to_byte(tx.value()).to_hex());
+    info.m_tx_value = storage_to_wei(neb::util::string_to_byte(tx.value()));
     info.m_gas_price =
-        util::hex_val_cast(neb::util::string_to_byte(tx.gas_price()).to_hex());
+        storage_to_wei(neb::util::string_to_byte(tx.gas_price()));
     info.m_tx_type = tx.data().type();
 
     // get topic chain.transactionResult
@@ -76,7 +75,7 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
     info.m_gas_used = txs_result_ptr->m_gas_used;
 
     // ignore failed transactions
-    if (info.m_status) {
+    if (info.m_status == tx_status_succ) {
       ret->push_back(info);
     }
   }
@@ -189,14 +188,5 @@ blockchain_api::get_transaction_api(const std::string &tx_hash,
   return corepb_txs_ptr;
 }
 
-namespace util {
-wei_t hex_val_cast(const std::string &hex_str) {
-  std::stringstream ss;
-  ss << std::hex << hex_str;
-  neb::wei_t wei;
-  ss >> wei;
-  return wei;
-}
-} // namespace util
 } // namespace fs
 } // namespace neb

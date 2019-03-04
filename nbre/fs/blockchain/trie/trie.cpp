@@ -19,11 +19,12 @@
 //
 
 #include "fs/blockchain/trie/trie.h"
-#include "fs/blockchain/trie/byte_shared.h"
+#include <exception>
 
 namespace neb {
 namespace fs {
 
+trie_node::trie_node(trie_node_type type) { change_to_type(type); }
 trie_node::trie_node(const neb::util::bytes &triepb_bytes) {
 
   std::unique_ptr<triepb::Node> triepb_node_ptr =
@@ -35,26 +36,245 @@ trie_node::trie_node(const neb::util::bytes &triepb_bytes) {
     throw std::runtime_error("parse triepb node failed");
   }
 
-  for (auto &v : triepb_node_ptr->val()) {
+  for (const std::string &v : triepb_node_ptr->val()) {
     m_val.push_back(neb::util::string_to_byte(v));
   }
 }
 
+trie_node::trie_node(const std::vector<neb::util::bytes> &val) : m_val(val) {}
+
 trie_node_type trie_node::get_trie_node_type() {
 
   if (m_val.size() == 16) {
-    return trie_node_type::trie_node_branch;
+    return trie_node_branch;
   }
   if (m_val.size() == 3 && !m_val[0].empty()) {
     return static_cast<trie_node_type>(m_val[0][0]);
   }
-  return trie_node_type::trie_node_unknown;
+  return trie_node_unknown;
 }
+
+void trie_node::change_to_type(trie_node_type new_type) {
+  if (new_type == get_trie_node_type())
+    return;
+  if (new_type == trie_node_extension &&
+      get_trie_node_type() == trie_node_leaf) {
+    m_val.clear();
+    return;
+  }
+  if (new_type == trie_node_leaf &&
+      get_trie_node_type() == trie_node_extension) {
+    m_val.clear();
+    return;
+  }
+
+  if (new_type == trie_node_extension || new_type == trie_node_leaf) {
+    m_val.resize(3);
+    m_val.shrink_to_fit();
+    return;
+  }
+  if (new_type == trie_node_leaf) {
+    m_val.resize(16);
+    m_val.shrink_to_fit();
+  }
+}
+
+std::unique_ptr<triepb::Node> trie_node::to_proto() const {
+  auto ret = std::make_unique<triepb::Node>();
+  for (const neb::util::bytes &v : m_val) {
+    std::string *val = ret->add_val();
+    *val = std::to_string(v);
+  }
+  return ret;
+}
+
+trie::trie(const hash_t &hash, rocksdb_storage *db_ptr)
+    : m_storage(db_ptr), m_root_hash(hash) {}
 
 trie::trie(rocksdb_storage *db_ptr) : m_storage(db_ptr) {}
 
-std::unique_ptr<trie_node> trie::fetch_node(const neb::util::bytes &hash) {
+trie_node_ptr trie::create_node(const std::vector<neb::util::bytes> &val) {
+  auto ret = std::make_unique<trie_node>(val);
+  commit_node(ret.get());
+  return ret;
+}
 
+void trie::commit_node(trie_node *node) {
+  if (node == nullptr) {
+    return;
+  }
+  auto pb = node->to_proto();
+  size_t s = pb->ByteSizeLong();
+  neb::util::bytes bs(s);
+  pb->SerializeToArray(bs.value(), s);
+
+  node->hash() = crypto::sha3_256_hash(bs);
+
+  m_storage->put_bytes(util::bytes(node->hash().value(), node->hash().size()),
+                       bs);
+}
+
+hash_t trie::put(const hash_t &key, const neb::util::bytes &val) {
+  auto new_hash = update(m_root_hash, key_to_route(key), val);
+  m_root_hash = new_hash;
+  return new_hash;
+}
+
+hash_t trie::update(const hash_t &root, const neb::util::bytes &route,
+                    const neb::util::bytes &val) {
+  if (root.empty()) {
+    std::vector<neb::util::bytes> value(
+        {util::number_to_byte<util::bytes>(trie_node_leaf), route, val});
+    auto node = create_node(value);
+    return node->hash();
+  }
+
+  auto root_node = fetch_node(root);
+  auto type = root_node->get_trie_node_type();
+  switch (type) {
+  case trie_node_extension:
+    return update_when_meet_ext(root_node.get(), route, val);
+    break;
+  case trie_node_leaf:
+    return update_when_meet_leaf(root_node.get(), route, val);
+    break;
+  case trie_node_branch:
+    return update_when_meet_branch(root_node.get(), route, val);
+    break;
+  default:
+    throw std::invalid_argument("unknown node type");
+  }
+}
+hash_t trie::update_when_meet_branch(trie_node *root_node,
+                                     const neb::util::bytes &route,
+                                     const neb::util::bytes &val) {
+  auto new_hash =
+      update(util::to_fix_bytes<hash_t>(root_node->val_at(route[0])),
+             neb::util::bytes(route.value() + 1, route.size() - 1), val);
+
+  root_node->val_at(route[0]) = util::from_fix_bytes(new_hash);
+  commit_node(root_node);
+  return root_node->hash();
+}
+
+hash_t trie::update_when_meet_ext(trie_node *root_node,
+                                  const neb::util::bytes &route,
+                                  const neb::util::bytes &val) {
+  util::bytes path = root_node->val_at(1);
+  util::bytes next = root_node->val_at(2);
+  if (path.size() > route.size()) {
+    throw std::invalid_argument("wrong key, too short");
+  }
+  auto match_len = prefix_len(path, route);
+  if (match_len == path.size()) {
+    auto new_hash = update(
+        util::to_fix_bytes<hash_t>(next),
+        util::bytes(route.value() + match_len, route.size() - match_len), val);
+    root_node->val_at(2) = from_fix_bytes(new_hash);
+    commit_node(root_node);
+    return root_node->hash();
+  }
+  std::unique_ptr<trie_node> br_node =
+      std::make_unique<trie_node>(trie_node_branch);
+
+  if (match_len > 0 || path.size() == 1) {
+    br_node->val_at(path[match_len]) = next;
+    if (match_len > 0 && match_len + 1 < path.size()) {
+      std::vector<neb::util::bytes> value(
+          {util::number_to_byte<util::bytes>(trie_node_extension),
+           util::bytes(path.value() + match_len + 1,
+                       path.size() - match_len - 1),
+           next});
+      auto ext_node = create_node(value);
+      br_node->val_at(path[match_len]) = from_fix_bytes(ext_node->hash());
+    }
+
+    // a branch to hold the new node
+    br_node->val_at(route[match_len]) =
+        from_fix_bytes(update(hash_t(),
+                              util::bytes(route.value() + match_len + 1,
+                                          route.size() - match_len - 1),
+                              val));
+
+    commit_node(br_node.get());
+
+    // if no common prefix, replace the ext node with the new branch node
+    if (match_len == 0) {
+      return br_node->hash();
+    }
+
+    // use the new branch node as the ext node's sub-trie
+    root_node->val_at(1) = util::bytes(path.value(), match_len);
+    root_node->val_at(2) =
+        util::bytes(br_node->hash().value(), br_node->hash().size());
+    commit_node(root_node);
+    return root_node->hash();
+  }
+
+  // 4. matchLen = 0 && len(path) > 1, 12... meets 23... => branch - ext - ...
+  root_node->val_at(1) = util::bytes(path.value() + 1, path.size() - 1);
+  commit_node(root_node);
+
+  br_node->val_at(path[match_len]) = from_fix_bytes(root_node->hash());
+  br_node->val_at(route[match_len]) = from_fix_bytes(update(
+      hash_t(),
+      util::bytes(route.value() + match_len + 1, route.size() - match_len - 1),
+      val));
+  commit_node(br_node.get());
+  return br_node->hash();
+}
+
+hash_t trie::update_when_meet_leaf(trie_node *root_node,
+                                   const neb::util::bytes &route,
+                                   const neb::util::bytes &val) {
+  neb::util::bytes path = root_node->val_at(1);
+  neb::util::bytes leaf_val = root_node->val_at(2);
+  if (path.size() > route.size()) {
+    throw std::invalid_argument("wrong key, too short");
+  }
+  auto match_len = prefix_len(path, route);
+
+  // node exists, update its value
+  if (match_len == path.size()) {
+    if (route.size() > match_len) {
+      throw std::invalid_argument("wrong key, too long");
+    }
+    root_node->val_at(2) = val;
+    commit_node(root_node);
+    return root_node->hash();
+  }
+
+  auto br_node = std::make_unique<trie_node>(trie_node_branch);
+  br_node->val_at(path[match_len]) = from_fix_bytes(update(
+      hash_t(),
+      util::bytes(path.value() + match_len + 1, path.size() - match_len - 1),
+      leaf_val));
+  br_node->val_at(route[match_len]) = from_fix_bytes(update(
+      hash_t(),
+      util::bytes(route.value() + match_len + 1, route.size() - match_len - 1),
+      val));
+
+  commit_node(br_node.get());
+
+  // if no common prefix, replace the leaf node with the new branch node
+  if (match_len == 0) {
+    return br_node->hash();
+  }
+
+  root_node->change_to_type(trie_node_extension);
+  root_node->val_at(0) = util::number_to_byte<util::bytes>(trie_node_extension);
+  root_node->val_at(1) = util::bytes(path.value(), match_len);
+  root_node->val_at(2) = from_fix_bytes(br_node->hash());
+  commit_node(root_node);
+  return root_node->hash();
+}
+
+std::unique_ptr<trie_node> trie::fetch_node(const hash_t &hash) {
+  neb::util::bytes triepb_bytes = m_storage->get_bytes(from_fix_bytes(hash));
+  return std::make_unique<trie_node>(triepb_bytes);
+}
+
+std::unique_ptr<trie_node> trie::fetch_node(const neb::util::bytes &hash) {
   neb::util::bytes triepb_bytes = m_storage->get_bytes(hash);
   return std::make_unique<trie_node>(triepb_bytes);
 }
@@ -75,31 +295,29 @@ bool trie::get_trie_node(const neb::util::bytes &root_hash,
 
       auto root_node = fetch_node(hash);
       auto root_type = root_node->get_trie_node_type();
-      if (route_ptr == end_ptr && root_type != trie_node_type::trie_node_leaf) {
+      if (route_ptr == end_ptr && root_type != trie_node_leaf) {
         throw std::runtime_error("key/path too short");
       }
 
-      if (root_type == trie_node_type::trie_node_branch) {
+      if (root_type == trie_node_branch) {
         hash = root_node->val_at(route_ptr[0]);
         route_ptr++;
 
-      } else if (root_type == trie_node_type::trie_node_extension) {
+      } else if (root_type == trie_node_extension) {
         auto key_path = root_node->val_at(1);
         auto next_hash = root_node->val_at(2);
         size_t left_size = end_ptr - route_ptr;
 
-        size_t matched_len =
-            prefix_len(key_path.value(), key_path.size(), route_ptr, left_size);
+        size_t matched_len = prefix_len(key_path, route_ptr, left_size);
         if (matched_len != key_path.size()) {
           throw std::runtime_error("node extension, key path not found");
         }
         hash = next_hash;
         route_ptr += matched_len;
-      } else if (root_type == trie_node_type::trie_node_leaf) {
+      } else if (root_type == trie_node_leaf) {
         auto key_path = root_node->val_at(1);
         size_t left_size = end_ptr - route_ptr;
-        size_t matched_len =
-            prefix_len(key_path.value(), key_path.size(), route_ptr, left_size);
+        size_t matched_len = prefix_len(key_path, route_ptr, left_size);
         if (matched_len != key_path.size() || matched_len != left_size) {
           throw std::runtime_error("node leaf, key path not found");
         }
@@ -118,21 +336,6 @@ bool trie::get_trie_node(const neb::util::bytes &root_hash,
   throw std::runtime_error("key path not found");
 }
 
-neb::util::bytes trie::key_to_route(const neb::util::bytes &key) {
-
-  size_t size = key.size() << 1;
-  neb::util::bytes value(size);
-
-  if (size > 0) {
-    for (size_t i = 0; i < key.size(); i++) {
-      byte_shared byte(key[i]);
-      value[i << 1] = byte.bits_high();
-      value[(i << 1) + 1] = byte.bits_low();
-    }
-  }
-  return value;
-}
-
 neb::util::bytes trie::route_to_key(const neb::util::bytes &route) {
 
   size_t size = route.size() >> 1;
@@ -147,15 +350,5 @@ neb::util::bytes trie::route_to_key(const neb::util::bytes &route) {
   return value;
 }
 
-size_t trie::prefix_len(const neb::byte_t *s, size_t s_len,
-                        const neb::byte_t *t, size_t t_len) {
-  size_t min_len = std::min(s_len, t_len);
-  for (size_t i = 0; i < min_len; i++) {
-    if (s[i] != t[i]) {
-      return i;
-    }
-  }
-  return min_len;
-}
 } // namespace fs
 } // namespace neb

@@ -37,4 +37,16 @@ typedef std::vector<auth_row_t> auth_table_t;
 inline address_t to_address(const std::string &addr) {
   return util::string_to_byte(addr);
 }
+inline std::string address_to_string(const address_t &addr) {
+  return util::byte_to_string(addr);
+}
+
+bool is_valid_address(const address_t &addr);
+bool is_contract_address(const address_t &addr);
+bool is_normal_address(const address_t &addr);
+
+#define NAS_ADDRESS_LEN 26
+#define NAS_ADDRESS_MAGIC_NUM 0x19
+#define NAS_ADDRESS_ACCOUNT_MAGIC_NUM 0x57
+#define NAS_ADDRESS_CONTRACT_MAGIC_NUM 0x58
 } // namespace neb
