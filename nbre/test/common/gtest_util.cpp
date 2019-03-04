@@ -259,6 +259,3 @@ TEST(test_common_util_byte, base64_encoding_decoding) {
   test_base64_encoding_decoding<neb::util::bytes>(input);
 }
 
-
-
-
