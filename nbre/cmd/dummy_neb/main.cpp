@@ -23,6 +23,7 @@
 #include "core/net_ipc/ipc_interface.h"
 //#include "core/neb_ipc/server/ipc_server_endpoint.h"
 #include "fs/util.h"
+#include <condition_variable>
 
 std::mutex local_mutex;
 std::condition_variable local_cond_var;

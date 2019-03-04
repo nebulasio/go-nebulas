@@ -24,32 +24,9 @@
 namespace neb {
 class command_executor {
 public:
-  static int execute_command(const std::string &command_string) {
-    namespace bp = boost::process;
-    bp::ipstream pipe_stream;
-    bp::child c(command_string, bp::std_out > pipe_stream);
-
-    std::string line;
-    while (pipe_stream && std::getline(pipe_stream, line) && !line.empty()) {
-      std::cerr << line << std::endl;
-    }
-    c.wait();
-    return c.exit_code();
-  }
+  static int execute_command(const std::string &command_string);
 
   static int execute_command(const std::string &command_string,
-                             std::string &output_string) {
-    namespace bp = boost::process;
-    bp::ipstream pipe_stream;
-    bp::child c(command_string, bp::std_out > pipe_stream);
-    output_string = std::string();
-
-    while (pipe_stream && std::getline(pipe_stream, output_string) &&
-           !output_string.empty()) {
-      std::cerr << output_string << std::endl;
-    }
-    c.wait();
-    return c.exit_code();
-  }
+                             std::string &output_string);
 };
 } // namespace neb
