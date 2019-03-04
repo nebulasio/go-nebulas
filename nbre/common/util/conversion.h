@@ -58,9 +58,13 @@ public:
   }
 
   inline const int128_t &data() const { return m_data.m_data; }
+  inline int128_t &data() { return m_data.m_data; }
 
-  inline uint64_t low() { return m_data.m_detail.m_low; }
-  inline int64_t high() { return m_data.m_detail.m_high; }
+  inline const uint64_t &low() const { return m_data.m_detail.m_low; }
+  inline uint64_t &low() { return m_data.m_detail.m_low; }
+
+  inline const int64_t &high() const { return m_data.m_detail.m_high; }
+  inline int64_t &high() { return m_data.m_detail.m_high; }
 
 private:
   union _int128_t {

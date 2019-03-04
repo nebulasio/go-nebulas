@@ -571,7 +571,7 @@ TEST(test_common_math, fast_ln) {
   //}
 }
 
-TEST(test_common_math, pow) {
+TEST(test_common_math, pow_int_y) {
   float x = 0.0;
   int64_t y = 0;
   EXPECT_EQ(neb::math::pow(neb::floatxx_t(x), y), 1);
@@ -640,8 +640,8 @@ TEST(test_common_math, pow) {
   }
 
   for (auto i = 0; i < 1000; i++) {
-    std::uniform_int_distribution<> dis_x(-100, 100);
-    std::uniform_int_distribution<> dis_y(-18, 18);
+    std::uniform_int_distribution<> dis_x(-80, 80);
+    std::uniform_int_distribution<> dis_y(-15, 15);
     x = dis_x(mt);
     y = dis_y(mt);
     if (x == 0) {
