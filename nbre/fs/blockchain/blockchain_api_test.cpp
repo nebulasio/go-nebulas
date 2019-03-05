@@ -18,6 +18,9 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "fs/blockchain/blockchain_api_test.h"
+#include "fs/blockchain.h"
+#include "util/bc_generator.h"
+#include "util/nebulas_currency.h"
 
 namespace neb {
 namespace fs {
@@ -28,6 +31,21 @@ std::unique_ptr<std::vector<transaction_info_t>>
 blockchain_api_test::get_block_transactions_api(block_height_t height) {
   auto ret = std::make_unique<std::vector<transaction_info_t>>();
 
+  auto block = get_block_with_height(height);
+
+  for (int i = 0; i < block->transactions_size(); ++i) {
+    corepb::Transaction tx = block->transactions(i);
+
+    transaction_info_t info;
+    info.m_height = height;
+    info.m_status = 1; // All generated tx are succ
+    info.m_from = to_address(tx.from());
+    info.m_to = to_address(tx.to());
+    info.m_tx_value = storage_to_wei(util::string_to_byte(tx.value()));
+    info.m_timestamp = tx.timestamp();
+    ret->push_back(info);
+  }
+
   return ret;
 }
 
@@ -35,6 +53,17 @@ std::unique_ptr<corepb::Account>
 blockchain_api_test::get_account_api(const address_t &addr,
                                      block_height_t height) {
   auto ret = std::make_unique<corepb::Account>();
+
+  auto accounts = util::generate_block::read_accounts_in_height(height);
+
+  for (auto &ap : accounts) {
+    address_t ap_addr = to_address(ap->address());
+    if (ap_addr == addr) {
+      *ret = *ap;
+      break;
+    }
+  }
+
   return ret;
 }
 
@@ -43,7 +72,29 @@ blockchain_api_test::get_transaction_api(const std::string &tx_hash,
                                          block_height_t height) {
   auto ret = std::make_unique<corepb::Transaction>();
 
+  auto block = get_block_with_height(height);
+
+  for (int i = 0; i < block->transactions_size(); ++i) {
+    corepb::Transaction tx = block->transactions(i);
+    if (tx.hash() == tx_hash) {
+      *ret = tx;
+      break;
+    }
+  }
+
   return ret;
+}
+
+std::shared_ptr<corepb::Block>
+blockchain_api_test::get_block_with_height(block_height_t height) {
+  std::shared_ptr<corepb::Block> ret;
+  if (m_block_cache.get(height, ret)) {
+    return ret;
+  } else {
+    ret = util::generate_block::read_block_with_height(height);
+    m_block_cache.set(height, ret);
+    return ret;
+  }
 }
 } // namespace fs
 } // namespace neb

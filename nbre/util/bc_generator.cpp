@@ -19,6 +19,8 @@
 //
 #include "util/bc_generator.h"
 #include "crypto/hash.h"
+#include "fs/bc_storage_session.h"
+#include "fs/proto/trie.pb.h"
 #include "util/chrono.h"
 
 namespace neb {
@@ -52,6 +54,33 @@ void all_accounts::increase_nonce(const address_t &addr) {
   auto account = it->second;
   account->set_nonce(account->nonce());
 }
+
+void all_accounts::increase_balance(const address_t &addr, const wei &val) {
+  auto it = m_all_accounts.find(addr);
+  if (it == m_all_accounts.end())
+    return;
+
+  auto account = it->second;
+  wei_t b = storage_to_wei(util::string_to_byte(account->balance()));
+  b = b + val.wei_value();
+  account->set_balance(util::byte_to_string(wei_to_storage(b)));
+}
+
+bool all_accounts::decrease_balance(const address_t &addr, const wei &val) {
+  auto it = m_all_accounts.find(addr);
+  if (it == m_all_accounts.end())
+    return false;
+
+  auto account = it->second;
+  wei_t b = storage_to_wei(util::string_to_byte(account->balance()));
+  b = b - val.wei_value();
+  if (b > 0) {
+    account->set_balance(util::byte_to_string(wei_to_storage(b)));
+    return true;
+  }
+  return false;
+}
+
 corepb::Account *all_accounts::random_user_account() const {
   corepb::Account *account = random_account();
   address_t addr = get_address_from_account(account);
@@ -110,6 +139,11 @@ generate_block::add_deploy_transaction(const address_t &owner,
   tx->set_allocated_data(data);
   tx->set_timestamp(util::now());
   tx->set_nonce(m_all_accounts->get_nonce(owner));
+  wei value(1000_wei);
+  bool b_ret = m_all_accounts->decrease_balance(owner, value);
+  if (b_ret == false)
+    return nullptr;
+  tx->set_value(util::byte_to_string(wei_to_storage(value.wei_value())));
   m_all_accounts->increase_nonce(owner);
   neb::util::bytes b(tx->ByteSizeLong());
   tx->SerializeToArray(b.value(), b.size());
@@ -141,6 +175,11 @@ generate_block::add_protocol_transaction(const address_t &owner,
   corepb::Data *data = new corepb::Data();
   data->set_type("protocol");
   data->set_payload(util::byte_to_string(payload));
+  wei value(1000_wei);
+  bool ret = m_all_accounts->decrease_balance(owner, value);
+  if (ret == false)
+    return nullptr;
+  tx->set_value(util::byte_to_string(wei_to_storage(value.wei_value())));
   tx->set_allocated_data(data);
   tx->set_timestamp(util::now());
   tx->set_nonce(m_all_accounts->get_nonce(owner));
@@ -160,6 +199,10 @@ generate_block::add_binary_transaction(const address_t &from,
   tx->set_from(address_to_string(from));
   corepb::Data *data = new corepb::Data();
   data->set_type("binary");
+  bool ret = m_all_accounts->decrease_balance(from, wei(value));
+  if (ret == false)
+    return nullptr;
+  m_all_accounts->increase_balance(to, wei(value));
   std::string v = util::byte_to_string(wei_to_storage(value.wei_value()));
   tx->set_value(v);
   tx->set_allocated_data(data);
@@ -184,6 +227,9 @@ generate_block::add_call_transaction(const address_t &from,
   data->set_type("call");
   tx->set_allocated_data(data);
   tx->set_timestamp(util::now());
+  // wei value(1000_wei);
+  // std::string v = util::byte_to_string(wei_to_storage(value.wei_value()));
+  // tx->set_value(v);
   tx->set_nonce(m_all_accounts->get_nonce(from));
   m_all_accounts->increase_nonce(from);
   neb::util::bytes b(tx->ByteSizeLong());
@@ -193,5 +239,69 @@ generate_block::add_call_transaction(const address_t &from,
 
   return tx;
 }
+
+void generate_block::write_to_blockchain_db() {
+  // 1. generate corepb::Block
+  std::unique_ptr<corepb::BlockHeader> header =
+      std::make_unique<corepb::BlockHeader>();
+  header->set_timestamp(util::now());
+
+  std::unique_ptr<corepb::Block> block = std::make_unique<corepb::Block>();
+  block->set_allocated_header(header.get());
+  block->set_height(m_height);
+  for (auto &tx : m_transactions) {
+    corepb::Transaction *etx = block->add_transactions();
+    *etx = *tx;
+  }
+  std::string block_str = block->SerializeAsString();
+  header->set_hash(
+      util::byte_to_string(from_fix_bytes(crypto::sha3_256_hash(block_str))));
+
+  // 2. update to LIB
+  fs::blockchain::write_LIB_block(block.get());
+
+  // 3. write all accounts to DB
+  //! We use triepb::Node to write all accounts to db.
+  //! This is a trick!
+  //! Ideally, we should use trie to shrink db size.
+  //! Yet, we only fill several fields in Account, so it's ok to write dup data.
+  triepb::Node t_accounts;
+  m_all_accounts->for_each_account(
+      [&t_accounts](const std::shared_ptr<corepb::Account> &account) {
+        std::string *s = t_accounts.add_val();
+        *s = account->SerializeAsString();
+      });
+
+  std::string key = std::string("account") + std::to_string(m_height);
+  std::string account_str = t_accounts.SerializeAsString();
+  fs::bc_storage_session::instance().put_bytes(
+      util::string_to_byte(key), util::string_to_byte(account_str));
+}
+
+std::vector<std::shared_ptr<corepb::Account>>
+generate_block::read_accounts_in_height(block_height_t height) {
+  std::string key = std::string("account") + std::to_string(height);
+  auto account_str =
+      fs::bc_storage_session::instance().get_bytes(util::string_to_byte(key));
+  triepb::Node t_accounts;
+  t_accounts.ParseFromArray(account_str.value(), account_str.size());
+  std::vector<std::shared_ptr<corepb::Account>> ret;
+  for (size_t i = 0; i < t_accounts.val_size(); ++i) {
+    std::string s = t_accounts.val(i);
+    std::shared_ptr<corepb::Account> account =
+        std::make_shared<corepb::Account>();
+    account->ParseFromString(s);
+    ret.push_back(account);
+  }
+  return ret;
+}
+
+std::shared_ptr<corepb::Block>
+generate_block::read_block_with_height(block_height_t height) {
+  std::unique_ptr<corepb::Block> block =
+      fs::blockchain::load_block_with_height(height);
+  return std::shared_ptr<corepb::Block>(std::move(block));
+}
+
 } // namespace util
 } // namespace neb

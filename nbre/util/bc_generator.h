@@ -39,6 +39,16 @@ public:
   uint64_t get_nonce(const address_t &addr);
   void increase_nonce(const address_t &addr);
 
+  template <typename Func> void for_each_account(Func &&f) {
+    std::for_each(
+        m_all_accounts.begin(), m_all_accounts.end(),
+        [f](const std::pair<address_t, std::shared_ptr<corepb::Account>>
+                &item) { f(item.second); });
+  }
+
+  void increase_balance(const address_t &addr, const wei &val);
+  bool decrease_balance(const address_t &addr, const wei &val);
+
 protected:
   corepb::Account *random_account() const;
 
@@ -69,6 +79,14 @@ public:
 
   std::shared_ptr<corepb::Transaction>
   add_call_transaction(const address_t &from, const address_t &to);
+
+  void write_to_blockchain_db();
+
+  static std::vector<std::shared_ptr<corepb::Account>>
+  read_accounts_in_height(block_height_t height);
+
+  static std::shared_ptr<corepb::Block>
+  read_block_with_height(block_height_t height);
 
 protected:
   all_accounts *m_all_accounts;
