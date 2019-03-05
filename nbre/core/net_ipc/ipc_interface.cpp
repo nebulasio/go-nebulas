@@ -237,11 +237,12 @@ int ipc_nbre_ir_transactions_create(void *holder, uint64_t height) {
   return ipc_status_succ;
 }
 int ipc_nbre_ir_transactions_append(void *holder, uint64_t height,
-                                    const char *tx_bytes) {
+                                    const char *tx_bytes,
+                                    int32_t tx_bytes_len) {
   if (height != _height) {
     return ipc_status_fail;
   }
-  _txs_ptr->push_back(tx_bytes);
+  _txs_ptr->push_back(std::string(tx_bytes, tx_bytes_len));
   return ipc_status_succ;
 }
 int ipc_nbre_ir_transactions_send(void *holder, uint64_t height) {
