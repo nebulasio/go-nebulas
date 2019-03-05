@@ -17,13 +17,12 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "common/common.h"
+#include "cmd/dummy_neb/dummy_common.h"
+#include "cmd/dummy_neb/dummy_driver.h"
 #include "common/configuration.h"
-#include "common/util/version.h"
-#include "core/net_ipc/ipc_interface.h"
-//#include "core/neb_ipc/server/ipc_server_endpoint.h"
 #include "fs/util.h"
-#include <condition_variable>
+#include <boost/process.hpp>
+#include <boost/program_options.hpp>
 
 std::mutex local_mutex;
 std::condition_variable local_cond_var;
@@ -77,7 +76,7 @@ void nbre_dip_reward_callback(ipc_status_code isc, void *holder,
   to_quit = true;
   _l.unlock();
 }
-
+#if 0
 int main(int argc, char *argv[]) {
   FLAGS_logtostderr = true;
 
@@ -133,6 +132,89 @@ int main(int argc, char *argv[]) {
     return 0;
   }
   local_cond_var.wait(_l);
+
+  return 0;
+}
+#endif
+
+namespace po = boost::program_options;
+namespace bp = boost::process;
+po::variables_map get_variables_map(int argc, char *argv[]) {
+  po::options_description desc("Generate IR Payload");
+  desc.add_options()("help", "show help message")(
+      "input", po::value<std::string>(), "IR configuration file")(
+      "output", po::value<std::string>(),
+      "output file")("mode", po::value<std::string>()->default_value("payload"),
+                     "Generate ir bitcode or ir payload. - [bitcode | "
+                     "payload], default:payload");
+
+  po::variables_map vm;
+  po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::notify(vm);
+  if (vm.count("help")) {
+    std::cout << desc << "\n";
+    exit(1);
+  }
+
+  if (!vm.count("input")) {
+    std::cout << "You must specify \"input\"!";
+    exit(1);
+  }
+  if (vm.count("mode")) {
+    std::string m = vm["mode"].as<std::string>();
+    if (m != "bitcode" && m != "payload") {
+      std::cout << "Wrong mode, should be either bitcode or payload."
+                << std::endl;
+      exit(1);
+    }
+  }
+  if (!vm.count("output")) {
+    std::cout << "You must specify output!";
+    exit(1);
+  }
+
+  return vm;
+}
+
+void init_dummy_driver(dummy_driver &dd) {
+  dd.add_dummy(std::make_shared<random_dummy>("default_random", 10, 100_nas,
+                                              0.05, 0.02));
+}
+int main(int argc, char *argv[]) {
+  FLAGS_logtostderr = true;
+
+  //::google::InitGoogleLogging(argv[0]);
+  neb::glog_log_to_stderr = true;
+  neb::use_test_blockchain = true;
+
+  const char *root_dir = neb::configuration::instance().nbre_root_dir().c_str();
+  std::string nbre_path = neb::fs::join_path(root_dir, "bin/nbre");
+
+  // set_recv_nbre_version_callback(nbre_version_callback);
+  // set_recv_nbre_ir_list_callback(nbre_ir_list_callback);
+  // set_recv_nbre_ir_versions_callback(nbre_ir_versions_callback);
+  // set_recv_nbre_nr_handle_callback(nbre_nr_handle_callback);
+  // set_recv_nbre_nr_result_callback(nbre_nr_result_callback);
+  // set_recv_nbre_dip_reward_callback(nbre_dip_reward_callback);
+
+  nbre_params_t params{root_dir,
+                       nbre_path.c_str(),
+                       neb::configuration::instance().neb_db_dir().c_str(),
+                       neb::configuration::instance().nbre_db_dir().c_str(),
+                       neb::configuration::instance().nbre_log_dir().c_str(),
+                       "auth address here!"};
+  params.m_nipc_port = 6987;
+
+  auto ret = start_nbre_ipc(params);
+  if (ret != ipc_status_succ) {
+    to_quit = false;
+    nbre_ipc_shutdown();
+    return -1;
+  }
+
+  dummy_driver dd;
+  init_dummy_driver(dd);
+  dd.run("default_random", 10);
 
   return 0;
 }

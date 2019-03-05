@@ -19,6 +19,7 @@
 //
 #pragma once
 #include "cmd/dummy_neb/dummy_common.h"
+#include "cmd/dummy_neb/generator/generator_base.h"
 
 class dummy_base {
 public:
@@ -34,8 +35,13 @@ public:
 
   virtual std::shared_ptr<generate_block> generate_LIB_block() = 0;
 
+  virtual std::shared_ptr<checker_task_base> generate_checker_task() = 0;
+
+protected:
+  const std::string &db_path() const;
+
 protected:
   std::string m_name;
-  std::string m_db_path;
+  mutable std::string m_db_path;
   block_height_t m_current_height;
 };

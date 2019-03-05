@@ -40,6 +40,7 @@ protected:
   boost::asio::io_service m_io_service;
   std::unordered_map<std::string, std::shared_ptr<dummy_base>> m_all_dummies;
   std::unique_ptr<neb::timer_loop> m_block_gen_timer;
+  std::unique_ptr<neb::timer_loop> m_checker_gen_timer;
   uint64_t m_block_interval_seconds;
   uint64_t m_current_height;
 };

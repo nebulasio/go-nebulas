@@ -20,5 +20,6 @@
 #pragma once
 #include "cmd/dummy_neb/generator/auth_table_generator.h"
 #include "cmd/dummy_neb/generator/dip_ir_generator.h"
+#include "cmd/dummy_neb/generator/genesis_generator.h"
 #include "cmd/dummy_neb/generator/nr_ir_generator.h"
 #include "cmd/dummy_neb/generator/transaction_generator.h"

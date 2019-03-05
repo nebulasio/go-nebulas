@@ -23,9 +23,21 @@
 
 class random_dummy : public dummy_base {
 public:
-  random_dummy(const std::string &name);
-  virtual ~dummy_base();
+  random_dummy(const std::string &name, int initial_account_num,
+               nas initial_nas, double account_increase_ratio,
+               double auth_ratio);
 
+  virtual ~random_dummy();
+  virtual std::shared_ptr<generate_block> generate_LIB_block();
+
+  virtual std::shared_ptr<checker_task_base> generate_checker_task();
 
 protected:
+  all_accounts m_all_accounts;
+  std::unique_ptr<transaction_generator> m_tx_gen;
+  std::unique_ptr<genesis_generator> m_genesis_gen;
+  int m_initial_account_num;
+  nas m_initial_nas;
+  double m_account_increase_ratio;
+  double m_auth_ratio;
 };

@@ -43,7 +43,7 @@ void checker_tasks::write_to_db() {
     cm.get<p_checkers>().push_back(it.first);
     checker_marshaler sub_cm;
     for (auto ik : *(it.second)) {
-      sub_cm.get<p_checkers>().push_back(ik.first);
+      sub_cm.get<p_checkers>().push_back(ik->serialize_to_string());
     }
     std::string ss = sub_cm.serialize_to_string();
     bc_storage_session::instance().put(get_checker_key_with_name(it.first), ss);
@@ -77,6 +77,7 @@ init_checker_from_string(const std::string &s) {
     t->deserialize_from_string(s);                                             \
     return t;                                                                  \
   }
+  return nullptr;
 
 #undef add_type
 }
