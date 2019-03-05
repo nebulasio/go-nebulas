@@ -209,7 +209,6 @@ transaction_graph *graph_algo::merge_two_graphs(transaction_graph *tg,
                                                 const transaction_graph *sg) {
 
   transaction_graph::internal_graph_t sgi = sg->internal_graph();
-
   transaction_graph::viterator_t vi, vi_end;
 
   for (boost::tie(vi, vi_end) = boost::vertices(sgi); vi != vi_end; vi++) {
@@ -217,9 +216,9 @@ transaction_graph *graph_algo::merge_two_graphs(transaction_graph *tg,
     for (boost::tie(oei, oei_end) = boost::out_edges(*vi, sgi); oei != oei_end;
          oei++) {
       auto source = boost::source(*oei, sgi);
-      std::string from = boost::get(boost::vertex_name_t(), sgi, source);
+      auto from = to_address(boost::get(boost::vertex_name_t(), sgi, source));
       auto target = boost::target(*oei, sgi);
-      std::string to = boost::get(boost::vertex_name_t(), sgi, target);
+      auto to = to_address(boost::get(boost::vertex_name_t(), sgi, target));
       wei_t w = boost::get(boost::edge_weight_t(), sgi, *oei);
 
       tg->add_edge(from, to, w, 0);

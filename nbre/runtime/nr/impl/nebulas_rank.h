@@ -83,7 +83,7 @@ private:
 
   static auto build_transaction_graphs(
       const std::vector<std::vector<neb::fs::transaction_info_t>> &txs)
-      -> std::vector<transaction_graph_ptr_t>;
+      -> std::unique_ptr<std::vector<transaction_graph_ptr_t>>;
 
   static auto
   get_normal_accounts(const std::vector<neb::fs::transaction_info_t> &txs)
@@ -92,8 +92,7 @@ private:
   static auto get_account_balance_median(
       const std::unordered_set<address_t> &accounts,
       const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
-      const account_db_ptr_t &db_ptr,
-      std::unordered_map<address_t, wei_t> &addr_balance)
+      const account_db_ptr_t &db_ptr)
       -> std::unique_ptr<std::unordered_map<address_t, floatxx_t>>;
 
   static auto get_account_weight(
