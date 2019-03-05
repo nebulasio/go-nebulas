@@ -40,14 +40,6 @@ typedef ::ff::net::ntpackage<1, start_block, block_interval, reward_addr,
                              coinbase_addr, version>
     dip_params_t;
 
-// struct dip_params_t {
-// block_height_t m_start_block;
-// block_height_t m_block_interval;
-// address_t m_reward_addr;
-// address_t m_coinbase_addr;
-// version_t m_version;
-//};
-
 class dip_handler : public util::singleton<dip_handler> {
 public:
   dip_handler();

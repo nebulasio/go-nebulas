@@ -37,11 +37,6 @@ std::string entry_point_dip_impl(compatible_uint64_t start_block,
                                  const std::string &nr_result,
                                  dip_float_t alpha, dip_float_t beta);
 
-void init_dip_params(compatible_uint64_t dip_start_block,
-                     compatible_uint64_t dip_block_interval,
-                     const std::string &dip_reward_addr,
-                     const std::string &coinbase_addr);
-
 std::string dip_param_list(compatible_uint64_t dip_start_block,
                            compatible_uint64_t dip_block_interval,
                            const std::string &dip_reward_addr,

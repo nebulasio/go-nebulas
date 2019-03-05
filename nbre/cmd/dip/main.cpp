@@ -69,9 +69,9 @@ void dip(uint64_t height) {
       std::string("n1YubAA3VVi2HEDw3VSaJ2ZcjzYKXL6SuQw");
 
   if (!height) {
-    neb::rt::dip::init_dip_params(dip_start_block, dip_block_interval,
-                                  dip_reward_addr, std::string());
-    std::cout << std::string("{\"err\":\"init dip params\"}") << std::endl;
+    auto ret = neb::rt::dip::dip_param_list(dip_start_block, dip_block_interval,
+                                            dip_reward_addr, std::string());
+    std::cout << ret << std::endl;
     return;
   }
 

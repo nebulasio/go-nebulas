@@ -27,10 +27,10 @@ namespace fs {
 
 struct transaction_info_t {
   block_height_t m_height;
-  int32_t m_status; // 0: fail,  1: succ, 2: special
+  int32_t m_status; // 0: fail, 1: succ, 2: special
   address_t m_from;
   address_t m_to;
-  std::string m_tx_type; //"binary", "call", "deploy", "protocol"
+  std::string m_tx_type; // "binary", "call", "deploy", "protocol"
   wei_t m_tx_value;
   int64_t m_timestamp; // no use
   wei_t m_gas_used;
