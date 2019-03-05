@@ -36,6 +36,7 @@ public:
   void init(const std::string &path, enum storage_open_flag flag);
 
   util::bytes get_bytes(const util::bytes &key);
+
   void put_bytes(const util::bytes &key, const util::bytes &value);
 
 protected:

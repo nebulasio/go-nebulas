@@ -56,7 +56,8 @@ util::bytes bc_storage_session::get_bytes(const util::bytes &key) {
         tried_already = true;
         _l.unlock();
         m_mutex.lock();
-        m_storage->open_database(m_path, storage_open_for_readonly);
+        m_storage->close_database();
+        m_storage->open_database(m_path, m_open_flag);
         m_mutex.unlock();
         _l.lock();
       }

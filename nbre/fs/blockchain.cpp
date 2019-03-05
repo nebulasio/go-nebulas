@@ -67,11 +67,19 @@ void blockchain::write_LIB_block(corepb::Block *block) {
   if (block == nullptr)
     return;
 
+  block_height_t height = block->height();
+  auto height_hash = block->header().hash();
+  bc_storage_session::instance().put_bytes(
+      util::number_to_byte<neb::util::bytes>(height),
+      util::string_to_byte(height_hash));
+
+  bc_storage_session::instance().put_bytes(
+      util::string_to_byte(height_hash),
+      util::string_to_byte(block->SerializeAsString()));
+
   std::string key_str = std::string(Block_LIB, std::allocator<char>());
-  auto size = block->ByteSizeLong();
-  neb::util::bytes val(size);
-  block->SerializeToArray(val.value(), size);
-  bc_storage_session::instance().put_bytes(util::string_to_byte(key_str), val);
+  bc_storage_session::instance().put_bytes(util::string_to_byte(key_str),
+                                           util::string_to_byte(height_hash));
 }
 } // namespace fs
 } // namespace neb
