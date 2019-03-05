@@ -82,11 +82,19 @@ public:
 
   void write_to_blockchain_db();
 
+  all_accounts *get_all_accounts() { return m_all_accounts; }
+
+  const std::vector<std::shared_ptr<corepb::Transaction>> &
+  all_transactions() const {
+    return m_transactions;
+  }
+
   static std::vector<std::shared_ptr<corepb::Account>>
   read_accounts_in_height(block_height_t height);
 
   static std::shared_ptr<corepb::Block>
   read_block_with_height(block_height_t height);
+
 
 protected:
   all_accounts *m_all_accounts;
