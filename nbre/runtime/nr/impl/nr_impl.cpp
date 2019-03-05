@@ -37,7 +37,6 @@ std::string entry_point_nr_impl(compatible_uint64_t start_block,
                                 compatible_int64_t d, nr_float_t theta,
                                 nr_float_t mu, nr_float_t lambda) {
 
-
   std::unique_ptr<neb::fs::blockchain_api_base> pba;
   if (neb::use_test_blockchain) {
     pba = std::unique_ptr<neb::fs::blockchain_api_base>(

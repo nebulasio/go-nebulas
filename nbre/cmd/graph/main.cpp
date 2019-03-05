@@ -23,8 +23,8 @@
 int main(int argc, char *argv[]) {
 
   neb::rt::transaction_graph tg;
-  tg.add_edge("a", "b", 1, 2);
-  tg.add_edge("a", "c", 3, 4);
+  tg.add_edge(neb::to_address("a"), neb::to_address("b"), 1, 2);
+  tg.add_edge(neb::to_address("a"), neb::to_address("c"), 3, 4);
 
   neb::rt::graph_algo::get_degree_sum(tg.internal_graph());
 

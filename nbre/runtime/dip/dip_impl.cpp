@@ -39,7 +39,6 @@ std::string entry_point_dip_impl(compatible_uint64_t start_block,
                                  const std::string &nr_result,
                                  dip_float_t alpha, dip_float_t beta) {
 
-  std::string neb_db_path = neb::configuration::instance().neb_db_dir();
   std::unique_ptr<neb::fs::blockchain_api_base> pba;
   if (neb::use_test_blockchain) {
     pba = std::unique_ptr<neb::fs::blockchain_api_base>(
@@ -65,44 +64,18 @@ std::string entry_point_dip_impl(compatible_uint64_t start_block,
   return dip_reward::dip_info_to_json(*ret, meta_info);
 }
 
-void init_dip_params(compatible_uint64_t dip_start_block,
-                     compatible_uint64_t dip_block_interval,
-                     const std::string &dip_reward_addr,
-                     const std::string &coinbase_addr) {
-  neb::configuration::instance().dip_start_block() = dip_start_block;
-  neb::configuration::instance().dip_block_interval() = dip_block_interval;
-
-  neb::configuration::instance().dip_reward_addr() =
-      base58_to_address(dip_reward_addr);
-  neb::configuration::instance().coinbase_addr() =
-      base58_to_address(coinbase_addr);
-
-  LOG(INFO) << "init dip params, dip_start_block " << dip_start_block
-            << ", dip_block_interval " << dip_block_interval
-            << ", dip_reward_addr " << dip_reward_addr << ", coinbase_addr "
-            << coinbase_addr;
-}
-
 std::string dip_param_list(compatible_uint64_t dip_start_block,
                            compatible_uint64_t dip_block_interval,
                            const std::string &dip_reward_addr,
                            const std::string &dip_coinbase_addr) {
-  // boost::property_tree::ptree pt;
-  // pt.put("start_block", dip_start_block);
-  // pt.put("block_interval", dip_block_interval);
-  // pt.put("reward_addr", dip_reward_addr);
-  // pt.put("coinbase_addr", coinbase_addr);
-
-  // std::stringstream ss;
-  // boost::property_tree::json_parser::write_json(ss, pt, false);
-  // std::string json_str = ss.str();
-  // return json_str;
-
   dip_params_t param;
   param.set<start_block>(dip_start_block);
   param.set<block_interval>(dip_block_interval);
   param.set<reward_addr>(dip_reward_addr);
   param.set<coinbase_addr>(dip_coinbase_addr);
+  LOG(INFO) << "init dip params: " << dip_start_block << ','
+            << dip_block_interval << ',' << dip_reward_addr << ','
+            << dip_coinbase_addr;
   return param.serialize_to_string();
 }
 } // namespace dip

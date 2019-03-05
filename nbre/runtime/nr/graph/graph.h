@@ -54,8 +54,6 @@ public:
 
   transaction_graph();
 
-  void add_edge(const std::string &from, const std::string &to, wei_t val,
-                int64_t ts);
   void add_edge(const address_t &from, const address_t &to, wei_t val,
                 int64_t ts);
 
@@ -69,8 +67,8 @@ public:
 protected:
   internal_graph_t m_graph;
 
-  std::unordered_map<int64_t, std::string> m_vertex_to_addr;
-  std::unordered_map<std::string, int64_t> m_addr_to_vertex;
+  std::unordered_map<int64_t, address_t> m_vertex_to_addr;
+  std::unordered_map<address_t, int64_t> m_addr_to_vertex;
 
   uint64_t m_cur_max_index;
 

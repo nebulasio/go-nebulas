@@ -75,26 +75,8 @@ void dip_handler::init_dip_params(block_height_t height) {
           "dip", std::numeric_limits<uint64_t>::max(),
           neb::configuration::instance().dip_func_name(), 0);
 
-      // dip_params_t info{neb::configuration::instance().dip_start_block(),
-      // neb::configuration::instance().dip_block_interval(),
-      // neb::configuration::instance().dip_reward_addr(),
-      // neb::configuration::instance().coinbase_addr(),
-      // tmp.first};
       dip_params_t info;
       info.deserialize_from_string(ret);
-#if 0
-      {
-        // pass dip params by jit driver exe result
-        boost::property_tree::ptree pt;
-        std::stringstream ss(ret);
-        boost::property_tree::json_parser::read_json(ss, pt);
-        dip_params_t info{pt.get<block_height_t>("start_block"),
-                        pt.get<block_height_t>("block_interval"),
-                        base58_to_address(pt.get<std::string>("reward_addr")),
-                        base58_to_address(pt.get<std::string>("coinbase_addr")),
-                        tmp.first};
-      }
-#endif
       m_dip_params_list.push_back(std::move(info));
 
       LOG(INFO) << "show dip history";

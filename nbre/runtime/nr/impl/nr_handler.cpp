@@ -39,7 +39,6 @@ std::string nr_handler::get_nr_handle() {
 
 void nr_handler::run_if_default(block_height_t start_block,
                                 block_height_t end_block) {
-
   ff::para<> p;
   p([this, start_block, end_block]() {
     std::unique_lock<std::mutex> _l(m_sync_mutex);
@@ -59,7 +58,6 @@ void nr_handler::run_if_default(block_height_t start_block,
 
 void nr_handler::run_if_specify(block_height_t start_block,
                                 block_height_t end_block, uint64_t nr_version) {
-
   std::string nr_name = "nr";
   std::vector<nbre::NBREIR> irs;
   auto ir = neb::core::ir_warden::instance().get_ir_by_name_version(nr_name,
@@ -74,7 +72,6 @@ void nr_handler::run_if_specify(block_height_t start_block,
   p([this, &name_version, &irs, start_block, end_block]() {
     std::unique_lock<std::mutex> _l(m_sync_mutex);
     try {
-
       jit_driver &jd = jit_driver::instance();
       std::string nr_result = jd.run<std::string>(
           name_version, irs, neb::configuration::instance().nr_func_name(),
@@ -99,7 +96,6 @@ void nr_handler::start(std::string nr_handle) {
   }
 
   neb::util::bytes nr_handle_bytes = neb::util::bytes::from_hex(m_nr_handle);
-
   size_t bytes = sizeof(uint64_t) / sizeof(byte_t);
   assert(nr_handle_bytes.size() == 3 * bytes);
 
