@@ -57,8 +57,8 @@ void ir_warden::wait_until_sync() {
 }
 
 void ir_warden::on_timer() {
-  std::unique_lock<std::mutex> _l(m_sync_mutex);
   m_ir_manager->parse_irs(m_queue);
+  std::unique_lock<std::mutex> _l(m_sync_mutex);
   if (!m_is_sync_already) {
     m_is_sync_already = true;
     _l.unlock();
@@ -67,11 +67,8 @@ void ir_warden::on_timer() {
 }
 
 void ir_warden::on_receive_ir_transactions(
-    block_height_t height, const std::vector<std::string> &ir_txs) {
-  std::unique_lock<std::mutex> _l(m_sync_mutex);
-  for (auto &tx : ir_txs) {
-    m_queue.push(std::make_pair(height, tx));
-  }
+    const std::shared_ptr<nbre_ir_transactions_req> &txs_ptr) {
+  m_queue.push_back(txs_ptr);
 }
 
 ir_warden::ir_warden() : m_is_sync_already(false) {

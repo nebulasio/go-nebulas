@@ -22,6 +22,7 @@
 #include "common/common.h"
 #include "common/quitable_thread.h"
 #include "common/util/singleton.h"
+#include "core/net_ipc/nipc_pkg.h"
 #include "fs/ir_manager/ir_manager.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/storage.h"
@@ -47,15 +48,15 @@ public:
   void wait_until_sync();
   void on_timer();
 
-  void on_receive_ir_transactions(block_height_t height,
-                                  const std::vector<std::string> &ir_txs);
+  void on_receive_ir_transactions(
+      const std::shared_ptr<nbre_ir_transactions_req> &txs_ptr);
 
 private:
   std::unique_ptr<fs::ir_manager> m_ir_manager;
   bool m_is_sync_already;
   mutable std::mutex m_sync_mutex;
   std::condition_variable m_sync_cond_var;
-  std::queue<std::pair<block_height_t, std::string>> m_queue;
+  wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> m_queue;
 };
 }
 }

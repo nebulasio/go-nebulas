@@ -55,7 +55,7 @@ public:
   std::pair<bool, typename queue_t::value_type> try_pop_front() {
     std::unique_lock<std::mutex> _l(m_mutex);
     if (m_queue.empty()) {
-      return std::make_pair(false, queue_t::value_type());
+      return std::make_pair(false, typename queue_t::value_type());
     }
     auto ret = m_queue.front();
     m_queue.pop();

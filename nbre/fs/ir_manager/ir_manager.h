@@ -21,6 +21,8 @@
 #pragma once
 #include "common/address.h"
 #include "common/common.h"
+#include "common/wakeable_queue.h"
+#include "core/net_ipc/nipc_pkg.h"
 #include "fs/ir_manager/ir_manager_helper.h"
 
 namespace neb {
@@ -38,7 +40,8 @@ public:
   std::unique_ptr<std::vector<nbre::NBREIR>>
   read_irs(const std::string &name, block_height_t height, bool depends);
 
-  void parse_irs(std::queue<std::pair<block_height_t, std::string>> &q_block);
+  void
+  parse_irs(wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> &q_txs);
 
 private:
   void read_ir_depends(const std::string &name, uint64_t version,
@@ -46,12 +49,15 @@ private:
                        std::unordered_set<std::string> &ir_set,
                        std::vector<nbre::NBREIR> &irs);
 
-  void parse_next_block(block_height_t height, const std::string &block_seri);
+  void parse_next_block(block_height_t height,
+                        const std::vector<std::string> &txs_seri);
   void parse_when_missing_block(block_height_t start_block,
                                 block_height_t end_height);
 
-  void parse_irs_by_height(block_height_t height, const corepb::Block *block);
-  void parse_with_height(block_height_t height, const corepb::Block *block);
+  void parse_irs_by_height(block_height_t height,
+                           const std::vector<corepb::Transaction> &txs);
+  void parse_with_height(block_height_t height,
+                         const std::vector<corepb::Transaction> &txs);
 
   void deploy_if_dip(const std::string &name, uint64_t version,
                      block_height_t available_height);

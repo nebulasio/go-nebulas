@@ -75,10 +75,10 @@ typedef void (*nbre_dip_reward_callback_t)(enum ipc_status_code isc,
 void set_recv_nbre_dip_reward_callback(nbre_dip_reward_callback_t func);
 
 // interface send ir transactions
-int ipc_nbre_ir_transactions_create(void *holder);
+int ipc_nbre_ir_transactions_create(void *holder, uint64_t height);
 int ipc_nbre_ir_transactions_append(void *holder, uint64_t height,
                                     const char *tx_bytes);
-int ipc_nbre_ir_transactions_send(void *holder);
+int ipc_nbre_ir_transactions_send(void *holder, uint64_t height);
 
 typedef struct {
   const char *m_nbre_root_dir;

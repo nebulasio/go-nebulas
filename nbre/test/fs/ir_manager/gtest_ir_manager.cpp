@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
+#include "core/net_ipc/nipc_pkg.h"
 #include "fs/ir_manager/ir_manager.h"
 #include "fs/util.h"
 #include "test/fs/gtest_common.h"
@@ -31,7 +32,7 @@ TEST(test_fs, write_nbre_until_sync) {
   std::shared_ptr<neb::fs::ir_manager> nbre_ptr =
       std::make_shared<neb::fs::ir_manager>();
 
-  std::queue<std::pair<neb::block_height_t, std::string>> q;
+  neb::wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> q;
   nbre_ptr->parse_irs(q);
   nbre_ptr.reset();
 

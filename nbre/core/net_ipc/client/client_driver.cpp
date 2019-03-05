@@ -340,9 +340,7 @@ void client_driver::add_handlers() {
   m_client->add_handler<nbre_ir_transactions_req>(
       [this](std::shared_ptr<nbre_ir_transactions_req> req) {
         try {
-          auto height = req->get<p_height>();
-          auto ir_txs = req->get<p_ir_transactions>();
-          ir_warden::instance().on_receive_ir_transactions(height, ir_txs);
+          ir_warden::instance().on_receive_ir_transactions(req);
         } catch (const std::exception &e) {
           LOG(ERROR) << "got exception " << typeid(e).name()
                      << " with what: " << e.what();

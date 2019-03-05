@@ -135,16 +135,18 @@ void ir_manager::read_ir_depends(const std::string &name, uint64_t version,
 }
 
 void ir_manager::parse_irs(
-    std::queue<std::pair<block_height_t, std::string>> &q_block) {
+    wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> &q_txs) {
 
   ir_manager_helper::load_auth_table(m_storage, m_auth_table);
   block_height_t last_height = ir_manager_helper::nbre_block_height(m_storage);
 
-  while (!q_block.empty()) {
-    auto ele = q_block.front();
-    q_block.pop();
-    block_height_t h = ele.first;
+  while (!q_txs.empty()) {
+    auto ele = q_txs.try_pop_front();
+    if (!ele.first) {
+      break;
+    }
 
+    auto h = ele.second->get<p_height>();
     if (h < last_height + 1) {
       continue;
     }
@@ -152,43 +154,61 @@ void ir_manager::parse_irs(
       parse_when_missing_block(last_height + 1, h);
     }
 
-    parse_next_block(h, ele.second);
+    const auto &txs = ele.second->get<p_ir_transactions>();
+    parse_next_block(h, txs);
     last_height = h;
   }
 }
 
 void ir_manager::parse_when_missing_block(block_height_t start_height,
                                           block_height_t end_height) {
+  std::string ir_tx_type = neb::configuration::instance().ir_tx_payload_type();
+
   for (block_height_t h = start_height; h < end_height; h++) {
     auto block = blockchain::load_block_with_height(h);
-    parse_with_height(h, block.get());
+    std::vector<corepb::Transaction> txs;
+
+    for (auto &tx : block->transactions()) {
+      auto &data = tx.data();
+      const std::string &type = data.type();
+      if (type == ir_tx_type) {
+        txs.push_back(tx);
+      }
+    }
+    parse_with_height(h, txs);
   }
 }
 
 void ir_manager::parse_next_block(block_height_t height,
-                                  const std::string &block_seri) {
-  if (block_seri.empty()) {
-    parse_with_height(height, nullptr);
+                                  const std::vector<std::string> &txs_seri) {
+  std::vector<corepb::Transaction> txs;
+  if (txs_seri.empty()) {
+    parse_with_height(height, txs);
     return;
   }
 
-  auto block_bytes = util::string_to_byte(block_seri);
-  std::unique_ptr<corepb::Block> block = std::make_unique<corepb::Block>();
-  bool ret = block->ParseFromArray(block_bytes.value(), block_bytes.size());
-  if (!ret) {
-    throw std::runtime_error("parse block failed");
+  for (auto &tx_seri : txs_seri) {
+    auto tx_bytes = util::string_to_byte(tx_seri);
+    std::unique_ptr<corepb::Transaction> tx =
+        std::make_unique<corepb::Transaction>();
+    bool ret = tx->ParseFromArray(tx_bytes.value(), tx_bytes.size());
+    if (!ret) {
+      throw std::runtime_error("parse transaction failed");
+    }
+    txs.push_back(*tx);
   }
-  parse_with_height(height, block.get());
+  parse_with_height(height, txs);
 }
 
-void ir_manager::parse_with_height(block_height_t height,
-                                   const corepb::Block *block) {
+void ir_manager::parse_with_height(
+    block_height_t height, const std::vector<corepb::Transaction> &txs) {
+
   std::string failed_flag =
       neb::configuration::instance().nbre_failed_flag_name();
 
   if (!ir_manager_helper::has_failed_flag(m_storage, failed_flag)) {
     ir_manager_helper::set_failed_flag(m_storage, failed_flag);
-    parse_irs_by_height(height, block);
+    parse_irs_by_height(height, txs);
   }
   m_storage->put(
       std::string(neb::configuration::instance().nbre_max_height_name(),
@@ -199,13 +219,10 @@ void ir_manager::parse_with_height(block_height_t height,
   neb::rt::dip::dip_handler::instance().start(height);
 }
 
-void ir_manager::parse_irs_by_height(block_height_t height,
-                                     const corepb::Block *block) {
-  if (block == nullptr) {
-    return;
-  }
+void ir_manager::parse_irs_by_height(
+    block_height_t height, const std::vector<corepb::Transaction> &txs) {
 
-  for (auto &tx : block->transactions()) {
+  for (auto &tx : txs) {
     auto &data = tx.data();
     const std::string &type = data.type();
 
