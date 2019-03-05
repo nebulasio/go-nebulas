@@ -30,8 +30,7 @@ address_t base58_to_address(const base58_address_t &addr);
 base58_address_t address_to_base58(const address_t &addr);
 
 typedef std::string address_bytes_t;
-typedef std::tuple<module_t, version_t, address_bytes_t, block_height_t,
-                   block_height_t>
+typedef std::tuple<module_t, address_bytes_t, block_height_t, block_height_t>
     auth_row_t;
 typedef std::vector<auth_row_t> auth_table_t;
 

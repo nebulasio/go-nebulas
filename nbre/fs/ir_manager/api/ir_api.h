@@ -31,6 +31,9 @@ public:
 
   static std::unique_ptr<std::vector<version_t>>
   get_ir_versions(const std::string &name, rocksdb_storage *rs);
+
+  static bool ir_version_exist(const std::string &name, version_t version,
+                               rocksdb_storage *rs);
 };
 }
 } // namespace neb

@@ -82,5 +82,12 @@ ir_api::get_ir_versions(const std::string &name, rocksdb_storage *rs) {
   });
   return ret;
 }
+
+bool ir_api::ir_version_exist(const std::string &name, version_t version,
+                              rocksdb_storage *rs) {
+  auto versions = get_ir_versions(name, rs);
+  return std::find(versions->begin(), versions->end(), version) !=
+         versions->end();
+}
 } // namespace fs
 } // namespace neb

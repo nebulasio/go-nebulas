@@ -28,7 +28,7 @@
 namespace neb {
 namespace fs {
 
-typedef std::tuple<module_t, version_t, address_t> auth_key_t;
+typedef std::tuple<module_t, address_t> auth_key_t;
 typedef std::tuple<start_block_t, end_block_t> auth_val_t;
 
 class ir_manager_helper {
@@ -63,10 +63,6 @@ private:
   static void update_to_storage(const std::string &key,
                                 const boost::property_tree::ptree &val_pt,
                                 rocksdb_storage *rs);
-
-  static void
-  remove_invalid_ir(rocksdb_storage *rs,
-                    const std::map<auth_key_t, auth_val_t> &auth_table);
 };
 
 } // namespace fs

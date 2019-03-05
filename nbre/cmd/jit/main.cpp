@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
 
   for (auto &r : ret) {
     std::cout << std::get<0>(r) << ',' << std::get<1>(r) << ','
-              << std::get<3>(r) << ',' << std::get<4>(r) << std::endl;
+              << std::get<2>(r) << ',' << std::get<3>(r) << std::endl;
   }
 
   return 0;
