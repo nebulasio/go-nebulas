@@ -37,7 +37,34 @@ public:
 
   util::bytes get_bytes(const util::bytes &key);
 
+  template <typename FixBytes> util::bytes get_bytes(const FixBytes &key) {
+    return get_bytes(util::from_fix_bytes(key));
+  }
+
+  inline util::bytes get_bytes(const std::string &key) {
+    return get_bytes(util::string_to_byte(key));
+  }
+
+  inline std::string get_string(const util::bytes &key) {
+    return util::byte_to_string(get_bytes(key));
+  }
+  inline std::string get_string(const std::string &key) {
+    return util::byte_to_string(get_bytes(key));
+  }
+
   void put_bytes(const util::bytes &key, const util::bytes &value);
+  inline void put(const util::bytes &key, const util::bytes &value) {
+    return put_bytes(key, value);
+  }
+  inline void put(const std::string &key, const util::bytes &value) {
+    return put_bytes(util::string_to_byte(key), value);
+  }
+  inline void put(const util::bytes &key, const std::string &value) {
+    return put_bytes(key, util::string_to_byte(value));
+  }
+  inline void put(const std::string &key, const std::string &value) {
+    return put_bytes(util::string_to_byte(key), util::string_to_byte(value));
+  }
 
 protected:
   std::unique_ptr<rocksdb_storage> m_storage;
