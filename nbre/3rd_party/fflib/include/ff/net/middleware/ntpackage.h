@@ -39,6 +39,22 @@ public:
 
   virtual void archive(marshaler &ar) { archive_helper<0>::run(ar, *this); }
 
+  std::string serialize_to_string() {
+    marshaler lr(marshaler::length_retriver);
+    arch(lr);
+    size_t s = lr.get_length();
+    std::string ret(s, 0);
+
+    marshaler sc(ret.data(), s, marshaler::seralizer);
+    arch(sc);
+    return ret;
+  }
+
+  void deserialize_from_string(std::string &s) {
+    marshaler sc(s.data(), s.size(), marshaler::deseralizer);
+    arch(sc);
+  }
+
 protected:
   template <int Index> struct archive_helper {
     template <typename VT>

@@ -23,6 +23,7 @@
 #include "common/common.h"
 #include "common/configuration.h"
 #include "fs/blockchain/blockchain_api_test.h"
+#include "runtime/dip/dip_handler.h"
 #include "runtime/dip/dip_reward.h"
 #include "runtime/nr/impl/nebulas_rank.h"
 #include <boost/property_tree/json_parser.hpp>
@@ -85,17 +86,24 @@ void init_dip_params(compatible_uint64_t dip_start_block,
 std::string dip_param_list(compatible_uint64_t dip_start_block,
                            compatible_uint64_t dip_block_interval,
                            const std::string &dip_reward_addr,
-                           const std::string &coinbase_addr) {
-  boost::property_tree::ptree pt;
-  pt.put("start_block", dip_start_block);
-  pt.put("block_interval", dip_block_interval);
-  pt.put("reward_addr", dip_reward_addr);
-  pt.put("coinbase_addr", coinbase_addr);
+                           const std::string &dip_coinbase_addr) {
+  // boost::property_tree::ptree pt;
+  // pt.put("start_block", dip_start_block);
+  // pt.put("block_interval", dip_block_interval);
+  // pt.put("reward_addr", dip_reward_addr);
+  // pt.put("coinbase_addr", coinbase_addr);
 
-  std::stringstream ss;
-  boost::property_tree::json_parser::write_json(ss, pt, false);
-  std::string json_str = ss.str();
-  return json_str;
+  // std::stringstream ss;
+  // boost::property_tree::json_parser::write_json(ss, pt, false);
+  // std::string json_str = ss.str();
+  // return json_str;
+
+  dip_params_t param;
+  param.set<start_block>(dip_start_block);
+  param.set<block_interval>(dip_block_interval);
+  param.set<reward_addr>(dip_reward_addr);
+  param.set<coinbase_addr>(dip_coinbase_addr);
+  return param.serialize_to_string();
 }
 } // namespace dip
 } // namespace rt

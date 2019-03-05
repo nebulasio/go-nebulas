@@ -75,11 +75,13 @@ void dip_handler::init_dip_params(block_height_t height) {
           "dip", std::numeric_limits<uint64_t>::max(),
           neb::configuration::instance().dip_func_name(), 0);
 
-      dip_params_t info{neb::configuration::instance().dip_start_block(),
-                        neb::configuration::instance().dip_block_interval(),
-                        neb::configuration::instance().dip_reward_addr(),
-                        neb::configuration::instance().coinbase_addr(),
-                        tmp.first};
+      // dip_params_t info{neb::configuration::instance().dip_start_block(),
+      // neb::configuration::instance().dip_block_interval(),
+      // neb::configuration::instance().dip_reward_addr(),
+      // neb::configuration::instance().coinbase_addr(),
+      // tmp.first};
+      dip_params_t info;
+      info.deserialize_from_string(ret);
 #if 0
       {
         // pass dip params by jit driver exe result
@@ -93,13 +95,13 @@ void dip_handler::init_dip_params(block_height_t height) {
                         tmp.first};
       }
 #endif
-      m_dip_params_list.push_back(info);
+      m_dip_params_list.push_back(std::move(info));
 
       LOG(INFO) << "show dip history";
       for (auto &ele : m_dip_params_list) {
-        LOG(INFO) << ele.m_start_block << ',' << ele.m_block_interval << ','
-                  << ele.m_reward_addr.to_base58() << ','
-                  << ele.m_coinbase_addr.to_base58() << ',' << ele.m_version;
+        LOG(INFO) << ele.get<start_block>() << ',' << ele.get<block_interval>()
+                  << ',' << ele.get<reward_addr>() << ','
+                  << ele.get<coinbase_addr>() << ',' << ele.get<version>();
       }
     } catch (const std::exception &e) {
       LOG(INFO) << "dip params init failed " << e.what();
@@ -121,14 +123,14 @@ void dip_handler::start(neb::block_height_t height,
   LOG(INFO) << "dip params init done";
 
   // get start block and block interval if default
-  auto last_ele = m_dip_params_list.back();
-  block_height_t dip_start_block = last_ele.m_start_block;
-  block_height_t dip_block_interval = last_ele.m_block_interval;
+  dip_params_t &last_ele = m_dip_params_list.back();
+  block_height_t dip_start_block = last_ele.get<start_block>();
+  block_height_t dip_block_interval = last_ele.get<block_interval>();
 
   if (dip_params) {
     LOG(INFO) << "dip meta not null";
-    dip_start_block = dip_params->m_start_block;
-    dip_block_interval = dip_params->m_block_interval;
+    dip_start_block = dip_params->get<start_block>();
+    dip_block_interval = dip_params->get<block_interval>();
   }
 
   if (height < dip_start_block + dip_block_interval) {
@@ -154,7 +156,7 @@ void dip_handler::start(neb::block_height_t height,
   auto dip_versions_ptr = neb::fs::ir_api::get_ir_versions(dip_name, m_storage);
   uint64_t dip_version = *dip_versions_ptr->begin();
   if (dip_params) {
-    dip_version = dip_params->m_version;
+    dip_version = dip_params->get<version>();
   }
 
   ff::para<> p;
@@ -196,17 +198,17 @@ dip_handler::get_dip_reward_when_missing(neb::block_height_t height,
                                          const dip_params_t &dip_params) {
 
   LOG(INFO) << "call func get_dip_reward_when_missing";
-  auto first_ele = m_dip_params_list.front();
-  if (height < first_ele.m_start_block + first_ele.m_block_interval) {
-    auto ret =
-        boost::str(boost::format("{\"err\":\"available height is %1%\"}") %
-                   (first_ele.m_start_block + first_ele.m_block_interval));
+  dip_params_t &first_ele = m_dip_params_list.front();
+  if (height < first_ele.get<start_block>() + first_ele.get<block_interval>()) {
+    auto ret = boost::str(
+        boost::format("{\"err\":\"available height is %1%\"}") %
+        (first_ele.get<start_block>() + first_ele.get<block_interval>()));
     LOG(INFO) << ret;
     return ret;
   }
 
-  block_height_t dip_start_block = dip_params.m_start_block;
-  block_height_t dip_block_interval = dip_params.m_block_interval;
+  block_height_t dip_start_block = dip_params.get<start_block>();
+  block_height_t dip_block_interval = dip_params.get<block_interval>();
 
   uint64_t interval_nums = (height - dip_start_block) / dip_block_interval;
   uint64_t hash_height = dip_start_block + dip_block_interval * interval_nums;
@@ -243,9 +245,9 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   }
 
   LOG(INFO) << "dip history size " << m_dip_params_list.size();
-  auto it = get_dip_params(height);
-  block_height_t dip_start_block = it->m_start_block;
-  block_height_t dip_block_interval = it->m_block_interval;
+  const dip_params_t &it = get_dip_params(height);
+  block_height_t dip_start_block = it.get<start_block>();
+  block_height_t dip_block_interval = it.get<block_interval>();
   LOG(INFO) << "find dip history start block " << dip_start_block
             << " , block interval " << dip_block_interval;
 
@@ -256,13 +258,14 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   auto ret = m_dip_reward.find(hash_height);
   if (ret == m_dip_reward.end()) {
     LOG(INFO) << "dip reward not exists";
-    auto last_block = m_dip_params_list.back();
-    if (hash_height - last_block.m_start_block >= last_block.m_block_interval) {
+    dip_params_t &last_block = m_dip_params_list.back();
+    if (hash_height - last_block.get<start_block>() >=
+        last_block.get<block_interval>()) {
       auto ret = std::string("{\"err\":\"dip this interval not found\"}");
       LOG(INFO) << ret;
       return ret;
     }
-    return get_dip_reward_when_missing(hash_height, *it);
+    return get_dip_reward_when_missing(hash_height, it);
   }
   LOG(INFO) << "dip reward exists";
   LOG(INFO) << ret->second;
@@ -346,18 +349,17 @@ void dip_handler::load_dip_rewards() {
   }
 }
 
-std::unique_ptr<dip_params_t>
-dip_handler::get_dip_params(neb::block_height_t height) {
+const dip_params_t &dip_handler::get_dip_params(neb::block_height_t height) {
 
-  dip_params_t tmp{height};
+  dip_params_t tmp;
+  tmp.set<start_block>(height);
   auto it =
       std::upper_bound(m_dip_params_list.begin(), m_dip_params_list.end(), tmp,
                        [](const dip_params_t &d1, const dip_params_t &d2) {
-                         return d1.m_start_block < d2.m_start_block;
+                         return d1.get<start_block>() < d2.get<start_block>();
                        });
   it--;
-  auto ret = std::make_unique<dip_params_t>(*it);
-  return ret;
+  return *it;
 }
 
 } // namespace dip

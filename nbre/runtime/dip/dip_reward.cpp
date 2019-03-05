@@ -57,9 +57,10 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
   LOG(INFO) << "dapp votes size " << it_dapp_votes->size();
 
   // bonus pool in total
-  auto dip_params = dip_handler::instance().get_dip_params(end_block);
-  address_t dip_reward_addr = dip_params->m_reward_addr;
-  address_t coinbase_addr = dip_params->m_coinbase_addr;
+  const dip_params_t &dip_params =
+      dip_handler::instance().get_dip_params(end_block);
+  address_t dip_reward_addr = to_address(dip_params.get<reward_addr>());
+  address_t dip_coinbase_addr = to_address(dip_params.get<coinbase_addr>());
 
   wei_t balance = adb_ptr->get_balance(dip_reward_addr, end_block);
   floatxx_t bonus_total = conversion(balance).to_float<floatxx_t>();
@@ -93,18 +94,18 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
   LOG(INFO) << "reward sum " << reward_sum << ", bonus total " << bonus_total;
   // assert(reward_sum <= bonus_total);
   LOG(INFO) << "reward sum " << reward_sum;
-  back_to_coinbase(*dip_infos, bonus_total - reward_sum, coinbase_addr);
+  back_to_coinbase(*dip_infos, bonus_total - reward_sum, dip_coinbase_addr);
   LOG(INFO) << "back to coinbase";
   return dip_infos;
 }
 
 void dip_reward::back_to_coinbase(std::vector<dip_info_t> &dip_infos,
                                   floatxx_t reward_left,
-                                  const address_t &coinbase_addr) {
+                                  const address_t &dip_coinbase_addr) {
 
-  if (!coinbase_addr.empty() && reward_left > 0) {
+  if (!dip_coinbase_addr.empty() && reward_left > 0) {
     dip_info_t info;
-    info.m_deployer = coinbase_addr;
+    info.m_deployer = dip_coinbase_addr;
     info.m_reward =
         neb::math::to_string(neb::conversion().from_float(reward_left));
     dip_infos.push_back(info);
