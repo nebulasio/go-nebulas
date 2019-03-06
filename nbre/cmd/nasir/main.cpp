@@ -188,7 +188,7 @@ void make_ir_payload(std::ifstream &ifs,
     d->set_version(reader.depends()[i].version().data());
   }
   ir_info.set_ir(neb::util::byte_to_string(buf));
-  ir_info.set_ir_type("llvm");
+  ir_info.set_ir_type(neb::ir_type::cpp);
 
   auto bytes_long = ir_info.ByteSizeLong();
   if (bytes_long > 128 * 1024) {
@@ -231,8 +231,15 @@ int main(int argc, char *argv[]) {
 
     if (mode == "payload") {
       LOG(INFO) << "mode paylaod";
-      make_ir_bitcode(reader, ir_bc_file, true);
-      make_ir_payload(ifs, reader, ir_bc_file, vm["output"].as<std::string>());
+      // make_ir_bitcode(reader, ir_bc_file, true);
+      if (reader.cpp_files().size() > 1) {
+        std::cout
+            << "\t**Too many cpp files, we only support 1 cpp file for now."
+            << std::endl;
+        return -1;
+      }
+      make_ir_payload(ifs, reader, reader.cpp_files()[0],
+                      vm["output"].as<std::string>());
       execute_command("rm -f " + ir_bc_file);
     } else if (mode == "bitcode") {
       ir_bc_file = vm["output"].as<std::string>();
