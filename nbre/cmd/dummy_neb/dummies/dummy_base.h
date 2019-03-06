@@ -42,6 +42,9 @@ public:
   const std::string &db_path() const;
 
 protected:
+  static void random_increase_version(neb::util::version &v);
+
+protected:
   std::string m_name;
   mutable std::string m_db_path;
   block_height_t m_current_height;

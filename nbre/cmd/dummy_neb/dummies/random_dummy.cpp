@@ -50,10 +50,26 @@ std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
           neb::to_address(m_all_accounts.random_user_account()->address());
       address_t dip_admin_addr =
           neb::to_address(m_all_accounts.random_user_account()->address());
+      m_nr_admin_addr = nr_admin_addr;
+      m_dip_admin_addr = dip_admin_addr;
       m_auth_gen->set_auth_admin_addr(m_auth_admin_addr);
       m_auth_gen->set_nr_admin_addr(nr_admin_addr);
       m_auth_gen->set_dip_admin_addr(dip_admin_addr);
       m_auth_gen->run();
+    }
+
+    if (m_nr_ratio != 0 && std::rand() % 1000 < m_nr_ratio * 1000) {
+      if (m_nr_admin_addr.empty()) {
+        m_nr_admin_addr =
+            neb::to_address(m_all_accounts.random_user_account()->address());
+      }
+      m_nr_gen = std::make_unique<nr_ir_generator>(ret.get(), m_nr_admin_addr);
+      random_increase_version(m_nr_version);
+      m_nr_gen->m_major_version = m_nr_version.major_version();
+      m_nr_gen->m_minor_version = m_nr_version.minor_version();
+      m_nr_gen->m_patch_version = m_nr_version.patch_version();
+
+      m_nr_gen->run();
     }
   }
 
@@ -69,6 +85,12 @@ address_t random_dummy::enable_auth_gen_with_ratio(double auth_ratio) {
   m_auth_admin_addr = admin_addr;
   m_auth_ratio = auth_ratio;
   return admin_addr;
+}
+
+void random_dummy::enable_nr_ir_with_ratio(double nr_ratio) {
+  if (m_current_height == 0)
+    generate_LIB_block();
+  m_nr_ratio = nr_ratio;
 }
 
 std::shared_ptr<checker_task_base> random_dummy::generate_checker_task() {

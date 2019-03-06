@@ -82,6 +82,8 @@ public:
 
   void write_to_blockchain_db();
 
+  inline uint64_t height() const { return m_height; }
+
   all_accounts *get_all_accounts() { return m_all_accounts; }
 
   const std::vector<std::shared_ptr<corepb::Transaction>> &

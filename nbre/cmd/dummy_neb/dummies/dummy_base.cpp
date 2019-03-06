@@ -51,3 +51,18 @@ void dummy_base::clean_db() {
   ss << "rm -rf " << neb::configuration::instance().nbre_db_dir();
   neb::command_executor::execute_command(ss.str());
 }
+
+void dummy_base::random_increase_version(neb::util::version &v) {
+  int k = std::rand() % 3;
+  switch (k) {
+  case 0:
+    v.major_version() += 1;
+    break;
+  case 1:
+    v.minor_version() += 1;
+    break;
+  case 2:
+    v.patch_version() += 1;
+    break;
+  }
+}

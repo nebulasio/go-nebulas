@@ -28,6 +28,8 @@ public:
 
   address_t enable_auth_gen_with_ratio(double auth_ratio);
 
+  void enable_nr_ir_with_ratio(double nr_ratio);
+
   virtual ~random_dummy();
   virtual std::shared_ptr<generate_block> generate_LIB_block();
 
@@ -40,10 +42,16 @@ protected:
   std::unique_ptr<transaction_generator> m_tx_gen;
   std::unique_ptr<genesis_generator> m_genesis_gen;
   std::unique_ptr<auth_table_generator> m_auth_gen;
+  std::unique_ptr<nr_ir_generator> m_nr_gen;
   int m_initial_account_num;
   nas m_initial_nas;
   double m_account_increase_ratio;
   double m_auth_ratio;
+  double m_nr_ratio;
+
+  neb::util::version m_nr_version;
 
   address_t m_auth_admin_addr;
+  address_t m_nr_admin_addr;
+  address_t m_dip_admin_addr;
 };
