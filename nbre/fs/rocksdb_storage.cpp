@@ -66,6 +66,7 @@ void rocksdb_storage::open_database(const std::string &db_name,
     if (status.ok()) {
       m_db = std::unique_ptr<rocksdb::DB>(db);
     } else {
+      LOG(ERROR) << "open db error: " << status.ToString();
       throw storage_general_failure(status.ToString());
     }
   } else {

@@ -44,7 +44,7 @@ std::shared_ptr<corepb::Transaction> transaction_generator::gen_tx() {
   } else {
     to_addr = neb::to_address(m_all_accounts->random_user_account()->address());
   }
-  m_block->add_binary_transaction(from_addr, to_addr, 1_nas);
+  return m_block->add_binary_transaction(from_addr, to_addr, 1_nas);
 }
 
 checker_tasks::task_container_ptr_t transaction_generator::gen_tasks() {

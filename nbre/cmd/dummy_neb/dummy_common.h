@@ -21,6 +21,7 @@
 #include "common/common.h"
 #include "common/quitable_thread.h"
 #include "common/util/singleton.h"
+#include "common/util/version.h"
 #include "core/net_ipc/ipc_interface.h"
 #include "fs/bc_storage_session.h"
 #include "fs/proto/block.pb.h"

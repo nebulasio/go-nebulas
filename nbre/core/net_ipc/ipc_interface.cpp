@@ -55,6 +55,8 @@ int start_nbre_ipc(nbre_params_t params) {
 }
 
 void nbre_ipc_shutdown() {
+  if (!_ipc)
+    return;
   _ipc->shutdown();
   _ipc.reset();
 }
@@ -88,6 +90,8 @@ template <typename PkgType, typename... Params> struct ipc_call {
     std::shared_ptr<PkgType> pkg(new PkgType());
     set_bind_helper<Params...>::set(pkg, args...);
     void *holder = reinterpret_cast<void *>(pkg->template get<p_holder>());
+    if (!_ipc)
+      return ipc_status_fail;
     return _ipc->send_api_pkg<PkgType>(holder, pkg);
   }
 };

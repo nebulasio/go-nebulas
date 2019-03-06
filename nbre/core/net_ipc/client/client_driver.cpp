@@ -156,13 +156,12 @@ void client_driver_base::init_nbre() {
     auto nbre_max_height =
         neb::util::byte_to_number<block_height_t>(nbre_max_height_bytes);
     neb::rt::dip::dip_handler::instance().init_dip_params(nbre_max_height);
-
-    neb::fs::bc_storage_session::instance().init(
-        neb::configuration::instance().neb_db_dir(),
-        neb::fs::storage_open_for_readonly);
   } catch (const std::exception &e) {
     LOG(INFO) << "nbre max height not init " << e.what();
   }
+  neb::fs::bc_storage_session::instance().init(
+      neb::configuration::instance().neb_db_dir(),
+      neb::fs::storage_open_for_readonly);
 }
 
 } // end namespace internal
@@ -206,6 +205,7 @@ void client_driver::add_handlers() {
       configuration::instance().admin_pub_addr() = to_address(addr);
 
       LOG(INFO) << configuration::instance().nbre_db_dir();
+      LOG(INFO) << configuration::instance().neb_db_dir();
       // LOG(INFO) << addr_base58;
 
       if (!glog_log_to_stderr) {
@@ -334,6 +334,7 @@ void client_driver::add_handlers() {
   m_client->add_handler<nbre_ir_transactions_req>(
       [this](std::shared_ptr<nbre_ir_transactions_req> req) {
         try {
+          LOG(INFO) << "nbre recv ir transactions ";
           ir_warden::instance().on_receive_ir_transactions(req);
         } catch (const std::exception &e) {
           LOG(ERROR) << "got exception " << typeid(e).name()

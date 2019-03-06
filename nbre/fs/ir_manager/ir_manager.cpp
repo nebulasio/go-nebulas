@@ -141,6 +141,7 @@ void ir_manager::parse_irs(
   block_height_t last_height = ir_manager_helper::nbre_block_height(m_storage);
 
   while (!q_txs.empty()) {
+    LOG(INFO) << "try to pop elem fro ir_transactions_req queue ";
     auto ele = q_txs.try_pop_front();
     if (!ele.first) {
       break;
@@ -148,9 +149,12 @@ void ir_manager::parse_irs(
 
     auto h = ele.second->get<p_height>();
     if (h < last_height + 1) {
+      LOG(INFO) << "ignore since height is too small, h:" << h
+                << ", last_height: " << last_height;
       continue;
     }
     if (h > last_height + 1) {
+      LOG(INFO) << "parse_when_missing_block";
       parse_when_missing_block(last_height + 1, h);
     }
 
@@ -158,6 +162,7 @@ void ir_manager::parse_irs(
     parse_next_block(h, txs);
     last_height = h;
   }
+  LOG(INFO) << "ir_transactions_req queue is empty";
 }
 
 void ir_manager::parse_when_missing_block(block_height_t start_height,
@@ -226,15 +231,17 @@ void ir_manager::parse_irs_by_height(
     auto &data = tx.data();
     const std::string &type = data.type();
 
+    LOG(INFO) << "parse ir with type: " << type;
     // ignore transaction other than transaction `protocol`
     std::string ir_tx_type =
         neb::configuration::instance().ir_tx_payload_type();
     if (type != ir_tx_type) {
+      LOG(INFO) << "ignore ir with type: " << type;
       continue;
     }
-    LOG(INFO) << height;
 
     boost::property_tree::ptree pt;
+    LOG(INFO) << "payload: " << data.payload();
     neb::util::json_parser::read_json(data.payload(), pt);
     neb::util::bytes payload_bytes =
         neb::util::bytes::from_base64(pt.get<std::string>("Data"));
@@ -243,18 +250,21 @@ void ir_manager::parse_irs_by_height(
     bool ret =
         nbre_ir->ParseFromArray(payload_bytes.value(), payload_bytes.size());
     if (!ret) {
+      LOG(ERROR) << "parse transaction payload failed " << type;
       throw std::runtime_error("parse transaction payload failed");
     }
 
     const std::string &name = nbre_ir->name();
     uint64_t version = nbre_ir->version();
     if (ir_api::ir_version_exist(name, version, m_storage)) {
+      LOG(INFO) << "ignore ir with version: " << version;
       continue;
     }
 
     if (nbre_ir->ir_type() == ::neb::ir_type::cpp) {
       //! We need compile the code
       cpp::cpp_ir ci(nbre_ir->ir());
+      LOG(INFO) << "got ir: " << nbre_ir->ir();
       neb::util::bytes ir = ci.llvm_ir_content();
       nbre_ir->set_ir(neb::util::byte_to_string(ir));
 
@@ -262,6 +272,7 @@ void ir_manager::parse_irs_by_height(
       payload_bytes = neb::util::bytes(bytes_long);
       nbre_ir->SerializeToArray((void *)payload_bytes.value(),
                                 payload_bytes.size());
+    } else {
     }
 
     address_t from = to_address(tx.from());

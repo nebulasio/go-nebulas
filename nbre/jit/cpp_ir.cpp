@@ -78,7 +78,7 @@ int cpp_ir::make_ir_bitcode(const std::string &cpp_file,
   std::string current_path = neb::fs::cur_dir();
   std::string command_string(
       neb::fs::join_path(current_path, "lib_llvm/bin/clang") +
-      " -O2 -emit-llvm -stdlib=libc++ -nodefaultlibs -fno-exceptions ");
+      " -O2 -c -emit-llvm ");
 
   std::string include_string =
       std::string("-I") +

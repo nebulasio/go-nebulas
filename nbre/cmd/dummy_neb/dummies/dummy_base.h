@@ -37,8 +37,12 @@ public:
 
   virtual std::shared_ptr<checker_task_base> generate_checker_task() = 0;
 
-protected:
+  virtual address_t get_auth_admin_addr() = 0;
+
   const std::string &db_path() const;
+
+protected:
+  static void random_increase_version(neb::util::version &v);
 
 protected:
   std::string m_name;
