@@ -216,8 +216,8 @@ transaction_graph *graph_algo::merge_two_graphs(transaction_graph *tg,
     for (boost::tie(oei, oei_end) = boost::out_edges(*vi, sgi); oei != oei_end;
          oei++) {
       auto source = boost::source(*oei, sgi);
-      auto from = to_address(boost::get(boost::vertex_name_t(), sgi, source));
       auto target = boost::target(*oei, sgi);
+      auto from = to_address(boost::get(boost::vertex_name_t(), sgi, source));
       auto to = to_address(boost::get(boost::vertex_name_t(), sgi, target));
       wei_t w = boost::get(boost::edge_weight_t(), sgi, *oei);
 
