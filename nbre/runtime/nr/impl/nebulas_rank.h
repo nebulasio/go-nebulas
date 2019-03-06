@@ -72,7 +72,11 @@ public:
   static auto json_to_nr_info(const std::string &nr_result)
       -> std::unique_ptr<std::vector<nr_info_t>>;
 
+#ifdef ENABLE_UNITTEST
+public:
+#else
 private:
+#endif
   static auto split_transactions_by_block_interval(
       const std::vector<neb::fs::transaction_info_t> &txs,
       int32_t block_interval = 128)
@@ -106,7 +110,6 @@ private:
       const rank_params_t &rp)
       -> std::unique_ptr<std::unordered_map<address_t, floatxx_t>>;
 
-private:
   static transaction_graph_ptr_t build_graph_from_transactions(
       const std::vector<neb::fs::transaction_info_t> &trans);
 

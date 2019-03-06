@@ -150,7 +150,8 @@ endif()
 
 if(Release)
 else()
-add_subdirectory(test)
+  add_definitions(-DENABLE_UNITTEST)
+  add_subdirectory(test)
 endif()
 add_subdirectory(benchmark)
 

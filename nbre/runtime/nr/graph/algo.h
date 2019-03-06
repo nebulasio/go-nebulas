@@ -62,7 +62,11 @@ public:
   static auto get_degree_sum(const transaction_graph::internal_graph_t &graph)
       -> std::unique_ptr<std::unordered_map<address_t, uint32_t>>;
 
+#ifdef ENABLE_UNITTEST
+public:
+#else
 private:
+#endif
   static void dfs_find_a_cycle_from_vertex_based_on_time_sequence(
       const transaction_graph::vertex_descriptor_t &start_vertex,
       const transaction_graph::vertex_descriptor_t &v,
