@@ -18,10 +18,13 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "util/bc_generator.h"
+#include "common/util/json_parser.h"
 #include "crypto/hash.h"
 #include "fs/bc_storage_session.h"
 #include "fs/proto/trie.pb.h"
 #include "util/chrono.h"
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 namespace neb {
 namespace util {
@@ -33,7 +36,9 @@ void all_accounts::add_account(
 }
 
 corepb::Account *all_accounts::random_account() const {
-  std::uniform_int_distribution<uint64_t> dist(0, m_all_accounts.size());
+  if (m_all_accounts.empty())
+    throw std::invalid_argument("no account yet");
+  std::uniform_int_distribution<uint64_t> dist(0, m_all_accounts.size() - 1);
   const address_t &addr = m_all_addresses[dist(m_random_generator)];
   auto it = m_all_accounts.find(addr);
   return it->second.get();
@@ -174,7 +179,12 @@ generate_block::add_protocol_transaction(const address_t &owner,
   tx->set_from(address_to_string(owner));
   corepb::Data *data = new corepb::Data();
   data->set_type("protocol");
-  data->set_payload(util::byte_to_string(payload));
+  boost::property_tree::ptree pt;
+  pt.put("Data", payload.to_base64());
+
+  std::string payload_str;
+  neb::util::json_parser::write_json(payload_str, pt);
+  data->set_payload(payload_str);
   wei value(1000_wei);
   bool ret = m_all_accounts->decrease_balance(owner, value);
   if (ret == false)
@@ -257,6 +267,7 @@ void generate_block::write_to_blockchain_db() {
   header->set_hash(
       util::byte_to_string(from_fix_bytes(crypto::sha3_256_hash(block_str))));
 
+  block->release_header();
   // 2. update to LIB
   fs::blockchain::write_LIB_block(block.get());
 

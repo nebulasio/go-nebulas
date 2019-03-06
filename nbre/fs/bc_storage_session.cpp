@@ -39,10 +39,12 @@ void bc_storage_session::init(const std::string &path,
   m_init_already = true;
   m_open_flag = flag;
   m_path = path;
+  LOG(INFO) << "open db with path: " << m_path << ", " << flag;
   m_storage->open_database(m_path, m_open_flag);
 }
 
 util::bytes bc_storage_session::get_bytes(const util::bytes &key) {
+  LOG(INFO) << "get_bytes with path: " << m_path;
   boost::shared_lock<boost::shared_mutex> _l(m_mutex);
   bool no_exception = true;
   bool tried_already = false;
@@ -68,6 +70,7 @@ util::bytes bc_storage_session::get_bytes(const util::bytes &key) {
 
 void bc_storage_session::put_bytes(const util::bytes &key,
                                    const util::bytes &val) {
+  LOG(INFO) << "put_bytes with path: " << m_path;
   boost::shared_lock<boost::shared_mutex> _l(m_mutex);
   m_storage->put_bytes(key, val);
 }

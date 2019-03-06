@@ -53,6 +53,8 @@ void dummy_driver::run(const std::string &dummy_name, uint64_t block_interval) {
   // This for generating block with interval.
   m_block_interval_seconds = block_interval;
   m_block_gen_timer = std::make_unique<neb::timer_loop>(&m_io_service);
+  LOG(INFO) << "start block gen timer with interval: "
+            << m_block_interval_seconds << ", for dummy: " << dummy_name;
   m_block_gen_timer->register_timer_and_callback(
       m_block_interval_seconds, [dummy]() {
         auto block = dummy->generate_LIB_block();
@@ -65,12 +67,14 @@ void dummy_driver::run(const std::string &dummy_name, uint64_t block_interval) {
             std::string s = tx->SerializeAsString();
             ipc_nbre_ir_transactions_append(nullptr, height, s.data(),
                                             s.size());
+            LOG(INFO) << "append protocol tx";
           }
         }
         ipc_nbre_ir_transactions_send(nullptr, height);
         LOG(INFO) << "gen block " << height;
       });
 
+  m_checker_gen_timer = std::make_unique<neb::timer_loop>(&m_io_service);
   m_checker_gen_timer->register_timer_and_callback(1, [dummy]() {
     auto task = dummy->generate_checker_task();
     if (!task)
@@ -82,4 +86,23 @@ void dummy_driver::run(const std::string &dummy_name, uint64_t block_interval) {
   });
 
   m_io_service.run();
+}
+
+void dummy_driver::reset_dummy(const std::string &dummy_name) {
+  auto it = m_all_dummies.find(dummy_name);
+  if (it == m_all_dummies.end())
+    throw std::invalid_argument("can't find dummy name");
+
+  std::shared_ptr<dummy_base> dummy = it->second;
+  dummy->clean_db();
+}
+
+std::shared_ptr<dummy_base>
+dummy_driver::get_dummy_with_name(const std::string &dummy_name) const {
+  auto it = m_all_dummies.find(dummy_name);
+  if (it == m_all_dummies.end())
+    throw std::invalid_argument("can't find dummy name");
+
+  std::shared_ptr<dummy_base> dummy = it->second;
+  return dummy;
 }

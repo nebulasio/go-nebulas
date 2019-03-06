@@ -62,6 +62,7 @@ bool nipc_client::start() {
           [this](::ff::net::tcp_connection_base *) {
             LOG(INFO) << "lost connection";
             m_is_connected = false;
+            exit(-2);
           });
       nn.add_pkg_hub(hub);
       m_conn = nn.add_tcp_client(configuration::instance().nipc_listen(),

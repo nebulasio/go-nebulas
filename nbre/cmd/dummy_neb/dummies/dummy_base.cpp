@@ -26,6 +26,7 @@ dummy_base::dummy_base(const std::string &name)
     : m_name(name), m_current_height(0) {}
 
 dummy_base::~dummy_base() {}
+
 const std::string &dummy_base::db_path() const {
   if (m_db_path.empty()) {
     auto dir = neb::configuration::instance().neb_db_dir();
@@ -42,7 +43,11 @@ void dummy_base::init_from_db() {
 }
 
 void dummy_base::clean_db() {
+  LOG(INFO) << "clean db";
   std::stringstream ss;
   ss << "rm -rf " << db_path();
+  neb::command_executor::execute_command(ss.str());
+  ss.clear();
+  ss << "rm -rf " << neb::configuration::instance().nbre_db_dir();
   neb::command_executor::execute_command(ss.str());
 }

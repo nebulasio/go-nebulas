@@ -29,7 +29,7 @@ static std::string ir_slice1 =
     "typedef uint64_t version_t; \n"
     "typedef std::string address_t; \n"
     "typedef uint64_t height_t; \n"
-    "typedef std::tuple<name_t, version_t, address_t, height_t, height_t> "
+    "typedef std::tuple<name_t, address_t, height_t, height_t> "
     "row_t; \n"
     "std::vector<row_t> entry_point_auth() { \n"
     " auto to_version_t = [](uint32_t major_version, uint16_t minor_version, "
@@ -43,10 +43,10 @@ static std::string ir_slice_2 =
     "std::vector<row_t> auth_table = {NR_ITEM, \n DIP_ITEM}; \n";
 static std::string ir_slice_nr =
     "std::make_tuple(\"nr\", std::string(VAR.begin(), VAR.end()), 1ULL, "
-    "0xFFFFFFFFFFFFFFFF)";
+    "0xFFFFFFFFFFFFFFFFULL)";
 static std::string ir_slice_dip =
     "std::make_tuple(\"dip\", std::string(VAR.begin(), VAR.end()), 1ULL, "
-    "0xFFFFFFFFFFFFFFFF)";
+    "0xFFFFFFFFFFFFFFFFULL)";
 static std::string ir_slice_end = "return auth_table;}";
 
 static std::string gen_admin_var(const address_t &addr,
