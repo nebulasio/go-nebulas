@@ -86,8 +86,6 @@ private:
 
   static transaction_graph *merge_two_graphs(transaction_graph *tg,
                                              const transaction_graph *sg);
-
-  static inline wei_t min(wei_t w1, wei_t w2) { return w1 < w2 ? w1 : w2; }
 };
 } // namespace rt
 } // namespace neb

@@ -114,7 +114,8 @@ block_height_t nebulas_rank::get_max_height_this_block_interval(
   if (txs.empty()) {
     return 0;
   }
-  return txs[txs.size() - 1].m_height;
+  // suppose transactions in height increasing order
+  return txs.back().m_height;
 }
 
 std::unique_ptr<std::unordered_set<address_t>>
@@ -143,16 +144,15 @@ nebulas_rank::get_account_balance_median(
   std::unordered_map<address_t, std::vector<wei_t>> addr_balance_v;
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
-    block_height_t max_height_this_interval =
-        get_max_height_this_block_interval(*it);
+    block_height_t max_height = get_max_height_this_block_interval(*it);
     for (auto ite = accounts.begin(); ite != accounts.end(); ite++) {
       address_t addr = *ite;
-      wei_t balance =
-          db_ptr->get_account_balance_internal(addr, max_height_this_interval);
+      wei_t balance = db_ptr->get_account_balance_internal(addr, max_height);
       addr_balance_v[addr].push_back(balance);
     }
   }
 
+  floatxx_t zero = softfloat_cast<uint32_t, typename floatxx_t::value_type>(0);
   for (auto it = addr_balance_v.begin(); it != addr_balance_v.end(); it++) {
     std::vector<wei_t> &v = it->second;
     sort(v.begin(), v.end(),
@@ -160,13 +160,12 @@ nebulas_rank::get_account_balance_median(
     size_t v_len = v.size();
     floatxx_t median = conversion(v[v_len >> 1]).to_float<floatxx_t>();
     if ((v_len & 0x1) == 0) {
-      median =
-          (median + conversion(v[(v_len >> 1) - 1]).to_float<floatxx_t>()) / 2;
+      auto tmp = conversion(v[(v_len >> 1) - 1]).to_float<floatxx_t>();
+      median = (median + tmp) / 2;
     }
 
     floatxx_t normalized_median = db_ptr->get_normalized_value(median);
-    ret->insert(std::make_pair(
-        it->first, neb::math::max(floatxx_t(0), normalized_median)));
+    ret->insert(std::make_pair(it->first, math::max(zero, normalized_median)));
   }
 
   return ret;
@@ -190,12 +189,14 @@ nebulas_rank::get_account_weight(
     wei_t in_val = it->second.m_in_val;
     wei_t out_val = it->second.m_out_val;
 
-    floatxx_t normalized_in_val =
-        db_ptr->get_normalized_value(conversion(in_val).to_float<floatxx_t>());
-    floatxx_t normalized_out_val =
-        db_ptr->get_normalized_value(conversion(out_val).to_float<floatxx_t>());
-    ret->insert(std::make_pair(
-        it->first, f_account_weight(normalized_in_val, normalized_out_val)));
+    floatxx_t f_in_val = conversion(in_val).to_float<floatxx_t>();
+    floatxx_t f_out_val = conversion(out_val).to_float<floatxx_t>();
+
+    floatxx_t normalized_in_val = db_ptr->get_normalized_value(f_in_val);
+    floatxx_t normalized_out_val = db_ptr->get_normalized_value(f_out_val);
+
+    auto tmp = f_account_weight(normalized_in_val, normalized_out_val);
+    ret->insert(std::make_pair(it->first, tmp));
   }
   return ret;
 }
