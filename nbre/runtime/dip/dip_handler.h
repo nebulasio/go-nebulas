@@ -46,25 +46,22 @@ public:
 
   void deploy(version_t version, block_height_t available_height);
   void init_dip_params(block_height_t height);
-  void start(neb::block_height_t height,
-             const dip_params_t *dip_params = nullptr);
+  void start(block_height_t height, const dip_params_t *dip_params = nullptr);
 
-  const dip_params_t &get_dip_params(neb::block_height_t height);
+  const dip_params_t &get_dip_params(block_height_t height);
   std::string get_dip_reward(neb::block_height_t height);
 
   void load_dip_rewards();
 
 private:
-  std::string get_dip_reward_when_missing(neb::block_height_t height,
+  std::string get_dip_reward_when_missing(block_height_t height,
                                           const dip_params_t &dip_params);
 
-  void write_to_storage(neb::block_height_t hash_height,
-                        const std::string &dip_reward);
+  void write_to_storage(block_height_t height, const std::string &dip_reward);
 
 private:
   neb::fs::rocksdb_storage *m_storage;
-  mutable std::mutex m_sync_mutex;
-  std::map<neb::block_height_t, std::string> m_dip_reward;
+  std::map<block_height_t, std::string> m_dip_reward;
   // dip params info list
   std::vector<dip_params_t> m_dip_params_list;
 
