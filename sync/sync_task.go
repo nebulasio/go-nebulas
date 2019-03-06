@@ -28,7 +28,7 @@ import (
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
-	"github.com/gogo/protobuf/proto"
+	proto "github.com/nebulasio/go-nebulas/common/protobuf"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/sync/pb"

@@ -26,7 +26,7 @@ import (
 
 	"runtime"
 
-	"github.com/gogo/protobuf/proto"
+	proto "github.com/nebulasio/go-nebulas/common/protobuf"
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
 	"github.com/nebulasio/go-nebulas/common/trie"

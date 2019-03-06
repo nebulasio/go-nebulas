@@ -22,6 +22,15 @@ type Node struct {
 	Val [][]byte `protobuf:"bytes,1,rep,name=val" json:"val,omitempty"`
 }
 
+func (m *Node) Reset() { *m = Node{} }
+func (m *Node) String() string {
+	if b, err := m.Marshal(); err == nil {
+		return string(b)
+	}
+	return string("")
+}
+func (*Node) ProtoMessage() {}
+
 func (m *Node) Marshal() (data []byte, err error) {
 	var l int
 	var n int
