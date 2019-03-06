@@ -32,19 +32,15 @@ class nr_handler : public util::singleton<nr_handler> {
 public:
   nr_handler();
 
-  std::string get_nr_handle();
-
-  void start(std::string nr_handle);
-
-  void run_if_default(block_height_t start_block, block_height_t end_block);
-  void run_if_specify(block_height_t start_block, block_height_t end_block,
-                      uint64_t nr_version);
-
+  void start(const std::string &nr_handle);
   std::string get_nr_result(const std::string &nr_handle);
 
+  void run_if_default(block_height_t start_block, block_height_t end_block,
+                      const std::string &nr_handle);
+  void run_if_specify(block_height_t start_block, block_height_t end_block,
+                      uint64_t nr_version, const std::string &nr_handle);
+
 private:
-  mutable std::mutex m_sync_mutex;
-  std::string m_nr_handle;
   lru_cache<std::string, std::string> m_nr_result;
 };
 } // namespace nr

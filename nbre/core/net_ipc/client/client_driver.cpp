@@ -280,13 +280,6 @@ void client_driver::add_handlers() {
   m_client->add_handler<nbre_nr_handle_req>(
       [this](std::shared_ptr<nbre_nr_handle_req> req) {
         try {
-          auto ack = new_ack_pkg<nbre_nr_handle_ack>(req);
-          if (!neb::rt::nr::nr_handler::instance().get_nr_handle().empty()) {
-            ack->set<p_nr_handle>(std::string("nr handler not available"));
-            m_ipc_conn->send(ack);
-            return;
-          }
-
           uint64_t start_block = req->get<p_start_block>();
           uint64_t end_block = req->get<p_end_block>();
           uint64_t nr_version = req->get<p_nr_version>();
@@ -298,6 +291,7 @@ void client_driver::add_handlers() {
              << neb::util::number_to_byte<neb::util::bytes>(nr_version)
                     .to_hex();
 
+          auto ack = new_ack_pkg<nbre_nr_handle_ack>(req);
           ack->set<p_nr_handle>(ss.str());
           neb::rt::nr::nr_handler::instance().start(ss.str());
           m_ipc_conn->send(ack);

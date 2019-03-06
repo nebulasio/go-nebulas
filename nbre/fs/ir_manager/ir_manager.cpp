@@ -246,6 +246,12 @@ void ir_manager::parse_irs_by_height(
       throw std::runtime_error("parse transaction payload failed");
     }
 
+    const std::string &name = nbre_ir->name();
+    uint64_t version = nbre_ir->version();
+    if (ir_api::ir_version_exist(name, version, m_storage)) {
+      continue;
+    }
+
     if (nbre_ir->ir_type() == ::neb::ir_type::cpp) {
       //! We need compile the code
       cpp::cpp_ir ci(nbre_ir->ir());
@@ -258,10 +264,7 @@ void ir_manager::parse_irs_by_height(
                                 payload_bytes.size());
     }
 
-    // const std::string &from = tx.from();
     address_t from = to_address(tx.from());
-    const std::string &name = nbre_ir->name();
-
     // deploy auth table
     if (neb::configuration::instance().auth_module_name() == name &&
         neb::configuration::instance().admin_pub_addr() == from) {
@@ -270,17 +273,16 @@ void ir_manager::parse_irs_by_height(
       continue;
     }
 
-    uint64_t version = nbre_ir->version();
-    auto it = m_auth_table.find(std::make_tuple(name, version, from));
+    auto it = m_auth_table.find(std::make_tuple(name, from));
     // ir not in auth table
     if (it == m_auth_table.end()) {
       LOG(INFO) << boost::str(
-          boost::format("tuple <%1%, %2%, %3%> not in auth table") % name %
-          version % std::to_string(from));
+          boost::format("tuple <%1%, %2%> not in auth table") % name %
+          std::to_string(from));
       ir_manager_helper::show_auth_table(m_auth_table);
       continue;
     }
-    const uint64_t ht = nbre_ir->height();
+    uint64_t ht = nbre_ir->height();
     // ir in auth table but already invalid
     if (ht < std::get<0>(it->second) || ht >= std::get<1>(it->second)) {
       LOG(INFO) << "ir already becomes invalid";

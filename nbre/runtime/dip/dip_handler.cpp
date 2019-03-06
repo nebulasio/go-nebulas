@@ -135,18 +135,19 @@ void dip_handler::start(neb::block_height_t height,
 
   // get dip version if default
   std::string dip_name = "dip";
-  auto dip_versions_ptr = neb::fs::ir_api::get_ir_versions(dip_name, m_storage);
-  uint64_t dip_version = *dip_versions_ptr->begin();
+  uint64_t dip_version = 0;
+  auto tmp_ptr = neb::core::ir_warden::instance().get_ir_by_name_height(
+      dip_name, hash_height, false);
+  if (!tmp_ptr->empty()) {
+    dip_version = tmp_ptr->back().version();
+  }
   if (dip_params) {
     dip_version = dip_params->get<version>();
   }
 
   ff::para<> p;
   p([this, dip_name, dip_version, hash_height]() {
-    std::unique_lock<std::mutex> _l(m_sync_mutex);
     try {
-      LOG(INFO) << "ff para run before lock";
-
       std::stringstream ss;
       ss << dip_name << dip_version;
       std::string name_version = ss.str();
@@ -207,8 +208,6 @@ dip_handler::get_dip_reward_when_missing(neb::block_height_t height,
 }
 
 std::string dip_handler::get_dip_reward(neb::block_height_t height) {
-  LOG(INFO) << "before lock";
-  std::unique_lock<std::mutex> _l(m_sync_mutex);
   LOG(INFO) << "call func get_dip_reward";
 
   if (!m_has_curr) {
@@ -230,8 +229,8 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   const dip_params_t &it = get_dip_params(height);
   block_height_t dip_start_block = it.get<start_block>();
   block_height_t dip_block_interval = it.get<block_interval>();
-  LOG(INFO) << "find dip history start block " << dip_start_block
-            << " , block interval " << dip_block_interval;
+  LOG(INFO) << "history start block " << dip_start_block << " , block interval "
+            << dip_block_interval;
 
   uint64_t interval_nums = (height - dip_start_block) / dip_block_interval;
   uint64_t hash_height = dip_start_block + dip_block_interval * interval_nums;
@@ -240,9 +239,9 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   auto ret = m_dip_reward.find(hash_height);
   if (ret == m_dip_reward.end()) {
     LOG(INFO) << "dip reward not exists";
-    dip_params_t &last_block = m_dip_params_list.back();
-    if (hash_height - last_block.get<start_block>() >=
-        last_block.get<block_interval>()) {
+    dip_params_t &last_ele = m_dip_params_list.back();
+    if (hash_height - last_ele.get<start_block>() >=
+        last_ele.get<block_interval>()) {
       auto ret = std::string("{\"err\":\"dip this interval not found\"}");
       LOG(INFO) << ret;
       return ret;
