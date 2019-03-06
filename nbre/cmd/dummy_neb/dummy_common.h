@@ -27,6 +27,9 @@
 #include "fs/proto/ir.pb.h"
 #include "fs/proto/trie.pb.h"
 #include "util/bc_generator.h"
+#include <algorithm>
+#include <boost/algorithm/string/replace.hpp>
+#include <ff/functionflow.h>
 
 using bc_storage_session = neb::fs::bc_storage_session;
 using generate_block = neb::util::generate_block;

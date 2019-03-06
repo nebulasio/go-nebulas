@@ -21,15 +21,16 @@
 #include "cmd/dummy_neb/dummy_common.h"
 #include "cmd/dummy_neb/generator/generator_base.h"
 
-#if 0
 class genesis_generator : public generator_base {
 public:
   genesis_generator(generate_block *block, int number, nas init_value);
   virtual ~genesis_generator();
 
+  virtual std::shared_ptr<corepb::Account> gen_account();
+  virtual std::shared_ptr<corepb::Transaction> gen_tx();
+  virtual checker_tasks::task_container_ptr_t gen_tasks();
 
 protected:
   int m_number;
   nas m_init_value;
 };
-#endif
