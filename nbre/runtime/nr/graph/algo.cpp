@@ -19,6 +19,7 @@
 //
 
 #include "runtime/nr/graph/algo.h"
+#include "common/math.h"
 
 namespace neb {
 namespace rt {
@@ -57,13 +58,13 @@ void graph_algo::dfs_find_a_cycle_from_vertex_based_on_time_sequence(
         wei_t min_w_ret = -1;
         for (auto it = ret.begin(); it != ret.end(); it++) {
           wei_t w_ret = boost::get(boost::edge_weight_t(), graph, *it);
-          min_w_ret = (min_w_ret == -1 ? w_ret : min(min_w_ret, w_ret));
+          min_w_ret = (min_w_ret == -1 ? w_ret : math::min(min_w_ret, w_ret));
         }
 
         wei_t min_w_cur = -1;
         for (auto it = edges.begin(); it != edges.end(); it++) {
           wei_t w_cur = boost::get(boost::edge_weight_t(), graph, *it);
-          min_w_cur = (min_w_cur == -1 ? w_cur : min(min_w_cur, w_cur));
+          min_w_cur = (min_w_cur == -1 ? w_cur : math::min(min_w_cur, w_cur));
         }
 
         if (min_w_cur >= min_w_ret) {
@@ -152,7 +153,7 @@ void graph_algo::remove_cycles_based_on_time_sequence(
     wei_t min_w = -1;
     for (auto it = ret.begin(); it != ret.end(); it++) {
       wei_t w = boost::get(boost::edge_weight_t(), graph, *it);
-      min_w = (min_w == -1 ? w : min(min_w, w));
+      min_w = (min_w == -1 ? w : math::min(min_w, w));
     }
 
     for (auto it = ret.begin(); it != ret.end(); it++) {
