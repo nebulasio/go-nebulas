@@ -45,8 +45,7 @@ std::unique_ptr<std::vector<dip_info_t>> dip_reward::get_dip_reward(
 
   auto it_nr_infos = neb::rt::nr::nebulas_rank::json_to_nr_info(nr_result);
   auto it_acc_to_contract_txs =
-      neb::fs::transaction_db::read_transactions_with_address_type(txs, 0x57,
-                                                                   0x58);
+      fs::transaction_db::read_transactions_with_address_type(txs, 0x57, 0x58);
   ignore_account_transfer_contract(*it_acc_to_contract_txs, "binary");
   LOG(INFO) << "account to contract size " << it_acc_to_contract_txs->size();
   // dapp total votes
@@ -307,11 +306,15 @@ floatxx_t dip_reward::participate_lambda(
     gamma_s += info.m_nr_score * info.m_nr_score;
   }
 
-  return neb::math::min(
-      gamma_p *
-          neb::math::min(beta * gamma_p * gamma_p / variance, floatxx_t(1)) /
-          (alpha * gamma_s),
-      floatxx_t(1));
+  if (variance > 0) {
+    return neb::math::min(
+        gamma_p *
+            neb::math::min(beta * gamma_p * gamma_p / variance, floatxx_t(1)) /
+            (alpha * gamma_s),
+        floatxx_t(1));
+  }
+
+  return neb::math::min(gamma_p / (alpha * gamma_s), floatxx_t(1));
 }
 
 void dip_reward::ignore_account_transfer_contract(

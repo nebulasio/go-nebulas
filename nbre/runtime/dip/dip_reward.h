@@ -49,7 +49,11 @@ public:
   static auto json_to_dip_info(const std::string &dip_reward)
       -> std::unique_ptr<std::vector<dip_info_t>>;
 
+#ifdef ENABLE_UNITTEST
+public:
+#else
 private:
+#endif
   static auto account_call_contract_count(
       const std::vector<neb::fs::transaction_info_t> &txs)
       -> std::unique_ptr<std::unordered_map<

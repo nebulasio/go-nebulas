@@ -356,3 +356,107 @@ TEST(test_runtime_nebulas_rank, f_accout_rank) {
                 precesion(expect_ret, 1e2));
   }
 }
+
+TEST(test_runtime_nebulas_rank, get_account_balance_median) {
+  std::unordered_set<neb::address_t> accounts;
+  std::vector<std::vector<neb::fs::transaction_info_t>> txs;
+  neb::rt::nr::account_db_ptr_t db_ptr;
+  auto ret = neb::rt::nr::nebulas_rank::get_account_balance_median(accounts,
+                                                                   txs, db_ptr);
+  EXPECT_TRUE(ret->empty());
+}
+
+TEST(test_runtime_nebulas_rank, get_account_weight) {
+  std::unordered_map<neb::address_t, neb::rt::in_out_val_t> in_out_vals;
+  neb::rt::nr::account_db_ptr_t db_ptr;
+  auto ret = neb::rt::nr::nebulas_rank::get_account_weight(in_out_vals, db_ptr);
+  EXPECT_TRUE(ret->empty());
+}
+
+TEST(test_runtime_nebulas_rank, get_account_rank) {
+  std::unordered_map<neb::address_t, neb::floatxx_t> acc_m;
+  std::unordered_map<neb::address_t, neb::floatxx_t> acc_w;
+  neb::rt::nr::rank_params_t rp;
+  auto ret = neb::rt::nr::nebulas_rank::get_account_rank(acc_m, acc_w, rp);
+  EXPECT_TRUE(ret->empty());
+
+  acc_m.insert(std::make_pair(neb::to_address("a"), neb::floatxx_t(1)));
+  ret = neb::rt::nr::nebulas_rank::get_account_rank(acc_m, acc_w, rp);
+  EXPECT_TRUE(ret->empty());
+
+  acc_m.clear();
+  acc_w.insert(std::make_pair(neb::to_address("a"), neb::floatxx_t(1)));
+  ret = neb::rt::nr::nebulas_rank::get_account_rank(acc_m, acc_w, rp);
+  EXPECT_TRUE(ret->empty());
+
+  rp = neb::rt::nr::rank_params_t{
+      100, 2, 6, -9, neb::floatxx_t(1), neb::floatxx_t(1), neb::floatxx_t(2)};
+  acc_m.insert(std::make_pair(neb::to_address("a"), neb::floatxx_t(1)));
+  ret = neb::rt::nr::nebulas_rank::get_account_rank(acc_m, acc_w, rp);
+  EXPECT_TRUE(!ret->empty());
+  EXPECT_EQ(ret->size(), 1);
+  EXPECT_EQ(ret->begin()->first, neb::to_address("a"));
+
+  auto tmp = neb::rt::nr::nebulas_rank::f_account_rank(
+      100, 2, 6, -9, neb::floatxx_t(1), neb::floatxx_t(1), neb::floatxx_t(2),
+      neb::floatxx_t(1), neb::floatxx_t(1));
+  EXPECT_TRUE(ret->begin()->second == tmp);
+}
+
+TEST(test_runtime_nebulas_rank, full_fill_meta_info) {
+  std::vector<std::pair<std::string, uint64_t>> meta(
+      {{"start_height", 1}, {"end_height", 2}, {"version", 3}});
+  boost::property_tree::ptree pt;
+  neb::rt::nr::nebulas_rank::full_fill_meta_info(meta, pt);
+  EXPECT_EQ(pt.get<uint64_t>("start_height"), 1);
+  EXPECT_EQ(pt.get<uint64_t>("end_height"), 2);
+  EXPECT_EQ(pt.get<uint64_t>("version"), 3);
+}
+
+TEST(test_runtime_nebulas_rank, convert_nr_info_to_ptree) {
+  neb::rt::nr::nr_info_t info;
+  boost::property_tree::ptree pt;
+  neb::rt::nr::nebulas_rank::convert_nr_info_to_ptree(info, pt);
+}
+
+TEST(test_runtime_nebulas_rank, json_seri_deseri) {
+  std::random_device rd;
+  std::mt19937 mt(rd());
+  std::uniform_int_distribution<> dis(0, std::numeric_limits<int16_t>::max());
+
+  std::vector<neb::rt::nr::nr_info_t> infos;
+  std::vector<std::pair<std::string, uint64_t>> meta({{"start_height", dis(mt)},
+                                                      {"end_height", dis(mt)},
+                                                      {"version", dis(mt)}});
+  int32_t infos_size = std::sqrt(dis(mt));
+  for (int32_t i = 0; i < infos_size; i++) {
+    neb::rt::nr::nr_info_t info{uint32_t(std::sqrt(dis(mt))),
+                                uint32_t(dis(mt)),
+                                uint32_t(dis(mt)),
+                                uint32_t(dis(mt)),
+                                neb::floatxx_t(dis(mt)),
+                                neb::floatxx_t(dis(mt)),
+                                neb::floatxx_t(dis(mt)),
+                                neb::floatxx_t(dis(mt)),
+                                neb::floatxx_t(dis(mt)),
+                                neb::floatxx_t(dis(mt))};
+    infos.push_back(info);
+  }
+  auto json_str = neb::rt::nr::nebulas_rank::nr_info_to_json(infos, meta);
+  auto info_ptr = neb::rt::nr::nebulas_rank::json_to_nr_info(json_str);
+  EXPECT_EQ(infos_size, info_ptr->size());
+
+  for (int32_t i = 0; i < infos_size; i++) {
+    EXPECT_EQ(infos[i].m_address, (*info_ptr)[i].m_address);
+    EXPECT_EQ(infos[i].m_in_degree, (*info_ptr)[i].m_in_degree);
+    EXPECT_EQ(infos[i].m_out_degree, (*info_ptr)[i].m_out_degree);
+    EXPECT_EQ(infos[i].m_degrees, (*info_ptr)[i].m_degrees);
+    EXPECT_EQ(infos[i].m_in_val, (*info_ptr)[i].m_in_val);
+    EXPECT_EQ(infos[i].m_out_val, (*info_ptr)[i].m_out_val);
+    EXPECT_EQ(infos[i].m_in_outs, (*info_ptr)[i].m_in_outs);
+    EXPECT_EQ(infos[i].m_median, (*info_ptr)[i].m_median);
+    EXPECT_EQ(infos[i].m_weight, (*info_ptr)[i].m_weight);
+    EXPECT_EQ(infos[i].m_nr_score, (*info_ptr)[i].m_nr_score);
+  }
+}
+
