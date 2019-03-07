@@ -238,8 +238,9 @@ int main(int argc, char *argv[]) {
             << std::endl;
         return -1;
       }
-      make_ir_payload(ifs, reader, reader.cpp_files()[0],
-                      vm["output"].as<std::string>());
+      std::string cpp_fp = reader.cpp_files()[0];
+      cpp_fp = neb::fs::join_path(root_dir, cpp_fp);
+      make_ir_payload(ifs, reader, cpp_fp, vm["output"].as<std::string>());
       execute_command("rm -f " + ir_bc_file);
     } else if (mode == "bitcode") {
       ir_bc_file = vm["output"].as<std::string>();
