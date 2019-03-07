@@ -24,6 +24,7 @@
 #include "common/util/version.h"
 #include "core/command.h"
 #include "core/net_ipc/ipc_interface.h"
+#include "core/net_ipc/nipc_pkg.h"
 #include "fs/bc_storage_session.h"
 #include "fs/proto/block.pb.h"
 #include "fs/proto/ir.pb.h"

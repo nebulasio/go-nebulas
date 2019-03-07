@@ -19,17 +19,18 @@
 //
 #pragma once
 #include "cmd/dummy_neb/dummy_common.h"
+#include "core/net_ipc/nipc_pkg.h"
 #include <ff/network.h>
 
 enum {
-  cli_brief_req_pkg,
+  cli_brief_req_pkg = nipc_last_pkg_id,
   cli_brief_ack_pkg,
   cli_submit_ir_pkg,
   cli_submit_ack_pkg,
 };
 
-define_nt(p_height, uint64_t);
 define_nt(p_account_num, uint64_t);
+
 typedef ff::net::ntpackage<cli_brief_req_pkg> cli_brief_req_t;
 typedef ff::net::ntpackage<cli_brief_ack_pkg, p_height, p_account_num>
     cli_brief_ack_t;

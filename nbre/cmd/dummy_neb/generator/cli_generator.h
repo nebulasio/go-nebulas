@@ -27,12 +27,18 @@ public:
   virtual ~cli_generator();
 
   void update_info(generate_block *block);
+  inline void append_pkg(const std::shared_ptr<ff::net::package> &pkg) {
+    m_pkgs.push_back(pkg);
+  }
 
   virtual std::shared_ptr<corepb::Account> gen_account();
   virtual std::shared_ptr<corepb::Transaction> gen_tx();
   virtual checker_tasks::task_container_ptr_t gen_tasks();
 
+  address_t m_auth_admin_addr;
+  address_t m_nr_admin_addr;
+  address_t m_dip_admin_addr;
+
 protected:
-  std::unique_ptr<std::thread> m_thread;
   neb::wakeable_queue<std::shared_ptr<ff::net::package>> m_pkgs;
 };

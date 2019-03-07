@@ -40,6 +40,9 @@ public:
   virtual address_t get_auth_admin_addr();
 
 protected:
+  void handle_cli_pkgs();
+
+protected:
   all_accounts m_all_accounts;
   std::unique_ptr<transaction_generator> m_tx_gen;
   std::unique_ptr<genesis_generator> m_genesis_gen;
@@ -61,4 +64,8 @@ protected:
   address_t m_auth_admin_addr;
   address_t m_nr_admin_addr;
   address_t m_dip_admin_addr;
+
+  std::unique_ptr<std::thread> m_thread;
+  neb::wakeable_queue<std::shared_ptr<ff::net::package>> m_pkgs;
+  ff::net::tcp_connection_base_ptr m_conn;
 };

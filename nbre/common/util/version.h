@@ -51,6 +51,22 @@ public:
 
   inline uint64_t data() const { return m_data.m_data; }
 
+  inline version &from_string(const std::string &str) {
+    std::vector<int> vs;
+    std::istringstream f(str);
+    std::string s;
+    while (std::getline(f, s, '.')) {
+      vs.push_back(std::atoi(s.c_str()));
+    }
+    if (vs.size() != 3) {
+      throw std::invalid_argument("invalid version string");
+    }
+    m_data.m_detail.m_major_version = vs[0];
+    m_data.m_detail.m_minor_version = vs[1];
+    m_data.m_detail.m_patch_version = vs[2];
+    return *this;
+  }
+
   friend inline std::ostream &operator<<(std::ostream &stream,
                                          const version &v) {
     stream << v.m_data.m_detail.m_major_version << ','
