@@ -49,6 +49,13 @@ bool nipc_client::start() {
           [&hub](const std::function<void(::ff::net::typed_pkg_hub &)> &f) {
             f(hub);
           });
+
+      m_to_recv_heart_beat_msg = 0;
+
+      hub.to_recv_pkg<heart_beat_t>([this](std::shared_ptr<heart_beat_t>) {
+        m_to_recv_heart_beat_msg--;
+      });
+
       nn.get_event_handler()->listen<::ff::net::event::tcp_get_connection>(
           [&, this](::ff::net::tcp_connection_base *) {
             LOG(INFO) << "got connection";
@@ -67,6 +74,18 @@ bool nipc_client::start() {
       nn.add_pkg_hub(hub);
       m_conn = nn.add_tcp_client(configuration::instance().nipc_listen(),
                                  configuration::instance().nipc_port());
+
+      m_heart_bear_timer = std::make_unique<timer_loop>(&nn.ioservice());
+      m_heart_bear_timer->register_timer_and_callback(3, [this]() {
+        if (m_to_recv_heart_beat_msg > 2) {
+          m_conn->close();
+          command_queue::instance().send_command(
+              std::make_shared<exit_command>());
+        }
+        m_to_recv_heart_beat_msg++;
+        std::shared_ptr<heart_beat_t> hb = std::make_shared<heart_beat_t>();
+        m_conn->send(hb);
+      });
       nn.run();
 
     } catch (const std::exception &e) {

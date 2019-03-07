@@ -20,11 +20,8 @@
 #pragma once
 #include <ff/network.h>
 
-// namespace neb {
-// namespace core {
-// namespace pkg {
-
 enum ipc_pkg_type {
+  heart_beat_pkg,
 #define define_ipc_param(type, name)
 
 #define define_ipc_pkg(type, ...) JOIN(type, _pkg),
@@ -37,6 +34,8 @@ enum ipc_pkg_type {
 #undef define_ipc_pkg
 #undef define_ipc_param
 };
+
+typedef ::ff::net::ntpackage<heart_beat_pkg> heart_beat_t;
 
 #define define_ipc_param(type, name) define_nt(name, type);
 
@@ -61,6 +60,3 @@ std::shared_ptr<PkgType1> new_ack_pkg(PkgType2 req) {
 }
 } // namespace core
 } // namespace neb
-  //}
-//} // namespace core
-//} // namespace neb

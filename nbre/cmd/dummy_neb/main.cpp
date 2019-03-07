@@ -216,14 +216,6 @@ int main(int argc, char *argv[]) {
   neb::configuration::instance().neb_db_dir() =
       neb::fs::join_path(root_dir, std::string("dummy_db"));
 
-  std::thread quiter([]() {
-    char c = 'a';
-    while (c != 'x')
-      std::cin >> c;
-    nbre_ipc_shutdown();
-    exit(-1);
-  });
-
   FLAGS_logtostderr = true;
 
   //::google::InitGoogleLogging(argv[0]);
