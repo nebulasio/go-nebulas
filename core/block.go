@@ -24,6 +24,8 @@ import (
 	"sync"
 	"time"
 
+	"runtime"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
@@ -38,7 +40,6 @@ import (
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
-	"runtime"
 )
 
 var (
@@ -302,6 +303,18 @@ func (block *Block) HasRandomSeed() bool {
 // ChainID returns block's chainID
 func (block *Block) ChainID() uint32 {
 	return block.header.chainID
+}
+
+// Miner return block's miner, only block is sealed return value
+func (block *Block) Miner() *Address {
+	if block.Sealed() {
+		proposer := block.ConsensusRoot().Proposer
+		miner, err := AddressParseFromBytes(proposer)
+		if err == nil {
+			return miner
+		}
+	}
+	return nil
 }
 
 // Coinbase return block's coinbase

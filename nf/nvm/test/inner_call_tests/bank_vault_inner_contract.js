@@ -76,7 +76,7 @@ BankVaultContractS.prototype = {
     },
 	saveErr: function(address, flag) {
         if (flag == 1) {
-            throw("saveErr in bank_vault_contract_second");
+            throw("saveErr in bank_vault_inner_contract");
             return;
         }
         var c = new Blockchain.Contract(address);

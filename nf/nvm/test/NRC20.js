@@ -90,7 +90,7 @@ StandardToken.prototype = {
 
         var from = Blockchain.transaction.from;
         this.balances.set(from, this._totalSupply);
-        this.transferEvent(true, from, from, this._totalSupply);
+        this._transferEvent(true, from, from, this._totalSupply);
     },
 
     // Returns the name of the token
@@ -139,7 +139,7 @@ StandardToken.prototype = {
         var toBalance = this.balances.get(to) || new BigNumber(0);
         this.balances.set(to, toBalance.add(value));
 
-        this.transferEvent(true, from, to, value);
+        this._transferEvent(true, from, to, value);
     },
 
     transferFrom: function (from, to, value) {
@@ -161,13 +161,13 @@ StandardToken.prototype = {
             var toBalance = this.balances.get(to) || new BigNumber(0);
             this.balances.set(to, toBalance.add(value));
 
-            this.transferEvent(true, from, to, value);
+            this._transferEvent(true, from, to, value);
         } else {
             throw new Error("transfer failed.");
         }
     },
 
-    transferEvent: function (status, from, to, value) {
+    _transferEvent: function (status, from, to, value) {
         Event.Trigger(this.name(), {
             Status: status,
             Transfer: {
@@ -198,10 +198,10 @@ StandardToken.prototype = {
 
         this.allowed.set(from, owned);
 
-        this.approveEvent(true, from, spender, value);
+        this._approveEvent(true, from, spender, value);
     },
 
-    approveEvent: function (status, from, spender, value) {
+    _approveEvent: function (status, from, spender, value) {
         Event.Trigger(this.name(), {
             Status: status,
             Approve: {

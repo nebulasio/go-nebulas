@@ -21,22 +21,9 @@ package core
 import (
 	"reflect"
 	"testing"
-	"time"
 
-	"github.com/nebulasio/go-nebulas/crypto/keystore"
-	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/stretchr/testify/assert"
 )
-
-func mockAddress() *Address {
-	ks := keystore.DefaultKS
-	priv1 := secp256k1.GeneratePrivateKey()
-	pubdata1, _ := priv1.PublicKey().Encoded()
-	addr, _ := NewAddressFromPublicKey(pubdata1)
-	ks.SetKey(addr.String(), priv1, []byte("passphrase"))
-	ks.Unlock(addr.String(), []byte("passphrase"), time.Second*60*60*24*365)
-	return addr
-}
 
 func TestParse(t *testing.T) {
 	type args struct {
