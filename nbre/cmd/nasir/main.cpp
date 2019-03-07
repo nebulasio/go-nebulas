@@ -22,12 +22,13 @@
 #include "common/util/byte.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/util.h"
+#include "util/command.h"
+#include <algorithm>
 #include <boost/format.hpp>
-#include <boost/program_options.hpp>
 #include <boost/process.hpp>
+#include <boost/program_options.hpp>
 #include <fstream>
 #include <iostream>
-#include <algorithm>
 
 namespace po = boost::program_options;
 namespace bp = boost::process;
@@ -107,7 +108,7 @@ void make_ir_bitcode(neb::ir_conf_reader &reader, std::string &ir_bc_file, bool 
   std::cout << command_string << std::endl;
   LOG(INFO) << command_string;
 
-  result = execute_command(command_string);
+  result = neb::command_executor::execute_command(command_string);
   if (result != 0) {
     LOG(INFO) << "error: executed by boost::process::system.";
     LOG(INFO) << "result code = " << result;
@@ -231,7 +232,11 @@ int main(int argc, char *argv[]) {
 
     if (mode == "payload") {
       LOG(INFO) << "mode paylaod";
-      // make_ir_bitcode(reader, ir_bc_file, true);
+      make_ir_bitcode(reader, ir_bc_file, true);
+      if (!neb::fs::exists(ir_bc_file)) {
+        std::cout << "cann't compile the file " << std::endl;
+        exit(-1);
+      }
       if (reader.cpp_files().size() > 1) {
         std::cout
             << "\t**Too many cpp files, we only support 1 cpp file for now."
@@ -253,6 +258,5 @@ int main(int argc, char *argv[]) {
     ifs.close();
     std::cout << e.what() << std::endl;
   }
-
   return 0;
 }
