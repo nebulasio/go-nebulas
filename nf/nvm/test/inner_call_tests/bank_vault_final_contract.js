@@ -33,6 +33,15 @@ BankVaultContract.prototype = {
 	init: function () {
 		//TODO:
 	},
+	getRandom: function(randA, randB) {
+		console.log("second bank");
+        var rand = _native_math.random();
+		console.log("rand_last:", rand);
+		if (rand == randA || rand == randB) {
+			throw("check the rand is equal");
+		}
+		
+    },
 	save: function (height) {
 		var from = Blockchain.transaction.from;
 		var value = Blockchain.transaction.value;
@@ -47,9 +56,32 @@ BankVaultContract.prototype = {
 		deposit.balance = value;
 		deposit.expiryHeight = bk_height.plus(height);
 		this.bankVault.put(from, deposit);
-		this._transferEvent(true, height);
+		this.transferEvent(true, height);
 	},
-	_transferEvent: function (status, height, mem) {
+	saveMem: function (mem) {
+        var m = new ArrayBuffer(mem);
+
+        this.transferEvent(true, 0, mem);
+	},
+	saveErr: function(address, flag) {
+        if (flag == 2) {
+            throw("saveErr in bank_vault_contract");
+            return;
+        }
+        this.transferEvent(true, 0, 3);
+	},
+	saveValue: function(val) {
+		console.log("inner last saveValue:", val);
+    },
+	saveTimeOut: function(address, flag) {
+        if (flag == 2) {
+            while(1) {
+				
+			}
+        }
+        this.transferEvent(true, 0, 3);
+	},
+	transferEvent: function (status, height, mem) {
         Event.Trigger("bank_vault_contract", {
             Status: status,
             Transfer: {
@@ -96,6 +128,14 @@ BankVaultContract.prototype = {
 	balanceOf: function () {
 		var from = Blockchain.transaction.from;
 		return this.bankVault.get(from);
+	},
+
+	verifyAddress: function (address) {
+		// 1-valid, 0-invalid
+		var result = Blockchain.verifyAddress(address);
+		return {
+			valid: result == 0 ? false : true
+		};
 	}
 };
 
