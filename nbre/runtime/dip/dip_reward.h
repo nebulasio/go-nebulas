@@ -28,12 +28,15 @@ namespace neb {
 namespace rt {
 namespace dip {
 
-using nr_info_t = ::neb::rt::nr::nr_info_t;
 struct dip_info_t {
   address_t m_deployer;
   address_t m_contract;
   std::string m_reward;
 };
+
+using nr_info_t = ::neb::rt::nr::nr_info_t;
+using dip_ret_type =
+    std::tuple<int32_t, std::string, std::vector<std::shared_ptr<dip_info_t>>>;
 
 class dip_reward {
 public:

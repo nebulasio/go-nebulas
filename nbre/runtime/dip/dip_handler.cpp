@@ -71,19 +71,22 @@ void dip_handler::init_dip_params(block_height_t height) {
     try {
       jit_driver &jd = jit_driver::instance();
       LOG(INFO) << "to init dip params";
-      auto ret = jd.run_ir<std::string>(
+      auto dip_ret = jd.run_ir<dip_ret_type>(
           "dip", std::numeric_limits<uint64_t>::max(),
           neb::configuration::instance().dip_func_name(), 0);
 
-      dip_params_t info;
-      info.deserialize_from_string(ret);
-      m_dip_params_list.push_back(std::move(info));
+      if (!std::get<0>(dip_ret)) {
+        dip_params_t info;
+        info.deserialize_from_string(std::get<1>(dip_ret));
+        m_dip_params_list.push_back(std::move(info));
 
-      LOG(INFO) << "show dip history";
-      for (auto &ele : m_dip_params_list) {
-        LOG(INFO) << ele.get<start_block>() << ',' << ele.get<block_interval>()
-                  << ',' << ele.get<reward_addr>() << ','
-                  << ele.get<coinbase_addr>() << ',' << ele.get<version>();
+        LOG(INFO) << "show dip history";
+        for (auto &ele : m_dip_params_list) {
+          LOG(INFO) << ele.get<start_block>() << ','
+                    << ele.get<block_interval>() << ','
+                    << ele.get<reward_addr>() << ',' << ele.get<coinbase_addr>()
+                    << ',' << ele.get<version>();
+        }
       }
     } catch (const std::exception &e) {
       LOG(INFO) << "dip params init failed " << e.what();
@@ -162,13 +165,17 @@ void dip_handler::start(neb::block_height_t height,
                 << irs_ptr->size() << ','
                 << neb::configuration::instance().dip_func_name() << ','
                 << hash_height;
-      auto dip_reward = jd.run<std::string>(
+      auto dip_ret = jd.run<dip_ret_type>(
           name_version, *irs_ptr,
           neb::configuration::instance().dip_func_name(), hash_height);
       LOG(INFO) << "dip reward returned";
 
-      write_to_storage(hash_height, dip_reward);
-      LOG(INFO) << "write dip reward to storage";
+      if (std::get<0>(dip_ret)) {
+        auto &tmp = std::get<2>(dip_ret);
+        auto dip_str = dip_reward::dip_info_to_json(tmp);
+        write_to_storage(hash_height, dip_str);
+        LOG(INFO) << "write dip reward to storage";
+      }
 
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute dip failed " << e.what();

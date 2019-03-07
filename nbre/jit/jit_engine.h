@@ -32,7 +32,7 @@ public:
     auto main_func = fromTargetAddress<MainFnPtr>(
         cantFail(m_main_sym->getAddress(), nullptr));
     if (nullptr == main_func)
-      return RT(0);
+      return RT();
     return main_func(args...);
   }
 

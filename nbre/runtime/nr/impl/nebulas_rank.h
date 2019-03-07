@@ -56,6 +56,8 @@ struct rank_params_t {
 using uintxx_t = uint64_t;
 using transaction_db_ptr_t = std::unique_ptr<neb::fs::transaction_db>;
 using account_db_ptr_t = std::unique_ptr<neb::fs::account_db>;
+using nr_ret_type =
+    std::tuple<int32_t, std::string, std::vector<std::shared_ptr<nr_info_t>>>;
 
 class nebulas_rank {
 public:

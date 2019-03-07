@@ -39,7 +39,7 @@ void nr_handler::run_if_default(block_height_t start_block,
   p([this, start_block, end_block, nr_handle]() {
     try {
       jit_driver &jd = jit_driver::instance();
-      auto nr_result = jd.run_ir<std::string>(
+      auto nr_result = jd.run_ir<std::vector<std::shared_ptr<nr_info_t>>>(
           "nr", start_block, neb::configuration::instance().nr_func_name(),
           start_block, end_block);
       m_nr_result.set(nr_handle, nr_result);
@@ -66,7 +66,7 @@ void nr_handler::run_if_specify(block_height_t start_block,
       std::string name_version = ss.str();
 
       jit_driver &jd = jit_driver::instance();
-      std::string nr_result = jd.run<std::string>(
+      auto nr_result = jd.run<std::vector<std::shared_ptr<nr_info_t>>>(
           name_version, irs, neb::configuration::instance().nr_func_name(),
           start_block, end_block);
       m_nr_result.set(nr_handle, nr_result);
@@ -102,12 +102,13 @@ void nr_handler::start(const std::string &nr_handle) {
   run_if_specify(start_block, end_block, nr_version, nr_handle);
 }
 
-std::string nr_handler::get_nr_result(const std::string &nr_handle) {
+std::vector<std::shared_ptr<nr_info_t>>
+nr_handler::get_nr_result(const std::string &nr_handle) {
 
-  std::string nr_result;
+  std::vector<std::shared_ptr<nr_info_t>> nr_result;
   auto ret = m_nr_result.get(nr_handle, nr_result);
   if (!ret) {
-    return std::string(
+    LOG(INFO) << std::string(
         "{\"err\":\"nr hash expired or nr result not complete yet\"}");
   }
   return nr_result;

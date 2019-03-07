@@ -23,6 +23,7 @@
 #include "common/util/byte.h"
 #include "common/util/lru_cache.h"
 #include "common/util/singleton.h"
+#include "runtime/nr/impl/nebulas_rank.h"
 
 namespace neb {
 namespace rt {
@@ -33,7 +34,9 @@ public:
   nr_handler();
 
   void start(const std::string &nr_handle);
-  std::string get_nr_result(const std::string &nr_handle);
+
+  auto get_nr_result(const std::string &nr_handle)
+      -> std::vector<std::shared_ptr<nr_info_t>>;
 
   void run_if_default(block_height_t start_block, block_height_t end_block,
                       const std::string &nr_handle);
@@ -41,7 +44,7 @@ public:
                       uint64_t nr_version, const std::string &nr_handle);
 
 private:
-  lru_cache<std::string, std::string> m_nr_result;
+  lru_cache<std::string, std::vector<std::shared_ptr<nr_info_t>>> m_nr_result;
 };
 } // namespace nr
 } // namespace rt

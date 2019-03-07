@@ -33,7 +33,7 @@ namespace neb {
 namespace rt {
 namespace dip {
 
-std::vector<std::shared_ptr<dip_info_t>>
+dip_ret_type
 entry_point_dip_impl(compatible_uint64_t start_block,
                      compatible_uint64_t end_block, version_t version,
                      compatible_uint64_t height,
@@ -53,7 +53,8 @@ entry_point_dip_impl(compatible_uint64_t start_block,
   nr::account_db_ptr_t adb_ptr =
       std::make_unique<neb::fs::account_db>(pba.get());
 
-  auto ret = dip_reward::get_dip_reward(
+  dip_ret_type ret;
+  std::get<2>(ret) = dip_reward::get_dip_reward(
       start_block, end_block, height, nr_result, tdb_ptr, adb_ptr, alpha, beta);
   LOG(INFO) << "get dip reward resurned";
   std::vector<std::pair<std::string, uint64_t>> meta_info(

@@ -303,9 +303,11 @@ void client_driver::add_handlers() {
         try {
           auto ack = new_ack_pkg<nbre_nr_result_ack>(req);
           std::string nr_handle = req->get<p_nr_handle>();
-          std::string nr_result =
+          auto nr_result =
               neb::rt::nr::nr_handler::instance().get_nr_result(nr_handle);
-          ack->set<p_nr_result>(nr_result);
+          auto nr_result_str =
+              neb::rt::nr::nebulas_rank::nr_info_to_json(nr_result);
+          ack->set<p_nr_result>(nr_result_str);
           m_ipc_conn->send(ack);
         } catch (const std::exception &e) {
           LOG(ERROR) << "got exception " << typeid(e).name()
