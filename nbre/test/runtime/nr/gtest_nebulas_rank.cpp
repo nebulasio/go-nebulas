@@ -424,39 +424,35 @@ TEST(test_runtime_nebulas_rank, json_seri_deseri) {
   std::mt19937 mt(rd());
   std::uniform_int_distribution<> dis(0, std::numeric_limits<int16_t>::max());
 
-  std::vector<neb::rt::nr::nr_info_t> infos;
+  std::vector<std::shared_ptr<neb::rt::nr::nr_info_t>> infos;
   std::vector<std::pair<std::string, uint64_t>> meta({{"start_height", dis(mt)},
                                                       {"end_height", dis(mt)},
                                                       {"version", dis(mt)}});
   int32_t infos_size = std::sqrt(dis(mt));
   for (int32_t i = 0; i < infos_size; i++) {
-    neb::rt::nr::nr_info_t info{uint32_t(std::sqrt(dis(mt))),
-                                uint32_t(dis(mt)),
-                                uint32_t(dis(mt)),
-                                uint32_t(dis(mt)),
-                                neb::floatxx_t(dis(mt)),
-                                neb::floatxx_t(dis(mt)),
-                                neb::floatxx_t(dis(mt)),
-                                neb::floatxx_t(dis(mt)),
-                                neb::floatxx_t(dis(mt)),
-                                neb::floatxx_t(dis(mt))};
-    infos.push_back(info);
+    auto info_ptr =
+        std::shared_ptr<neb::rt::nr::nr_info_t>(new neb::rt::nr::nr_info_t{
+            uint32_t(std::sqrt(dis(mt))), uint32_t(dis(mt)), uint32_t(dis(mt)),
+            uint32_t(dis(mt)), neb::floatxx_t(dis(mt)), neb::floatxx_t(dis(mt)),
+            neb::floatxx_t(dis(mt)), neb::floatxx_t(dis(mt)),
+            neb::floatxx_t(dis(mt)), neb::floatxx_t(dis(mt))});
+    infos.push_back(info_ptr);
   }
   auto json_str = neb::rt::nr::nebulas_rank::nr_info_to_json(infos, meta);
-  auto info_ptr = neb::rt::nr::nebulas_rank::json_to_nr_info(json_str);
-  EXPECT_EQ(infos_size, info_ptr->size());
+  auto info_v = neb::rt::nr::nebulas_rank::json_to_nr_info(json_str);
+  EXPECT_EQ(infos_size, info_v.size());
 
   for (int32_t i = 0; i < infos_size; i++) {
-    EXPECT_EQ(infos[i].m_address, (*info_ptr)[i].m_address);
-    EXPECT_EQ(infos[i].m_in_degree, (*info_ptr)[i].m_in_degree);
-    EXPECT_EQ(infos[i].m_out_degree, (*info_ptr)[i].m_out_degree);
-    EXPECT_EQ(infos[i].m_degrees, (*info_ptr)[i].m_degrees);
-    EXPECT_EQ(infos[i].m_in_val, (*info_ptr)[i].m_in_val);
-    EXPECT_EQ(infos[i].m_out_val, (*info_ptr)[i].m_out_val);
-    EXPECT_EQ(infos[i].m_in_outs, (*info_ptr)[i].m_in_outs);
-    EXPECT_EQ(infos[i].m_median, (*info_ptr)[i].m_median);
-    EXPECT_EQ(infos[i].m_weight, (*info_ptr)[i].m_weight);
-    EXPECT_EQ(infos[i].m_nr_score, (*info_ptr)[i].m_nr_score);
+    EXPECT_EQ(infos[i]->m_address, info_v[i]->m_address);
+    EXPECT_EQ(infos[i]->m_in_degree, info_v[i]->m_in_degree);
+    EXPECT_EQ(infos[i]->m_out_degree, info_v[i]->m_out_degree);
+    EXPECT_EQ(infos[i]->m_degrees, info_v[i]->m_degrees);
+    EXPECT_EQ(infos[i]->m_in_val, info_v[i]->m_in_val);
+    EXPECT_EQ(infos[i]->m_out_val, info_v[i]->m_out_val);
+    EXPECT_EQ(infos[i]->m_in_outs, info_v[i]->m_in_outs);
+    EXPECT_EQ(infos[i]->m_median, info_v[i]->m_median);
+    EXPECT_EQ(infos[i]->m_weight, info_v[i]->m_weight);
+    EXPECT_EQ(infos[i]->m_nr_score, info_v[i]->m_nr_score);
   }
 }
 

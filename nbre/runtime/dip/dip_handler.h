@@ -44,14 +44,14 @@ class dip_handler : public util::singleton<dip_handler> {
 public:
   dip_handler();
 
-  void deploy(version_t version, block_height_t available_height);
   void init_dip_params(block_height_t height);
+  void load_dip_rewards();
+
+  void deploy(version_t version, block_height_t available_height);
   void start(block_height_t height, const dip_params_t *dip_params = nullptr);
 
   const dip_params_t &get_dip_params(block_height_t height);
   std::string get_dip_reward(neb::block_height_t height);
-
-  void load_dip_rewards();
 
 private:
   std::string get_dip_reward_when_missing(block_height_t height,

@@ -147,23 +147,20 @@ void client_driver_base::init_timer_thread() {
 
 void client_driver_base::init_nbre() {
 
-  auto rs = neb::fs::storage_holder::instance().nbre_db_ptr();
-  neb::rt::dip::dip_handler::instance().load_dip_rewards();
-
+  fs::bc_storage_session::instance().init(
+      configuration::instance().neb_db_dir(), fs::storage_open_for_readonly);
   try {
+    auto rs = neb::fs::storage_holder::instance().nbre_db_ptr();
     auto nbre_max_height_bytes =
         rs->get(neb::configuration::instance().nbre_max_height_name());
     auto nbre_max_height =
         neb::util::byte_to_number<block_height_t>(nbre_max_height_bytes);
     neb::rt::dip::dip_handler::instance().init_dip_params(nbre_max_height);
+    neb::rt::dip::dip_handler::instance().load_dip_rewards();
   } catch (const std::exception &e) {
     LOG(INFO) << "nbre max height not init " << e.what();
   }
-  neb::fs::bc_storage_session::instance().init(
-      neb::configuration::instance().neb_db_dir(),
-      neb::fs::storage_open_for_readonly);
 }
-
 } // end namespace internal
 
 client_driver::client_driver() : internal::client_driver_base() {}

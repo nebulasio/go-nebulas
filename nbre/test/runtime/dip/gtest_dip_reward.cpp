@@ -27,24 +27,26 @@ template <typename T> T precesion(const T &x, float pre = PRECESION) {
   return std::fabs(T(x * pre));
 }
 
-std::unique_ptr<std::vector<neb::rt::dip::dip_info_t>>
+std::vector<std::shared_ptr<neb::rt::dip::dip_info_t>>
 gen_dip_infos(std::vector<std::pair<std::string, uint64_t>> &meta) {
 
   std::random_device rd;
   std::mt19937 mt(rd());
   std::uniform_int_distribution<> dis(0, std::numeric_limits<int16_t>::max());
 
-  auto ret = std::make_unique<std::vector<neb::rt::dip::dip_info_t>>();
+  std::vector<std::shared_ptr<neb::rt::dip::dip_info_t>> ret;
   meta =
       std::vector<std::pair<std::string, uint64_t>>({{"start_height", dis(mt)},
                                                      {"end_height", dis(mt)},
                                                      {"version", dis(mt)}});
   int32_t infos_size = std::sqrt(dis(mt));
   for (int32_t i = 0; i < infos_size; i++) {
-    neb::rt::dip::dip_info_t info{uint32_t(std::pow(dis(mt), 0.3)),
-                                  uint32_t(std::pow(dis(mt), 0.3)),
-                                  std::to_string(dis(mt))};
-    ret->push_back(info);
+    auto info_ptr =
+        std::shared_ptr<neb::rt::dip::dip_info_t>(new neb::rt::dip::dip_info_t{
+            neb::to_address(std::to_string(uint32_t(std::pow(dis(mt), 0.3)))),
+            neb::to_address(std::to_string(uint32_t(std::pow(dis(mt), 0.3)))),
+            std::to_string(dis(mt))});
+    ret.push_back(info_ptr);
   }
   return ret;
 }
@@ -52,19 +54,19 @@ gen_dip_infos(std::vector<std::pair<std::string, uint64_t>> &meta) {
 TEST(test_runtime_dip_reward, json_seri_deseri) {
   std::vector<std::pair<std::string, uint64_t>> meta;
   auto ret = gen_dip_infos(meta);
-  auto json_str = neb::rt::dip::dip_reward::dip_info_to_json(*ret, meta);
-  auto info_ptr = neb::rt::dip::dip_reward::json_to_dip_info(json_str);
-  EXPECT_EQ(ret->size(), info_ptr->size());
+  auto json_str = neb::rt::dip::dip_reward::dip_info_to_json(ret, meta);
+  auto info_v = neb::rt::dip::dip_reward::json_to_dip_info(json_str);
+  EXPECT_EQ(ret.size(), info_v.size());
 
-  for (size_t i = 0; i < ret->size(); i++) {
-    EXPECT_EQ((*ret)[i].m_deployer, (*info_ptr)[i].m_deployer);
-    EXPECT_EQ((*ret)[i].m_contract, (*info_ptr)[i].m_contract);
-    EXPECT_EQ((*ret)[i].m_reward, (*info_ptr)[i].m_reward);
+  for (size_t i = 0; i < ret.size(); i++) {
+    EXPECT_EQ(ret[i]->m_deployer, info_v[i]->m_deployer);
+    EXPECT_EQ(ret[i]->m_contract, info_v[i]->m_contract);
+    EXPECT_EQ(ret[i]->m_reward, info_v[i]->m_reward);
   }
 }
 
 TEST(test_runtime_dip_reward, back_to_coinbase) {
-  std::vector<neb::rt::dip::dip_info_t> infos;
+  std::vector<std::shared_ptr<neb::rt::dip::dip_info_t>> infos;
   neb::floatxx_t reward_left(0);
   neb::address_t coinbase_addr = neb::to_address(std::string());
   neb::rt::dip::dip_reward::back_to_coinbase(infos, reward_left, coinbase_addr);
@@ -92,7 +94,7 @@ TEST(test_runtime_dip_reward, back_to_coinbase) {
   std::uniform_int_distribution<> dis(1, std::numeric_limits<int16_t>::max());
 
   infos.clear();
-  infos = *ret;
+  infos = ret;
   size_t infos_size = infos.size();
   reward_left = dis(mt);
   coinbase_addr = std::pow(dis(mt), 0.3);
@@ -183,11 +185,11 @@ TEST(test_runtime_dip_reward, account_to_contract_votes) {
   tx.m_to = neb::to_address("A");
   txs.push_back(tx);
 
-  std::vector<neb::rt::nr::nr_info_t> nr_infos;
-  neb::rt::nr::nr_info_t info;
-  info.m_address = neb::to_address("a");
-  info.m_nr_score = 1;
-  nr_infos.push_back(info);
+  std::vector<std::shared_ptr<neb::rt::nr::nr_info_t>> nr_infos;
+  auto info_ptr = std::make_shared<neb::rt::nr::nr_info_t>();
+  info_ptr->m_address = neb::to_address("a");
+  info_ptr->m_nr_score = 1;
+  nr_infos.push_back(info_ptr);
 
   auto ret = neb::rt::dip::dip_reward::account_to_contract_votes(txs, nr_infos);
   EXPECT_EQ(ret->size(), 1);
@@ -201,9 +203,10 @@ TEST(test_runtime_dip_reward, account_to_contract_votes) {
   tx.m_from = neb::to_address("b");
   tx.m_to = neb::to_address("A");
   txs.push_back(tx);
-  info.m_address = neb::to_address("b");
-  info.m_nr_score = 1;
-  nr_infos.push_back(info);
+  info_ptr = std::make_shared<neb::rt::nr::nr_info_t>();
+  info_ptr->m_address = neb::to_address("b");
+  info_ptr->m_nr_score = 1;
+  nr_infos.push_back(info_ptr);
 
   ret = neb::rt::dip::dip_reward::account_to_contract_votes(txs, nr_infos);
   EXPECT_EQ(ret->size(), 2);
@@ -227,11 +230,11 @@ TEST(test_runtime_dip_reward, dapp_votes) {
   tx.m_to = neb::to_address("A");
   txs.push_back(tx);
 
-  std::vector<neb::rt::nr::nr_info_t> nr_infos;
-  neb::rt::nr::nr_info_t info;
-  info.m_address = neb::to_address("a");
-  info.m_nr_score = 1;
-  nr_infos.push_back(info);
+  std::vector<std::shared_ptr<neb::rt::nr::nr_info_t>> nr_infos;
+  auto info_ptr = std::make_shared<neb::rt::nr::nr_info_t>();
+  info_ptr->m_address = neb::to_address("a");
+  info_ptr->m_nr_score = 1;
+  nr_infos.push_back(info_ptr);
 
   auto tmp = neb::rt::dip::dip_reward::account_to_contract_votes(txs, nr_infos);
   auto ret = neb::rt::dip::dip_reward::dapp_votes(*tmp);
@@ -243,9 +246,10 @@ TEST(test_runtime_dip_reward, dapp_votes) {
   tx.m_from = neb::to_address("b");
   tx.m_to = neb::to_address("A");
   txs.push_back(tx);
-  info.m_address = neb::to_address("b");
-  info.m_nr_score = 1;
-  nr_infos.push_back(info);
+  info_ptr = std::make_shared<neb::rt::nr::nr_info_t>();
+  info_ptr->m_address = neb::to_address("b");
+  info_ptr->m_nr_score = 1;
+  nr_infos.push_back(info_ptr);
 
   tmp = neb::rt::dip::dip_reward::account_to_contract_votes(txs, nr_infos);
   ret = neb::rt::dip::dip_reward::dapp_votes(*tmp);
@@ -262,11 +266,12 @@ TEST(test_runtime_dip_reward, participate_lambda) {
   tx.m_to = neb::to_address("A");
   txs.push_back(tx);
 
-  std::vector<neb::rt::nr::nr_info_t> nr_infos;
-  neb::rt::nr::nr_info_t info;
+  std::vector<std::shared_ptr<neb::rt::nr::nr_info_t>> nr_infos;
+  auto info_ptr = std::make_shared<neb::rt::nr::nr_info_t>();
+  neb::rt::nr::nr_info_t &info = *info_ptr;
   info.m_address = neb::to_address("a");
   info.m_nr_score = 1;
-  nr_infos.push_back(info);
+  nr_infos.push_back(info_ptr);
 
   neb::floatxx_t alpha = 1;
   neb::floatxx_t beta = 1;

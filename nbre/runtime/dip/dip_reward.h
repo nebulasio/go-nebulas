@@ -46,11 +46,11 @@ public:
                  floatxx_t beta) -> std::vector<std::shared_ptr<dip_info_t>>;
 
   static std::string dip_info_to_json(
-      const std::vector<dip_info_t> &dip_infos,
+      const std::vector<std::shared_ptr<dip_info_t>> &dip_infos,
       const std::vector<std::pair<std::string, uint64_t>> &meta = {});
 
   static auto json_to_dip_info(const std::string &dip_reward)
-      -> std::unique_ptr<std::vector<dip_info_t>>;
+      -> std::vector<std::shared_ptr<dip_info_t>>;
 
 #ifdef ENABLE_UNITTEST
 public:

@@ -124,7 +124,7 @@ void dip_reward::full_fill_meta_info(
 }
 
 std::string dip_reward::dip_info_to_json(
-    const std::vector<dip_info_t> &dip_infos,
+    const std::vector<std::shared_ptr<dip_info_t>> &dip_infos,
     const std::vector<std::pair<std::string, uint64_t>> &meta) {
 
   boost::property_tree::ptree root;
@@ -140,7 +140,8 @@ std::string dip_reward::dip_info_to_json(
   }
 
   LOG(INFO) << "dip info size " << dip_infos.size();
-  for (auto &info : dip_infos) {
+  for (auto &info_ptr : dip_infos) {
+    auto &info = *info_ptr;
     boost::property_tree::ptree p;
 
     std::vector<std::pair<std::string, std::string>> kv_pair(
@@ -164,7 +165,7 @@ std::string dip_reward::dip_info_to_json(
   return tmp;
 }
 
-std::unique_ptr<std::vector<dip_info_t>>
+std::vector<std::shared_ptr<dip_info_t>>
 dip_reward::json_to_dip_info(const std::string &dip_reward) {
 
   boost::property_tree::ptree pt;
@@ -172,11 +173,12 @@ dip_reward::json_to_dip_info(const std::string &dip_reward) {
   boost::property_tree::json_parser::read_json(ss, pt);
 
   boost::property_tree::ptree dips = pt.get_child("dips");
-  auto infos = std::make_unique<std::vector<dip_info_t>>();
+  std::vector<std::shared_ptr<dip_info_t>> infos;
 
   BOOST_FOREACH (boost::property_tree::ptree::value_type &v, dips) {
     boost::property_tree::ptree nr = v.second;
-    dip_info_t info;
+    auto info_ptr = std::make_shared<dip_info_t>();
+    dip_info_t &info = *info_ptr;
     neb::util::bytes deployer_bytes =
         neb::util::bytes::from_base58(nr.get<std::string>("address"));
     neb::util::bytes contract_bytes =
@@ -184,7 +186,7 @@ dip_reward::json_to_dip_info(const std::string &dip_reward) {
     info.m_deployer = deployer_bytes;
     info.m_contract = contract_bytes;
     info.m_reward = nr.get<std::string>("reward");
-    infos->push_back(info);
+    infos.push_back(info_ptr);
   }
   return infos;
 }

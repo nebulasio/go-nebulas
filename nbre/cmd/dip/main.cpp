@@ -94,11 +94,11 @@ int main(int argc, char *argv[]) {
 
   using dip_info_t = neb::rt::dip::dip_info_t;
   using floatxx_t = neb::floatxx_t;
-  std::vector<dip_info_t> v;
-  v.push_back(
-      dip_info_t{neb::to_address("addr1"), neb::to_address("addr3"), "1.1"});
-  v.push_back(
-      dip_info_t{neb::to_address("addr2"), neb::to_address("addr4"), "2.1"});
+  std::vector<std::shared_ptr<dip_info_t>> v;
+  v.push_back(std::shared_ptr<dip_info_t>(new dip_info_t{
+      neb::to_address("addr1"), neb::to_address("addr3"), "1.1"}));
+  v.push_back(std::shared_ptr<dip_info_t>(new dip_info_t{
+      neb::to_address("addr2"), neb::to_address("addr4"), "2.1"}));
 
   std::cout << neb::rt::dip::dip_reward::dip_info_to_json(v) << std::endl;
 
