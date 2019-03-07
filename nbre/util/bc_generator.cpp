@@ -140,7 +140,11 @@ generate_block::add_deploy_transaction(const address_t &owner,
   tx->set_from(address_to_string(owner));
   corepb::Data *data = new corepb::Data();
   data->set_type("deploy");
-  data->set_payload(util::byte_to_string(payload));
+  boost::property_tree::ptree pt;
+  pt.put("Data", payload.to_base64());
+  std::string payload_str;
+  neb::util::json_parser::write_json(payload_str, pt);
+  data->set_payload(payload_str);
   tx->set_allocated_data(data);
   tx->set_timestamp(util::now());
   tx->set_nonce(m_all_accounts->get_nonce(owner));

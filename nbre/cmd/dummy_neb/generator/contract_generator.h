@@ -18,10 +18,14 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
-#include "cmd/dummy_neb/generator/auth_table_generator.h"
-#include "cmd/dummy_neb/generator/call_tx_generator.h"
-#include "cmd/dummy_neb/generator/contract_generator.h"
-#include "cmd/dummy_neb/generator/dip_ir_generator.h"
-#include "cmd/dummy_neb/generator/genesis_generator.h"
-#include "cmd/dummy_neb/generator/nr_ir_generator.h"
-#include "cmd/dummy_neb/generator/transaction_generator.h"
+#include "cmd/dummy_neb/generator/generator_base.h"
+
+class contract_generator : public generator_base {
+public:
+  contract_generator(generate_block *block, int contract_number);
+  virtual ~contract_generator();
+
+  virtual std::shared_ptr<corepb::Account> gen_account();
+  virtual std::shared_ptr<corepb::Transaction> gen_tx();
+  virtual checker_tasks::task_container_ptr_t gen_tasks();
+};

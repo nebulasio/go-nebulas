@@ -71,6 +71,16 @@ std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
 
       m_nr_gen->run();
     }
+
+    if (m_contract_ratio != 0 && std::rand() % 1000 < m_contract_ratio * 1000) {
+      m_contract_gen = std::make_unique<contract_generator>(ret.get(), 1);
+      m_contract_gen->run();
+    }
+    if (m_call_ratio != 0 && std::rand() % 1000 < m_call_ratio * 1000) {
+      m_call_gen = std::make_unique<call_tx_generator>(
+          ret.get(), std::rand() % (m_all_accounts.size() / 5));
+      m_call_gen->run();
+    }
   }
 
   m_current_height++;
@@ -91,6 +101,14 @@ void random_dummy::enable_nr_ir_with_ratio(double nr_ratio) {
   if (m_current_height == 0)
     generate_LIB_block();
   m_nr_ratio = nr_ratio;
+}
+
+void random_dummy::enable_call_tx_with_ratio(double contract_ratio,
+                                             double call_ratio) {
+  if (m_current_height == 0)
+    generate_LIB_block();
+  m_contract_ratio = contract_ratio;
+  m_call_ratio = call_ratio;
 }
 
 std::shared_ptr<checker_task_base> random_dummy::generate_checker_task() {

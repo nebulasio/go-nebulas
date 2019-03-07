@@ -34,6 +34,21 @@ public:
   corepb::Account *random_contract_account() const;
   corepb::Account *random_user_account() const;
 
+  inline address_t random_contract_addr() const {
+    auto p = random_contract_account();
+    if (p) {
+      return to_address(p->address());
+    }
+    return address_t();
+  }
+  inline address_t random_user_addr() const {
+    auto p = random_user_account();
+    if (p) {
+      return to_address(p->address());
+    }
+    return address_t();
+  }
+
   inline size_t size() const { return m_all_accounts.size(); }
 
   uint64_t get_nonce(const address_t &addr);
