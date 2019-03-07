@@ -62,8 +62,8 @@ static std::string gen_admin_var(const address_t &addr,
   ss << "};\n";
   return ss.str();
 }
-static std::string gen_auth_table_ir(const address_t &nr_admin,
-                                     const address_t &dip_admin) {
+std::string gen_auth_table_ir(const address_t &nr_admin,
+                              const address_t &dip_admin) {
   std::string nr_var = gen_admin_var(nr_admin, "nr_admin_addr");
   std::string dip_var = gen_admin_var(dip_admin, "dip_admin_addr");
 
@@ -84,6 +84,20 @@ static std::string gen_auth_table_ir(const address_t &nr_admin,
   return ss.str();
 }
 
+neb::util::bytes gen_auth_table_payload(const address_t &nr_admin,
+                                        const address_t &dip_admin) {
+  std::string payload = gen_auth_table_ir(nr_admin, dip_admin);
+  nbre::NBREIR ir;
+  ir.set_name("auth");
+  ir.set_version(0);
+  ir.set_height(0);
+  ir.set_ir(payload);
+  ir.set_ir_type(neb::ir_type::cpp);
+
+  std::string ir_str = ir.SerializeAsString();
+  return neb::util::string_to_byte(ir_str);
+}
+
 auth_table_generator::auth_table_generator(all_accounts *accounts,
                                            generate_block *block)
     : generator_base(accounts, block, 0, 1) {}
@@ -95,17 +109,8 @@ std::shared_ptr<corepb::Account> auth_table_generator::gen_account() {
 }
 
 std::shared_ptr<corepb::Transaction> auth_table_generator::gen_tx() {
-  std::string payload = gen_auth_table_ir(m_nr_admin_addr, m_dip_admin_addr);
-  nbre::NBREIR ir;
-  ir.set_name("auth");
-  ir.set_version(0);
-  ir.set_height(0);
-  ir.set_ir(payload);
-  ir.set_ir_type(neb::ir_type::cpp);
-
-  std::string ir_str = ir.SerializeAsString();
-  return m_block->add_protocol_transaction(m_auth_admin_addr,
-                                           neb::util::string_to_byte(ir_str));
+  auto ir = gen_auth_table_payload(m_nr_admin_addr, m_dip_admin_addr);
+  return m_block->add_protocol_transaction(m_auth_admin_addr, ir);
 }
 
 checker_tasks::task_container_ptr_t auth_table_generator::gen_tasks() {

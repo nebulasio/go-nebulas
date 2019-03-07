@@ -56,7 +56,7 @@ void init_dummy_driver(dummy_driver &dd) {
       std::make_shared<random_dummy>("default_random", 20, 10000_nas, 0.05);
   // default_dummy->enable_auth_gen_with_ratio(0.5);
   // default_dummy->enable_nr_ir_with_ratio(0.5);
-  default_dummy->enable_call_tx_with_ratio(0.5, 0.2);
+  // default_dummy->enable_call_tx_with_ratio(0.5, 0.2);
 
   // default_dummy->enable_auth_gen_with_ratio(0.5);
   dd.add_dummy(default_dummy);
@@ -142,6 +142,8 @@ int main(int argc, char *argv[]) {
     std::string db_path = dummy->db_path();
     bc_storage_session::instance().init(db_path,
                                         neb::fs::storage_open_for_readwrite);
+    auto admin_addr = dummy->get_auth_admin_addr();
+
     std::thread thrd([&dd, dummy_name, interval]() {
       dd.run(dummy_name, interval);
       nbre_ipc_shutdown();
@@ -149,7 +151,7 @@ int main(int argc, char *argv[]) {
 
     std::this_thread::sleep_for(std::chrono::seconds(interval));
 
-    init_and_start_nbre(dummy->get_auth_admin_addr(), db_path);
+    init_and_start_nbre(admin_addr, db_path);
     LOG(INFO) << "init nbre done!";
     thrd.join();
     return 0;

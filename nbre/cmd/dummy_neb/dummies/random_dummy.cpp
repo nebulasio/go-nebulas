@@ -46,6 +46,16 @@ random_dummy::random_dummy(const std::string &name, int initial_account_num,
           conn->send(ack);
           m_pkgs.push_back(req);
         });
+    hub.to_recv_pkg<nbre_nr_handle_req>(
+        [this](std::shared_ptr<nbre_nr_handle_req> req) {
+          m_pkgs.push_back(req);
+        });
+
+    hub.to_recv_pkg<nbre_nr_result_req>(
+        [this](std::shared_ptr<nbre_nr_result_req> req) {
+          m_pkgs.push_back(req);
+        });
+
     nn.get_event_handler()
         ->listen<::ff::net::event::more::tcp_server_accept_connection>(
             [this](::ff::net::tcp_connection_base_ptr conn) { m_conn = conn; });
@@ -161,7 +171,14 @@ std::shared_ptr<checker_task_base> random_dummy::generate_checker_task() {
   return nullptr;
 }
 
-address_t random_dummy::get_auth_admin_addr() { return m_auth_admin_addr; }
+address_t random_dummy::get_auth_admin_addr() {
+  if (m_current_height == 0)
+    generate_LIB_block();
+  if (m_auth_admin_addr.empty()) {
+    m_auth_admin_addr = m_all_accounts.random_user_addr();
+  }
+  return m_auth_admin_addr;
+}
 
 void random_dummy::handle_cli_pkgs() {
   while (!m_pkgs.empty()) {
@@ -183,6 +200,7 @@ void random_dummy::handle_cli_pkgs() {
             ack->set<p_nr_handle>(std::string(nr_handle_id));
             m_conn->send(ack);
           });
+      LOG(INFO) << "forward nr handle req";
       ipc_nbre_nr_handle(reinterpret_cast<void *>(req->get<p_holder>()),
                          req->get<p_start_block>(), req->get<p_end_block>(),
                          req->get<p_nr_version>());

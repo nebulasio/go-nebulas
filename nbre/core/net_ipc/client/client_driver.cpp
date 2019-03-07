@@ -290,6 +290,7 @@ void client_driver::add_handlers() {
 
           auto ack = new_ack_pkg<nbre_nr_handle_ack>(req);
           ack->set<p_nr_handle>(ss.str());
+          LOG(INFO) << "got nr handle req";
           neb::rt::nr::nr_handler::instance().start(ss.str());
           m_ipc_conn->send(ack);
 
