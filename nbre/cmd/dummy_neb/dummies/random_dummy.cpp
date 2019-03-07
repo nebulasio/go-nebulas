@@ -23,7 +23,9 @@ random_dummy::random_dummy(const std::string &name, int initial_account_num,
                            nas initial_nas, double account_increase_ratio)
     : dummy_base(name), m_initial_account_num(initial_account_num),
       m_initial_nas(initial_nas),
-      m_account_increase_ratio(account_increase_ratio), m_auth_ratio(0) {}
+      m_account_increase_ratio(account_increase_ratio), m_auth_ratio(0) {
+  m_cli_generator = std::make_unique<cli_generator>();
+}
 
 random_dummy::~random_dummy() {}
 
@@ -81,6 +83,8 @@ std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
           ret.get(), std::rand() % (m_all_accounts.size() / 5));
       m_call_gen->run();
     }
+    m_cli_generator->update_info(ret.get());
+    m_cli_generator->run();
   }
 
   m_current_height++;

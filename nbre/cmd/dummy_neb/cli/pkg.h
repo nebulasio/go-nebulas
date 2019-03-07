@@ -18,25 +18,27 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
-#include "common/common.h"
-#include "common/quitable_thread.h"
-#include "common/util/singleton.h"
-#include "common/util/version.h"
-#include "core/command.h"
-#include "core/net_ipc/ipc_interface.h"
-#include "fs/bc_storage_session.h"
-#include "fs/proto/block.pb.h"
-#include "fs/proto/ir.pb.h"
-#include "fs/proto/trie.pb.h"
-#include "util/bc_generator.h"
-#include <algorithm>
-#include <boost/algorithm/string/replace.hpp>
-#include <ff/functionflow.h>
+#include "cmd/dummy_neb/dummy_common.h"
+#include <ff/network.h>
 
-using bc_storage_session = neb::fs::bc_storage_session;
-using generate_block = neb::util::generate_block;
-using all_accounts = neb::util::all_accounts;
-using nas = neb::nas;
-using address_t = neb::address_t;
-using block_height_t = neb::block_height_t;
+enum {
+  cli_brief_req_pkg,
+  cli_brief_ack_pkg,
+  cli_submit_ir_pkg,
+  cli_submit_ack_pkg,
+};
+
+define_nt(p_height, uint64_t);
+define_nt(p_account_num, uint64_t);
+typedef ff::net::ntpackage<cli_brief_req_pkg> cli_brief_req_t;
+typedef ff::net::ntpackage<cli_brief_ack_pkg, p_height, p_account_num>
+    cli_brief_ack_t;
+
+define_nt(p_type, std::string);
+define_nt(p_payload, std::string);
+define_nt(p_result, std::string);
+typedef ff::net::ntpackage<cli_submit_ir_pkg, p_type, p_payload>
+    cli_submit_ir_t;
+
+typedef ff::net::ntpackage<cli_submit_ack_pkg, p_result> cli_submit_ack_t;
 

@@ -47,6 +47,7 @@ protected:
   std::unique_ptr<nr_ir_generator> m_nr_gen;
   std::unique_ptr<call_tx_generator> m_call_gen;
   std::unique_ptr<contract_generator> m_contract_gen;
+  std::unique_ptr<cli_generator> m_cli_generator;
   int m_initial_account_num;
   nas m_initial_nas;
   double m_account_increase_ratio;

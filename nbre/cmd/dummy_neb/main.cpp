@@ -212,6 +212,15 @@ void init_and_start_nbre(const address_t &auth_admin_addr,
 }
 int main(int argc, char *argv[]) {
 
+  std::thread quiter_thrd([]() {
+    char c = 'a';
+    while (c != 'x') {
+      std::cin >> c;
+    }
+    neb::core::command_queue::instance().send_command(
+        std::make_shared<neb::core::exit_command>());
+    // nbre_ipc_shutdown();
+  });
   std::string root_dir = neb::configuration::instance().nbre_root_dir();
   neb::configuration::instance().neb_db_dir() =
       neb::fs::join_path(root_dir, std::string("dummy_db"));
