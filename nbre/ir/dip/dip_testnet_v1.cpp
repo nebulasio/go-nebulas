@@ -34,9 +34,8 @@ std::string entry_point_dip(neb::compatible_uint64_t height) {
       std::string("n1EzGmFsVepKduN1U5QFyhLqpzFvM9sRSmG");
 
   if (!height) {
-    neb::rt::dip::init_dip_params(dip_start_block, dip_block_interval,
-                                  dip_reward_addr, coinbase_addr);
-    return std::string("{\"err\":\"init dip params\"}");
+    return neb::rt::dip::dip_param_list(dip_start_block, dip_block_interval,
+                                        dip_reward_addr, coinbase_addr);
   }
 
   if (height < dip_start_block + dip_block_interval) {
@@ -55,7 +54,7 @@ std::string entry_point_dip(neb::compatible_uint64_t height) {
   neb::compatible_uint64_t end_block = start_block - 1;
   start_block -= dip_block_interval;
 
-  std::string nr_result = entry_point_nr(start_block, end_block);
+  auto nr_result = entry_point_nr(start_block, end_block);
 
   neb::rt::dip::dip_float_t alpha = 1e-32;
   neb::rt::dip::dip_float_t beta = 1;

@@ -59,18 +59,17 @@ using account_db_ptr_t = std::unique_ptr<neb::fs::account_db>;
 
 class nebulas_rank {
 public:
-  static auto
+  static std::vector<std::shared_ptr<nr_info_t>>
   get_nr_score(const transaction_db_ptr_t &tdb_ptr,
                const account_db_ptr_t &adb_ptr, const rank_params_t &rp,
-               neb::block_height_t start_block, neb::block_height_t end_block)
-      -> std::unique_ptr<std::vector<nr_info_t>>;
+               neb::block_height_t start_block, neb::block_height_t end_block);
 
   static std::string nr_info_to_json(
-      const std::vector<nr_info_t> &nr_infos,
+      const std::vector<std::shared_ptr<nr_info_t>> &nr_infos,
       const std::vector<std::pair<std::string, uint64_t>> &meta = {});
 
   static auto json_to_nr_info(const std::string &nr_result)
-      -> std::unique_ptr<std::vector<nr_info_t>>;
+      -> std::vector<std::shared_ptr<nr_info_t>>;
 
 #ifdef ENABLE_UNITTEST
 public:

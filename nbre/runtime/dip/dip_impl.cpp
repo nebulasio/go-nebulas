@@ -33,11 +33,12 @@ namespace neb {
 namespace rt {
 namespace dip {
 
-std::string entry_point_dip_impl(compatible_uint64_t start_block,
-                                 compatible_uint64_t end_block,
-                                 version_t version, compatible_uint64_t height,
-                                 const std::string &nr_result,
-                                 dip_float_t alpha, dip_float_t beta) {
+std::vector<std::shared_ptr<dip_info_t>>
+entry_point_dip_impl(compatible_uint64_t start_block,
+                     compatible_uint64_t end_block, version_t version,
+                     compatible_uint64_t height,
+                     const std::vector<std::shared_ptr<nr_info_t>> &nr_result,
+                     dip_float_t alpha, dip_float_t beta) {
 
   std::unique_ptr<neb::fs::blockchain_api_base> pba;
   if (neb::use_test_blockchain) {
@@ -61,7 +62,7 @@ std::string entry_point_dip_impl(compatible_uint64_t start_block,
        {"version", version}});
   LOG(INFO) << "meta info attached";
 
-  return dip_reward::dip_info_to_json(*ret, meta_info);
+  return ret;
 }
 
 std::string dip_param_list(compatible_uint64_t dip_start_block,

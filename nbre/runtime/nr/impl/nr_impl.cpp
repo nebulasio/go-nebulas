@@ -30,12 +30,12 @@ namespace neb {
 namespace rt {
 namespace nr {
 
-std::string entry_point_nr_impl(compatible_uint64_t start_block,
-                                compatible_uint64_t end_block,
-                                version_t version, compatible_int64_t a,
-                                compatible_int64_t b, compatible_int64_t c,
-                                compatible_int64_t d, nr_float_t theta,
-                                nr_float_t mu, nr_float_t lambda) {
+std::vector<std::shared_ptr<nr_info_t>>
+entry_point_nr_impl(compatible_uint64_t start_block,
+                    compatible_uint64_t end_block, version_t version,
+                    compatible_int64_t a, compatible_int64_t b,
+                    compatible_int64_t c, compatible_int64_t d,
+                    nr_float_t theta, nr_float_t mu, nr_float_t lambda) {
 
   std::unique_ptr<neb::fs::blockchain_api_base> pba;
   if (neb::use_test_blockchain) {
@@ -58,7 +58,7 @@ std::string entry_point_nr_impl(compatible_uint64_t start_block,
 
   auto ret =
       nebulas_rank::get_nr_score(tdb_ptr, adb_ptr, rp, start_block, end_block);
-  return nebulas_rank::nr_info_to_json(*ret, meta_info);
+  return ret;
 }
 } // namespace nr
 } // namespace rt

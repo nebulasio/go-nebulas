@@ -20,8 +20,9 @@
 
 #include "runtime/nr/impl/nr_impl.h"
 
-std::string entry_point_nr(neb::compatible_uint64_t start_block,
-                           neb::compatible_uint64_t end_block) {
+std::vector<std::shared_ptr<nr_info_t>>
+entry_point_nr(neb::compatible_uint64_t start_block,
+               neb::compatible_uint64_t end_block) {
 
   if (start_block > end_block) {
     return std::string("{\"err\":\"start height must less than end height\"}");

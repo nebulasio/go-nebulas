@@ -21,8 +21,8 @@
 #pragma once
 
 #include "common/math/softfloat.hpp"
+#include "runtime/nr/impl/nebulas_rank.h"
 #include "runtime/stdrt.h"
-#include <string>
 
 namespace neb {
 namespace rt {
@@ -31,12 +31,12 @@ namespace nr {
 using nr_float_t = float32;
 using version_t = compatible_uint64_t;
 
-std::string entry_point_nr_impl(compatible_uint64_t start_block,
-                                compatible_uint64_t end_block,
-                                version_t version, compatible_int64_t a,
-                                compatible_int64_t b, compatible_int64_t c,
-                                compatible_int64_t d, nr_float_t theta,
-                                nr_float_t mu, nr_float_t lambda);
+std::vector<std::shared_ptr<nr_info_t>>
+entry_point_nr_impl(compatible_uint64_t start_block,
+                    compatible_uint64_t end_block, version_t version,
+                    compatible_int64_t a, compatible_int64_t b,
+                    compatible_int64_t c, compatible_int64_t d,
+                    nr_float_t theta, nr_float_t mu, nr_float_t lambda);
 } // namespace nr
 } // namespace rt
 } // namespace neb

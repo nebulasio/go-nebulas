@@ -20,7 +20,11 @@
 
 #pragma once
 
+#include "common/common.h"
 #include "common/math/softfloat.hpp"
+#include "runtime/dip/dip_handler.h"
+#include "runtime/dip/dip_reward.h"
+#include "runtime/nr/impl/nebulas_rank.h"
 #include "runtime/stdrt.h"
 #include <string>
 
@@ -30,12 +34,14 @@ namespace dip {
 
 using dip_float_t = float32;
 using version_t = compatible_uint64_t;
+using nr_info_t = ::neb::rt::nr::nr_info_t;
 
-std::string entry_point_dip_impl(compatible_uint64_t start_block,
-                                 compatible_uint64_t end_block,
-                                 version_t version, compatible_uint64_t height,
-                                 const std::string &nr_result,
-                                 dip_float_t alpha, dip_float_t beta);
+std::vector<std::shared_ptr<dip_info_t>>
+entry_point_dip_impl(compatible_uint64_t start_block,
+                     compatible_uint64_t end_block, version_t version,
+                     compatible_uint64_t height,
+                     const std::vector<std::shared_ptr<nr_info_t>> &nr_result,
+                     dip_float_t alpha, dip_float_t beta);
 
 std::string dip_param_list(compatible_uint64_t dip_start_block,
                            compatible_uint64_t dip_block_interval,

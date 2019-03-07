@@ -233,7 +233,7 @@ nebulas_rank::get_account_rank(
   return ret;
 }
 
-std::unique_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
+std::vector<std::shared_ptr<nr_info_t>> nebulas_rank::get_nr_score(
     const transaction_db_ptr_t &tdb_ptr, const account_db_ptr_t &adb_ptr,
     const rank_params_t &rp, neb::block_height_t start_block,
     neb::block_height_t end_block) {
@@ -253,7 +253,7 @@ std::unique_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
   filter_empty_transactions_this_interval(*txs_v_ptr);
   auto tgs_ptr = build_transaction_graphs(*txs_v_ptr);
   if (tgs_ptr->empty()) {
-    return std::make_unique<std::vector<nr_info_t>>();
+    return std::vector<std::shared_ptr<nr_info_t>>();
   }
   LOG(INFO) << "we have " << tgs_ptr->size() << " subgraphs.";
   for (auto it = tgs_ptr->begin(); it != tgs_ptr->end(); it++) {
@@ -303,7 +303,7 @@ std::unique_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
   auto account_rank = *account_rank_ptr;
   LOG(INFO) << "account rank size: " << account_rank.size();
 
-  auto infos = std::make_unique<std::vector<nr_info_t>>();
+  std::vector<std::shared_ptr<nr_info_t>> infos;
   for (auto it = accounts_ptr->begin(); it != accounts_ptr->end(); it++) {
     address_t addr = *it;
     if (account_median.find(addr) == account_median.end() ||
@@ -326,17 +326,13 @@ std::unique_ptr<std::vector<nr_info_t>> nebulas_rank::get_nr_score(
     neb::floatxx_t nas_out_val = adb_ptr->get_normalized_value(f_out_val);
     neb::floatxx_t nas_stake = adb_ptr->get_normalized_value(f_stake);
 
-    nr_info_t info{addr,
-                   in_out_degrees[addr].m_in_degree,
-                   in_out_degrees[addr].m_out_degree,
-                   degrees[addr],
-                   nas_in_val,
-                   nas_out_val,
-                   nas_stake,
-                   account_median[addr],
-                   account_weight[addr],
-                   account_rank[addr]};
-    infos->push_back(info);
+    auto info = std::shared_ptr<nr_info_t>(
+        new nr_info_t({addr, in_out_degrees[addr].m_in_degree,
+                       in_out_degrees[addr].m_out_degree, degrees[addr],
+                       nas_in_val, nas_out_val, nas_stake, account_median[addr],
+                       account_weight[addr], account_rank[addr]}));
+
+    infos.push_back(info);
   }
 
   auto end_time = std::chrono::high_resolution_clock::now();
@@ -389,7 +385,7 @@ void nebulas_rank::full_fill_meta_info(
 }
 
 std::string nebulas_rank::nr_info_to_json(
-    const std::vector<nr_info_t> &rs,
+    const std::vector<std::shared_ptr<nr_info_t>> &rs,
     const std::vector<std::pair<std::string, uint64_t>> &meta) {
 
   boost::property_tree::ptree root;
@@ -404,7 +400,7 @@ std::string nebulas_rank::nr_info_to_json(
     arr.push_back(std::make_pair(std::string(), p));
   }
 
-  for (auto it = rs.begin(); it != rs.end(); it++) {
+  for (auto &it : rs) {
     const neb::rt::nr::nr_info_t &info = *it;
     boost::property_tree::ptree p;
     convert_nr_info_to_ptree(info, p);
@@ -419,7 +415,7 @@ std::string nebulas_rank::nr_info_to_json(
   return tmp;
 }
 
-std::unique_ptr<std::vector<nr_info_t>>
+std::vector<std::shared_ptr<nr_info_t>>
 nebulas_rank::json_to_nr_info(const std::string &nr_result) {
 
   boost::property_tree::ptree pt;
@@ -427,11 +423,12 @@ nebulas_rank::json_to_nr_info(const std::string &nr_result) {
   boost::property_tree::json_parser::read_json(ss, pt);
 
   boost::property_tree::ptree nrs = pt.get_child("nrs");
-  auto infos = std::make_unique<std::vector<nr_info_t>>();
+  std::vector<std::shared_ptr<nr_info_t>> infos;
 
   BOOST_FOREACH (boost::property_tree::ptree::value_type &v, nrs) {
     boost::property_tree::ptree nr = v.second;
-    nr_info_t info;
+    auto info_ptr = std::make_shared<nr_info_t>();
+    nr_info_t &info = *info_ptr;
     const auto &address = nr.get<base58_address_t>("address");
     info.m_address = neb::util::bytes::from_base58(address);
 
@@ -452,7 +449,7 @@ nebulas_rank::json_to_nr_info(const std::string &nr_result) {
     info.m_median = neb::math::from_string<floatxx_t>(median);
     info.m_weight = neb::math::from_string<floatxx_t>(weight);
     info.m_nr_score = neb::math::from_string<floatxx_t>(score);
-    infos->push_back(info);
+    infos.push_back(info_ptr);
   }
 
   return infos;
