@@ -152,6 +152,9 @@ void nipc_server::add_all_callbacks() {
     ack->set<p_nbre_start_height>(conf.nbre_start_height());
     m_conn->send(ack);
   });
+
+  m_pkg_hub->to_recv_pkg<heart_beat_t>(
+      [this](std::shared_ptr<heart_beat_t> p) { m_conn->send(p); });
 }
 } // namespace core
 } // namespace neb

@@ -17,11 +17,26 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#pragma once
-#include "cmd/dummy_neb/generator/auth_table_generator.h"
-#include "cmd/dummy_neb/generator/call_tx_generator.h"
 #include "cmd/dummy_neb/generator/contract_generator.h"
-#include "cmd/dummy_neb/generator/dip_ir_generator.h"
-#include "cmd/dummy_neb/generator/genesis_generator.h"
-#include "cmd/dummy_neb/generator/nr_ir_generator.h"
-#include "cmd/dummy_neb/generator/transaction_generator.h"
+
+contract_generator::contract_generator(generate_block *block,
+                                       int contract_number)
+    : generator_base(block->get_all_accounts(), block, contract_number, 0) {}
+
+contract_generator::~contract_generator() {}
+
+std::shared_ptr<corepb::Account> contract_generator::gen_account() {
+  auto from_addr = m_all_accounts->random_user_addr();
+  if (!from_addr.empty()) {
+    return nullptr;
+  }
+  return m_block->add_deploy_transaction(from_addr, neb::util::bytes());
+}
+
+std::shared_ptr<corepb::Transaction> contract_generator::gen_tx() {
+  return nullptr;
+}
+
+checker_tasks::task_container_ptr_t contract_generator::gen_tasks() {
+  return nullptr;
+}

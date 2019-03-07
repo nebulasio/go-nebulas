@@ -17,11 +17,25 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#pragma once
-#include "cmd/dummy_neb/generator/auth_table_generator.h"
 #include "cmd/dummy_neb/generator/call_tx_generator.h"
-#include "cmd/dummy_neb/generator/contract_generator.h"
-#include "cmd/dummy_neb/generator/dip_ir_generator.h"
-#include "cmd/dummy_neb/generator/genesis_generator.h"
-#include "cmd/dummy_neb/generator/nr_ir_generator.h"
-#include "cmd/dummy_neb/generator/transaction_generator.h"
+
+call_tx_generator::call_tx_generator(generate_block *block, int call_tx_number)
+    : generator_base(block->get_all_accounts(), block, 0, call_tx_number) {}
+
+call_tx_generator::~call_tx_generator() {}
+
+std::shared_ptr<corepb::Account> call_tx_generator::gen_account() {
+  return nullptr;
+}
+
+std::shared_ptr<corepb::Transaction> call_tx_generator::gen_tx() {
+  auto from_addr = m_all_accounts->random_user_addr();
+  auto contract_addr = m_all_accounts->random_contract_addr();
+  if (!from_addr.empty() && !contract_addr.empty()) {
+    return nullptr;
+  }
+  return m_block->add_call_transaction(from_addr, contract_addr);
+}
+checker_tasks::task_container_ptr_t call_tx_generator::gen_tasks() {
+  return nullptr;
+}

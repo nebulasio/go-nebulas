@@ -141,7 +141,6 @@ void ir_manager::parse_irs(
   block_height_t last_height = ir_manager_helper::nbre_block_height(m_storage);
 
   while (!q_txs.empty()) {
-    LOG(INFO) << "try to pop elem fro ir_transactions_req queue ";
     auto ele = q_txs.try_pop_front();
     if (!ele.first) {
       break;
@@ -149,12 +148,9 @@ void ir_manager::parse_irs(
 
     auto h = ele.second->get<p_height>();
     if (h < last_height + 1) {
-      LOG(INFO) << "ignore since height is too small, h:" << h
-                << ", last_height: " << last_height;
       continue;
     }
     if (h > last_height + 1) {
-      LOG(INFO) << "parse_when_missing_block";
       parse_when_missing_block(last_height + 1, h);
     }
 
@@ -162,7 +158,6 @@ void ir_manager::parse_irs(
     parse_next_block(h, txs);
     last_height = h;
   }
-  LOG(INFO) << "ir_transactions_req queue is empty";
 }
 
 void ir_manager::parse_when_missing_block(block_height_t start_height,
@@ -231,7 +226,6 @@ void ir_manager::parse_irs_by_height(
     auto &data = tx.data();
     const std::string &type = data.type();
 
-    LOG(INFO) << "parse ir with type: " << type;
     // ignore transaction other than transaction `protocol`
     std::string ir_tx_type =
         neb::configuration::instance().ir_tx_payload_type();
@@ -241,7 +235,6 @@ void ir_manager::parse_irs_by_height(
     }
 
     boost::property_tree::ptree pt;
-    LOG(INFO) << "payload: " << data.payload();
     neb::util::json_parser::read_json(data.payload(), pt);
     neb::util::bytes payload_bytes =
         neb::util::bytes::from_base64(pt.get<std::string>("Data"));
@@ -264,7 +257,6 @@ void ir_manager::parse_irs_by_height(
     if (nbre_ir->ir_type() == ::neb::ir_type::cpp) {
       //! We need compile the code
       cpp::cpp_ir ci(nbre_ir->ir());
-      LOG(INFO) << "got ir: " << nbre_ir->ir();
       neb::util::bytes ir = ci.llvm_ir_content();
       nbre_ir->set_ir(neb::util::byte_to_string(ir));
 

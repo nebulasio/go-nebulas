@@ -19,6 +19,7 @@
 //
 #pragma once
 #include "common/common.h"
+#include "common/timer_loop.h"
 #include "core/net_ipc/nipc_common.h"
 #include <ff/functionflow.h>
 #include <ff/network.h>
@@ -49,8 +50,10 @@ public:
 protected:
   std::vector<std::function<void(::ff::net::typed_pkg_hub &)>> m_handlers;
   std::unique_ptr<std::thread> m_thread;
+  std::unique_ptr<timer_loop> m_heart_bear_timer;
   ::ff::net::tcp_connection_base_ptr m_conn;
   std::atomic_bool m_is_connected;
+  int32_t m_to_recv_heart_beat_msg;
   // std::unique_ptr<ipc_client_t> m_client;
 };
 } // namespace core
