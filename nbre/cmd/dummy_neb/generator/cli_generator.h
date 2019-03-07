@@ -17,26 +17,22 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#pragma once
-#include "common/common.h"
-#include "common/quitable_thread.h"
-#include "common/util/singleton.h"
-#include "common/util/version.h"
-#include "core/command.h"
-#include "core/net_ipc/ipc_interface.h"
-#include "fs/bc_storage_session.h"
-#include "fs/proto/block.pb.h"
-#include "fs/proto/ir.pb.h"
-#include "fs/proto/trie.pb.h"
-#include "util/bc_generator.h"
-#include <algorithm>
-#include <boost/algorithm/string/replace.hpp>
-#include <ff/functionflow.h>
+#include "cmd/dummy_neb/cli/pkg.h"
+#include "cmd/dummy_neb/generator/generator_base.h"
+#include "common/wakeable_queue.h"
 
-using bc_storage_session = neb::fs::bc_storage_session;
-using generate_block = neb::util::generate_block;
-using all_accounts = neb::util::all_accounts;
-using nas = neb::nas;
-using address_t = neb::address_t;
-using block_height_t = neb::block_height_t;
+class cli_generator : public generator_base {
+public:
+  cli_generator();
+  virtual ~cli_generator();
 
+  void update_info(generate_block *block);
+
+  virtual std::shared_ptr<corepb::Account> gen_account();
+  virtual std::shared_ptr<corepb::Transaction> gen_tx();
+  virtual checker_tasks::task_container_ptr_t gen_tasks();
+
+protected:
+  std::unique_ptr<std::thread> m_thread;
+  neb::wakeable_queue<std::shared_ptr<ff::net::package>> m_pkgs;
+};
