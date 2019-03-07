@@ -33,6 +33,7 @@ enum ipc_pkg_type {
 #undef define_ipc_api
 #undef define_ipc_pkg
 #undef define_ipc_param
+  nipc_last_pkg_id,
 };
 
 typedef ::ff::net::ntpackage<heart_beat_pkg> heart_beat_t;

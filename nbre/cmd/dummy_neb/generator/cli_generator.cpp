@@ -21,33 +21,8 @@
 #include "cmd/dummy_neb/cli/pkg.h"
 
 cli_generator::cli_generator() : generator_base(nullptr, nullptr, 0, 0) {
-  m_thread = std::make_unique<std::thread>([this]() {
-    ff::net::net_nervure nn;
-    ff::net::typed_pkg_hub hub;
-    hub.tcp_to_recv_pkg<cli_brief_req_t>(
-        [this](std::shared_ptr<cli_brief_req_t> req,
-               ff::net::tcp_connection_base *conn) {
-          auto ack = std::make_shared<cli_brief_ack_t>();
-          ack->set<p_height>(m_block->height());
-          ack->set<p_account_num>(m_all_accounts->size());
-          conn->send(ack);
-        });
-
-    hub.tcp_to_recv_pkg<cli_submit_ir_t>(
-        [this](std::shared_ptr<cli_submit_ir_t> req,
-               ff::net::tcp_connection_base *conn) {
-          auto ack = std::make_shared<cli_submit_ack_t>();
-          ack->set<p_result>("got ir");
-          conn->send(ack);
-          m_pkgs.push_back(req);
-        });
-
-    nn.add_pkg_hub(hub);
-    nn.add_tcp_server("127.0.0.1", 0x1958);
-    nn.run();
-  });
 }
-cli_generator::~cli_generator() { m_thread->join(); }
+cli_generator::~cli_generator() {}
 
 void cli_generator::update_info(generate_block *block) {
   m_block = block;
@@ -64,15 +39,29 @@ std::shared_ptr<corepb::Transaction> cli_generator::gen_tx() {
     if (!ret.first)
       continue;
     auto pkg = ret.second;
+    address_t to_addr;
     if (pkg->type_id() == cli_submit_ir_pkg) {
       cli_submit_ir_t *req = (cli_submit_ir_t *)pkg.get();
       if (req->get<p_type>() == "nr") {
-        LOG(INFO) << "got nr";
+        if (m_nr_admin_addr.empty()) {
+          m_nr_admin_addr = m_all_accounts->random_user_addr();
+        }
+        to_addr = m_nr_admin_addr;
       } else if (req->get<p_type>() == "dip") {
-        LOG(INFO) << "got nr";
+        if (m_dip_admin_addr.empty()) {
+          m_dip_admin_addr = m_all_accounts->random_user_addr();
+        }
+        to_addr = m_dip_admin_addr;
+
       } else if (req->get<p_type>() == "auth") {
-        LOG(INFO) << "got nr";
+        if (m_auth_admin_addr.empty()) {
+          m_auth_admin_addr = m_all_accounts->random_user_addr();
+        }
+        to_addr = m_auth_admin_addr;
       }
+      std::string payload_base64 = req->get<p_payload>();
+      auto payload_bytes = neb::util::bytes::from_base64(payload_base64);
+      return m_block->add_protocol_transaction(to_addr, payload_bytes);
     }
   }
   return nullptr;

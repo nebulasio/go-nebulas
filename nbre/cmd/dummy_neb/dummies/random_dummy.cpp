@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "cmd/dummy_neb/dummies/random_dummy.h"
+#include "cmd/dummy_neb/dummy_callback.h"
 
 random_dummy::random_dummy(const std::string &name, int initial_account_num,
                            nas initial_nas, double account_increase_ratio)
@@ -25,11 +26,45 @@ random_dummy::random_dummy(const std::string &name, int initial_account_num,
       m_initial_nas(initial_nas),
       m_account_increase_ratio(account_increase_ratio), m_auth_ratio(0) {
   m_cli_generator = std::make_unique<cli_generator>();
+  m_thread = std::make_unique<std::thread>([this]() {
+    ff::net::net_nervure nn;
+    ff::net::typed_pkg_hub hub;
+    hub.tcp_to_recv_pkg<cli_brief_req_t>(
+        [this](std::shared_ptr<cli_brief_req_t> req,
+               ff::net::tcp_connection_base *conn) {
+          auto ack = std::make_shared<cli_brief_ack_t>();
+          ack->set<p_height>(m_current_height);
+          ack->set<p_account_num>(m_all_accounts.size());
+          conn->send(ack);
+        });
+
+    hub.tcp_to_recv_pkg<cli_submit_ir_t>(
+        [this](std::shared_ptr<cli_submit_ir_t> req,
+               ff::net::tcp_connection_base *conn) {
+          auto ack = std::make_shared<cli_submit_ack_t>();
+          ack->set<p_result>("got ir");
+          conn->send(ack);
+          m_pkgs.push_back(req);
+        });
+    nn.get_event_handler()
+        ->listen<::ff::net::event::more::tcp_server_accept_connection>(
+            [this](::ff::net::tcp_connection_base_ptr conn) { m_conn = conn; });
+
+    nn.add_pkg_hub(hub);
+    nn.add_tcp_server("127.0.0.1", 0x1958);
+    nn.run();
+  });
 }
 
-random_dummy::~random_dummy() {}
+random_dummy::~random_dummy() {
+  if (m_thread)
+    m_thread->join();
+}
 
 std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
+
+  handle_cli_pkgs();
+
   std::shared_ptr<generate_block> ret =
       std::make_shared<generate_block>(&m_all_accounts, m_current_height);
 
@@ -83,8 +118,15 @@ std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
           ret.get(), std::rand() % (m_all_accounts.size() / 5));
       m_call_gen->run();
     }
+
+    m_cli_generator->m_auth_admin_addr = m_auth_admin_addr;
+    m_cli_generator->m_nr_admin_addr = m_nr_admin_addr;
+    m_cli_generator->m_dip_admin_addr = m_dip_admin_addr;
     m_cli_generator->update_info(ret.get());
     m_cli_generator->run();
+    m_auth_admin_addr = m_cli_generator->m_auth_admin_addr;
+    m_nr_admin_addr = m_cli_generator->m_nr_admin_addr;
+    m_dip_admin_addr = m_cli_generator->m_dip_admin_addr;
   }
 
   m_current_height++;
@@ -120,3 +162,43 @@ std::shared_ptr<checker_task_base> random_dummy::generate_checker_task() {
 }
 
 address_t random_dummy::get_auth_admin_addr() { return m_auth_admin_addr; }
+
+void random_dummy::handle_cli_pkgs() {
+  while (!m_pkgs.empty()) {
+    auto ret = m_pkgs.try_pop_front();
+    if (!ret.first)
+      continue;
+    auto pkg = ret.second;
+    if (pkg->type_id() == cli_submit_ir_pkg) {
+      m_cli_generator->append_pkg(pkg);
+    } else if (pkg->type_id() == nbre_nr_handle_req_pkg) {
+      nbre_nr_handle_req *req = (nbre_nr_handle_req *)pkg.get();
+
+      callback_handler::instance().add_nr_handler(
+          req->get<p_holder>(),
+          [this](uint64_t holder, const char *nr_handle_id) {
+            std::shared_ptr<nbre_nr_handle_ack> ack =
+                std::make_shared<nbre_nr_handle_ack>();
+            ack->set<p_holder>(holder);
+            ack->set<p_nr_handle>(std::string(nr_handle_id));
+            m_conn->send(ack);
+          });
+      ipc_nbre_nr_handle(reinterpret_cast<void *>(req->get<p_holder>()),
+                         req->get<p_start_block>(), req->get<p_end_block>(),
+                         req->get<p_nr_version>());
+
+    } else if (pkg->type_id() == nbre_nr_result_req_pkg) {
+      nbre_nr_result_req *req = (nbre_nr_result_req *)pkg.get();
+      callback_handler::instance().add_nr_result_handler(
+          req->get<p_holder>(), [this](uint64_t holder, const char *nr_result) {
+            std::shared_ptr<nbre_nr_result_ack> ack =
+                std::make_shared<nbre_nr_result_ack>();
+            ack->set<p_holder>(holder);
+            ack->set<p_nr_result>(std::string(nr_result));
+            m_conn->send(ack);
+          });
+      ipc_nbre_nr_result(reinterpret_cast<void *>(req->get<p_holder>()),
+                         req->get<p_nr_handle>().c_str());
+    }
+  }
+}

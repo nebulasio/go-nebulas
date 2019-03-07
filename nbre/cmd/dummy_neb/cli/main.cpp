@@ -33,7 +33,11 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
   desc.add_options()("help", "show help message")
     ("brief", "show current dummy brief")
     ("payload", po::value<std::string>(), "payload file path")
-    ("submit", po::value<std::string>(), "auth, nr, dip");
+    ("submit", po::value<std::string>(), "auth, nr, dip")
+    ("query", po::value<std::string>(), "nr")
+    ("start-block", po::value<uint64_t>(), "start block height")
+    ("end-block", po::value<uint64_t>(), "end block height")
+    ("version", po::value<std::string>(), "x.x.x");
     /*
     ("run-dummy", po::value<std::string>()->default_value("default_random"), "run a dummy with name (from list-dummies, default [default_random])")
     ("block-interval", po::value<uint64_t>()->default_value(3), "block interval with seconds")
@@ -83,6 +87,17 @@ public:
     start_and_join();
   }
 
+  void send_nr_req(uint64_t start_block, uint64_t end_block, uint64_t version) {
+    std::shared_ptr<nbre_nr_handle_req> req =
+        std::make_shared<nbre_nr_handle_req>();
+    req->set<p_holder>(reinterpret_cast<uint64_t>(this));
+    req->set<p_start_block>(start_block);
+    req->set<p_end_block>(end_block);
+    req->set<p_nr_version>(version);
+    m_package = req;
+    start_and_join();
+  }
+
 protected:
   void start_and_join() {
 
@@ -105,6 +120,18 @@ protected:
     hub.to_recv_pkg<cli_submit_ack_t>(
         [&](std::shared_ptr<cli_submit_ack_t> ack) {
           std::cout << "\t result: " << ack->get<p_result>() << std::endl;
+          conn->close();
+          exit(-1);
+        });
+    hub.to_recv_pkg<nbre_nr_result_ack>(
+        [&](std::shared_ptr<nbre_nr_result_ack> ack) {
+          std::cout << "\t " << ack->get<p_nr_result>() << std::endl;
+          conn->close();
+          exit(-1);
+        });
+    hub.to_recv_pkg<nbre_nr_handle_ack>(
+        [&](std::shared_ptr<nbre_nr_handle_ack> ack) {
+          std::cout << "\t" << ack->get<p_nr_handle>() << std::endl;
           conn->close();
           exit(-1);
         });
@@ -137,6 +164,26 @@ int main(int argc, char *argv[]) {
   } else if (vm.count("brief")) {
     cli_executor ce;
     ce.send_brief_req();
+  } else if (vm.count("query")) {
+    std::string type = vm["query"].as<std::string>();
+    if (type != "nr" && type != "auth" && type != "dip") {
+      std::cout << "invalid type " << type << std::endl;
+      exit(-1);
+    }
+    if (type == "nr") {
+      if (!vm.count("start-block") && !vm.count("end-block") &&
+          !vm.count("version")) {
+        std::cout << "no start, end block, or version" << std::endl;
+        exit(-1);
+      }
+      auto start_block = vm["start-block"].as<uint64_t>();
+      auto end_block = vm["end-block"].as<uint64_t>();
+      auto version_str = vm["version"].as<std::string>();
+      neb::util::version v;
+      v.from_string(version_str);
+      cli_executor ce;
+      ce.send_nr_req(start_block, end_block, v.data());
+    }
   }
   return 0;
 }
