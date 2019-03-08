@@ -50,7 +50,6 @@ var (
 	CommandNRHandler  = "nrHandler"
 	CommandNRList     = "nrList"
 	CommandDIPList    = "dipList"
-	CommandIRBlock    = "irBlock"
 )
 
 type Neblet interface {
