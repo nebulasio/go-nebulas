@@ -30,7 +30,6 @@ void NbreIrVersionsFunc_cgo(int isc, void *holder, const char *ir_versions);
 void NbreNrHandleFunc_cgo(int isc, void *holder, const char *nr_handle);
 void NbreNrResultFunc_cgo(int isc, void *holder, const char *nr_result);
 void NbreDipRewardFunc_cgo(int isc, void *holder, const char *dip_reward);
-void NbreIrBlockFunc_cgo(int isc, void *holder);
 */
 import "C"
 import (
@@ -230,47 +229,50 @@ func (n *Nbre) checkIRUpdate() {
 		n.libHeight = block.Height()
 	}
 	for block.Height() >= n.libHeight {
-		libBlock := n.neb.BlockChain().GetBlockOnCanonicalChainByHeight(n.libHeight)
-		count := 0
-		for _, tx := range libBlock.Transactions() {
+		block = n.neb.BlockChain().GetBlockOnCanonicalChainByHeight(n.libHeight)
+		txs := []*core.Transaction{}
+		for _, tx := range block.Transactions() {
 			if tx.Type() == core.TxPayloadProtocolType {
-				count++
+				txs = append(txs, tx)
 			}
 		}
-		var (
-			bytes []byte
-		)
-		if count > 0 {
-			pbBlock, err := libBlock.ToProto()
-			if err != nil {
-				logging.VLog().WithFields(logrus.Fields{
-					"block": libBlock,
-					"err":   err,
-				}).Error("Failed to convert the lib block to proto data.")
-				return
+		if len(txs) > 0 {
+			handle := unsafe.Pointer(uintptr(block.Height()))
+			//prepare for tx send
+			C.ipc_nbre_ir_transactions_create(handle, C.uint64_t(block.Height()))
+
+			//append tx data
+			for _, tx := range txs {
+				pbTx, err := tx.ToProto()
+				if err != nil {
+					logging.VLog().WithFields(logrus.Fields{
+						"tx":  tx,
+						"err": err,
+					}).Error("Failed to convert the ir tx to proto data.")
+					return
+				}
+				bytes, err := proto.Marshal(pbTx)
+				if err != nil {
+					logging.VLog().WithFields(logrus.Fields{
+						"tx":  tx,
+						"err": err,
+					}).Error("Failed to marshal the ir tx.")
+					return
+				}
+				cBytes := (*C.char)(unsafe.Pointer(&bytes[0]))
+				C.ipc_nbre_ir_transactions_append(handle, C.uint64_t(block.Height()), cBytes, C.int32_t(len(bytes)))
 			}
-			bytes, err = proto.Marshal(pbBlock)
-			if err != nil {
-				logging.VLog().WithFields(logrus.Fields{
-					"block": libBlock,
-					"err":   err,
-				}).Error("Failed to marshal the lib block.")
-				return
-			}
-		}
-		_, err := n.Execute(CommandIRBlock, libBlock.Height(), bytes)
-		if err != nil {
+
+			// commit tx send
+			C.ipc_nbre_ir_transactions_send(handle, C.uint64_t(block.Height()))
+
 			logging.VLog().WithFields(logrus.Fields{
-				"block": libBlock,
-				"err":   err,
-			}).Error("Failed to execute the ir block command.")
-			return
+				"height": block.Height(),
+				"txs":    txs,
+			}).Debug("Update ir block.")
 		}
+
 		n.libHeight++
-		logging.VLog().WithFields(logrus.Fields{
-			"height": libBlock.Height(),
-			"block":  libBlock,
-		}).Debug("Update ir block.")
 	}
 }
 
@@ -282,7 +284,6 @@ func InitializeNbre() {
 	C.set_recv_nbre_nr_handle_callback((C.nbre_nr_handle_callback_t)(unsafe.Pointer(C.NbreNrHandleFunc_cgo)))
 	C.set_recv_nbre_nr_result_callback((C.nbre_nr_result_callback_t)(unsafe.Pointer(C.NbreNrResultFunc_cgo)))
 	C.set_recv_nbre_dip_reward_callback((C.nbre_dip_reward_callback_t)(unsafe.Pointer(C.NbreDipRewardFunc_cgo)))
-	C.set_recv_nbre_ir_block_callback((C.nbre_ir_block_callback_t)(unsafe.Pointer(C.NbreIrBlockFunc_cgo)))
 }
 
 // Execute execute command
@@ -337,7 +338,10 @@ func deleteHandler(handler *handler) {
 }
 
 func (n *Nbre) handleNbreCommand(handler *handler, command string, args ...interface{}) {
-	handlerId := handler.id
+	handlerId := uint64(0)
+	if handler != nil {
+		handlerId = handler.id
+	}
 
 	logging.VLog().WithFields(logrus.Fields{
 		"command": command,
@@ -368,18 +372,12 @@ func (n *Nbre) handleNbreCommand(handler *handler, command string, args ...inter
 		height := args[0].(uint64)
 		version := args[1].(uint64)
 		C.ipc_nbre_dip_reward(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height), C.uint64_t(version))
-	case CommandIRBlock:
-		height := args[0].(uint64)
-		var cBytes *C.char
-		if args[1] != nil {
-			bytes := args[1].([]byte)
-			cBytes = (*C.char)(unsafe.Pointer(&bytes[0]))
-		}
-		C.ipc_nbre_ir_block(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height), cBytes)
 	default:
-		handler.result = nil
-		handler.err = ErrCommandNotFound
-		handler.done <- true
+		if handler != nil {
+			handler.result = nil
+			handler.err = ErrCommandNotFound
+			handler.done <- true
+		}
 	}
 }
 
