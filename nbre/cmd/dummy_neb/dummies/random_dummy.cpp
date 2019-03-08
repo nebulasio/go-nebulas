@@ -21,10 +21,12 @@
 #include "cmd/dummy_neb/dummy_callback.h"
 
 random_dummy::random_dummy(const std::string &name, int initial_account_num,
-                           nas initial_nas, double account_increase_ratio)
+                           nas initial_nas, double account_increase_ratio,
+                           const std::string &rpc_listen, uint16_t rpc_port)
     : dummy_base(name), m_initial_account_num(initial_account_num),
       m_initial_nas(initial_nas),
-      m_account_increase_ratio(account_increase_ratio), m_auth_ratio(0) {
+      m_account_increase_ratio(account_increase_ratio), m_auth_ratio(0),
+      m_rpc_listen(rpc_listen), m_rpc_port(rpc_port) {
   m_cli_generator = std::make_unique<cli_generator>();
   m_thread = std::make_unique<std::thread>([this]() {
     ff::net::net_nervure nn;
@@ -61,7 +63,7 @@ random_dummy::random_dummy(const std::string &name, int initial_account_num,
             [this](::ff::net::tcp_connection_base_ptr conn) { m_conn = conn; });
 
     nn.add_pkg_hub(hub);
-    nn.add_tcp_server("127.0.0.1", 0x1958);
+    nn.add_tcp_server(m_rpc_listen, m_rpc_port);
     nn.run();
   });
 }

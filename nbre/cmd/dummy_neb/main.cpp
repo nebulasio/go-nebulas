@@ -36,6 +36,10 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
     ("block-interval", po::value<uint64_t>()->default_value(3), "block interval with seconds")
     ("without-clean-db", "run a dummy without clean previous db")
     ("clean-dummy-db", po::value<std::string>(), "clean the db file of a dummy")
+    ("nipc-listen", po::value<std::string>()->default_value("127.0.0.1"), "nipc listen")
+    ("nipc-port", po::value<uint16_t>()->default_value(6987), "nipc port")
+    ("rpc-listen", po::value<std::string>()->default_value("127.0.0.1"), "nipc listen")
+    ("rpc-port", po::value<uint16_t>()->default_value(0x1958), "nipc port")
     ("enable-nbre-killer", po::value<uint64_t>()->default_value(24*60), "kill nbre periodically in miniutes");
   // clang-format on
 
@@ -51,9 +55,10 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
   return vm;
 }
 
-void init_dummy_driver(dummy_driver &dd) {
-  auto default_dummy =
-      std::make_shared<random_dummy>("default_random", 20, 10000_nas, 0.05);
+void init_dummy_driver(dummy_driver &dd, const std::string &rpc_listen,
+                       uint16_t rpc_port) {
+  auto default_dummy = std::make_shared<random_dummy>(
+      "default_random", 20, 10000_nas, 0.05, rpc_listen, rpc_port);
   // default_dummy->enable_auth_gen_with_ratio(0.5);
   // default_dummy->enable_nr_ir_with_ratio(0.5);
   // default_dummy->enable_call_tx_with_ratio(0.5, 0.2);
@@ -63,7 +68,8 @@ void init_dummy_driver(dummy_driver &dd) {
 }
 
 void init_and_start_nbre(const address_t &auth_admin_addr,
-                         const std::string &neb_db_dir) {
+                         const std::string &neb_db_dir,
+                         const std::string &nipc_listen, uint16_t nipc_port) {
 
   const char *root_dir = neb::configuration::instance().nbre_root_dir().c_str();
   std::string nbre_path = neb::fs::join_path(root_dir, "bin/nbre");
@@ -90,8 +96,8 @@ void init_and_start_nbre(const address_t &auth_admin_addr,
 
   LOG(INFO) << "auth admin addr: " << auth_admin_addr.to_hex();
   LOG(INFO) << "init auth admin addr: " << params.m_admin_pub_addr;
-  params.m_nipc_listen = "127.0.0.1";
-  params.m_nipc_port = 6987;
+  params.m_nipc_listen = nipc_listen.c_str();
+  params.m_nipc_port = nipc_port;
 
   auto ret = start_nbre_ipc(params);
   if (ret != ipc_status_succ) {
@@ -121,9 +127,12 @@ int main(int argc, char *argv[]) {
   neb::glog_log_to_stderr = false;
   neb::use_test_blockchain = true;
 
-  dummy_driver dd;
-  init_dummy_driver(dd);
   po::variables_map vm = get_variables_map(argc, argv);
+  std::string rpc_listen = vm["rpc-listen"].as<std::string>();
+  uint16_t rpc_port = vm["rpc-port"].as<uint16_t>();
+
+  dummy_driver dd;
+  init_dummy_driver(dd, rpc_listen, rpc_port);
   if (vm.count("list_dummies")) {
     auto dummies = dd.get_all_dummy_names();
     std::for_each(dummies.begin(), dummies.end(), [](const std::string &s) {
@@ -152,7 +161,9 @@ int main(int argc, char *argv[]) {
 
     std::this_thread::sleep_for(std::chrono::seconds(interval));
 
-    init_and_start_nbre(admin_addr, db_path);
+    std::string nipc_listen = vm["nipc-listen"].as<std::string>();
+    uint16_t nipc_port = vm["nipc-port"].as<uint16_t>();
+    init_and_start_nbre(admin_addr, db_path, nipc_listen, nipc_port);
     LOG(INFO) << "init nbre done!";
     thrd.join();
     return 0;
