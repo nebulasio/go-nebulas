@@ -86,6 +86,7 @@ bool nipc_server::start() {
                 m_is_started = true;
                 m_mutex.unlock();
                 m_request_timer->reset_conn(conn);
+                m_last_heart_beat_time = std::chrono::steady_clock::now();
               });
       m_server->get_event_handler()
           ->listen<::ff::net::event::tcp_lost_connection>(
@@ -101,6 +102,17 @@ bool nipc_server::start() {
           std::unique_ptr<ipc_client_watcher>(new ipc_client_watcher(
               neb::configuration::instance().nbre_exe_name()));
       m_client_watcher->start();
+      m_heart_beat_watcher =
+          std::make_unique<timer_loop>(&m_server->ioservice());
+      m_heart_beat_watcher->register_timer_and_callback(1, [this]() {
+        auto now = std::chrono::steady_clock::now();
+        auto duration = now - m_last_heart_beat_time;
+        auto count =
+            std::chrono::duration_cast<std::chrono::seconds>(duration).count();
+        if (count > 4) {
+          m_client_watcher->kill_client();
+        }
+      });
       m_server->run();
     } catch (const std::exception &e) {
       got_exception_when_start_ipc = true;
@@ -153,8 +165,10 @@ void nipc_server::add_all_callbacks() {
     m_conn->send(ack);
   });
 
-  m_pkg_hub->to_recv_pkg<heart_beat_t>(
-      [this](std::shared_ptr<heart_beat_t> p) { m_conn->send(p); });
+  m_pkg_hub->to_recv_pkg<heart_beat_t>([this](std::shared_ptr<heart_beat_t> p) {
+    m_last_heart_beat_time = std::chrono::steady_clock::now();
+    m_conn->send(p);
+  });
 }
 } // namespace core
 } // namespace neb

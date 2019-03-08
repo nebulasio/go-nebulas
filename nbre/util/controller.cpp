@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "util/controller.h"
+#include <boost/process/environment.hpp>
 
 namespace neb {
 namespace util {
@@ -38,8 +39,9 @@ void elfin::run() {
 }
 
 void elfin::handle_kill_req() {
+  LOG(INFO) << boost::this_process::get_id();
   LOG(ERROR) << "got killed";
-  exit(-1);
+  throw std::invalid_argument("got kill command");
 }
 
 void magic_wand::kill_nbre() {

@@ -80,15 +80,16 @@ int main(int argc, char *argv[]) {
   get_variables_map(argc, argv);
   LOG(INFO) << "nbre started!";
 
-  std::thread elfin_thrd([]() {
-    neb::util::elfin ef;
-    ef.run();
+  std::thread thrd([]() {
+    neb::core::client_driver d;
+    d.init();
+    d.run();
+    LOG(INFO) << "to quit nbre";
   });
 
-  neb::core::client_driver d;
-  d.init();
-  d.run();
-  LOG(INFO) << "to quit nbre";
+  neb::util::elfin ef;
+  ef.run();
+  LOG(INFO) << "ef run done";
 
   return 0;
 }

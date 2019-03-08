@@ -21,7 +21,6 @@
 #include "common/configuration.h"
 #include "fs/util.h"
 #include <boost/process/args.hpp>
-#include <boost/process/child.hpp>
 #include <boost/process/io.hpp>
 #include <thread>
 
@@ -63,23 +62,23 @@ void ipc_client_watcher::thread_func() {
       v.push_back("--use-test-blockchain");
     }
 
-    boost::process::child client(m_path, boost::process::args(v));
-    if (client.valid()) {
-      m_b_client_alive = true;
-    }
-
-    std::string line;
-    while (stream && std::getline(stream, line) && !line.empty()) {
-      std::cerr << line << std::endl;
+    {
+      std::unique_lock<std::mutex> _l(m_mutex);
+      m_client = std::make_unique<boost::process::child>(
+          m_path, boost::process::args(v));
+      if (m_client->valid()) {
+        m_b_client_alive = true;
+        m_killed_already = false;
+      }
     }
 
     std::error_code ec;
-    client.wait(ec);
+    m_client->wait(ec);
     if (ec) {
       LOG(ERROR) << ec.message();
     }
-    if (client.exit_code() != 0) {
-      uint32_t exit_code = client.exit_code();
+    if (m_client->exit_code() != 0) {
+      uint32_t exit_code = m_client->exit_code();
       LOG(ERROR) << "nbre abnormal quit, exit code: " << exit_code << ", msg: "
                  << neb::configuration::instance().get_exit_msg(exit_code);
     }
@@ -91,6 +90,19 @@ ipc_client_watcher::~ipc_client_watcher() {
   if (m_thread) {
     m_thread->join();
     m_thread.reset();
+  }
+}
+void ipc_client_watcher::kill_client() {
+  std::unique_lock<std::mutex> _l(m_mutex);
+  if (m_killed_already) {
+    return;
+  }
+
+  if (m_client) {
+    m_killed_already = true;
+    m_client->terminate();
+  } else {
+    LOG(WARNING) << "no client to kill";
   }
 }
 } // namespace core

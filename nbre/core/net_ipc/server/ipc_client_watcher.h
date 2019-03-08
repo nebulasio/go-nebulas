@@ -20,6 +20,7 @@
 #pragma once
 #include "common/common.h"
 #include "common/quitable_thread.h"
+#include <boost/process/child.hpp>
 #include <chrono>
 
 namespace neb {
@@ -31,6 +32,7 @@ public:
   virtual ~ipc_client_watcher();
 
   inline bool is_client_alive() { return m_b_client_alive; };
+  void kill_client();
 
 protected:
   virtual void thread_func();
@@ -40,6 +42,9 @@ protected:
   uint32_t m_restart_times;
   std::chrono::system_clock::time_point m_last_start_time;
   std::atomic_bool m_b_client_alive;
+  std::unique_ptr<boost::process::child> m_client;
+  std::mutex m_mutex;
+  bool m_killed_already;
 
 }; // end class ipc_client_watcher
 } // namespace core
