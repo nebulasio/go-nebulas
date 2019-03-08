@@ -37,7 +37,8 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
     ("query", po::value<std::string>(), "nr")
     ("start-block", po::value<uint64_t>(), "start block height")
     ("end-block", po::value<uint64_t>(), "end block height")
-    ("version", po::value<std::string>(), "x.x.x");
+    ("version", po::value<std::string>(), "x.x.x")
+    ("handle", po::value<std::string>(), "request handle");
     /*
     ("run-dummy", po::value<std::string>()->default_value("default_random"), "run a dummy with name (from list-dummies, default [default_random])")
     ("block-interval", po::value<uint64_t>()->default_value(3), "block interval with seconds")
@@ -94,6 +95,14 @@ public:
     req->set<p_start_block>(start_block);
     req->set<p_end_block>(end_block);
     req->set<p_nr_version>(version);
+    m_package = req;
+    start_and_join();
+  }
+  void send_nr_result_req(const std::string &handle) {
+    std::shared_ptr<nbre_nr_result_req> req =
+        std::make_shared<nbre_nr_result_req>();
+    req->set<p_holder>(reinterpret_cast<uint64_t>(this));
+    req->set<p_nr_handle>(handle);
     m_package = req;
     start_and_join();
   }
@@ -166,7 +175,8 @@ int main(int argc, char *argv[]) {
     ce.send_brief_req();
   } else if (vm.count("query")) {
     std::string type = vm["query"].as<std::string>();
-    if (type != "nr" && type != "auth" && type != "dip") {
+    if (type != "nr" && type != "auth" && type != "dip" &&
+        type != "nr-result") {
       std::cout << "invalid type " << type << std::endl;
       exit(-1);
     }
@@ -183,6 +193,15 @@ int main(int argc, char *argv[]) {
       v.from_string(version_str);
       cli_executor ce;
       ce.send_nr_req(start_block, end_block, v.data());
+    }
+    if (type == "nr-result") {
+      if (!vm.count("handle")) {
+        std::cout << "no handle" << std::endl;
+        exit(-1);
+      }
+      auto handle = vm["handle"].as<std::string>();
+      cli_executor ce;
+      ce.send_nr_result_req(handle);
     }
   }
   return 0;

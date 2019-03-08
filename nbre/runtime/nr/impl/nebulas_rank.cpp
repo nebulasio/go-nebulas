@@ -242,6 +242,7 @@ std::vector<std::shared_ptr<nr_info_t>> nebulas_rank::get_nr_score(
   // transactions in total and account inter transactions
   auto txs_ptr =
       tdb_ptr->read_transactions_from_db_with_duration(start_block, end_block);
+  LOG(INFO) << "raw tx size: " << txs_ptr->size();
   auto inter_txs_ptr = fs::transaction_db::read_transactions_with_address_type(
       *txs_ptr, 0x57, 0x57);
   LOG(INFO) << "account to account: " << inter_txs_ptr->size();

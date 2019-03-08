@@ -84,7 +84,7 @@ std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
   } else {
     int account_num = m_account_increase_ratio * m_initial_account_num;
     int tx_num = account_num + std::rand() % m_initial_account_num;
-
+    LOG(INFO) << "transaction num is : " << tx_num;
     m_tx_gen = std::make_unique<transaction_generator>(
         &m_all_accounts, ret.get(),
         m_account_increase_ratio * m_initial_account_num, tx_num);

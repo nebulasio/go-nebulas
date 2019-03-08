@@ -44,6 +44,8 @@ std::shared_ptr<corepb::Transaction> transaction_generator::gen_tx() {
   } else {
     to_addr = neb::to_address(m_all_accounts->random_user_account()->address());
   }
+  LOG(INFO) << "tx --> from:" << from_addr.to_base58()
+            << ", to:" << to_addr.to_base58();
   return m_block->add_binary_transaction(from_addr, to_addr, 1_nas);
 }
 

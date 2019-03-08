@@ -292,6 +292,7 @@ void client_driver::add_handlers() {
           ack->set<p_nr_handle>(ss.str());
           LOG(INFO) << "got nr handle req";
           neb::rt::nr::nr_handler::instance().start(ss.str());
+          LOG(INFO) << "ss.str(): " << ss.str();
           m_ipc_conn->send(ack);
 
         } catch (const std::exception &e) {

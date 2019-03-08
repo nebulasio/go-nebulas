@@ -43,8 +43,10 @@ protected:
     std::unique_lock<std::mutex> _l(m_mutex);
     auto h = reinterpret_cast<uint64_t>(holder);
     auto it = hs.find(h);
-    if (it == hs.end())
+    if (it == hs.end()) {
+      LOG(INFO) << "can't find handler";
       return;
+    }
     it->second(h, args...);
     hs.erase(it);
   }

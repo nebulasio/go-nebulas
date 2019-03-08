@@ -96,7 +96,7 @@ bool jit_driver::find_mangling(llvm::Module *M, const std::string &func_name,
 
   for (auto &func : M->functions()) {
     std::string name = func.getName().data();
-    LOG(INFO) << "to check " << func_name << " in " << name;
+    // LOG(INFO) << "to check " << func_name << " in " << name;
     if (contains(name, func_name)) {
       LOG(INFO) << "find " << func_name << " in " << name;
       mangling_name = name;

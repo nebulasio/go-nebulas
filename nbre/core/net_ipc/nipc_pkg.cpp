@@ -17,50 +17,56 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#pragma once
-#include <ff/network.h>
-
-enum ipc_pkg_type {
-  heart_beat_pkg,
-#define define_ipc_param(type, name)
-
-#define define_ipc_pkg(type, ...) JOIN(type, _pkg),
-
-#define define_ipc_api(req, ack)
-
-#include "core/net_ipc/ipc_interface_impl.h"
-
-#undef define_ipc_api
-#undef define_ipc_pkg
-#undef define_ipc_param
-  nipc_last_pkg_id,
-};
-
-typedef ::ff::net::ntpackage<heart_beat_pkg> heart_beat_t;
-
-#define define_ipc_param(type, name) define_nt(name, type);
-
-#define define_ipc_pkg(type, ...)                                              \
-  typedef ::ff::net::ntpackage<JOIN(type, _pkg), __VA_ARGS__> type;
-
-#define define_ipc_api(req, ack)
-
-#include "core/net_ipc/ipc_interface_impl.h"
-
-#undef define_ipc_api
-#undef define_ipc_pkg
-#undef define_ipc_param
+#include "core/net_ipc/nipc_pkg.h"
 
 namespace neb {
 namespace core {
-template <typename PkgType1, typename PkgType2>
-std::shared_ptr<PkgType1> new_ack_pkg(PkgType2 req) {
-  auto ack = std::make_shared<PkgType1>();
-  ack->template set<p_holder>(req->template get<p_holder>());
-  return ack;
+
+std::string pkg_type_id_to_name(uint64_t type) {
+  std::string ret;
+  switch (type) {
+  case heart_beat_pkg:
+    ret = "heart_beat_pkg";
+    break;
+  case nipc_last_pkg_id:
+    ret = "nipc_last_pkg_id";
+    break;
+
+#define define_ipc_param(type, name)
+
+#define define_ipc_pkg(type, ...)                                              \
+  case JOIN(type, _pkg):                                                       \
+    ret = #type;                                                               \
+    break;
+
+#define define_ipc_api(req, ack)
+
+#include "core/net_ipc/ipc_interface_impl.h"
+
+#undef define_ipc_api
+#undef define_ipc_pkg
+#undef define_ipc_param
+  default:
+    ret = "not_def_in_nipc";
+  }
+
+  return ret;
 }
 
-std::string pkg_type_id_to_name(uint64_t type);
-bool is_pkg_type_has_callback(uint64_t type);
+bool is_pkg_type_has_callback(uint64_t type) {
+
+#define define_ipc_param(type, name)
+#define define_ipc_pkg(type, ...)
+#define define_ipc_api(req, ack)                                               \
+  if (type == JOIN(req, _pkg))                                                 \
+    return true;
+
+#include "core/net_ipc/ipc_interface_impl.h"
+
+#undef define_ipc_api
+#undef define_ipc_pkg
+#undef define_ipc_param
+  return false;
+}
 } // namespace core
 } // namespace neb

@@ -112,55 +112,86 @@ struct get_param_helper<
     return reinterpret_cast<void *>(pkg->template get<p_holder>());
   };
 };
-template <typename IT> struct get_param_helper<IT, std::string> {
-  template <typename PkgPtrType> static const char *get(const PkgPtrType &pkg) {
-    return pkg->template get<IT>().c_str();
-  };
-};
+// template <typename IT> struct get_param_helper<IT, std::string> {
+// template <typename PkgPtrType> static const char *get(const PkgPtrType &pkg)
+// { auto t = pkg->template get<IT>().c_str(); LOG(INFO) << "get param: " << t
+//<< ", should be: " << pkg->template get<IT>();
+// return t;
+//};
+//};
 
 template <typename PkgType, typename... Params> struct ipc_callback {
 
-  template <typename T, typename PkgPtrType>
-  static auto get_param_for_callback(const PkgPtrType &pkg) {
-    return get_param_helper<T>::get(pkg);
+  // template <typename T, typename PkgPtrType>
+  // static auto get_param_for_callback(const PkgPtrType &pkg) {
+  // return get_param_helper<T>::get(pkg);
+  //}
+
+  template <typename T> static auto get_param_for_callback(const T &val) {
+    return val;
   }
+  static const char *get_param_for_callback(const std::string &val) {
+    return val.c_str();
+  }
+
   template <typename T1, typename Func>
   static void callback_invoke(Func &&f, PkgType *pkg,
                               enum ipc_status_code code) {
-    f(code, get_param_for_callback<T1>(pkg));
+    auto t1 = get_param_helper<T1>::get(pkg);
+    f(code, get_param_for_callback(t1));
   }
   template <typename T1, typename T2, typename Func>
   static void callback_invoke(Func &&f, PkgType *pkg,
                               enum ipc_status_code code) {
-    f(code, get_param_for_callback<T1>(pkg), get_param_for_callback<T2>(pkg));
+    auto t1 = get_param_helper<T1>::get(pkg);
+    auto t2 = get_param_helper<T2>::get(pkg);
+    f(code, get_param_for_callback(t1), get_param_for_callback(t2));
   }
   template <typename T1, typename T2, typename T3, typename Func>
   static void callback_invoke(Func &&f, PkgType *pkg,
                               enum ipc_status_code code) {
-    f(code, get_param_for_callback<T1>(pkg), get_param_for_callback<T2>(pkg),
-      get_param_for_callback<T3>(pkg));
+    auto t1 = get_param_helper<T1>::get(pkg);
+    auto t2 = get_param_helper<T2>::get(pkg);
+    auto t3 = get_param_helper<T3>::get(pkg);
+    f(code, get_param_for_callback(t1), get_param_for_callback(t2),
+      get_param_for_callback(t3));
   }
   template <typename T1, typename T2, typename T3, typename T4, typename Func>
   static void callback_invoke(Func &&f, PkgType *pkg,
                               enum ipc_status_code code) {
-    f(code, get_param_for_callback<T1>(pkg), get_param_for_callback<T2>(pkg),
-      get_param_for_callback<T3>(pkg), get_param_for_callback<T4>(pkg));
+    auto t1 = get_param_helper<T1>::get(pkg);
+    auto t2 = get_param_helper<T2>::get(pkg);
+    auto t3 = get_param_helper<T3>::get(pkg);
+    auto t4 = get_param_helper<T4>::get(pkg);
+    f(code, get_param_for_callback(t1), get_param_for_callback(t2),
+      get_param_for_callback(t3), get_param_for_callback(t4));
   }
   template <typename T1, typename T2, typename T3, typename T4, typename T5,
             typename Func>
   static void callback_invoke(Func &&f, PkgType *pkg,
                               enum ipc_status_code code) {
-    f(code, get_param_for_callback<T1>(pkg), get_param_for_callback<T2>(pkg),
-      get_param_for_callback<T3>(pkg), get_param_for_callback<T4>(pkg),
-      get_param_for_callback<T5>(pkg));
+    auto t1 = get_param_helper<T1>::get(pkg);
+    auto t2 = get_param_helper<T2>::get(pkg);
+    auto t3 = get_param_helper<T3>::get(pkg);
+    auto t4 = get_param_helper<T4>::get(pkg);
+    auto t5 = get_param_helper<T5>::get(pkg);
+    f(code, get_param_for_callback(t1), get_param_for_callback(t2),
+      get_param_for_callback(t3), get_param_for_callback(t4),
+      get_param_for_callback(t5));
   }
   template <typename T1, typename T2, typename T3, typename T4, typename T5,
             typename T6, typename Func>
   static void callback_invoke(Func &&f, PkgType *pkg,
                               enum ipc_status_code code) {
-    f(code, get_param_for_callback<T1>(pkg), get_param_for_callback<T2>(pkg),
-      get_param_for_callback<T3>(pkg), get_param_for_callback<T4>(pkg),
-      get_param_for_callback<T5>(pkg), get_param_for_callback<T6>(pkg));
+    auto t1 = get_param_helper<T1>::get(pkg);
+    auto t2 = get_param_helper<T2>::get(pkg);
+    auto t3 = get_param_helper<T3>::get(pkg);
+    auto t4 = get_param_helper<T4>::get(pkg);
+    auto t5 = get_param_helper<T5>::get(pkg);
+    auto t6 = get_param_helper<T6>::get(pkg);
+    f(code, get_param_for_callback(t1), get_param_for_callback(t2),
+      get_param_for_callback(t3), get_param_for_callback(t4),
+      get_param_for_callback(t5), get_param_for_callback(t6));
   }
   template <typename Func, typename... Args>
   static void bind(Func &&func, Args... args) {

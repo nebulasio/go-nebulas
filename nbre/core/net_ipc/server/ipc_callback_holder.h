@@ -21,6 +21,7 @@
 #include "common/common.h"
 #include "common/util/singleton.h"
 #include "core/net_ipc/ipc_interface.h"
+#include "core/net_ipc/nipc_pkg.h"
 #include <ff/network.h>
 
 namespace neb {
@@ -39,7 +40,10 @@ public:
   inline std::function<void(enum ipc_status_code, ::ff::net::package *)>
   get_callback(uint64_t pkg_id) {
     if (m_callbacks.find(pkg_id) == m_callbacks.end()) {
-      LOG(WARNING) << "Cann't find calback";
+      if (is_pkg_type_has_callback(pkg_id)) {
+        LOG(WARNING) << "Cann't find calback for "
+                     << pkg_type_id_to_name(pkg_id);
+      }
       return [](enum ipc_status_code, ::ff::net::package *) {};
     }
     return m_callbacks[pkg_id];
