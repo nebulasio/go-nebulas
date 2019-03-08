@@ -18,29 +18,40 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
-#include "cmd/dummy_neb/dummy_common.h"
+#include "common/common.h"
 #include "core/net_ipc/nipc_pkg.h"
-#include "util/controller.h"
 #include <ff/network.h>
 
-enum {
-  cli_brief_req_pkg = ctl_last_pkg_id,
-  cli_brief_ack_pkg,
-  cli_submit_ir_pkg,
-  cli_submit_ack_pkg,
+enum controller_pkg_type {
+  ctl_kill_req_pkg = nipc_last_pkg_id,
+
+  ctl_last_pkg_id,
 };
 
-define_nt(p_account_num, uint64_t);
+namespace neb {
+namespace util {
 
-typedef ff::net::ntpackage<cli_brief_req_pkg> cli_brief_req_t;
-typedef ff::net::ntpackage<cli_brief_ack_pkg, p_height, p_account_num>
-    cli_brief_ack_t;
+typedef ff::net::ntpackage<ctl_kill_req_pkg> ctl_kill_req_t;
 
-define_nt(p_type, std::string);
-define_nt(p_payload, std::string);
-define_nt(p_result, std::string);
-typedef ff::net::ntpackage<cli_submit_ir_pkg, p_type, p_payload>
-    cli_submit_ir_t;
+class elfin {
+public:
+  void run();
 
-typedef ff::net::ntpackage<cli_submit_ack_pkg, p_result> cli_submit_ack_t;
+protected:
+  void handle_kill_req();
+};
+
+class magic_wand {
+public:
+  void kill_nbre();
+
+protected:
+  void start_and_join();
+
+protected:
+  std::shared_ptr<ff::net::package> m_package;
+};
+
+} // namespace util
+} // namespace neb
 

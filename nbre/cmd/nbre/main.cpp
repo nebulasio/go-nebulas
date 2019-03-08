@@ -18,32 +18,11 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#if 0
-#include "common/common.h"
-#include "core/driver.h"
-#include "fs/util.h"
-
-int main(int argc, char *argv[]) {
-  // FLAGS_logtostderr = true;
-  neb::program_name = "nbre";
-  //::google::InitGoogleLogging(argv[0]);
-
-  assert(argc > 1);
-  neb::shm_configuration::instance().shm_name_identity() = argv[1];
-
-  neb::core::driver d;
-  d.init();
-  d.run();
-  LOG(INFO) << "to quit nbre";
-
-  return 0;
-}
-#endif
-
 #include "common/common.h"
 #include "common/configuration.h"
 #include "core/net_ipc/client/client_driver.h"
 #include "fs/util.h"
+#include "util/controller.h"
 #include <boost/program_options.hpp>
 
 namespace po = boost::program_options;
@@ -100,6 +79,12 @@ int main(int argc, char *argv[]) {
 
   get_variables_map(argc, argv);
   LOG(INFO) << "nbre started!";
+
+  std::thread elfin_thrd([]() {
+    neb::util::elfin ef;
+    ef.run();
+  });
+
   neb::core::client_driver d;
   d.init();
   d.run();

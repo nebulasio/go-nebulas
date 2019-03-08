@@ -20,6 +20,7 @@
 #include "cmd/dummy_neb/cli/pkg.h"
 #include "common/configuration.h"
 #include "fs/util.h"
+#include "util/controller.h"
 #include <boost/process.hpp>
 #include <boost/program_options.hpp>
 #include <ff/network.h>
@@ -38,7 +39,8 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
     ("start-block", po::value<uint64_t>(), "start block height")
     ("end-block", po::value<uint64_t>(), "end block height")
     ("version", po::value<std::string>(), "x.x.x")
-    ("handle", po::value<std::string>(), "request handle");
+    ("handle", po::value<std::string>(), "request handle")
+    ("kill-nbre", "kill nbre immediatelly");
     /*
     ("run-dummy", po::value<std::string>()->default_value("default_random"), "run a dummy with name (from list-dummies, default [default_random])")
     ("block-interval", po::value<uint64_t>()->default_value(3), "block interval with seconds")
@@ -203,6 +205,9 @@ int main(int argc, char *argv[]) {
       cli_executor ce;
       ce.send_nr_result_req(handle);
     }
+  } else if (vm.count("kill-nbre")) {
+    neb::util::magic_wand mw;
+    mw.kill_nbre();
   }
   return 0;
 }
