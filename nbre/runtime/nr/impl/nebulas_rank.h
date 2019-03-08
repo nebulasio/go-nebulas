@@ -68,7 +68,7 @@ public:
 
   static std::string nr_info_to_json(
       const std::vector<std::shared_ptr<nr_info_t>> &nr_infos,
-      const std::vector<std::pair<std::string, uint64_t>> &meta = {});
+      const std::vector<std::pair<std::string, std::string>> &meta = {});
 
   static auto json_to_nr_info(const std::string &nr_result)
       -> std::vector<std::shared_ptr<nr_info_t>>;
@@ -126,9 +126,9 @@ private:
   static void convert_nr_info_to_ptree(const nr_info_t &info,
                                        boost::property_tree::ptree &pt);
 
-  static void
-  full_fill_meta_info(const std::vector<std::pair<std::string, uint64_t>> &meta,
-                      boost::property_tree::ptree &root);
+  static void full_fill_meta_info(
+      const std::vector<std::pair<std::string, std::string>> &meta,
+      boost::property_tree::ptree &root);
 
 }; // class nebulas_rank
 } // namespace nr

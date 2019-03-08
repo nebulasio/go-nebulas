@@ -404,8 +404,10 @@ TEST(test_runtime_nebulas_rank, get_account_rank) {
 }
 
 TEST(test_runtime_nebulas_rank, full_fill_meta_info) {
-  std::vector<std::pair<std::string, uint64_t>> meta(
-      {{"start_height", 1}, {"end_height", 2}, {"version", 3}});
+  std::vector<std::pair<std::string, std::string>> meta(
+      {{"start_height", std::to_string(1)},
+       {"end_height", std::to_string(2)},
+       {"version", std::to_string(3)}});
   boost::property_tree::ptree pt;
   neb::rt::nr::nebulas_rank::full_fill_meta_info(meta, pt);
   EXPECT_EQ(pt.get<uint64_t>("start_height"), 1);
@@ -425,9 +427,10 @@ TEST(test_runtime_nebulas_rank, json_seri_deseri) {
   std::uniform_int_distribution<> dis(0, std::numeric_limits<int16_t>::max());
 
   std::vector<std::shared_ptr<neb::rt::nr::nr_info_t>> infos;
-  std::vector<std::pair<std::string, uint64_t>> meta({{"start_height", dis(mt)},
-                                                      {"end_height", dis(mt)},
-                                                      {"version", dis(mt)}});
+  std::vector<std::pair<std::string, std::string>> meta(
+      {{"start_height", std::to_string(dis(mt))},
+       {"end_height", std::to_string(dis(mt))},
+       {"version", std::to_string(dis(mt))}});
   int32_t infos_size = std::sqrt(dis(mt));
   for (int32_t i = 0; i < infos_size; i++) {
     auto info_ptr =

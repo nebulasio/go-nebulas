@@ -24,18 +24,19 @@
 #include "common/util/conversion.h"
 #include "fs/blockchain/blockchain_api_test.h"
 #include "runtime/nr/impl/nebulas_rank.h"
+#include "runtime/util.h"
 #include "util/nebulas_currency.h"
 
 namespace neb {
 namespace rt {
 namespace nr {
 
-std::vector<std::shared_ptr<nr_info_t>>
-entry_point_nr_impl(compatible_uint64_t start_block,
-                    compatible_uint64_t end_block, version_t version,
-                    compatible_int64_t a, compatible_int64_t b,
-                    compatible_int64_t c, compatible_int64_t d,
-                    nr_float_t theta, nr_float_t mu, nr_float_t lambda) {
+nr_ret_type entry_point_nr_impl(compatible_uint64_t start_block,
+                                compatible_uint64_t end_block,
+                                version_t version, compatible_int64_t a,
+                                compatible_int64_t b, compatible_int64_t c,
+                                compatible_int64_t d, nr_float_t theta,
+                                nr_float_t mu, nr_float_t lambda) {
 
   std::unique_ptr<neb::fs::blockchain_api_base> pba;
   if (neb::use_test_blockchain) {
@@ -51,14 +52,21 @@ entry_point_nr_impl(compatible_uint64_t start_block,
 
   LOG(INFO) << "start block: " << start_block << " , end block: " << end_block;
   neb::rt::nr::rank_params_t rp{a, b, c, d, theta, mu, lambda};
-  std::vector<std::pair<std::string, uint64_t>> meta_info(
-      {{"start_height", start_block},
-       {"end_height", end_block},
-       {"version", version}});
 
-  return nebulas_rank::get_nr_score(tdb_ptr, adb_ptr, rp, start_block,
-                                    end_block);
+  std::vector<std::pair<std::string, std::string>> meta_info;
+  meta_info.push_back(
+      std::make_pair("start_height", std::to_string(start_block)));
+  meta_info.push_back(std::make_pair("end_height", std::to_string(end_block)));
+  meta_info.push_back(std::make_pair("version", std::to_string(version)));
+
+  nr_ret_type ret;
+  std::get<0>(ret) = 1;
+  std::get<1>(ret) = meta_info_to_json(meta_info);
+  std::get<2>(ret) =
+      nebulas_rank::get_nr_score(tdb_ptr, adb_ptr, rp, start_block, end_block);
+  return ret;
 }
+
 } // namespace nr
 } // namespace rt
 } // namespace neb

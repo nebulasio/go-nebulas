@@ -26,6 +26,7 @@
 #include "fs/storage_holder.h"
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_reward.h"
+#include "runtime/util.h"
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -171,8 +172,10 @@ void dip_handler::start(neb::block_height_t height,
       LOG(INFO) << "dip reward returned";
 
       if (std::get<0>(dip_ret)) {
+        const auto &meta_info_json = std::get<1>(dip_ret);
+        const auto &meta_info = neb::rt::json_to_meta_info(meta_info_json);
         auto &tmp = std::get<2>(dip_ret);
-        auto dip_str = dip_reward::dip_info_to_json(tmp);
+        auto dip_str = dip_reward::dip_info_to_json(tmp, meta_info);
         write_to_storage(hash_height, dip_str);
         LOG(INFO) << "write dip reward to storage";
       }

@@ -42,10 +42,7 @@ void nr_handler::run_if_default(block_height_t start_block,
       auto nr_ret = jd.run_ir<nr_ret_type>(
           "nr", start_block, neb::configuration::instance().nr_func_name(),
           start_block, end_block);
-      if (std::get<0>(nr_ret)) {
-        auto &tmp = std::get<2>(nr_ret);
-        m_nr_result.set(nr_handle, tmp);
-      }
+      m_nr_result.set(nr_handle, nr_ret);
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute nr failed " << e.what();
     }
@@ -72,10 +69,7 @@ void nr_handler::run_if_specify(block_height_t start_block,
       auto nr_ret = jd.run<nr_ret_type>(
           name_version, irs, neb::configuration::instance().nr_func_name(),
           start_block, end_block);
-      if (std::get<0>(nr_ret)) {
-        auto &tmp = std::get<2>(nr_ret);
-        m_nr_result.set(nr_handle, tmp);
-      }
+      m_nr_result.set(nr_handle, nr_ret);
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute nr failed " << e.what();
     }
@@ -108,10 +102,9 @@ void nr_handler::start(const std::string &nr_handle) {
   run_if_specify(start_block, end_block, nr_version, nr_handle);
 }
 
-std::vector<std::shared_ptr<nr_info_t>>
-nr_handler::get_nr_result(const std::string &nr_handle) {
+nr_ret_type nr_handler::get_nr_result(const std::string &nr_handle) {
 
-  std::vector<std::shared_ptr<nr_info_t>> nr_result;
+  nr_ret_type nr_result;
   auto ret = m_nr_result.get(nr_handle, nr_result);
   if (!ret) {
     LOG(INFO) << std::string(

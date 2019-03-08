@@ -113,7 +113,7 @@ void dip_reward::back_to_coinbase(
 }
 
 void dip_reward::full_fill_meta_info(
-    const std::vector<std::pair<std::string, uint64_t>> &meta,
+    const std::vector<std::pair<std::string, std::string>> &meta,
     boost::property_tree::ptree &root) {
 
   assert(meta.size() == 3);
@@ -125,7 +125,7 @@ void dip_reward::full_fill_meta_info(
 
 std::string dip_reward::dip_info_to_json(
     const std::vector<std::shared_ptr<dip_info_t>> &dip_infos,
-    const std::vector<std::pair<std::string, uint64_t>> &meta) {
+    const std::vector<std::pair<std::string, std::string>> &meta) {
 
   boost::property_tree::ptree root;
   boost::property_tree::ptree arr;

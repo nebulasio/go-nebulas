@@ -50,7 +50,7 @@ public:
 
   static std::string dip_info_to_json(
       const std::vector<std::shared_ptr<dip_info_t>> &dip_infos,
-      const std::vector<std::pair<std::string, uint64_t>> &meta = {});
+      const std::vector<std::pair<std::string, std::string>> &meta = {});
 
   static auto json_to_dip_info(const std::string &dip_reward)
       -> std::vector<std::shared_ptr<dip_info_t>>;
@@ -82,9 +82,9 @@ private:
       const std::vector<neb::fs::transaction_info_t> &txs,
       const std::vector<std::shared_ptr<neb::rt::nr::nr_info_t>> &nr_infos);
 
-  static void
-  full_fill_meta_info(const std::vector<std::pair<std::string, uint64_t>> &meta,
-                      boost::property_tree::ptree &root);
+  static void full_fill_meta_info(
+      const std::vector<std::pair<std::string, std::string>> &meta,
+      boost::property_tree::ptree &root);
 
   static void
   back_to_coinbase(std::vector<std::shared_ptr<dip_info_t>> &dip_infos,

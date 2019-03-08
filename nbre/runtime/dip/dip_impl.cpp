@@ -26,6 +26,7 @@
 #include "runtime/dip/dip_handler.h"
 #include "runtime/dip/dip_reward.h"
 #include "runtime/nr/impl/nebulas_rank.h"
+#include "runtime/util.h"
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -33,7 +34,7 @@ namespace neb {
 namespace rt {
 namespace dip {
 
-std::vector<std::shared_ptr<dip_info_t>>
+dip_ret_type
 entry_point_dip_impl(compatible_uint64_t start_block,
                      compatible_uint64_t end_block, version_t version,
                      compatible_uint64_t height,
@@ -53,14 +54,18 @@ entry_point_dip_impl(compatible_uint64_t start_block,
   nr::account_db_ptr_t adb_ptr =
       std::make_unique<neb::fs::account_db>(pba.get());
 
-  auto ret = dip_reward::get_dip_reward(
+  std::vector<std::pair<std::string, std::string>> meta_info;
+  meta_info.push_back(
+      std::make_pair("start_height", std::to_string(start_block)));
+  meta_info.push_back(std::make_pair("end_height", std::to_string(end_block)));
+  meta_info.push_back(std::make_pair("version", std::to_string(version)));
+
+  dip_ret_type ret;
+  std::get<0>(ret) = 1;
+  std::get<1>(ret) = meta_info_to_json(meta_info);
+  std::get<2>(ret) = dip_reward::get_dip_reward(
       start_block, end_block, height, nr_result, tdb_ptr, adb_ptr, alpha, beta);
   LOG(INFO) << "get dip reward resurned";
-  std::vector<std::pair<std::string, uint64_t>> meta_info(
-      {{"start_height", start_block},
-       {"end_height", end_block},
-       {"version", version}});
-  LOG(INFO) << "meta info attached";
 
   return ret;
 }

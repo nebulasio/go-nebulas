@@ -17,34 +17,17 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
 #pragma once
+
 #include "common/common.h"
-#include "common/util/byte.h"
-#include "common/util/lru_cache.h"
-#include "common/util/singleton.h"
-#include "runtime/nr/impl/nebulas_rank.h"
 
 namespace neb {
 namespace rt {
-namespace nr {
 
-class nr_handler : public util::singleton<nr_handler> {
-public:
-  nr_handler();
+std::string meta_info_to_json(
+    const std::vector<std::pair<std::string, std::string>> &meta_info);
 
-  void start(const std::string &nr_handle);
-
-  nr_ret_type get_nr_result(const std::string &nr_handle);
-
-  void run_if_default(block_height_t start_block, block_height_t end_block,
-                      const std::string &nr_handle);
-  void run_if_specify(block_height_t start_block, block_height_t end_block,
-                      uint64_t nr_version, const std::string &nr_handle);
-
-private:
-  lru_cache<std::string, nr_ret_type> m_nr_result;
-};
-} // namespace nr
+std::vector<std::pair<std::string, std::string>>
+json_to_meta_info(const std::string &json);
 } // namespace rt
 } // namespace neb

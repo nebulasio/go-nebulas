@@ -27,6 +27,7 @@
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_handler.h"
 #include "runtime/nr/impl/nr_handler.h"
+#include "runtime/util.h"
 #include "runtime/version.h"
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -305,10 +306,18 @@ void client_driver::add_handlers() {
         try {
           auto ack = new_ack_pkg<nbre_nr_result_ack>(req);
           std::string nr_handle = req->get<p_nr_handle>();
-          auto nr_result =
+          auto nr_ret =
               neb::rt::nr::nr_handler::instance().get_nr_result(nr_handle);
-          auto nr_result_str =
-              neb::rt::nr::nebulas_rank::nr_info_to_json(nr_result);
+          if (!std::get<0>(nr_ret)) {
+            ack->set<p_nr_result>(std::get<1>(nr_ret));
+            m_ipc_conn->send(ack);
+            return;
+          }
+
+          const auto &meta_info_json = std::get<1>(nr_ret);
+          const auto &meta_info = neb::rt::json_to_meta_info(meta_info_json);
+          auto nr_result_str = neb::rt::nr::nebulas_rank::nr_info_to_json(
+              std::get<2>(nr_ret), meta_info);
           ack->set<p_nr_result>(nr_result_str);
           m_ipc_conn->send(ack);
         } catch (const std::exception &e) {

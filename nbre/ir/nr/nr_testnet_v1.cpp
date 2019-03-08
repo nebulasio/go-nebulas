@@ -52,11 +52,8 @@ neb::rt::nr::nr_ret_type entry_point_nr(neb::compatible_uint64_t start_block,
   neb::rt::nr::nr_float_t mu = 1;
   neb::rt::nr::nr_float_t lambda = 2;
 
-  std::get<0>(ret) = 1;
-  auto &tmp = std::get<2>(ret);
-  tmp = neb::rt::nr::entry_point_nr_impl(start_block, end_block,
-                                         to_version_t(0, 0, 1), a, b, c, d,
-                                         theta, mu, lambda);
-  return ret;
+  return neb::rt::nr::entry_point_nr_impl(start_block, end_block,
+                                          to_version_t(0, 0, 1), a, b, c, d,
+                                          theta, mu, lambda);
 }
 

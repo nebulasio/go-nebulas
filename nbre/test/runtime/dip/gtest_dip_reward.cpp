@@ -28,17 +28,17 @@ template <typename T> T precesion(const T &x, float pre = PRECESION) {
 }
 
 std::vector<std::shared_ptr<neb::rt::dip::dip_info_t>>
-gen_dip_infos(std::vector<std::pair<std::string, uint64_t>> &meta) {
+gen_dip_infos(std::vector<std::pair<std::string, std::string>> &meta) {
 
   std::random_device rd;
   std::mt19937 mt(rd());
   std::uniform_int_distribution<> dis(0, std::numeric_limits<int16_t>::max());
 
   std::vector<std::shared_ptr<neb::rt::dip::dip_info_t>> ret;
-  meta =
-      std::vector<std::pair<std::string, uint64_t>>({{"start_height", dis(mt)},
-                                                     {"end_height", dis(mt)},
-                                                     {"version", dis(mt)}});
+  meta = std::vector<std::pair<std::string, std::string>>(
+      {{"start_height", std::to_string(dis(mt))},
+       {"end_height", std::to_string(dis(mt))},
+       {"version", std::to_string(dis(mt))}});
   int32_t infos_size = std::sqrt(dis(mt));
   for (int32_t i = 0; i < infos_size; i++) {
     auto info_ptr =
@@ -52,7 +52,7 @@ gen_dip_infos(std::vector<std::pair<std::string, uint64_t>> &meta) {
 }
 
 TEST(test_runtime_dip_reward, json_seri_deseri) {
-  std::vector<std::pair<std::string, uint64_t>> meta;
+  std::vector<std::pair<std::string, std::string>> meta;
   auto ret = gen_dip_infos(meta);
   auto json_str = neb::rt::dip::dip_reward::dip_info_to_json(ret, meta);
   auto info_v = neb::rt::dip::dip_reward::json_to_dip_info(json_str);
@@ -87,7 +87,7 @@ TEST(test_runtime_dip_reward, back_to_coinbase) {
   neb::rt::dip::dip_reward::back_to_coinbase(infos, reward_left, coinbase_addr);
   EXPECT_TRUE(infos.empty());
 
-  std::vector<std::pair<std::string, uint64_t>> meta;
+  std::vector<std::pair<std::string, std::string>> meta;
   auto ret = gen_dip_infos(meta);
   std::random_device rd;
   std::mt19937 mt(rd());
