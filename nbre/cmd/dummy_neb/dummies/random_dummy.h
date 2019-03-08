@@ -24,7 +24,8 @@
 class random_dummy : public dummy_base {
 public:
   random_dummy(const std::string &name, int initial_account_num,
-               nas initial_nas, double account_increase_ratio);
+               nas initial_nas, double account_increase_ratio,
+               const std::string &rpc_listen, uint16_t rpc_port);
 
   address_t enable_auth_gen_with_ratio(double auth_ratio);
 
@@ -58,6 +59,9 @@ protected:
   double m_nr_ratio;
   double m_contract_ratio;
   double m_call_ratio;
+
+  std::string m_rpc_listen;
+  uint16_t m_rpc_port;
 
   neb::util::version m_nr_version;
 

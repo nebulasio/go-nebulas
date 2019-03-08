@@ -40,6 +40,8 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
     ("end-block", po::value<uint64_t>(), "end block height")
     ("version", po::value<std::string>(), "x.x.x")
     ("handle", po::value<std::string>(), "request handle")
+    ("rpc-listen", po::value<std::string>()->default_value("127.0.0.1"), "nipc listen")
+    ("rpc-port", po::value<uint16_t>()->default_value(0x1958), "nipc port")
     ("kill-nbre", "kill nbre immediatelly");
     /*
     ("run-dummy", po::value<std::string>()->default_value("default_random"), "run a dummy with name (from list-dummies, default [default_random])")
@@ -64,6 +66,9 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
 
 class cli_executor {
 public:
+  cli_executor(const std::string &rpc_listen, uint16_t rpc_port)
+      : m_rpc_listen(rpc_listen), m_rpc_port(rpc_port) {}
+
   void send_brief_req() {
     std::shared_ptr<cli_brief_req_t> req = std::make_shared<cli_brief_req_t>();
     m_package = req;
@@ -147,17 +152,22 @@ protected:
           exit(-1);
         });
     nn.add_pkg_hub(hub);
-    conn = nn.add_tcp_client("127.0.0.1", 0x1958);
+    conn = nn.add_tcp_client(m_rpc_listen, m_rpc_port);
 
     nn.run();
   }
 
 protected:
   std::shared_ptr<ff::net::package> m_package;
+  std::string m_rpc_listen;
+  uint16_t m_rpc_port;
 };
 
 int main(int argc, char *argv[]) {
   po::variables_map vm = get_variables_map(argc, argv);
+  std::string rpc_listen = vm["rpc-listen"].as<std::string>();
+  uint16_t rpc_port = vm["rpc-port"].as<uint16_t>();
+
   if (vm.count("submit")) {
     std::string type = vm["submit"].as<std::string>();
     if (type != "nr" && type != "auth" && type != "dip") {
@@ -170,10 +180,10 @@ int main(int argc, char *argv[]) {
     }
     std::string fp = vm["payload"].as<std::string>();
 
-    cli_executor ce;
+    cli_executor ce(rpc_listen, rpc_port);
     ce.send_submit_ir(type, fp);
   } else if (vm.count("brief")) {
-    cli_executor ce;
+    cli_executor ce(rpc_listen, rpc_port);
     ce.send_brief_req();
   } else if (vm.count("query")) {
     std::string type = vm["query"].as<std::string>();
@@ -193,7 +203,7 @@ int main(int argc, char *argv[]) {
       auto version_str = vm["version"].as<std::string>();
       neb::util::version v;
       v.from_string(version_str);
-      cli_executor ce;
+      cli_executor ce(rpc_listen, rpc_port);
       ce.send_nr_req(start_block, end_block, v.data());
     }
     if (type == "nr-result") {
@@ -202,7 +212,7 @@ int main(int argc, char *argv[]) {
         exit(-1);
       }
       auto handle = vm["handle"].as<std::string>();
-      cli_executor ce;
+      cli_executor ce(rpc_listen, rpc_port);
       ce.send_nr_result_req(handle);
     }
   } else if (vm.count("kill-nbre")) {
