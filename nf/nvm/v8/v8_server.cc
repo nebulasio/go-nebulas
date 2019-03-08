@@ -19,7 +19,6 @@
 
 #include "v8_util.h"
 #include "compatibility.h"
-#include <unistd.h>
 
 #define MicroSecondDiff(newtv, oldtv) (1000000 * (unsigned long long)((newtv).tv_sec - (oldtv).tv_sec) + (newtv).tv_usec - (oldtv).tv_usec)  //milliseconds
 
@@ -376,9 +375,7 @@ int NVMEngine::StartScriptExecution(std::string& contractSource, const std::stri
     const std::string& runnableSrc, const std::string& moduleID, const NVMConfigBundle& configBundle){
 
     // create engine and inject tracing instructions
-    if(this->engine == nullptr){
-      this->engine = CreateEngine();
-    }
+    this->engine = CreateEngine();
 
     this->engine->limits_of_executed_instructions = configBundle.limits_exe_instruction();
     this->engine->limits_of_total_memory_size = configBundle.limits_total_mem_size();
@@ -437,8 +434,6 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
   try{
 
     NVMDataRequest *request = new NVMDataRequest();
-    //while(stream->Read(request)){
-
     stream->Read(request);
 
     std::string requestType = request->request_type();
@@ -505,7 +500,6 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
         free(this->m_exe_result);
         this->m_exe_result = nullptr;
       }
-
       
     }else{
       // throw exception since the request type is not allowed
@@ -518,11 +512,7 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
       std::cout<<e.what()<<std::endl;
   }
 
-  if(this->engine != nullptr){
-    // release and delete engine
-    DeleteEngine(this->engine);
-    this->engine = nullptr;
-  }
+  DeleteEngine(this->engine);
 
   return grpc::Status::OK;
 }
