@@ -44,7 +44,6 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
   }
 
   auto block = blockchain::load_block_with_height(height);
-
   int64_t timestamp = block->header().timestamp();
 
   std::string events_root_str = block->header().events_root();
@@ -142,7 +141,7 @@ blockchain_api::get_account_api(const address_t &addr, block_height_t height) {
   auto corepb_account_ptr = std::make_unique<corepb::Account>();
   if (!is_found) {
     corepb_account_ptr->set_address(std::to_string(addr));
-    corepb_account_ptr->set_balance(std::to_string(0));
+    corepb_account_ptr->set_balance(std::to_string(neb::wei_to_storage(0)));
     return corepb_account_ptr;
   }
 

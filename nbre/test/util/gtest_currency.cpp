@@ -26,6 +26,7 @@ TEST(test_currency, simple) {
   neb::nas v4 = neb::storage_to_nas<neb::nas>(vs);
   EXPECT_EQ(v3, v4);
 }
+
 TEST(test_currency, neg) {
   neb::nas v0;
   neb::nas v1(1089238_nas);
@@ -33,4 +34,12 @@ TEST(test_currency, neg) {
   neb::nas_storage_t vs = neb::nas_to_storage(v3);
   neb::nas v4 = neb::storage_to_nas<neb::nas>(vs);
   EXPECT_EQ(v3, v4);
+}
+
+TEST(test_currency, to_storage_and_from_storage) {
+  neb::nas v0 = 1_nas;
+  std::cout << v0 << std::endl;
+  auto tmp = neb::wei_to_storage(v0.wei_value());
+  neb::wei v1 = neb::storage_to_wei(tmp);
+  std::cout << v1 << std::endl;
 }

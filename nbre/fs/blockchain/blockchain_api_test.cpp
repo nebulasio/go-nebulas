@@ -57,12 +57,18 @@ blockchain_api_test::get_account_api(const address_t &addr,
 
   auto accounts = util::generate_block::read_accounts_in_height(height);
 
+  bool found_flag = false;
   for (auto &ap : accounts) {
     address_t ap_addr = to_address(ap->address());
     if (ap_addr == addr) {
       *ret = *ap;
+      found_flag = true;
       break;
     }
+  }
+  if (!found_flag) {
+    ret->set_address(std::to_string(addr));
+    ret->set_balance(std::to_string(neb::wei_to_storage(0)));
   }
 
   return ret;

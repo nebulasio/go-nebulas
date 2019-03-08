@@ -99,6 +99,7 @@ void init_and_start_nbre(const address_t &auth_admin_addr,
     exit(-1);
   }
 }
+
 int main(int argc, char *argv[]) {
 
   std::thread quiter_thrd([]() {

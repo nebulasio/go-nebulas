@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
+#include "common/address.h"
 #include "common/util/byte.h"
 #include <gtest/gtest.h>
 
@@ -259,3 +260,10 @@ TEST(test_common_util_byte, base64_encoding_decoding) {
   test_base64_encoding_decoding<neb::util::bytes>(input);
 }
 
+TEST(test_common, address) {
+  std::string base58_str("n1EjkdHBDpdjFfVaeJqMQW11RhYqrrjCZR7");
+  auto ret_bytes = neb::util::bytes::from_base58(base58_str);
+  std::string s = neb::address_to_string(ret_bytes);
+  std::string t = std::to_string(ret_bytes);
+  EXPECT_EQ(s, t);
+}

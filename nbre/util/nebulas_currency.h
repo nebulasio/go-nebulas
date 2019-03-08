@@ -175,11 +175,11 @@ template <typename T> T storage_to_nas(const nas_storage_t &v) {
   return nas(cv);
 }
 
-inline wei_t storage_to_wei(const neb::util::bytes &v) {
-  return storage_to_nas<nas>(util::to_fix_bytes<nas_storage_t>(v)).wei_value();
-}
 inline neb::util::bytes wei_to_storage(const wei_t &v) {
   return util::from_fix_bytes(nas_to_storage(nas(v)));
+}
+inline wei_t storage_to_wei(const neb::util::bytes &v) {
+  return storage_to_nas<nas>(util::to_fix_bytes<nas_storage_t>(v)).wei_value();
 }
 
 } // end namespace neb
