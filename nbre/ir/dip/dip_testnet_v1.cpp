@@ -61,7 +61,8 @@ neb::rt::dip::dip_ret_type entry_point_dip(neb::compatible_uint64_t height) {
   neb::compatible_uint64_t end_block = start_block - 1;
   start_block -= dip_block_interval;
 
-  auto nr_result = entry_point_nr(start_block, end_block);
+  auto nr_ret = entry_point_nr(start_block, end_block);
+  auto &nr_result = std::get<2>(nr_ret);
 
   neb::rt::dip::dip_float_t alpha = 1e-32;
   neb::rt::dip::dip_float_t beta = 1;
