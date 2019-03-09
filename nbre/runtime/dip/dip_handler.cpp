@@ -132,7 +132,7 @@ void dip_handler::start(neb::block_height_t height,
   }
   LOG(INFO) << "to start calculate dip reward for hash_height " << hash_height;
 
-  if (m_dip_reward.find(hash_height) != m_dip_reward.end()) {
+  if (m_dip_reward.exist(hash_height)) {
     LOG(INFO) << "dip reward already exists";
     return;
   }
@@ -254,14 +254,14 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   uint64_t hash_height = dip_start_block + dip_block_interval * interval_nums;
   LOG(INFO) << "mapping height " << height << " to hash_height " << hash_height;
 
-  auto ret = m_dip_reward.find(hash_height);
-  if (ret == m_dip_reward.end()) {
+  if (!m_dip_reward.exist(hash_height)) {
     LOG(INFO) << "dip reward not exists";
     return get_dip_reward_when_missing(hash_height, it);
   }
   LOG(INFO) << "dip reward exists";
-  LOG(INFO) << ret->second;
-  return ret->second;
+  auto ret = m_dip_reward.try_get_val(hash_height);
+  LOG(INFO) << ret.second;
+  return ret.second;
 }
 
 void dip_handler::write_to_storage(neb::block_height_t hash_height,

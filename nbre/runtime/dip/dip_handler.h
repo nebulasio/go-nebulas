@@ -24,6 +24,8 @@
 #include "common/common.h"
 #include "common/util/singleton.h"
 #include "fs/rocksdb_storage.h"
+#include "util/thread_safe_map.h"
+#include "util/thread_safe_vector.h"
 #include <ff/network.h>
 
 define_nt(start_block, neb::block_height_t);
@@ -60,7 +62,7 @@ private:
 
 private:
   neb::fs::rocksdb_storage *m_storage;
-  std::map<block_height_t, std::string> m_dip_reward;
+  thread_safe_map<block_height_t, std::string> m_dip_reward;
   // dip params info list
   std::vector<dip_params_t> m_dip_params_list;
 
