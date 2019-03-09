@@ -12,7 +12,7 @@
       "version_patch": 1
     }
   ],
-  "available_height": 120,
+  "available_height": 10,
   "cpp_files": [
     "dip_release_v1.cpp"
   ],

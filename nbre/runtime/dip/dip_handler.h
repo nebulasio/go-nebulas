@@ -44,9 +44,6 @@ class dip_handler : public util::singleton<dip_handler> {
 public:
   dip_handler();
 
-  void init_dip_params(block_height_t height);
-  void load_dip_rewards();
-
   void deploy(version_t version, block_height_t available_height);
   void start(block_height_t height, const dip_params_t *dip_params = nullptr);
 
@@ -57,6 +54,8 @@ private:
   std::string get_dip_reward_when_missing(block_height_t height,
                                           const dip_params_t &dip_params);
 
+  void init_dip_params(block_height_t height);
+  void load_dip_rewards();
   void write_to_storage(block_height_t height, const std::string &dip_reward);
 
 private:
@@ -66,7 +65,6 @@ private:
   std::vector<dip_params_t> m_dip_params_list;
 
   bool m_has_curr;
-  std::pair<version_t, block_height_t> m_curr;
   // suppose version and available height are in increasing order
   std::queue<std::pair<version_t, block_height_t>> m_incoming;
 };

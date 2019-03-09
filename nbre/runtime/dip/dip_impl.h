@@ -45,7 +45,7 @@ entry_point_dip_impl(compatible_uint64_t start_block,
 std::string dip_param_list(compatible_uint64_t dip_start_block,
                            compatible_uint64_t dip_block_interval,
                            const std::string &dip_reward_addr,
-                           const std::string &coinbase_addr);
+                           const std::string &coinbase_addr, version_t v);
 
 } // namespace dip
 } // namespace rt

@@ -70,7 +70,7 @@ void dip(uint64_t height) {
 
   if (!height) {
     auto ret = neb::rt::dip::dip_param_list(dip_start_block, dip_block_interval,
-                                            dip_reward_addr, std::string());
+                                            dip_reward_addr, std::string(), 0);
     std::cout << ret << std::endl;
     return;
   }

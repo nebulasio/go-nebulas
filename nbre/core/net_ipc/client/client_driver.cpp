@@ -156,8 +156,6 @@ void client_driver_base::init_nbre() {
         rs->get(neb::configuration::instance().nbre_max_height_name());
     auto nbre_max_height =
         neb::util::byte_to_number<block_height_t>(nbre_max_height_bytes);
-    neb::rt::dip::dip_handler::instance().init_dip_params(nbre_max_height);
-    neb::rt::dip::dip_handler::instance().load_dip_rewards();
   } catch (const std::exception &e) {
     LOG(INFO) << "nbre max height not init " << e.what();
   }

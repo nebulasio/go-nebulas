@@ -73,16 +73,20 @@ entry_point_dip_impl(compatible_uint64_t start_block,
 std::string dip_param_list(compatible_uint64_t dip_start_block,
                            compatible_uint64_t dip_block_interval,
                            const std::string &dip_reward_addr,
-                           const std::string &dip_coinbase_addr) {
+                           const std::string &dip_coinbase_addr, version_t v) {
   dip_params_t param;
   param.set<start_block>(dip_start_block);
   param.set<block_interval>(dip_block_interval);
   param.set<reward_addr>(dip_reward_addr);
   param.set<coinbase_addr>(dip_coinbase_addr);
+  param.set<version>(v);
   LOG(INFO) << "init dip params: " << dip_start_block << ','
             << dip_block_interval << ',' << dip_reward_addr << ','
-            << dip_coinbase_addr;
-  return param.serialize_to_string();
+            << dip_coinbase_addr << ',' << v;
+  LOG(INFO) << "begin to seri";
+  auto ret = param.serialize_to_string();
+  LOG(INFO) << "seri done";
+  return ret;
 }
 } // namespace dip
 } // namespace rt

@@ -3,6 +3,7 @@ add_executable(test_common main.cpp
   gtest_util_json.cpp
   gtest_math.cpp
   gtest_conversion.cpp
+  gtest_ff_net.cpp
   )
 
 add_executable(test_timer_loop test_timer_loop.cpp)
