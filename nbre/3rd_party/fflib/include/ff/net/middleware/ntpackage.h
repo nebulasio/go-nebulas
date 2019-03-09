@@ -43,9 +43,9 @@ public:
     marshaler lr(marshaler::length_retriver);
     arch(lr);
     size_t s = lr.get_length();
-    std::string ret(s, 0);
 
-    marshaler sc(ret.data(), s, marshaler::seralizer);
+    std::string ret(s, 0);
+    marshaler sc((char *)ret.data(), s, marshaler::seralizer);
     arch(sc);
     return ret;
   }
