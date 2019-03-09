@@ -31,9 +31,14 @@ enum {
 };
 
 define_nt(p_account_num, uint64_t);
+define_nt(p_nr_ir_status, std::vector<std::string>);
+define_nt(p_dip_ir_status, std::vector<std::string>);
+define_nt(p_auth_ir_status, std::vector<std::string>);
+define_nt(p_checker_status, std::string);
 
 typedef ff::net::ntpackage<cli_brief_req_pkg> cli_brief_req_t;
-typedef ff::net::ntpackage<cli_brief_ack_pkg, p_height, p_account_num>
+typedef ff::net::ntpackage<cli_brief_ack_pkg, p_height, p_account_num,
+                           p_checker_status>
     cli_brief_ack_t;
 
 define_nt(p_type, std::string);

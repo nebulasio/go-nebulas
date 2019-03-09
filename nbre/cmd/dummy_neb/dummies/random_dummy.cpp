@@ -19,6 +19,7 @@
 //
 #include "cmd/dummy_neb/dummies/random_dummy.h"
 #include "cmd/dummy_neb/dummy_callback.h"
+#include "cmd/dummy_neb/generator/checkers.h"
 
 random_dummy::random_dummy(const std::string &name, int initial_account_num,
                            nas initial_nas, double account_increase_ratio,
@@ -37,6 +38,10 @@ random_dummy::random_dummy(const std::string &name, int initial_account_num,
           auto ack = std::make_shared<cli_brief_ack_t>();
           ack->set<p_height>(m_current_height);
           ack->set<p_account_num>(m_all_accounts.size());
+          // ack->set<p_nr_ir_status>(std::string());
+          // ack->set<p_auth_ir_status>(std::string());
+          // ack->set<p_dip_ir_status>(std::string());
+          ack->set<p_checker_status>(checker_tasks::instance().status());
           conn->send(ack);
         });
 
@@ -175,7 +180,38 @@ void random_dummy::enable_call_tx_with_ratio(double contract_ratio,
 }
 
 std::shared_ptr<checker_task_base> random_dummy::generate_checker_task() {
-  return nullptr;
+  std::shared_ptr<checker_task_base> ret;
+  if (m_current_height > 0 && m_current_height % 10 == 0) {
+    int m = std::rand() % 5;
+    switch (m) {
+    case 0:
+      if (!m_version_checker) {
+        m_version_checker = std::make_shared<nbre_version_checker>();
+        ret = m_version_checker;
+      }
+      break;
+    case 1: {
+      uint64_t t1 = std::rand() % m_current_height;
+      uint64_t t2 = std::rand() % m_current_height;
+      ret = std::make_shared<nbre_nr_handle_check>(std::min(t1, t2),
+                                                   std::max(t1, t2));
+      break;
+    }
+    case 2:
+      break;
+    case 3:
+      ret = std::make_shared<nbre_dip_reward_check>(std::rand() %
+                                                    m_current_height);
+      break;
+    case 4:
+      break;
+    }
+
+    if (ret) {
+      checker_tasks::instance().add_task(ret);
+    }
+  }
+  return ret;
 }
 
 address_t random_dummy::get_auth_admin_addr() {

@@ -35,7 +35,7 @@ public:
   // virtual std::string serialize_to_string();
   // virtual void deserialize_from_string(const std::string &s);
   inline uint64_t &task_id() { return m_task_id; };
-  inline const uint64_t task_id() const { return m_task_id; }
+  inline uint64_t task_id() const { return m_task_id; }
   bool is_running() const { return m_b_is_running; }
 
   std::string status() const;
@@ -44,7 +44,7 @@ protected:
   void apply_result(const std::string &result);
 
 protected:
-  std::mutex m_mutex;
+  mutable std::mutex m_mutex;
   uint64_t m_task_id;
   std::chrono::steady_clock::time_point m_last_call_timepoint;
   std::string m_last_result;
@@ -77,6 +77,8 @@ public:
 
   void randomly_schedule_all_tasks(int num = 1);
 
+  std::string status() const;
+
 protected:
   inline static std::string get_all_checker_info_key() {
     return std::string("all_checker_names");
@@ -88,7 +90,7 @@ protected:
 protected:
   typedef std::unordered_map<std::string, task_container_ptr_t>
       task_name_container_t;
-  std::mutex m_mutex;
+  mutable std::mutex m_mutex;
   std::unordered_map<uint64_t, std::shared_ptr<checker_task_base>> m_all_tasks;
 };
 

@@ -20,6 +20,7 @@
 #pragma once
 #include "cmd/dummy_neb/generator/auth_table_generator.h"
 #include "cmd/dummy_neb/generator/call_tx_generator.h"
+#include "cmd/dummy_neb/generator/checkers.h"
 #include "cmd/dummy_neb/generator/cli_generator.h"
 #include "cmd/dummy_neb/generator/contract_generator.h"
 #include "cmd/dummy_neb/generator/dip_ir_generator.h"

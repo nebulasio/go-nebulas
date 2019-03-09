@@ -44,6 +44,7 @@ void checker_task_base::apply_result(const std::string &result) {
 }
 
 std::string checker_task_base::status() const {
+  std::unique_lock<std::mutex> _l(m_mutex);
   std::stringstream ss;
   ss << "->" << name() << " called " << m_call_times << "times, with "
      << m_diff_result_num << " diff results. \n";
@@ -115,6 +116,17 @@ void checker_tasks::randomly_schedule_all_tasks(int num) {
     auto task = m_all_tasks[k];
     task_executor::instance().schedule([task]() { task->check(); });
   }
+}
+
+std::string checker_tasks::status() const {
+  std::unique_lock<std::mutex> _l(m_mutex);
+
+  std::stringstream ss;
+  ss << m_all_tasks.size() << "tasks in total.\n";
+  for (auto &kv : m_all_tasks) {
+    ss << kv.second->status();
+  }
+  return ss.str();
 }
 
 std::shared_ptr<checker_task_base>

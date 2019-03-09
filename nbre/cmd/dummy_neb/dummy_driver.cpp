@@ -76,13 +76,14 @@ void dummy_driver::run(const std::string &dummy_name, uint64_t block_interval) {
 
   m_checker_gen_timer = std::make_unique<neb::timer_loop>(&m_io_service);
   m_checker_gen_timer->register_timer_and_callback(1, [dummy]() {
-    auto task = dummy->generate_checker_task();
-    if (!task)
-      return;
-    task_executor::instance().schedule([task]() {
-      ff::para<> a;
-      a([task]() { task->check(); });
-    });
+    dummy->generate_checker_task();
+    checker_tasks::instance().randomly_schedule_no_running_tasks();
+    // if (!task)
+    // return;
+    // task_executor::instance().schedule([task]() {
+    // ff::para<> a;
+    // a([task]() { task->check(); });
+    //});
   });
 
   m_io_service.run();

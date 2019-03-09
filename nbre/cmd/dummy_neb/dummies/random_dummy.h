@@ -72,4 +72,6 @@ protected:
   std::unique_ptr<std::thread> m_thread;
   neb::wakeable_queue<std::shared_ptr<ff::net::package>> m_pkgs;
   ff::net::tcp_connection_base_ptr m_conn;
+
+  std::shared_ptr<nbre_version_checker> m_version_checker;
 };
