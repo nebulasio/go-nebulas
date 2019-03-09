@@ -46,7 +46,6 @@ blockchain_api_test::get_block_transactions_api(block_height_t height) {
     ret->push_back(info);
   }
 
-  LOG(INFO) << "got tx :" << ret->size();
   return ret;
 }
 

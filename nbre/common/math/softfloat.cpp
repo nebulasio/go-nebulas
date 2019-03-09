@@ -59,5 +59,7 @@ void softfloat_raiseFlags(uint_fast8_t exception_flag) {
     flag >>= 1;
   }
   std::cout << std::endl;
-  throw std::runtime_error("softfloat exception");
+
+  // ignore softfloat exception
+  // throw std::runtime_error("softfloat exception");
 }
