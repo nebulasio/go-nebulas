@@ -35,11 +35,12 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
     ("brief", "show current dummy brief")
     ("payload", po::value<std::string>(), "payload file path")
     ("submit", po::value<std::string>(), "auth, nr, dip")
-    ("query", po::value<std::string>(), "nr")
+    ("query", po::value<std::string>(), "nr, nr-result, dip-reward")
     ("start-block", po::value<uint64_t>(), "start block height")
     ("end-block", po::value<uint64_t>(), "end block height")
-    ("version", po::value<std::string>(), "x.x.x")
+    ("version", po::value<std::string>()->default_value("0.0.1"), "x.x.x")
     ("handle", po::value<std::string>(), "request handle")
+    ("height", po::value<uint64_t>()->default_value(0), "request height")
     ("rpc-listen", po::value<std::string>()->default_value("127.0.0.1"), "nipc listen")
     ("rpc-port", po::value<uint16_t>()->default_value(0x1958), "nipc port")
     ("kill-nbre", "kill nbre immediatelly");
@@ -114,6 +115,16 @@ public:
     start_and_join();
   }
 
+  void send_dip_reward_req(uint64_t height, uint64_t version) {
+    std::shared_ptr<nbre_dip_reward_req> req =
+        std::make_shared<nbre_dip_reward_req>();
+    req->set<p_holder>(reinterpret_cast<uint64_t>(this));
+    req->set<p_height>(height);
+    req->set<p_version>(version);
+    m_package = req;
+    start_and_join();
+  }
+
 protected:
   void start_and_join() {
 
@@ -148,6 +159,13 @@ protected:
     hub.to_recv_pkg<nbre_nr_handle_ack>(
         [&](std::shared_ptr<nbre_nr_handle_ack> ack) {
           std::cout << "\t" << ack->get<p_nr_handle>() << std::endl;
+          conn->close();
+          exit(-1);
+        });
+
+    hub.to_recv_pkg<nbre_dip_reward_ack>(
+        [&](std::shared_ptr<nbre_dip_reward_ack> ack) {
+          std::cout << "\t" << ack->get<p_dip_reward>() << std::endl;
           conn->close();
           exit(-1);
         });
@@ -187,8 +205,7 @@ int main(int argc, char *argv[]) {
     ce.send_brief_req();
   } else if (vm.count("query")) {
     std::string type = vm["query"].as<std::string>();
-    if (type != "nr" && type != "auth" && type != "dip" &&
-        type != "nr-result") {
+    if (type != "nr" && type != "nr-result") {
       std::cout << "invalid type " << type << std::endl;
       exit(-1);
     }
@@ -214,6 +231,14 @@ int main(int argc, char *argv[]) {
       auto handle = vm["handle"].as<std::string>();
       cli_executor ce(rpc_listen, rpc_port);
       ce.send_nr_result_req(handle);
+    }
+    if (type == "dip-reward") {
+      auto height = vm["height"].as<uint64_t>();
+      auto version_str = vm["version"].as<std::string>();
+      neb::util::version v;
+      v.from_string(version_str);
+      cli_executor ce(rpc_listen, rpc_port);
+      ce.send_dip_reward_req(height, v.data());
     }
   } else if (vm.count("kill-nbre")) {
     neb::util::magic_wand mw;

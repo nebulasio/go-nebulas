@@ -58,6 +58,11 @@ random_dummy::random_dummy(const std::string &name, int initial_account_num,
           m_pkgs.push_back(req);
         });
 
+    hub.to_recv_pkg<nbre_dip_reward_req>(
+        [this](std::shared_ptr<nbre_dip_reward_req> req) {
+          m_pkgs.push_back(req);
+        });
+
     nn.get_event_handler()
         ->listen<::ff::net::event::more::tcp_server_accept_connection>(
             [this](::ff::net::tcp_connection_base_ptr conn) { m_conn = conn; });
@@ -219,6 +224,19 @@ void random_dummy::handle_cli_pkgs() {
           });
       ipc_nbre_nr_result(reinterpret_cast<void *>(req->get<p_holder>()),
                          req->get<p_nr_handle>().c_str());
+    } else if (pkg->type_id() == nbre_dip_reward_req_pkg) {
+      nbre_dip_reward_req *req = (nbre_dip_reward_req *)pkg.get();
+      callback_handler::instance().add_dip_reward_handler(
+          req->get<p_holder>(),
+          [this](uint64_t holder, const char *dip_reward) {
+            std::shared_ptr<nbre_dip_reward_ack> ack =
+                std::make_shared<nbre_dip_reward_ack>();
+            ack->set<p_holder>(holder);
+            ack->set<p_dip_reward>(std::string(dip_reward));
+            m_conn->send(ack);
+          });
+      ipc_nbre_dip_reward(reinterpret_cast<void *>(req->get<p_holder>()),
+                          req->get<p_height>(), req->get<p_version>());
     }
   }
 }
