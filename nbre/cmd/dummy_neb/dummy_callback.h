@@ -24,18 +24,45 @@ class callback_handler : public neb::util::singleton<callback_handler> {
 public:
   callback_handler();
 
+  template <typename Func> void add_version_handler(uint64_t holder, Func &&f) {
+    std::unique_lock<std::mutex> _l(m_mutex);
+    m_version_handlers.insert(std::make_pair(holder, f));
+  }
+  void handle_version(void *holder, uint32_t major, uint32_t minor,
+                      uint32_t patch);
+
+  template <typename Func> void add_ir_list_handler(uint64_t holder, Func &&f) {
+    std::unique_lock<std::mutex> _l(m_mutex);
+    m_ir_list_handlers.insert(std::make_pair(holder, f));
+  }
+  void handle_ir_list(void *holder, const char *ir_name_list);
+
+  template <typename Func>
+  void add_ir_versions_handler(uint64_t holder, Func &&f) {
+    std::unique_lock<std::mutex> _l(m_mutex);
+    m_ir_versions_handlers.insert(std::make_pair(holder, f));
+  }
+  void handle_ir_versions(void *holder, const char *ir_versions);
+
   template <typename Func> void add_nr_handler(uint64_t holder, Func &&f) {
     std::unique_lock<std::mutex> _l(m_mutex);
     m_nr_handlers.insert(std::make_pair(holder, f));
   }
   void handle_nr(void *holder, const char *nr_handler_id);
-  void handle_nr_result(void *holder, const char *nr_result);
 
   template <typename Func>
   void add_nr_result_handler(uint64_t holder, Func &&f) {
     std::unique_lock<std::mutex> _l(m_mutex);
     m_nr_result_handlers.insert(std::make_pair(holder, f));
   }
+  void handle_nr_result(void *holder, const char *nr_result);
+
+  template <typename Func>
+  void add_dip_reward_handler(uint64_t holder, Func &&f) {
+    std::unique_lock<std::mutex> _l(m_mutex);
+    m_dip_reward_handlers.insert(std::make_pair(holder, f));
+  }
+  void handle_dip_reward(void *holder, const char *dip_reward);
 
 protected:
   template <typename Handlers, typename... ARGS>
@@ -53,10 +80,25 @@ protected:
 
 protected:
   std::mutex m_mutex;
+
+  std::unordered_map<
+      uint64_t, std::function<void(uint64_t, uint32_t, uint32_t, uint32_t)>>
+      m_version_handlers;
+
+  std::unordered_map<uint64_t, std::function<void(uint64_t, const char *)>>
+      m_ir_list_handlers;
+
+  std::unordered_map<uint64_t, std::function<void(uint64_t, const char *)>>
+      m_ir_versions_handlers;
+
   std::unordered_map<uint64_t, std::function<void(uint64_t, const char *)>>
       m_nr_handlers;
+
   std::unordered_map<uint64_t, std::function<void(uint64_t, const char *)>>
       m_nr_result_handlers;
+
+  std::unordered_map<uint64_t, std::function<void(uint64_t, const char *)>>
+      m_dip_reward_handlers;
 };
 
 void nbre_version_callback(ipc_status_code isc, void *handler, uint32_t major,
