@@ -19,6 +19,37 @@
 //
 #include "cmd/dummy_neb/generator/generator_base.h"
 
+uint64_t checker_task_base::s_task_id = 0;
+
+checker_task_base::checker_task_base()
+    : m_task_id(s_task_id++), m_last_call_timepoint(), m_last_result(),
+      m_call_times(0), m_diff_result_num(0){};
+
+checker_task_base::~checker_task_base() {}
+
+std::string checker_task_base::name() const { return ""; }
+
+void checker_task_base::apply_result(const std::string &result) {
+  std::unique_lock<std::mutex> _l(m_mutex);
+  if (m_call_times == 0) {
+    m_last_result = result;
+  }
+  if (m_last_result != result) {
+    m_diff_result_num++;
+  }
+  m_last_result = result;
+  m_last_call_timepoint = std::chrono::steady_clock::now();
+  m_call_times++;
+  m_b_is_running = false;
+}
+
+std::string checker_task_base::status() const {
+  std::stringstream ss;
+  ss << "->" << name() << " called " << m_call_times << "times, with "
+     << m_diff_result_num << " diff results. \n";
+  return ss.str();
+}
+#if 0
 void checker_tasks::init_from_db() {
   try {
     std::string s =
@@ -51,22 +82,39 @@ void checker_tasks::write_to_db() {
   std::string s = cm.serialize_to_string();
   bc_storage_session::instance().put(get_all_checker_info_key(), s);
 }
+#endif
 
 void checker_tasks::add_task(const std::shared_ptr<checker_task_base> &task) {
   if (!task)
     return;
   std::unique_lock<std::mutex> _l(m_mutex);
-  std::string name = task->name();
-
-  auto it = m_all_tasks.find(name);
-  task_container_ptr_t container;
-  if (it == m_all_tasks.end()) {
-    container = std::make_shared<task_container_t>();
-    m_all_tasks.insert(std::make_pair(name, container));
-  } else {
-    container = it->second;
+  m_all_tasks.insert(std::make_pair(task->task_id(), task));
+}
+void checker_tasks::randomly_schedule_no_running_tasks() {
+  std::unique_lock<std::mutex> _l(m_mutex);
+  std::vector<uint64_t> keys;
+  for (auto &kv : m_all_tasks) {
+    keys.push_back(kv.first);
   }
-  container->push_back(task);
+  uint64_t k = keys[std::rand() % keys.size()];
+  while (m_all_tasks[k]->is_running()) {
+    k = keys[std::rand() % keys.size()];
+  }
+  auto task = m_all_tasks[k];
+  task_executor::instance().schedule([task]() { task->check(); });
+}
+
+void checker_tasks::randomly_schedule_all_tasks(int num) {
+  std::unique_lock<std::mutex> _l(m_mutex);
+  std::vector<uint64_t> keys;
+  for (auto &kv : m_all_tasks) {
+    keys.push_back(kv.first);
+  }
+  for (int i = 0; i < num; ++i) {
+    uint64_t k = keys[std::rand() % keys.size()];
+    auto task = m_all_tasks[k];
+    task_executor::instance().schedule([task]() { task->check(); });
+  }
 }
 
 std::shared_ptr<checker_task_base>

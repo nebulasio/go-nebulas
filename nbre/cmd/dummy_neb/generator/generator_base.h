@@ -27,27 +27,55 @@ using checker_marshaler = ff::net::ntpackage<1, p_checkers>;
 
 class checker_task_base {
 public:
-  inline virtual ~checker_task_base() {}
+  checker_task_base();
+
+  virtual ~checker_task_base();
   virtual void check() = 0;
-  virtual std::string name() = 0;
-  virtual std::string serialize_to_string() = 0;
-  virtual void deserialize_from_string(const std::string &s);
+  virtual std::string name() const;
+  // virtual std::string serialize_to_string();
+  // virtual void deserialize_from_string(const std::string &s);
+  inline uint64_t &task_id() { return m_task_id; };
+  inline const uint64_t task_id() const { return m_task_id; }
+  bool is_running() const { return m_b_is_running; }
+
+  std::string status() const;
+
+protected:
+  void apply_result(const std::string &result);
+
+protected:
+  std::mutex m_mutex;
+  uint64_t m_task_id;
+  std::chrono::steady_clock::time_point m_last_call_timepoint;
+  std::string m_last_result;
+  uint64_t m_call_times;
+  uint16_t m_diff_result_num;
+  bool m_b_is_running;
+
+  static uint64_t s_task_id;
 };
 
 std::shared_ptr<checker_task_base>
 init_checker_from_string(const std::string &s);
+
+class task_executor : public neb::wakeable_thread,
+                      public neb::util::singleton<task_executor> {};
 
 class checker_tasks : public neb::util::singleton<checker_tasks> {
 public:
   typedef std::vector<std::shared_ptr<checker_task_base>> task_container_t;
   typedef std::shared_ptr<task_container_t> task_container_ptr_t;
 
-  void init_from_db();
-  void write_to_db();
+  // void init_from_db();
+  // void write_to_db();
 
   void add_task(const std::shared_ptr<checker_task_base> &task);
 
   task_container_ptr_t get_tasks_with_name(const std::string &name);
+
+  void randomly_schedule_no_running_tasks();
+
+  void randomly_schedule_all_tasks(int num = 1);
 
 protected:
   inline static std::string get_all_checker_info_key() {
@@ -61,11 +89,9 @@ protected:
   typedef std::unordered_map<std::string, task_container_ptr_t>
       task_name_container_t;
   std::mutex m_mutex;
-  task_name_container_t m_all_tasks;
+  std::unordered_map<uint64_t, std::shared_ptr<checker_task_base>> m_all_tasks;
 };
 
-class task_executor : public neb::wakeable_thread,
-                      public neb::util::singleton<task_executor> {};
 
 class generator_base {
 public:
