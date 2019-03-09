@@ -181,7 +181,7 @@ void random_dummy::enable_call_tx_with_ratio(double contract_ratio,
 
 std::shared_ptr<checker_task_base> random_dummy::generate_checker_task() {
   std::shared_ptr<checker_task_base> ret;
-  if (m_current_height > 0 && m_current_height % 10 == 0) {
+  if (m_current_height > 0 && m_current_height % 2 == 0) {
     int m = std::rand() % 5;
     switch (m) {
     case 0:

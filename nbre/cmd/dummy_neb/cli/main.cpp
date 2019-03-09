@@ -140,6 +140,8 @@ protected:
     hub.to_recv_pkg<cli_brief_ack_t>([&](std::shared_ptr<cli_brief_ack_t> ack) {
       std::cout << "\t height: " << ack->get<p_height>() << std::endl;
       std::cout << "\t account num: " << ack->get<p_account_num>() << std::endl;
+      std::cout << "\t " << ack->get<p_checker_status>() << std::endl;
+      ;
       conn->close();
       exit(-1);
     });

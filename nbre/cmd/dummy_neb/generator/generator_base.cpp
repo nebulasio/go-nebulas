@@ -23,7 +23,7 @@ uint64_t checker_task_base::s_task_id = 0;
 
 checker_task_base::checker_task_base()
     : m_task_id(s_task_id++), m_last_call_timepoint(), m_last_result(),
-      m_call_times(0), m_diff_result_num(0){};
+      m_call_times(0), m_diff_result_num(0), m_b_is_running(false){};
 
 checker_task_base::~checker_task_base() {}
 
@@ -97,11 +97,20 @@ void checker_tasks::randomly_schedule_no_running_tasks() {
   for (auto &kv : m_all_tasks) {
     keys.push_back(kv.first);
   }
+  if (keys.size() == 0)
+    return;
   uint64_t k = keys[std::rand() % keys.size()];
+  uint64_t max_num = 16;
+  uint64_t i = 0;
   while (m_all_tasks[k]->is_running()) {
+    if (i > max_num) {
+      return;
+    }
+    i++;
     k = keys[std::rand() % keys.size()];
   }
-  auto task = m_all_tasks[k];
+  std::shared_ptr<checker_task_base> task = m_all_tasks[k];
+  // task->check();
   task_executor::instance().schedule([task]() { task->check(); });
 }
 
