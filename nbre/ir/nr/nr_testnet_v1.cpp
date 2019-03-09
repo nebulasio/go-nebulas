@@ -31,8 +31,8 @@ neb::rt::nr::nr_ret_type entry_point_nr(neb::compatible_uint64_t start_block,
   }
   uint64_t block_nums_of_a_day = 24 * 3600 / 15;
   uint64_t days = 7;
-  uint64_t max_nr_block_interval = days * block_nums_of_a_day;
-  if (start_block + max_nr_block_interval < end_block) {
+  uint64_t block_interval = days * block_nums_of_a_day;
+  if (start_block + block_interval < end_block) {
     std::get<1>(ret) =
         std::string("{\"err\":\"nr block interval out of range\"}");
     return ret;

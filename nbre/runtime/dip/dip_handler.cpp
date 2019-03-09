@@ -43,6 +43,7 @@ dip_handler::dip_handler() : m_has_curr(false) {
 void dip_handler::init_dip_params(block_height_t height) {
 
   if (!m_has_curr && m_incoming.empty()) {
+    load_dip_rewards();
     auto dip_versions_ptr = neb::fs::ir_api::get_ir_versions("dip", m_storage);
     if (dip_versions_ptr->empty()) {
       return;
@@ -63,7 +64,6 @@ void dip_handler::init_dip_params(block_height_t height) {
 
   while (!m_incoming.empty() && m_incoming.front().second <= height) {
     tmp = m_incoming.front();
-    m_curr = tmp;
     m_has_curr = true;
     m_incoming.pop();
   }
@@ -142,9 +142,8 @@ void dip_handler::start(neb::block_height_t height,
   uint64_t dip_version = 0;
   auto tmp_ptr = neb::core::ir_warden::instance().get_ir_by_name_height(
       dip_name, hash_height, false);
-  if (!tmp_ptr->empty()) {
-    dip_version = tmp_ptr->back().version();
-  }
+  assert(!tmp_ptr->empty());
+  dip_version = tmp_ptr->back().version();
   if (dip_params) {
     dip_version = dip_params->get<version>();
   }
@@ -178,6 +177,8 @@ void dip_handler::start(neb::block_height_t height,
         auto dip_str = dip_reward::dip_info_to_json(tmp, meta_info);
         write_to_storage(hash_height, dip_str);
         LOG(INFO) << "write dip reward to storage";
+      } else {
+        LOG(INFO) << std::get<1>(dip_ret);
       }
 
     } catch (const std::exception &e) {
@@ -191,15 +192,6 @@ dip_handler::get_dip_reward_when_missing(neb::block_height_t height,
                                          const dip_params_t &dip_params) {
 
   LOG(INFO) << "call func get_dip_reward_when_missing";
-  dip_params_t &first_ele = m_dip_params_list.front();
-  if (height < first_ele.get<start_block>() + first_ele.get<block_interval>()) {
-    auto ret = boost::str(
-        boost::format("{\"err\":\"available height is %1%\"}") %
-        (first_ele.get<start_block>() + first_ele.get<block_interval>()));
-    LOG(INFO) << ret;
-    return ret;
-  }
-
   block_height_t dip_start_block = dip_params.get<start_block>();
   block_height_t dip_block_interval = dip_params.get<block_interval>();
 
@@ -217,6 +209,19 @@ dip_handler::get_dip_reward_when_missing(neb::block_height_t height,
   return ret;
 }
 
+const dip_params_t &dip_handler::get_dip_params(neb::block_height_t height) {
+
+  dip_params_t tmp;
+  tmp.set<start_block>(height);
+  auto it =
+      std::upper_bound(m_dip_params_list.begin(), m_dip_params_list.end(), tmp,
+                       [](const dip_params_t &d1, const dip_params_t &d2) {
+                         return d1.get<start_block>() < d2.get<start_block>();
+                       });
+  it--;
+  return *it;
+}
+
 std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   LOG(INFO) << "call func get_dip_reward";
 
@@ -226,13 +231,16 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
     return ret;
   }
 
-  LOG(INFO) << "dip reward fist hash_height " << m_dip_reward.begin()->first;
-  if (!m_dip_reward.empty() && height < m_dip_reward.begin()->first) {
-    auto ret =
-        boost::str(boost::format("{\"err\":\"available height is %1%\"}") %
-                   (m_dip_reward.begin()->first));
-    LOG(INFO) << ret;
-    return ret;
+  if (!m_dip_params_list.empty()) {
+    auto &first_ele = m_dip_params_list.front();
+    if (height <
+        first_ele.get<start_block>() + first_ele.get<block_interval>()) {
+      auto ret = boost::str(
+          boost::format("{\"err\":\"available height is %1%\"}") %
+          (first_ele.get<start_block>() + first_ele.get<block_interval>()));
+      LOG(INFO) << ret;
+      return ret;
+    }
   }
 
   LOG(INFO) << "dip history size " << m_dip_params_list.size();
@@ -249,13 +257,6 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   auto ret = m_dip_reward.find(hash_height);
   if (ret == m_dip_reward.end()) {
     LOG(INFO) << "dip reward not exists";
-    dip_params_t &last_ele = m_dip_params_list.back();
-    if (hash_height - last_ele.get<start_block>() >=
-        last_ele.get<block_interval>()) {
-      auto ret = std::string("{\"err\":\"dip this interval not found\"}");
-      LOG(INFO) << ret;
-      return ret;
-    }
     return get_dip_reward_when_missing(hash_height, it);
   }
   LOG(INFO) << "dip reward exists";
@@ -286,6 +287,7 @@ void dip_handler::write_to_storage(neb::block_height_t hash_height,
     arr.push_back(std::make_pair("", ele));
     root.add_child(key, arr);
     update_to_storage(key, root, m_storage);
+
     m_dip_reward.insert(std::make_pair(hash_height, dip_reward));
     LOG(INFO) << "insert dip reward pair height " << hash_height
               << ", dip_reward " << dip_reward;
@@ -303,6 +305,7 @@ void dip_handler::write_to_storage(neb::block_height_t hash_height,
   arr.push_back(std::make_pair("", ele));
   LOG(INFO) << "insert dip_reward";
   update_to_storage(key, root, m_storage);
+
   m_dip_reward.insert(std::make_pair(hash_height, dip_reward));
   LOG(INFO) << "insert dip reward pair height " << hash_height
             << ", dip_reward " << dip_reward;
@@ -334,23 +337,11 @@ void dip_handler::load_dip_rewards() {
     std::stringstream ss(dip_reward);
     boost::property_tree::json_parser::read_json(ss, reward_pt);
     block_height_t end_height = reward_pt.get<block_height_t>("end_height");
+
     m_dip_reward.insert(std::make_pair(end_height + 1, dip_reward));
     LOG(INFO) << "insert dip reward pair height " << end_height + 1
               << ", dip_reward " << dip_reward;
   }
-}
-
-const dip_params_t &dip_handler::get_dip_params(neb::block_height_t height) {
-
-  dip_params_t tmp;
-  tmp.set<start_block>(height);
-  auto it =
-      std::upper_bound(m_dip_params_list.begin(), m_dip_params_list.end(), tmp,
-                       [](const dip_params_t &d1, const dip_params_t &d2) {
-                         return d1.get<start_block>() < d2.get<start_block>();
-                       });
-  it--;
-  return *it;
 }
 
 } // namespace dip

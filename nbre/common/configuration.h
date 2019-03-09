@@ -123,8 +123,8 @@ public:
   inline uint16_t &nipc_port() { return m_nipc_port; }
 
   inline const std::string &get_exit_msg(uint32_t exit_code) const {
-    assert(exit_code < m_exit_msg_list.size());
-    return m_exit_msg_list[exit_code];
+    assert(exit_code > 0 && exit_code < m_exit_msg_list.size());
+    return m_exit_msg_list[exit_code - 1];
   };
   inline void set_exit_msg(const std::string &exit_msg) {
     m_exit_msg_list.push_back(exit_msg);

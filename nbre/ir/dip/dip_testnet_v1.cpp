@@ -38,9 +38,16 @@ neb::rt::dip::dip_ret_type entry_point_dip(neb::compatible_uint64_t height) {
   std::string coinbase_addr =
       std::string("n1EzGmFsVepKduN1U5QFyhLqpzFvM9sRSmG");
 
+  auto to_version_t = [](uint32_t major_version, uint16_t minor_version,
+                         uint16_t patch_version) -> neb::rt::dip::version_t {
+    return (0ULL + major_version) + ((0ULL + minor_version) << 32) +
+           ((0ULL + patch_version) << 48);
+  };
+
   if (!height) {
     std::get<1>(ret) = neb::rt::dip::dip_param_list(
-        dip_start_block, dip_block_interval, dip_reward_addr, coinbase_addr);
+        dip_start_block, dip_block_interval, dip_reward_addr, coinbase_addr,
+        to_version_t(0, 0, 1));
     return ret;
   }
 
@@ -48,12 +55,6 @@ neb::rt::dip::dip_ret_type entry_point_dip(neb::compatible_uint64_t height) {
     std::get<1>(ret) = std::string("{\"err\":\"invalid height\"}");
     return ret;
   }
-
-  auto to_version_t = [](uint32_t major_version, uint16_t minor_version,
-                         uint16_t patch_version) -> neb::rt::dip::version_t {
-    return (0ULL + major_version) + ((0ULL + minor_version) << 32) +
-           ((0ULL + patch_version) << 48);
-  };
 
   uint64_t interval_nums = (height - dip_start_block) / dip_block_interval;
   neb::compatible_uint64_t start_block =
