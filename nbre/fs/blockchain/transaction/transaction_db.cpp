@@ -35,7 +35,6 @@ transaction_db::read_transactions_from_db_with_duration(
   for (block_height_t h = start_block; h < end_block; h++) {
     auto tmp = m_blockchain->get_block_transactions_api(h);
     ret->insert(ret->end(), tmp->begin(), tmp->end());
-    LOG(INFO) << "transaction size in total " << ret->size();
   }
   return ret;
 }
