@@ -99,9 +99,15 @@ corepb::Account *all_accounts::random_user_account() const {
 corepb::Account *all_accounts::random_contract_account() const {
   corepb::Account *account = random_account();
   address_t addr = get_address_from_account(account);
+  uint32_t retry_max_num = 16;
+  uint32_t i = 0;
   while (!is_contract_address(addr)) {
     account = random_account();
     addr = get_address_from_account(account);
+    i++;
+    if (i > retry_max_num) {
+      return nullptr;
+    }
   }
   return account;
 }

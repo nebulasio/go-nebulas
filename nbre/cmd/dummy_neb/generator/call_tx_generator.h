@@ -28,4 +28,6 @@ public:
   virtual std::shared_ptr<corepb::Account> gen_account();
   virtual std::shared_ptr<corepb::Transaction> gen_tx();
   virtual checker_tasks::task_container_ptr_t gen_tasks();
+
+  std::vector<std::shared_ptr<corepb::Account>> *m_contract_accounts;
 };
