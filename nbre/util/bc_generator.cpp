@@ -247,9 +247,9 @@ generate_block::add_call_transaction(const address_t &from,
   data->set_type("call");
   tx->set_allocated_data(data);
   tx->set_timestamp(util::now());
-  // wei value(1000_wei);
-  // std::string v = util::byte_to_string(wei_to_storage(value.wei_value()));
-  // tx->set_value(v);
+  wei value(1000_wei);
+  std::string v = byte_to_string(wei_to_storage(value.wei_value()));
+  tx->set_value(v);
   tx->set_nonce(m_all_accounts->get_nonce(from));
   m_all_accounts->increase_nonce(from);
   neb::bytes b(tx->ByteSizeLong());
