@@ -23,8 +23,16 @@
 
 static std::string ir_slice =
     "#include \"runtime/nr/impl/nr_impl.h\" \n"
-    "std::string entry_point_nr(neb::compatible_uint64_t start_block, \n"
+    "neb::rt::nr::nr_ret_type entry_point_nr(neb::compatible_uint64_t "
+    "start_block, \n"
     "                           neb::compatible_uint64_t end_block) { \n"
+    "  neb::rt::nr::nr_ret_type ret; \n"
+    "  std::get<0>(ret) = 0; \n"
+    "  if (start_block > end_block) { \n"
+    "    std::get<1>(ret) = std::string(\"{\\\"err\\\":\\\"start height must "
+    "less than end height\\\"}\"); \n"
+    "    return ret; \n"
+    "} \n"
     "  auto to_version_t = [](uint32_t major_version, uint16_t minor_version, "
     "\n"
     "                         uint16_t patch_version) -> "

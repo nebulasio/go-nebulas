@@ -41,9 +41,9 @@ std::string checker_task_base::status() const {
   std::unique_lock<std::mutex> _l(m_mutex);
   std::stringstream ss;
   ss << "->" << name() << " called " << m_call_times << " times, with "
-     << m_exist_results().size() << " diff results. \n";
+     << m_exist_results.size() << " diff results. \n";
   for (auto &s : m_exist_results) {
-    ss << "\t\t" << s;
+    ss << "\t\t" << s << '\n';
   }
   return ss.str();
 }

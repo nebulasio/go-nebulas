@@ -36,6 +36,8 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
     ("block-interval", po::value<uint64_t>()->default_value(3), "block interval with seconds")
     ("without-clean-db", "run a dummy without clean previous db")
     ("clean-dummy-db", po::value<std::string>(), "clean the db file of a dummy")
+    ("glog-log-to-stderr", po::value<bool>()->default_value(false), "glog to stderr")
+    ("use-test-blockchain", po::value<bool>()->default_value(true), "use test blockchain")
     ("nipc-listen", po::value<std::string>()->default_value("127.0.0.1"), "nipc listen")
     ("nipc-port", po::value<uint16_t>()->default_value(6987), "nipc port")
     ("rpc-listen", po::value<std::string>()->default_value("127.0.0.1"), "nipc listen")
@@ -61,7 +63,7 @@ void init_dummy_driver(dummy_driver &dd, const std::string &rpc_listen,
       "default_random", 20, 10000_nas, 0.05, rpc_listen, rpc_port);
   // default_dummy->enable_auth_gen_with_ratio(0.5);
   // default_dummy->enable_nr_ir_with_ratio(0.5);
-  default_dummy->enable_call_tx_with_ratio(0.9, 0.9);
+  // default_dummy->enable_call_tx_with_ratio(0.9, 0.9);
 
   // default_dummy->enable_auth_gen_with_ratio(0.5);
   dd.add_dummy(default_dummy);
@@ -123,11 +125,10 @@ int main(int argc, char *argv[]) {
 
   FLAGS_logtostderr = true;
 
-  //::google::InitGoogleLogging(argv[0]);
-  neb::glog_log_to_stderr = false;
-  neb::use_test_blockchain = true;
-
   po::variables_map vm = get_variables_map(argc, argv);
+  neb::glog_log_to_stderr = vm["glog-log-to-stderr"].as<bool>();
+  neb::use_test_blockchain = vm["use-test-blockchain"].as<bool>();
+
   std::string rpc_listen = vm["rpc-listen"].as<std::string>();
   uint16_t rpc_port = vm["rpc-port"].as<uint16_t>();
 

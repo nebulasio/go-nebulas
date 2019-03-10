@@ -288,9 +288,7 @@ void client_driver::add_handlers() {
 
           auto ack = new_ack_pkg<nbre_nr_handle_ack>(req);
           ack->set<p_nr_handle>(ss.str());
-          LOG(INFO) << "got nr handle req";
           neb::rt::nr::nr_handler::instance().start(ss.str());
-          LOG(INFO) << "ss.str(): " << ss.str();
           m_ipc_conn->send(ack);
 
         } catch (const std::exception &e) {
@@ -315,6 +313,7 @@ void client_driver::add_handlers() {
           const auto &meta_info = neb::rt::json_to_meta_info(meta_info_json);
           auto nr_result_str = neb::rt::nr::nebulas_rank::nr_info_to_json(
               std::get<2>(nr_ret), meta_info);
+          LOG(INFO) << "nr result \n" << nr_result_str;
           ack->set<p_nr_result>(nr_result_str);
           m_ipc_conn->send(ack);
         } catch (const std::exception &e) {
