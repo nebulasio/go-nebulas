@@ -30,7 +30,9 @@ std::shared_ptr<corepb::Account> contract_generator::gen_account() {
   if (!from_addr.empty()) {
     return nullptr;
   }
-  return m_block->add_deploy_transaction(from_addr, neb::bytes());
+  auto ret = m_block->add_deploy_transaction(from_addr, neb::bytes());
+  m_gen_contracts.push_back(ret);
+  return ret;
 }
 
 std::shared_ptr<corepb::Transaction> contract_generator::gen_tx() {

@@ -30,7 +30,13 @@ std::shared_ptr<corepb::Account> call_tx_generator::gen_account() {
 
 std::shared_ptr<corepb::Transaction> call_tx_generator::gen_tx() {
   auto from_addr = m_all_accounts->random_user_addr();
-  auto contract_addr = m_all_accounts->random_contract_addr();
+  address_t contract_addr;
+  if (m_contract_accounts == nullptr || m_contract_accounts->empty()) {
+    contract_addr = m_all_accounts->random_contract_addr();
+  } else {
+    auto t = m_contract_accounts->at(std::rand() % m_contract_accounts->size());
+    contract_addr = neb::to_address(t->address());
+  }
   if (!from_addr.empty() && !contract_addr.empty()) {
     return nullptr;
   }
