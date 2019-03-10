@@ -38,8 +38,8 @@ std::vector<std::shared_ptr<dip_info_t>> dip_reward::get_dip_reward(
   LOG(INFO) << "dapp votes size " << it_dapp_votes->size();
 
   // bonus pool in total
-  const dip_params_t &dip_params =
-      dip_handler::instance().get_dip_params(end_block);
+  auto dip_params_ptr = dip_handler::instance().get_dip_params(end_block);
+  auto &dip_params = *dip_params_ptr;
   address_t dip_reward_addr = to_address(dip_params.get<reward_addr>());
   address_t dip_coinbase_addr = to_address(dip_params.get<coinbase_addr>());
 

@@ -49,7 +49,7 @@ public:
   void deploy(version_t version, block_height_t available_height);
   void start(block_height_t height, const dip_params_t *dip_params = nullptr);
 
-  const dip_params_t &get_dip_params(block_height_t height);
+  std::shared_ptr<dip_params_t> get_dip_params(block_height_t height);
   std::string get_dip_reward(neb::block_height_t height);
 
 private:
@@ -64,7 +64,7 @@ private:
   neb::fs::rocksdb_storage *m_storage;
   thread_safe_map<block_height_t, std::string> m_dip_reward;
   // dip params info list
-  std::vector<dip_params_t> m_dip_params_list;
+  thread_safe_vector<std::shared_ptr<dip_params_t>> m_dip_params_list;
 
   bool m_has_curr;
   // suppose version and available height are in increasing order
