@@ -22,8 +22,8 @@
 uint64_t checker_task_base::s_task_id = 0;
 
 checker_task_base::checker_task_base()
-    : m_task_id(s_task_id++), m_last_call_timepoint(), m_last_result(),
-      m_call_times(0), m_diff_result_num(0), m_b_is_running(false){};
+    : m_task_id(s_task_id++), m_last_call_timepoint(), m_call_times(0),
+      m_b_is_running(false){};
 
 checker_task_base::~checker_task_base() {}
 
@@ -31,13 +31,7 @@ std::string checker_task_base::name() const { return ""; }
 
 void checker_task_base::apply_result(const std::string &result) {
   std::unique_lock<std::mutex> _l(m_mutex);
-  if (m_call_times == 0) {
-    m_last_result = result;
-  }
-  if (m_last_result != result) {
-    m_diff_result_num++;
-  }
-  m_last_result = result;
+  m_exist_results.insert(result);
   m_last_call_timepoint = std::chrono::steady_clock::now();
   m_call_times++;
   m_b_is_running = false;
@@ -46,8 +40,11 @@ void checker_task_base::apply_result(const std::string &result) {
 std::string checker_task_base::status() const {
   std::unique_lock<std::mutex> _l(m_mutex);
   std::stringstream ss;
-  ss << "->" << name() << " called " << m_call_times << "times, with "
-     << m_diff_result_num << " diff results. \n";
+  ss << "->" << name() << " called " << m_call_times << " times, with "
+     << m_exist_results().size() << " diff results. \n";
+  for (auto &s : m_exist_results) {
+    ss << "\t\t" << s;
+  }
   return ss.str();
 }
 #if 0

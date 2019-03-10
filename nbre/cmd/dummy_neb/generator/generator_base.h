@@ -47,7 +47,7 @@ protected:
   mutable std::mutex m_mutex;
   uint64_t m_task_id;
   std::chrono::steady_clock::time_point m_last_call_timepoint;
-  std::string m_last_result;
+  std::unordered_set<std::string> m_exist_results;
   uint64_t m_call_times;
   uint16_t m_diff_result_num;
   bool m_b_is_running;
