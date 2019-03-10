@@ -19,6 +19,7 @@
 //
 #include "jit/cpp_ir.h"
 #include "fs/util.h"
+#include "util/chrono.h"
 
 namespace neb {
 namespace cpp {
@@ -66,7 +67,10 @@ neb::bytes cpp_ir::llvm_ir_content() {
 std::string cpp_ir::generate_fp() {
   std::string temp_path = neb::fs::tmp_dir();
 
-  auto t = neb::fs::join_path(temp_path, std::to_string(s_file_counter));
+  std::string name = std::to_string(util::now()) + std::string("_") +
+                     std::to_string(s_file_counter);
+  auto t =
+      neb::fs::join_path(neb::configuration::instance().nbre_db_dir(), name);
   s_file_counter++;
   return t;
 }

@@ -20,6 +20,7 @@
 #include "cmd/dummy_neb/dummies/random_dummy.h"
 #include "cmd/dummy_neb/dummy_callback.h"
 #include "cmd/dummy_neb/generator/checkers.h"
+#include "fs/util.h"
 
 random_dummy::random_dummy(const std::string &name, int initial_account_num,
                            nas initial_nas, double account_increase_ratio,
@@ -41,7 +42,14 @@ random_dummy::random_dummy(const std::string &name, int initial_account_num,
           // ack->set<p_nr_ir_status>(std::string());
           // ack->set<p_auth_ir_status>(std::string());
           // ack->set<p_dip_ir_status>(std::string());
-          ack->set<p_checker_status>(checker_tasks::instance().status());
+          auto status = checker_tasks::instance().status();
+          std::string fp =
+              neb::fs::join_path(neb::configuration::instance().nbre_db_dir(),
+                                 "checker_status.txt");
+          std::ofstream ifp(fp);
+          ifp << status;
+          ifp.close();
+          ack->set<p_checker_status>(fp);
           conn->send(ack);
         });
 

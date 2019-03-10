@@ -19,6 +19,7 @@
 //
 #pragma once
 #include "common/common.h"
+#include "common/configuration.h"
 #include "common/version.h"
 #include "core/command.h"
 #include "core/net_ipc/ipc_interface.h"
