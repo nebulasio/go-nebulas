@@ -28,31 +28,31 @@ template <typename T> T precesion(const T &x, float pre = PRECESION) {
 }
 
 TEST(test_common_conversion, basic) {
-  neb::conversion cv;
+  neb::internal::int128_conversion_helper cv;
   EXPECT_EQ(cv.data(), 0);
   EXPECT_EQ(cv.high(), 0);
   EXPECT_EQ(cv.low(), 0);
 
   neb::int128_t data = boost::lexical_cast<neb::int128_t>("0");
-  neb::conversion cv_0(data);
+  neb::internal::int128_conversion_helper cv_0(data);
   EXPECT_EQ(cv_0.data(), 0);
   EXPECT_EQ(cv_0.high(), 0);
   EXPECT_EQ(cv_0.low(), 0);
 
   data = boost::lexical_cast<neb::int128_t>("1");
-  neb::conversion cv_1(data);
+  neb::internal::int128_conversion_helper cv_1(data);
   EXPECT_EQ(cv_1.data(), 1);
   EXPECT_EQ(cv_1.high(), 0);
   EXPECT_EQ(cv_1.low(), 1);
 
   int64_t high = 1;
   uint64_t low = 1;
-  neb::conversion tmp;
+  neb::internal::int128_conversion_helper tmp;
   tmp.high() = high;
   tmp.low() = low;
   EXPECT_EQ(tmp.data(),
             boost::lexical_cast<neb::int128_t>("18446744073709551617"));
-  neb::conversion cv_3(tmp.data());
+  neb::internal::int128_conversion_helper cv_3(tmp.data());
   EXPECT_EQ(cv_3.data(), tmp.data());
   EXPECT_EQ(cv_3.high(), tmp.high());
   EXPECT_EQ(cv_3.low(), tmp.low());
@@ -63,28 +63,28 @@ TEST(test_common_conversion, basic) {
   tmp.low() = low;
   EXPECT_EQ(tmp.data(),
             boost::lexical_cast<neb::int128_t>("2277361236363886404761685"));
-  neb::conversion cv_4(tmp.data());
+  neb::internal::int128_conversion_helper cv_4(tmp.data());
   EXPECT_EQ(cv_4.data(), tmp.data());
   EXPECT_EQ(cv_4.high(), tmp.high());
   EXPECT_EQ(cv_4.low(), tmp.low());
 }
 
 TEST(test_common_conversion, to_float) {
-  neb::conversion cv;
+  neb::internal::int128_conversion_helper cv;
   auto f_data = cv.to_float<neb::floatxx_t>();
   EXPECT_EQ(f_data, 0);
 
   auto data = boost::lexical_cast<neb::int128_t>("1");
-  neb::conversion cv_1(data);
+  neb::internal::int128_conversion_helper cv_1(data);
   f_data = cv_1.to_float<neb::floatxx_t>();
   EXPECT_EQ(f_data, 1);
 
   int64_t high = 1;
   uint64_t low = 1;
-  neb::conversion tmp;
+  neb::internal::int128_conversion_helper tmp;
   tmp.high() = high;
   tmp.low() = low;
-  neb::conversion cv_3(tmp.data());
+  neb::internal::int128_conversion_helper cv_3(tmp.data());
   f_data = cv_3.to_float<neb::floatxx_t>();
   std::ostringstream oss;
   oss << boost::lexical_cast<float>(tmp.data());
@@ -95,7 +95,7 @@ TEST(test_common_conversion, to_float) {
   low = 456789;
   tmp.high() = high;
   tmp.low() = low;
-  neb::conversion cv_4(tmp.data());
+  neb::internal::int128_conversion_helper cv_4(tmp.data());
   f_data = cv_4.to_float<neb::floatxx_t>();
   oss.str(std::string());
   oss << boost::lexical_cast<float>(tmp.data());
@@ -110,7 +110,7 @@ TEST(test_common_conversion, to_float) {
     low = dis(mt);
     tmp.high() = high;
     tmp.low() = low;
-    neb::conversion cv(tmp.data());
+    neb::internal::int128_conversion_helper cv(tmp.data());
     f_data = cv.to_float<neb::floatxx_t>();
     oss.str(std::string());
     oss << boost::lexical_cast<float>(tmp.data());
@@ -121,7 +121,7 @@ TEST(test_common_conversion, to_float) {
 TEST(test_common_conversion, from_float) {
   uint64_t x = 0;
   float y = x;
-  neb::conversion cv;
+  neb::internal::int128_conversion_helper cv;
   EXPECT_EQ(cv.from_float(neb::floatxx_t(y)), 0);
 
   x = 1;
