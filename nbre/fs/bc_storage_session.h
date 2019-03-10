@@ -23,8 +23,6 @@
 #include "fs/rocksdb_storage.h"
 #include "fs/storage.h"
 #include "util/singleton.h"
-#include <boost/thread/shared_lock_guard.hpp>
-#include <boost/thread/shared_mutex.hpp>
 
 namespace neb {
 namespace fs {

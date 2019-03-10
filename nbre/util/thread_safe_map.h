@@ -21,19 +21,23 @@
 #include "common/common.h"
 
 namespace neb {
-template <typename Key, typename Val> class thread_safe_map {
+template <typename Key, typename Val, typename Lock = boost::shared_mutex>
+class thread_safe_map {
 public:
   typedef std::unordered_map<Key, Val> map_t;
+  typedef Lock lock_t;
+  using guard_t = boost::shared_lock<lock_t>;
+
   thread_safe_map() = default;
 
   void insert(const typename map_t::value_type &op) {
-    std::unique_lock<std::mutex> _l(m_mutex);
+    guard_t _l(m_mutex);
     m_map.insert(op);
   }
 
   std::pair<bool, typename map_t::mapped_type>
   try_get_val(const typename map_t::key_type &k) {
-    std::unique_lock<std::mutex> _l(m_mutex);
+    guard_t _l(m_mutex);
     if (m_map.find(k) == m_map.end()) {
       return std::make_pair(false, typename map_t::mapped_type());
     }
@@ -42,22 +46,22 @@ public:
   }
 
   bool exist(const typename map_t::key_type &k) {
-    std::unique_lock<std::mutex> _l(m_mutex);
+    guard_t _l(m_mutex);
     return m_map.find(k) != m_map.end();
   }
 
   size_t size() const {
-    std::unique_lock<std::mutex> _l(m_mutex);
+    guard_t _l(m_mutex);
     return m_map.size();
   }
 
   bool empty() const {
-    std::unique_lock<std::mutex> _l(m_mutex);
+    guard_t _l(m_mutex);
     return m_map.empty();
   }
 
 private:
   map_t m_map;
-  mutable std::mutex m_mutex;
+  mutable lock_t m_mutex;
 };
 } // namespace neb

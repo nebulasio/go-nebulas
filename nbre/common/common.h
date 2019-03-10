@@ -24,6 +24,8 @@
 #include <algorithm>
 #include <array>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <boost/thread/shared_lock_guard.hpp>
+#include <boost/thread/shared_mutex.hpp>
 #include <cstdint>
 #include <glog/logging.h>
 #include <iostream>

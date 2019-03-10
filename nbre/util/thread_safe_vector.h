@@ -21,18 +21,22 @@
 #include "common/common.h"
 
 namespace neb {
-template <typename T> class thread_safe_vector {
+template <typename T, typename Lock = boost::shared_mutex>
+class thread_safe_vector {
 public:
   typedef std::vector<T> vector_t;
+  typedef Lock lock_t;
+  using guard_t = boost::shared_lock<lock_t>;
+
   thread_safe_vector() = default;
 
   void push_back(const typename vector_t::value_type &op) {
-    std::unique_lock<std::mutex> _l(m_mutex);
+    guard_t _l(m_mutex);
     m_vector.push_back(op);
   }
 
   std::pair<bool, typename vector_t::value_type> try_pop_back() {
-    std::unique_lock<std::mutex> _l(m_mutex);
+    guard_t _l(m_mutex);
     if (m_vector.empty()) {
       return std::make_pair(false, typename vector_t::value_type());
     }
@@ -42,13 +46,13 @@ public:
   }
 
   typename vector_t::value_type front() {
-    std::unique_lock<std::mutex> _l(m_mutex);
+    guard_t _l(m_mutex);
     auto ret = m_vector.front();
     return ret;
   }
 
   typename vector_t::value_type back() {
-    std::unique_lock<std::mutex> _l(m_mutex);
+    guard_t _l(m_mutex);
     auto ret = m_vector.back();
     return ret;
   }
@@ -56,7 +60,7 @@ public:
   template <typename Func>
   std::pair<bool, typename vector_t::value_type>
   try_lower_bound(const typename vector_t::value_type &op, Func &&f) {
-    std::unique_lock<std::mutex> _l(m_mutex);
+    guard_t _l(m_mutex);
     if (m_vector.empty()) {
       return std::make_pair(false, typename vector_t::value_type());
     }
@@ -67,17 +71,17 @@ public:
   }
 
   size_t size() const {
-    std::unique_lock<std::mutex> _l(m_mutex);
+    guard_t _l(m_mutex);
     return m_vector.size();
   }
 
   bool empty() const {
-    std::unique_lock<std::mutex> _l(m_mutex);
+    guard_t _l(m_mutex);
     return m_vector.empty();
   }
 
 private:
   vector_t m_vector;
-  mutable std::mutex m_mutex;
+  mutable lock_t m_mutex;
 };
 } // namespace neb
