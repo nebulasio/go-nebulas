@@ -42,7 +42,7 @@ void bc_storage_session::init(const std::string &path,
   m_storage->open_database(m_path, m_open_flag);
 }
 
-util::bytes bc_storage_session::get_bytes(const util::bytes &key) {
+bytes bc_storage_session::get_bytes(const bytes &key) {
   boost::shared_lock<boost::shared_mutex> _l(m_mutex);
   bool no_exception = true;
   bool tried_already = false;
@@ -63,11 +63,10 @@ util::bytes bc_storage_session::get_bytes(const util::bytes &key) {
       }
     }
   }
-  return util::bytes();
+  return bytes();
 }
 
-void bc_storage_session::put_bytes(const util::bytes &key,
-                                   const util::bytes &val) {
+void bc_storage_session::put_bytes(const bytes &key, const bytes &val) {
   boost::shared_lock<boost::shared_mutex> _l(m_mutex);
   m_storage->put_bytes(key, val);
 }

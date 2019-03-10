@@ -29,7 +29,7 @@ namespace fs {
 
 void ir_manager_helper::set_failed_flag(rocksdb_storage *rs,
                                         const std::string &flag) {
-  rs->put(flag, neb::util::string_to_byte(flag));
+  rs->put(flag, neb::string_to_byte(flag));
 }
 
 bool ir_manager_helper::has_failed_flag(rocksdb_storage *rs,
@@ -52,7 +52,7 @@ block_height_t ir_manager_helper::nbre_block_height(rocksdb_storage *rs) {
 
   block_height_t start_height = 0;
   try {
-    start_height = neb::util::byte_to_number<block_height_t>(rs->get(
+    start_height = neb::byte_to_number<block_height_t>(rs->get(
         std::string(neb::configuration::instance().nbre_max_height_name(),
                     std::allocator<char>())));
   } catch (std::exception &e) {
@@ -60,7 +60,7 @@ block_height_t ir_manager_helper::nbre_block_height(rocksdb_storage *rs) {
     start_height = neb::configuration::instance().nbre_start_height();
     rs->put(std::string(neb::configuration::instance().nbre_max_height_name(),
                         std::allocator<char>()),
-            neb::util::number_to_byte<neb::util::bytes>(start_height));
+            neb::number_to_byte<neb::bytes>(start_height));
   }
   return start_height;
 }
@@ -112,7 +112,7 @@ void ir_manager_helper::load_auth_table(
   }
 
   std::unique_ptr<nbre::NBREIR> nbre_ir = std::make_unique<nbre::NBREIR>();
-  neb::util::bytes payload_bytes;
+  neb::bytes payload_bytes;
   try {
     payload_bytes =
         rs->get(neb::configuration::instance().nbre_auth_table_name());
@@ -133,7 +133,7 @@ void ir_manager_helper::load_auth_table(
 void ir_manager_helper::deploy_auth_table(
     rocksdb_storage *rs, nbre::NBREIR &nbre_ir,
     std::map<auth_key_t, auth_val_t> &auth_table,
-    const neb::util::bytes &payload_bytes) {
+    const neb::bytes &payload_bytes) {
 
   // TODO expect auth table exceed 128k bytes size
   LOG(INFO) << "before set auth table by jit, auth table size: "
@@ -166,13 +166,13 @@ void ir_manager_helper::update_to_storage(
 
   std::stringstream ss;
   boost::property_tree::json_parser::write_json(ss, val_pt, false);
-  rs->put(key, neb::util::string_to_byte(ss.str()));
+  rs->put(key, neb::string_to_byte(ss.str()));
 }
 
 void ir_manager_helper::update_ir_list(const std::string &name,
                                        rocksdb_storage *rs) {
   std::string ir_list = neb::configuration::instance().ir_list_name();
-  neb::util::bytes ir_list_bytes;
+  neb::bytes ir_list_bytes;
   try {
     ir_list_bytes = rs->get(ir_list);
   } catch (const std::exception &e) {
@@ -189,7 +189,7 @@ void ir_manager_helper::update_ir_list(const std::string &name,
 
 
   boost::property_tree::ptree root;
-  std::stringstream ss(neb::util::byte_to_string(ir_list_bytes));
+  std::stringstream ss(neb::byte_to_string(ir_list_bytes));
   boost::property_tree::json_parser::read_json(ss, root);
 
   BOOST_FOREACH (boost::property_tree::ptree::value_type &v,
@@ -212,7 +212,7 @@ void ir_manager_helper::update_ir_list(const std::string &name,
 void ir_manager_helper::update_ir_versions(const std::string &name,
                                            uint64_t version,
                                            rocksdb_storage *rs) {
-  neb::util::bytes ir_versions_bytes;
+  neb::bytes ir_versions_bytes;
   try {
     ir_versions_bytes = rs->get(name);
   } catch (const std::exception &e) {
@@ -228,7 +228,7 @@ void ir_manager_helper::update_ir_versions(const std::string &name,
   }
 
   boost::property_tree::ptree root;
-  std::stringstream ss(neb::util::byte_to_string(ir_versions_bytes));
+  std::stringstream ss(neb::byte_to_string(ir_versions_bytes));
   boost::property_tree::json_parser::read_json(ss, root);
 
   BOOST_FOREACH (boost::property_tree::ptree::value_type &v,
@@ -249,7 +249,7 @@ void ir_manager_helper::update_ir_versions(const std::string &name,
 }
 
 void ir_manager_helper::deploy_ir(const std::string &name, uint64_t version,
-                                  const neb::util::bytes payload_bytes,
+                                  const neb::bytes &payload_bytes,
                                   rocksdb_storage *rs) {
   std::stringstream ss;
   ss << name << version;

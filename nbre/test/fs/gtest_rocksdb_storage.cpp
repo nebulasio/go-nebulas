@@ -49,7 +49,7 @@ TEST(test_fs, positive_storage_read_bc) {
   EXPECT_THROW(rs.get(neb::fs::blockchain::Block_LIB),
                neb::fs::storage_exception_no_init);
   EXPECT_THROW(
-      rs.put(neb::fs::blockchain::Block_LIB, neb::util::string_to_byte("xxx")),
+      rs.put(neb::fs::blockchain::Block_LIB, neb::string_to_byte("xxx")),
       neb::fs::storage_exception_no_init);
   EXPECT_THROW(rs.del(neb::fs::blockchain::Block_LIB),
                neb::fs::storage_exception_no_init);
@@ -90,11 +90,10 @@ TEST(test_fs, storage_batch_op) {
   std::string db_path = get_db_path_for_write();
   neb::fs::rocksdb_storage rs;
   rs.open_database(db_path, neb::fs::storage_open_for_readwrite);
-  rs.put("123", neb::util::number_to_byte<neb::util::bytes>(
-                    static_cast<int64_t>(234)));
+  rs.put("123", neb::number_to_byte<neb::bytes>(static_cast<int64_t>(234)));
 
   auto bytes = rs.get("123");
-  int64_t value = neb::util::byte_to_number<int64_t>(bytes);
+  int64_t value = neb::byte_to_number<int64_t>(bytes);
   EXPECT_EQ(value, 234);
 }
 

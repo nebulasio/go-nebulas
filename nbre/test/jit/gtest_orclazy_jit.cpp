@@ -18,9 +18,9 @@
 // <http://www.gnu.org/licenses/>.
 //
 
+#include "common/byte.h"
 #include "common/common.h"
 #include "common/configuration.h"
-#include "common/util/byte.h"
 #include "fs/util.h"
 #include "jit/OrcLazyJIT.h"
 #include "jit/jit_driver.h"
@@ -72,13 +72,13 @@ TEST(test_jit, irs_file) {
   ifs.seekg(0, ifs.end);
   std::ifstream::pos_type size = ifs.tellg();
 
-  neb::util::bytes buf(size);
+  neb::bytes buf(size);
 
   ifs.seekg(0, ifs.beg);
   ifs.read((char *)buf.value(), buf.size());
 
   nbre::NBREIR ir_info;
-  ir_info.set_ir(neb::util::byte_to_string(buf));
+  ir_info.set_ir(neb::byte_to_string(buf));
   std::unique_ptr<nbre::NBREIR> ir_ptr =
       std::make_unique<nbre::NBREIR>(ir_info);
 
@@ -121,13 +121,13 @@ void Run_One(const std::string &path, const std::string &func_name) {
   ifs.seekg(0, ifs.end);
   std::ifstream::pos_type size = ifs.tellg();
 
-  neb::util::bytes buf(size);
+  neb::bytes buf(size);
 
   ifs.seekg(0, ifs.beg);
   ifs.read((char *)buf.value(), buf.size());
 
   nbre::NBREIR ir_info;
-  ir_info.set_ir(neb::util::byte_to_string(buf));
+  ir_info.set_ir(neb::byte_to_string(buf));
   auto ir_ptr = std::make_unique<nbre::NBREIR>(ir_info);
 
   std::vector<nbre::NBREIR> irs;
@@ -156,13 +156,13 @@ void Run_One_1000(const std::string &path, const std::string &func_name,
   ifs.seekg(0, ifs.end);
   std::ifstream::pos_type size = ifs.tellg();
 
-  neb::util::bytes buf(size);
+  neb::bytes buf(size);
 
   ifs.seekg(0, ifs.beg);
   ifs.read((char *)buf.value(), buf.size());
 
   nbre::NBREIR ir_info;
-  ir_info.set_ir(neb::util::byte_to_string(buf));
+  ir_info.set_ir(neb::byte_to_string(buf));
   auto ir_ptr = std::make_unique<nbre::NBREIR>(ir_info);
   ir_ptr->set_name(ir_name);
 
@@ -192,14 +192,14 @@ TEST(test_jit, multi_thread) {
       ifs.seekg(0, ifs.end);
       std::ifstream::pos_type size = ifs.tellg();
 
-      neb::util::bytes buf(size);
+      neb::bytes buf(size);
 
       ifs.seekg(0, ifs.beg);
       ifs.read((char *)buf.value(), buf.size());
       ifs.close();
       nbre::NBREIR ir_info;
       LOG(INFO) << "thread enter";
-      ir_info.set_ir(neb::util::byte_to_string(buf));
+      ir_info.set_ir(neb::byte_to_string(buf));
       auto ir_ptr = std::make_unique<nbre::NBREIR>(ir_info);
       ir_ptr->set_name(ir_name);
       try {

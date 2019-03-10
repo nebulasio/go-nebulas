@@ -19,9 +19,7 @@
 //
 #pragma once
 #include "common/common.h"
-#include "common/quitable_thread.h"
-#include "common/util/singleton.h"
-#include "common/util/version.h"
+#include "common/version.h"
 #include "core/command.h"
 #include "core/net_ipc/ipc_interface.h"
 #include "core/net_ipc/nipc_pkg.h"
@@ -30,6 +28,8 @@
 #include "fs/proto/ir.pb.h"
 #include "fs/proto/trie.pb.h"
 #include "util/bc_generator.h"
+#include "util/quitable_thread.h"
+#include "util/singleton.h"
 #include <algorithm>
 #include <boost/algorithm/string/replace.hpp>
 #include <ff/functionflow.h>

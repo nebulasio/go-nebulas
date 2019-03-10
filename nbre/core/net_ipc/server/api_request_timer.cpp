@@ -25,7 +25,7 @@ namespace core {
 api_request_timer::api_request_timer(boost::asio::io_service *io_service,
                                      ipc_callback_holder *holder)
     : m_timout_threshold(30), m_cb_holder(holder) {
-  m_tl = std::make_unique<neb::timer_loop>(io_service);
+  m_tl = std::make_unique<util::timer_loop>(io_service);
   m_tl->register_timer_and_callback(1, [this]() {
     timer_callback();
   });

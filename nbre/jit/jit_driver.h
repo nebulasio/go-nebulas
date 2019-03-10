@@ -20,10 +20,10 @@
 #pragma once
 
 #include "common/common.h"
-#include "common/util/singleton.h"
 #include "core/ir_warden.h"
 #include "fs/proto/ir.pb.h"
 #include "jit/jit_engine.h"
+#include "util/singleton.h"
 
 namespace neb {
 namespace internal {

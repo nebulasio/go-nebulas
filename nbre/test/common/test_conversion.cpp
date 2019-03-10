@@ -18,21 +18,19 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "common/util/conversion.h"
+#include "common/int128_conversion.h"
 
 int main() {
-  neb::conversion cv;
-  uint64_t x = 1ULL << 63;
-  neb::floatxx_t f(x);
+  // uint64_t x = 1ULL << 63;
 
-  f = f * 2;
-  cv.from_float(f);
-  std::cout << f << ',';
-  std::cout << cv.data() << ',' << cv.high() << ',' << cv.low() << std::endl;
+  neb::floatxx_t f = 32.63 * 2;
+  auto v = neb::from_float(f);
+  std::cout << v << ',' << std::endl;
+  // std::cout << cv.data() << ',' << cv.high() << ',' << cv.low() << std::endl;
 
-  f = f + x;
-  cv.from_float(f);
-  std::cout << f << ',';
-  std::cout << cv.data() << ',' << cv.high() << ',' << cv.low() << std::endl;
+  // f = f + x;
+  // cv.from_float(f);
+  // std::cout << f << ',';
+  // std::cout << cv.data() << ',' << cv.high() << ',' << cv.low() << std::endl;
   return 0;
 }

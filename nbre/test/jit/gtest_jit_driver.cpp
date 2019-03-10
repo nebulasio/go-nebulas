@@ -18,9 +18,9 @@
 // <http://www.gnu.org/licenses/>.
 //
 
+#include "common/byte.h"
 #include "common/common.h"
 #include "common/configuration.h"
-#include "common/util/byte.h"
 #include "jit/OrcLazyJIT.h"
 #include "jit/jit_driver.h"
 #include "llvm/ADT/Triple.h"
@@ -58,13 +58,13 @@ TEST(test_jit, doule_addModule) {
   ifs.seekg(0, ifs.end);
   std::ifstream::pos_type size = ifs.tellg();
 
-  neb::util::bytes buf(size);
+  neb::bytes buf(size);
 
   ifs.seekg(0, ifs.beg);
   ifs.read((char *)buf.value(), buf.size());
 
   nbre::NBREIR ir_info;
-  ir_info.set_ir(neb::util::byte_to_string(buf));
+  ir_info.set_ir(neb::byte_to_string(buf));
   auto ir_ptr = std::make_shared<nbre::NBREIR>(ir_info);
   std::vector<std::shared_ptr<nbre::NBREIR>> v({ir_ptr});
 

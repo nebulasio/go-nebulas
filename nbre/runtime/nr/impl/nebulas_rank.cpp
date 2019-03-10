@@ -19,8 +19,8 @@
 //
 
 #include "runtime/nr/impl/nebulas_rank.h"
-#include "common/util/conversion.h"
-#include "common/util/version.h"
+#include "common/int128_conversion.h"
+#include "common/version.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -158,9 +158,9 @@ nebulas_rank::get_account_balance_median(
     sort(v.begin(), v.end(),
          [](const wei_t &w1, const wei_t &w2) { return w1 < w2; });
     size_t v_len = v.size();
-    floatxx_t median = conversion(v[v_len >> 1]).to_float<floatxx_t>();
+    floatxx_t median = to_float<floatxx_t>(v[v_len >> 1]);
     if ((v_len & 0x1) == 0) {
-      auto tmp = conversion(v[(v_len >> 1) - 1]).to_float<floatxx_t>();
+      auto tmp = to_float<floatxx_t>(v[(v_len >> 1) - 1]);
       median = (median + tmp) / 2;
     }
 
@@ -189,8 +189,8 @@ nebulas_rank::get_account_weight(
     wei_t in_val = it->second.m_in_val;
     wei_t out_val = it->second.m_out_val;
 
-    floatxx_t f_in_val = conversion(in_val).to_float<floatxx_t>();
-    floatxx_t f_out_val = conversion(out_val).to_float<floatxx_t>();
+    floatxx_t f_in_val = to_float<floatxx_t>(in_val);
+    floatxx_t f_out_val = to_float<floatxx_t>(out_val);
 
     floatxx_t normalized_in_val = db_ptr->get_normalized_value(f_in_val);
     floatxx_t normalized_out_val = db_ptr->get_normalized_value(f_out_val);
@@ -319,9 +319,9 @@ std::vector<std::shared_ptr<nr_info_t>> nebulas_rank::get_nr_score(
     auto out_val = in_out_vals.find(addr)->second.m_out_val;
     auto stake = stakes.find(addr)->second;
 
-    auto f_in_val = neb::conversion(in_val).to_float<neb::floatxx_t>();
-    auto f_out_val = neb::conversion(out_val).to_float<neb::floatxx_t>();
-    auto f_stake = neb::conversion(stake).to_float<neb::floatxx_t>();
+    auto f_in_val = to_float<floatxx_t>(in_val);
+    auto f_out_val = to_float<floatxx_t>(out_val);
+    auto f_stake = to_float<floatxx_t>(stake);
 
     neb::floatxx_t nas_in_val = adb_ptr->get_normalized_value(f_in_val);
     neb::floatxx_t nas_out_val = adb_ptr->get_normalized_value(f_out_val);
@@ -348,7 +348,7 @@ std::vector<std::shared_ptr<nr_info_t>> nebulas_rank::get_nr_score(
 void nebulas_rank::convert_nr_info_to_ptree(const nr_info_t &info,
                                             boost::property_tree::ptree &p) {
 
-  neb::util::bytes addr_bytes = info.m_address;
+  neb::bytes addr_bytes = info.m_address;
 
   uint32_t in_degree = info.m_in_degree;
   uint32_t out_degree = info.m_out_degree;
@@ -431,7 +431,7 @@ nebulas_rank::json_to_nr_info(const std::string &nr_result) {
     auto info_ptr = std::make_shared<nr_info_t>();
     nr_info_t &info = *info_ptr;
     const auto &address = nr.get<base58_address_t>("address");
-    info.m_address = neb::util::bytes::from_base58(address);
+    info.m_address = neb::bytes::from_base58(address);
 
     info.m_in_degree = nr.get<uint32_t>("in_degree");
     info.m_out_degree = nr.get<uint32_t>("out_degree");

@@ -75,7 +75,7 @@ bool nipc_client::start() {
       m_conn = nn.add_tcp_client(configuration::instance().nipc_listen(),
                                  configuration::instance().nipc_port());
 
-      m_heart_bear_timer = std::make_unique<timer_loop>(&nn.ioservice());
+      m_heart_bear_timer = std::make_unique<util::timer_loop>(&nn.ioservice());
       m_heart_bear_timer->register_timer_and_callback(3, [this]() {
         if (m_to_recv_heart_beat_msg > 2) {
           m_conn->close();

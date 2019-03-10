@@ -84,8 +84,8 @@ std::string gen_auth_table_ir(const address_t &nr_admin,
   return ss.str();
 }
 
-neb::util::bytes gen_auth_table_payload(const address_t &nr_admin,
-                                        const address_t &dip_admin) {
+neb::bytes gen_auth_table_payload(const address_t &nr_admin,
+                                  const address_t &dip_admin) {
   std::string payload = gen_auth_table_ir(nr_admin, dip_admin);
   nbre::NBREIR ir;
   ir.set_name("auth");
@@ -95,7 +95,7 @@ neb::util::bytes gen_auth_table_payload(const address_t &nr_admin,
   ir.set_ir_type(neb::ir_type::cpp);
 
   std::string ir_str = ir.SerializeAsString();
-  return neb::util::string_to_byte(ir_str);
+  return neb::string_to_byte(ir_str);
 }
 
 auth_table_generator::auth_table_generator(all_accounts *accounts,

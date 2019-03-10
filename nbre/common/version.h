@@ -21,7 +21,6 @@
 #include "common/common.h"
 
 namespace neb {
-namespace util {
 class version {
 public:
   inline version() { m_data.m_data = 0; }
@@ -123,5 +122,4 @@ protected:
 
   _version_data m_data;
 }; // end class version
-}
 }

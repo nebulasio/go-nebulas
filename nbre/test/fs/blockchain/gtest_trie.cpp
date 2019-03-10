@@ -25,8 +25,8 @@
 
 TEST(test_fs, key_to_route) {
 
-  neb::util::bytes key(std::initializer_list<neb::byte_t>({0xa1, 0xf2}));
-  neb::util::bytes route_expect(
+  neb::bytes key(std::initializer_list<neb::byte_t>({0xa1, 0xf2}));
+  neb::bytes route_expect(
       std::initializer_list<neb::byte_t>({0xa, 0x1, 0xf, 0x2}));
 
   auto route_actual = neb::fs::trie::key_to_route(key);
@@ -38,9 +38,8 @@ TEST(test_fs, key_to_route) {
 
 TEST(test_fs, route_to_key) {
 
-  neb::util::bytes route(
-      std::initializer_list<neb::byte_t>({0xa, 0x1, 0xf, 0x2}));
-  neb::util::bytes key_expect(std::initializer_list<neb::byte_t>({0xa1, 0xf2}));
+  neb::bytes route(std::initializer_list<neb::byte_t>({0xa, 0x1, 0xf, 0x2}));
+  neb::bytes key_expect(std::initializer_list<neb::byte_t>({0xa1, 0xf2}));
 
   auto key_actual = neb::fs::trie::route_to_key(route);
   ASSERT_EQ(key_expect.size(), key_actual.size());

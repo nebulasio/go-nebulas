@@ -86,7 +86,7 @@ void dip_handler::init_dip_params(block_height_t height) {
           LOG(INFO) << ele.get<start_block>() << ','
                     << ele.get<block_interval>() << ','
                     << ele.get<reward_addr>() << ',' << ele.get<coinbase_addr>()
-                    << ',' << ele.get<version>();
+                    << ',' << ele.get<p_version>();
         }
       }
     } catch (const std::exception &e) {
@@ -145,7 +145,7 @@ void dip_handler::start(neb::block_height_t height,
   assert(!tmp_ptr->empty());
   dip_version = tmp_ptr->back().version();
   if (dip_params) {
-    dip_version = dip_params->get<version>();
+    dip_version = dip_params->get<p_version>();
   }
 
   ff::para<> p;
@@ -271,11 +271,11 @@ void dip_handler::write_to_storage(neb::block_height_t hash_height,
                               neb::fs::rocksdb_storage *rs) {
     std::stringstream ss;
     boost::property_tree::json_parser::write_json(ss, val_pt, false);
-    rs->put(key, neb::util::string_to_byte(ss.str()));
+    rs->put(key, neb::string_to_byte(ss.str()));
   };
 
   LOG(INFO) << "call func write_to_storage";
-  neb::util::bytes dip_rewards_bytes;
+  neb::bytes dip_rewards_bytes;
   std::string key = "dip_rewards";
   try {
     dip_rewards_bytes = m_storage->get(key);
@@ -296,7 +296,7 @@ void dip_handler::write_to_storage(neb::block_height_t hash_height,
 
   LOG(INFO) << "dip reward not empty";
   boost::property_tree::ptree root;
-  std::stringstream ss(neb::util::byte_to_string(dip_rewards_bytes));
+  std::stringstream ss(neb::byte_to_string(dip_rewards_bytes));
   boost::property_tree::json_parser::read_json(ss, root);
 
   boost::property_tree::ptree &arr = root.get_child(key);
@@ -315,7 +315,7 @@ void dip_handler::load_dip_rewards() {
 
   LOG(INFO) << "call func load_dip_rewards";
   std::string key = "dip_rewards";
-  neb::util::bytes dip_rewards_bytes;
+  neb::bytes dip_rewards_bytes;
   try {
     dip_rewards_bytes = m_storage->get(key);
   } catch (const std::exception &e) {
@@ -325,7 +325,7 @@ void dip_handler::load_dip_rewards() {
 
   LOG(INFO) << "dip reward not empty";
   boost::property_tree::ptree root;
-  std::stringstream ss(neb::util::byte_to_string(dip_rewards_bytes));
+  std::stringstream ss(neb::byte_to_string(dip_rewards_bytes));
   boost::property_tree::json_parser::read_json(ss, root);
 
   BOOST_FOREACH (boost::property_tree::ptree::value_type &v,

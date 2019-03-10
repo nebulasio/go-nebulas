@@ -17,14 +17,13 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "common/util/byte.h"
-#include "common/util/base58.h"
-#include "common/util/base64.h"
+#include "common/byte.h"
+#include "common/base58.h"
+#include "common/base64.h"
 #include <iomanip>
 #include <sstream>
 
 namespace neb {
-namespace util {
 
 namespace internal {
 std::string convert_byte_to_hex(const byte_t *buf, size_t len) {
@@ -230,5 +229,4 @@ bytes &bytes::append_bytes(const byte_t *buf, size_t buf_len) {
 bytes &bytes::append_bytes(const bytes &v) {
   return append_bytes(v.value(), v.size());
 }
-} // namespace util
 } // namespace neb

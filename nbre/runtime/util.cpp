@@ -19,7 +19,7 @@
 //
 
 #include "runtime/util.h"
-#include "common/util/json_parser.h"
+#include "util/json_parser.h"
 
 namespace neb {
 namespace rt {

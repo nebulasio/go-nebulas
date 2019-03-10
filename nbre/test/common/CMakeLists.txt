@@ -2,7 +2,7 @@ add_executable(test_common main.cpp
   gtest_util.cpp
   gtest_util_json.cpp
   gtest_math.cpp
-  gtest_conversion.cpp
+  #gtest_conversion.cpp
   gtest_ff_net.cpp
   )
 

@@ -79,7 +79,7 @@ std::string dip_param_list(compatible_uint64_t dip_start_block,
   param.set<block_interval>(dip_block_interval);
   param.set<reward_addr>(dip_reward_addr);
   param.set<coinbase_addr>(dip_coinbase_addr);
-  param.set<version>(v);
+  param.set<p_version>(v);
   LOG(INFO) << "init dip params: " << dip_start_block << ','
             << dip_block_interval << ',' << dip_reward_addr << ','
             << dip_coinbase_addr << ',' << v;

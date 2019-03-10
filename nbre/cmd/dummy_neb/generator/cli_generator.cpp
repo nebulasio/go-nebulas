@@ -44,7 +44,7 @@ std::shared_ptr<corepb::Transaction> cli_generator::gen_tx() {
     if (pkg->type_id() == cli_submit_ir_pkg) {
       cli_submit_ir_t *req = (cli_submit_ir_t *)pkg.get();
       std::string payload_base64 = req->get<p_payload>();
-      auto payload_bytes = neb::util::bytes::from_base64(payload_base64);
+      auto payload_bytes = neb::bytes::from_base64(payload_base64);
 
       if (req->get<p_type>() == "nr") {
         if (m_nr_admin_addr.empty()) {

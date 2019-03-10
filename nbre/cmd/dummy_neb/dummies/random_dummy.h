@@ -63,14 +63,14 @@ protected:
   std::string m_rpc_listen;
   uint16_t m_rpc_port;
 
-  neb::util::version m_nr_version;
+  neb::version m_nr_version;
 
   address_t m_auth_admin_addr;
   address_t m_nr_admin_addr;
   address_t m_dip_admin_addr;
 
   std::unique_ptr<std::thread> m_thread;
-  neb::wakeable_queue<std::shared_ptr<ff::net::package>> m_pkgs;
+  neb::util::wakeable_queue<std::shared_ptr<ff::net::package>> m_pkgs;
   ff::net::tcp_connection_base_ptr m_conn;
 
   std::shared_ptr<nbre_version_checker> m_version_checker;

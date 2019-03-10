@@ -19,12 +19,12 @@
 //
 
 #pragma once
+#include "common/byte.h"
 #include "common/common.h"
-#include "common/util/byte.h"
 
 namespace neb {
 typedef std::string base58_address_t;
-typedef neb::util::bytes address_t;
+typedef neb::bytes address_t;
 
 address_t base58_to_address(const base58_address_t &addr);
 base58_address_t address_to_base58(const address_t &addr);
@@ -35,10 +35,10 @@ typedef std::tuple<module_t, address_bytes_t, block_height_t, block_height_t>
 typedef std::vector<auth_row_t> auth_table_t;
 
 inline address_t to_address(const std::string &addr) {
-  return util::string_to_byte(addr);
+  return string_to_byte(addr);
 }
 inline std::string address_to_string(const address_t &addr) {
-  return util::byte_to_string(addr);
+  return byte_to_string(addr);
 }
 
 bool is_valid_address(const address_t &addr);

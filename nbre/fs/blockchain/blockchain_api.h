@@ -74,8 +74,8 @@ public:
 
 private:
   std::unique_ptr<event_info_t>
-  get_transaction_result_api(const neb::util::bytes &events_root,
-                             const neb::util::bytes &tx_hash);
+  get_transaction_result_api(const neb::bytes &events_root,
+                             const neb::bytes &tx_hash);
   std::unique_ptr<event_info_t> json_parse_event(const std::string &json);
 };
 

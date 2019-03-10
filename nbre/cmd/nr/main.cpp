@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "common/util/version.h"
+#include "common/version.h"
 #include "runtime/nr/impl/nebulas_rank.h"
 #include "runtime/nr/impl/nr_impl.h"
 #include <boost/program_options.hpp>
@@ -60,9 +60,9 @@ int main(int argc, char *argv[]) {
 
   uint64_t start_block = vm["start_block"].as<uint64_t>();
   uint64_t end_block = vm["end_block"].as<uint64_t>();
-  auto nr_ret = neb::rt::nr::entry_point_nr_impl(
-      start_block, end_block, neb::util::version(0, 1, 0).data(), a, b, c, d,
-      theta, mu, lambda);
+  auto nr_ret = neb::rt::nr::entry_point_nr_impl(start_block, end_block,
+                                                 neb::version(0, 1, 0).data(),
+                                                 a, b, c, d, theta, mu, lambda);
   // std::cout << ret << std::endl;
   // std::cout << std::endl;
 

@@ -42,7 +42,7 @@ public:
   const std::string &db_path() const;
 
 protected:
-  static void random_increase_version(neb::util::version &v);
+  static void random_increase_version(neb::version &v);
 
 protected:
   std::string m_name;

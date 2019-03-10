@@ -19,9 +19,9 @@
 //
 #pragma once
 #include "common/address.h"
+#include "common/nebulas_currency.h"
 #include "fs/blockchain/blockchain_api.h"
 #include "fs/proto/block.pb.h"
-#include "util/nebulas_currency.h"
 #include <random>
 
 namespace neb {

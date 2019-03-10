@@ -18,9 +18,9 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "fs/blockchain/blockchain_api_test.h"
+#include "common/nebulas_currency.h"
 #include "fs/blockchain.h"
 #include "util/bc_generator.h"
-#include "util/nebulas_currency.h"
 
 namespace neb {
 namespace fs {
@@ -41,7 +41,7 @@ blockchain_api_test::get_block_transactions_api(block_height_t height) {
     info.m_status = 1; // All generated tx are succ
     info.m_from = to_address(tx.from());
     info.m_to = to_address(tx.to());
-    info.m_tx_value = storage_to_wei(util::string_to_byte(tx.value()));
+    info.m_tx_value = storage_to_wei(string_to_byte(tx.value()));
     info.m_timestamp = tx.timestamp();
     ret->push_back(info);
   }

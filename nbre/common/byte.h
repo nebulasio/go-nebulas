@@ -24,7 +24,6 @@
 #include <utility>
 
 namespace neb {
-namespace util {
 
 namespace internal {
 std::string convert_byte_to_hex(const byte_t *buf, size_t len);
@@ -273,25 +272,24 @@ template <typename FixBytesType> bytes from_fix_bytes(const FixBytesType &val) {
   return bytes(val.value(), val.size());
 }
 }
-}
 namespace std {
-template <> struct hash<::neb::util::bytes> {
-  typedef ::neb::util::bytes argument_type;
+template <> struct hash<::neb::bytes> {
+  typedef ::neb::bytes argument_type;
   typedef std::size_t result_type;
   result_type operator()(argument_type const &s) const noexcept {
     return std::hash<std::string>{}(byte_to_string(s));
   }
 };
 
-template <size_t ByteLength> struct hash<::neb::util::fix_bytes<ByteLength>> {
-  typedef ::neb::util::fix_bytes<ByteLength> argument_type;
+template <size_t ByteLength> struct hash<::neb::fix_bytes<ByteLength>> {
+  typedef ::neb::fix_bytes<ByteLength> argument_type;
   typedef std::size_t result_type;
   result_type operator()(argument_type const &s) const noexcept {
     return std::hash<std::string>{}(byte_to_string(s));
   }
 };
 
-inline std::string to_string(const ::neb::util::bytes &s) {
+inline std::string to_string(const ::neb::bytes &s) {
   return byte_to_string(s);
 }
 } // namespace std

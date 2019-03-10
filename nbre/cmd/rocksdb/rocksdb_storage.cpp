@@ -17,8 +17,8 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
+#include "common/byte.h"
 #include "common/configuration.h"
-#include "common/util/byte.h"
 #include "fs/ir_manager/ir_manager.h"
 #include "fs/proto/block.pb.h"
 #include "fs/util.h"
@@ -62,8 +62,7 @@ int main(int argc, char *argv[]) {
 
   neb::block_height_t max_height = vm["max_height"].as<neb::block_height_t>();
   auto f_set_nbre_max_height = [&]() {
-    rs.put("nbre_max_height",
-           neb::util::number_to_byte<neb::util::bytes>(max_height));
+    rs.put("nbre_max_height", neb::number_to_byte<neb::bytes>(max_height));
   };
   f_set_nbre_max_height();
 
@@ -87,7 +86,7 @@ int main(int argc, char *argv[]) {
 
     auto json_str = f_build_json();
     rs.put(neb::configuration::instance().ir_list_name(),
-           neb::util::string_to_byte(json_str));
+           neb::string_to_byte(json_str));
   };
   // f_set_ir_list();
 

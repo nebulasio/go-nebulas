@@ -27,7 +27,7 @@ std::atomic_int cpp_ir::s_file_counter(1);
 cpp_ir::cpp_ir(const std::string &cpp_content)
     : m_cpp_content(cpp_content), m_b_got_error(false) {}
 
-neb::util::bytes cpp_ir::llvm_ir_content() {
+neb::bytes cpp_ir::llvm_ir_content() {
   if (m_llvm_ir_fp == std::string("") && !m_b_got_error) {
 
     std::string fp_base = generate_fp();
@@ -45,19 +45,19 @@ neb::util::bytes cpp_ir::llvm_ir_content() {
     }
   }
   if (m_b_got_error) {
-    return neb::util::bytes();
+    return neb::bytes();
   }
   if (!::neb::fs::exists(m_llvm_ir_fp)) {
-    return neb::util::bytes();
+    return neb::bytes();
   }
 
   std::ifstream ifs;
   ifs.open(m_llvm_ir_fp.c_str(), std::ios::in | std::ios::binary);
   if (!ifs.is_open())
-    return neb::util::bytes();
+    return neb::bytes();
   ifs.seekg(0, ifs.end);
   std::ifstream::pos_type size = ifs.tellg();
-  neb::util::bytes buf(size);
+  neb::bytes buf(size);
   ifs.seekg(0, ifs.beg);
   ifs.read((char *)buf.value(), buf.size());
   ifs.close();
@@ -91,7 +91,7 @@ int cpp_ir::make_ir_bitcode(const std::string &cpp_file,
   std::cout << command_string << std::endl;
   LOG(INFO) << command_string;
 
-  result = command_executor::execute_command(command_string);
+  result = util::command_executor::execute_command(command_string);
   if (result != 0) {
     LOG(ERROR) << "error: executed by boost::process::system.";
     LOG(ERROR) << "result code = " << result;

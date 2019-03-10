@@ -20,7 +20,7 @@
 
 #include "fs/ir_manager/api/ir_api.h"
 #include "common/configuration.h"
-#include "common/util/version.h"
+#include "common/version.h"
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -32,7 +32,7 @@ ir_api::get_ir_list(rocksdb_storage *rs) {
   auto ret = std::make_unique<std::vector<std::string>>();
 
   std::string ir_list = neb::configuration::instance().ir_list_name();
-  neb::util::bytes ir_list_bytes;
+  neb::bytes ir_list_bytes;
   try {
     ir_list_bytes = rs->get(ir_list);
   } catch (const std::exception &e) {
@@ -41,7 +41,7 @@ ir_api::get_ir_list(rocksdb_storage *rs) {
   }
 
   boost::property_tree::ptree root;
-  std::stringstream ss(neb::util::byte_to_string(ir_list_bytes));
+  std::stringstream ss(neb::byte_to_string(ir_list_bytes));
   boost::property_tree::json_parser::read_json(ss, root);
 
   BOOST_FOREACH (boost::property_tree::ptree::value_type &name,
@@ -56,7 +56,7 @@ std::unique_ptr<std::vector<version_t>>
 ir_api::get_ir_versions(const std::string &name, rocksdb_storage *rs) {
   auto ret = std::make_unique<std::vector<version_t>>();
 
-  neb::util::bytes ir_versions_bytes;
+  neb::bytes ir_versions_bytes;
   try {
     ir_versions_bytes = rs->get(name);
   } catch (const std::exception &e) {
@@ -66,7 +66,7 @@ ir_api::get_ir_versions(const std::string &name, rocksdb_storage *rs) {
   }
 
   boost::property_tree::ptree root;
-  std::stringstream ss(neb::util::byte_to_string(ir_versions_bytes));
+  std::stringstream ss(neb::byte_to_string(ir_versions_bytes));
   boost::property_tree::json_parser::read_json(ss, root);
 
   BOOST_FOREACH (boost::property_tree::ptree::value_type &version,
@@ -76,8 +76,8 @@ ir_api::get_ir_versions(const std::string &name, rocksdb_storage *rs) {
   }
 
   sort(ret->begin(), ret->end(), [](const version_t &v1, const version_t &v2) {
-    neb::util::version obj_v1(v1);
-    neb::util::version obj_v2(v2);
+    neb::version obj_v1(v1);
+    neb::version obj_v2(v2);
     return obj_v1 > obj_v2;
   });
   return ret;

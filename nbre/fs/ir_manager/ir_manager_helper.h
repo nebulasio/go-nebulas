@@ -47,7 +47,7 @@ public:
 
   static void deploy_auth_table(rocksdb_storage *rs, nbre::NBREIR &nbre_ir,
                                 std::map<auth_key_t, auth_val_t> &auth_table,
-                                const neb::util::bytes &payload_bytes);
+                                const neb::bytes &payload_bytes);
   static void
   show_auth_table(const std::map<auth_key_t, auth_val_t> &auth_table);
 
@@ -56,8 +56,7 @@ public:
                                  rocksdb_storage *rs);
 
   static void deploy_ir(const std::string &name, uint64_t version,
-                        const neb::util::bytes payload_bytes,
-                        rocksdb_storage *rs);
+                        const neb::bytes &payload_bytes, rocksdb_storage *rs);
 
 private:
   static void update_to_storage(const std::string &key,

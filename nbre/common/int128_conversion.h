@@ -24,10 +24,13 @@
 
 namespace neb {
 
-class conversion {
+namespace internal {
+class int128_conversion_helper {
 public:
-  inline conversion() { m_data.m_data = 0; }
-  inline conversion(int128_t data) { m_data.m_data = data; }
+  inline int128_conversion_helper() { m_data.m_data = 0; }
+  inline int128_conversion_helper(const int128_t &data) {
+    m_data.m_data = data;
+  }
 
   template <typename T> inline T to_float() {
     T one = softfloat_cast<uint32_t, typename T::value_type>(1);
@@ -79,5 +82,15 @@ private:
 
   _int128_t m_data;
 };
+} // namespace internal
+
+template <typename T> inline T to_float(const int128_t &data) {
+  internal::int128_conversion_helper ch(data);
+  return ch.to_float<T>();
+}
+template <typename T> inline int128_t from_float(const T &x) {
+  internal::int128_conversion_helper ch;
+  return ch.from_float(x);
+}
 
 } // namespace neb

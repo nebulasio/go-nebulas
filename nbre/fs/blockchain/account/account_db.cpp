@@ -19,9 +19,9 @@
 //
 
 #include "fs/blockchain/account/account_db.h"
+#include "common/nebulas_currency.h"
 #include "fs/blockchain/trie/trie.h"
 #include "fs/util.h"
-#include "util/nebulas_currency.h"
 
 namespace neb {
 namespace fs {
@@ -32,7 +32,7 @@ account_db::account_db(blockchain_api_base *blockchain_ptr)
 wei_t account_db::get_balance(const address_t &addr, block_height_t height) {
   auto corepb_account_ptr = m_blockchain->get_account_api(addr, height);
   std::string balance_str = corepb_account_ptr->balance();
-  return storage_to_wei(neb::util::string_to_byte(balance_str));
+  return storage_to_wei(neb::string_to_byte(balance_str));
 }
 
 address_t account_db::get_contract_deployer(const address_t &addr,

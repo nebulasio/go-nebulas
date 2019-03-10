@@ -20,10 +20,10 @@
 
 #pragma once
 
-#include "common/util/byte.h"
-#include "common/util/singleton.h"
+#include "common/byte.h"
 #include "fs/blockchain.h"
 #include "fs/rocksdb_storage.h"
+#include "util/singleton.h"
 
 namespace neb {
 namespace fs {

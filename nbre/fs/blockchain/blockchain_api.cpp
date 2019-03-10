@@ -19,9 +19,9 @@
 //
 
 #include "fs/blockchain/blockchain_api.h"
+#include "common/nebulas_currency.h"
 #include "fs/blockchain/trie/trie.h"
 #include "fs/util.h"
-#include "util/nebulas_currency.h"
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -47,8 +47,7 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
   int64_t timestamp = block->header().timestamp();
 
   std::string events_root_str = block->header().events_root();
-  neb::util::bytes events_root_bytes =
-      neb::util::string_to_byte(events_root_str);
+  neb::bytes events_root_bytes = neb::string_to_byte(events_root_str);
 
   for (auto &tx : block->transactions()) {
     transaction_info_t info;
@@ -58,14 +57,13 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
 
     info.m_from = to_address(tx.from());
     info.m_to = to_address(tx.to());
-    info.m_tx_value = storage_to_wei(neb::util::string_to_byte(tx.value()));
-    info.m_gas_price =
-        storage_to_wei(neb::util::string_to_byte(tx.gas_price()));
+    info.m_tx_value = storage_to_wei(neb::string_to_byte(tx.value()));
+    info.m_gas_price = storage_to_wei(neb::string_to_byte(tx.gas_price()));
     info.m_tx_type = tx.data().type();
 
     // get topic chain.transactionResult
     std::string tx_hash_str = tx.hash();
-    neb::util::bytes tx_hash_bytes = neb::util::string_to_byte(tx_hash_str);
+    neb::bytes tx_hash_bytes = neb::string_to_byte(tx_hash_str);
     auto txs_result_ptr =
         get_transaction_result_api(events_root_bytes, tx_hash_bytes);
 
@@ -81,17 +79,17 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
 }
 
 std::unique_ptr<event_info_t>
-blockchain_api::get_transaction_result_api(const neb::util::bytes &events_root,
-                                           const neb::util::bytes &tx_hash) {
+blockchain_api::get_transaction_result_api(const neb::bytes &events_root,
+                                           const neb::bytes &tx_hash) {
   trie t;
-  neb::util::bytes txs_result;
+  neb::bytes txs_result;
 
   for (int64_t id = 1;; id++) {
-    neb::util::bytes id_bytes = neb::util::number_to_byte<neb::util::bytes>(id);
-    neb::util::bytes events_tx_hash = tx_hash;
+    neb::bytes id_bytes = neb::number_to_byte<neb::bytes>(id);
+    neb::bytes events_tx_hash = tx_hash;
     events_tx_hash.append_bytes(id_bytes.value(), id_bytes.size());
 
-    neb::util::bytes trie_node_bytes;
+    neb::bytes trie_node_bytes;
     bool ret = t.get_trie_node(events_root, events_tx_hash, trie_node_bytes);
     if (!ret) {
       break;
@@ -100,7 +98,7 @@ blockchain_api::get_transaction_result_api(const neb::util::bytes &events_root,
   }
   assert(!txs_result.empty());
 
-  std::string json_str = neb::util::byte_to_string(txs_result);
+  std::string json_str = neb::byte_to_string(txs_result);
 
   return json_parse_event(json_str);
 }
@@ -132,11 +130,11 @@ blockchain_api::get_account_api(const address_t &addr, block_height_t height) {
 
   // get block header account state
   std::string state_root_str = block->header().state_root();
-  neb::util::bytes state_root_bytes = neb::util::string_to_byte(state_root_str);
+  neb::bytes state_root_bytes = neb::string_to_byte(state_root_str);
 
   // get trie node
   trie t;
-  neb::util::bytes trie_node_bytes;
+  neb::bytes trie_node_bytes;
   bool is_found = t.get_trie_node(state_root_bytes, addr, trie_node_bytes);
   auto corepb_account_ptr = std::make_unique<corepb::Account>();
   if (!is_found) {
@@ -163,12 +161,12 @@ blockchain_api::get_transaction_api(const std::string &tx_hash,
 
   // get block header transaction root
   std::string txs_root_str = block->header().txs_root();
-  neb::util::bytes txs_root_bytes = neb::util::string_to_byte(txs_root_str);
+  neb::bytes txs_root_bytes = neb::string_to_byte(txs_root_str);
 
   // get trie node
   trie t;
-  neb::util::bytes tx_hash_bytes = neb::util::string_to_byte(tx_hash);
-  neb::util::bytes trie_node_bytes;
+  neb::bytes tx_hash_bytes = neb::string_to_byte(tx_hash);
+  neb::bytes trie_node_bytes;
   bool ret = t.get_trie_node(txs_root_bytes, tx_hash_bytes, trie_node_bytes);
   if (!ret) {
     return corepb_txs_ptr;

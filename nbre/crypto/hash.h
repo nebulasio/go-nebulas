@@ -18,30 +18,30 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
+#include "common/byte.h"
 #include "common/common.h"
-#include "common/util/byte.h"
 #include <cryptopp/sha3.h>
 
 namespace neb {
 namespace crypto {
-typedef util::fix_bytes<32> sha3_256_hash_t;
+typedef fix_bytes<32> sha3_256_hash_t;
 
-sha3_256_hash_t sha3_256_hash(const util::bytes &b);
+sha3_256_hash_t sha3_256_hash(const bytes &b);
 
 namespace internal {
 template <typename T, bool is_arith = std::is_arithmetic<T>::value>
 struct sha3_256_hash_helper {};
 template <typename T> struct sha3_256_hash_helper<T, true> {
   static sha3_256_hash_t get_hash(const T &t) {
-    util::bytes b(sizeof(t));
-    util::number_to_byte(t, b, sizeof(t));
+    bytes b(sizeof(t));
+    number_to_byte(t, b, sizeof(t));
     return sha3_256_hash(b);
   }
 };
 
 template <> struct sha3_256_hash_helper<std::string, false> {
   static sha3_256_hash_t get_hash(const std::string &t) {
-    util::bytes b = util::string_to_byte(t);
+    bytes b = string_to_byte(t);
     return sha3_256_hash(b);
   }
 };

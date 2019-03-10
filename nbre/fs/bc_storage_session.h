@@ -20,9 +20,9 @@
 
 #pragma once
 #include "common/common.h"
-#include "common/util/singleton.h"
 #include "fs/rocksdb_storage.h"
 #include "fs/storage.h"
+#include "util/singleton.h"
 #include <boost/thread/shared_lock_guard.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
@@ -35,35 +35,35 @@ public:
 
   void init(const std::string &path, enum storage_open_flag flag);
 
-  util::bytes get_bytes(const util::bytes &key);
+  bytes get_bytes(const bytes &key);
 
-  template <typename FixBytes> util::bytes get_bytes(const FixBytes &key) {
-    return get_bytes(util::from_fix_bytes(key));
+  template <typename FixBytes> bytes get_bytes(const FixBytes &key) {
+    return get_bytes(from_fix_bytes(key));
   }
 
-  inline util::bytes get_bytes(const std::string &key) {
-    return get_bytes(util::string_to_byte(key));
+  inline bytes get_bytes(const std::string &key) {
+    return get_bytes(string_to_byte(key));
   }
 
-  inline std::string get_string(const util::bytes &key) {
-    return util::byte_to_string(get_bytes(key));
+  inline std::string get_string(const bytes &key) {
+    return byte_to_string(get_bytes(key));
   }
   inline std::string get_string(const std::string &key) {
-    return util::byte_to_string(get_bytes(key));
+    return byte_to_string(get_bytes(key));
   }
 
-  void put_bytes(const util::bytes &key, const util::bytes &value);
-  inline void put(const util::bytes &key, const util::bytes &value) {
+  void put_bytes(const bytes &key, const bytes &value);
+  inline void put(const bytes &key, const bytes &value) {
     return put_bytes(key, value);
   }
-  inline void put(const std::string &key, const util::bytes &value) {
-    return put_bytes(util::string_to_byte(key), value);
+  inline void put(const std::string &key, const bytes &value) {
+    return put_bytes(string_to_byte(key), value);
   }
-  inline void put(const util::bytes &key, const std::string &value) {
-    return put_bytes(key, util::string_to_byte(value));
+  inline void put(const bytes &key, const std::string &value) {
+    return put_bytes(key, string_to_byte(value));
   }
   inline void put(const std::string &key, const std::string &value) {
-    return put_bytes(util::string_to_byte(key), util::string_to_byte(value));
+    return put_bytes(string_to_byte(key), string_to_byte(value));
   }
 
 protected:

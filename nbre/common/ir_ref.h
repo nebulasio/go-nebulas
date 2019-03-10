@@ -20,23 +20,23 @@
 
 #pragma once
 #include "common/common.h"
-#include "util/version.h"
+#include "common/version.h"
 
 namespace neb {
 class ir_ref {
 public:
   inline ir_ref() {}
-  inline ir_ref(const std::string &name, util::version &v)
+  inline ir_ref(const std::string &name, version &v)
       : m_name(name), m_version(v) {}
 
   inline const std::string &name() const { return m_name; }
   inline std::string &name() { return m_name; }
 
-  inline const util::version &version() const { return m_version; }
-  inline util::version &version() { return m_version; }
+  inline const version &version() const { return m_version; }
+  inline class version &version() { return m_version; }
 
 protected:
   std::string m_name;
-  util::version m_version;
+  class version m_version;
 };
 }

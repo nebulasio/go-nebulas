@@ -18,8 +18,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 
+#include "common/byte.h"
 #include "common/ir_conf_reader.h"
-#include "common/util/byte.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/util.h"
 #include "util/command.h"
@@ -108,7 +108,7 @@ void make_ir_bitcode(neb::ir_conf_reader &reader, std::string &ir_bc_file, bool 
   std::cout << command_string << std::endl;
   LOG(INFO) << command_string;
 
-  result = neb::command_executor::execute_command(command_string);
+  result = neb::util::command_executor::execute_command(command_string);
   if (result != 0) {
     LOG(INFO) << "error: executed by boost::process::system.";
     LOG(INFO) << "result code = " << result;
@@ -170,7 +170,7 @@ void make_ir_payload(std::ifstream &ifs,
     throw std::invalid_argument("IR file too large!");
   }
 
-  neb::util::bytes buf(size);
+  neb::bytes buf(size);
 
   ifs.seekg(0, ifs.beg);
   ifs.read((char *)buf.value(), buf.size());
@@ -188,7 +188,7 @@ void make_ir_payload(std::ifstream &ifs,
     d->set_name(reader.depends()[i].name());
     d->set_version(reader.depends()[i].version().data());
   }
-  ir_info.set_ir(neb::util::byte_to_string(buf));
+  ir_info.set_ir(neb::byte_to_string(buf));
   ir_info.set_ir_type(neb::ir_type::cpp);
 
   auto bytes_long = ir_info.ByteSizeLong();
@@ -202,7 +202,7 @@ void make_ir_payload(std::ifstream &ifs,
   if (!ofs.is_open()) {
     throw std::invalid_argument("can't open output file");
   }
-  neb::util::bytes out_bytes(bytes_long);
+  neb::bytes out_bytes(bytes_long);
   ir_info.SerializeToArray((void *)out_bytes.value(), out_bytes.size());
 
   std::string out_base64 = out_bytes.to_base64();

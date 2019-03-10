@@ -19,7 +19,7 @@
 //
 #pragma once
 #include "cmd/dummy_neb/dummy_common.h"
-#include "common/quitable_thread.h"
+#include "util/quitable_thread.h"
 #include <ff/network.h>
 
 define_nt(p_checkers, std::vector<std::string>);
@@ -58,7 +58,7 @@ protected:
 std::shared_ptr<checker_task_base>
 init_checker_from_string(const std::string &s);
 
-class task_executor : public neb::wakeable_thread,
+class task_executor : public neb::util::wakeable_thread,
                       public neb::util::singleton<task_executor> {};
 
 class checker_tasks : public neb::util::singleton<checker_tasks> {

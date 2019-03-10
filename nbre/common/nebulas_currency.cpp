@@ -18,18 +18,20 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include <ff/functionflow.h>
-#include <iostream>
+#include "common/nebulas_currency.h"
 
-void f() {}
+neb::nas operator"" _nas(long double v) { return neb::nas(v); }
+neb::nas operator"" _nas(const char *s) { return neb::nas(std::atoi(s)); }
 
-int main() {
-  ff::para<> a;
-  a([]() {
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    std::cout << "this is ff" << std::endl;
-  });
-  std::cout << "ret" << std::endl;
-  std::this_thread::sleep_for(std::chrono::seconds(10));
-  return 0;
+neb::wei operator"" _wei(long double v) { return neb::wei(v); }
+neb::wei operator"" _wei(const char *s) { return neb::wei(std::atoi(s)); }
+
+std::ostream &operator<<(std::ostream &os, const neb::nas &obj) {
+  os << obj.value() << "nas";
+  return os;
+}
+
+std::ostream &operator<<(std::ostream &os, const neb::wei &obj) {
+  os << std::hex << obj.wei_value() << "wei";
+  return os;
 }

@@ -80,7 +80,7 @@ protected:
   bool m_is_started;
   std::unique_ptr<ipc_client_watcher> m_client_watcher;
   std::chrono::steady_clock::time_point m_last_heart_beat_time;
-  std::unique_ptr<timer_loop> m_heart_beat_watcher;
+  std::unique_ptr<util::timer_loop> m_heart_beat_watcher;
 };
 
 } // namespace core

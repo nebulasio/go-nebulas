@@ -19,11 +19,11 @@
 //
 
 #pragma once
+#include "common/byte.h"
 #include "common/common.h"
-#include "common/util/byte.h"
-#include "common/util/lru_cache.h"
-#include "common/util/singleton.h"
 #include "runtime/nr/impl/nebulas_rank.h"
+#include "util/lru_cache.h"
+#include "util/singleton.h"
 
 namespace neb {
 namespace rt {
@@ -43,7 +43,7 @@ public:
                       uint64_t nr_version, const std::string &nr_handle);
 
 private:
-  lru_cache<std::string, nr_ret_type> m_nr_result;
+  util::lru_cache<std::string, nr_ret_type> m_nr_result;
 };
 } // namespace nr
 } // namespace rt

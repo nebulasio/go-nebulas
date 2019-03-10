@@ -25,6 +25,8 @@
 #include <boost/asio/deadline_timer.hpp>
 
 namespace neb {
+namespace util {
+
 class timer_loop {
 public:
   inline timer_loop(boost::asio::io_service *service)
@@ -57,4 +59,5 @@ protected:
   boost::asio::io_service *m_service;
   std::atomic_bool m_exit_flag;
 };
+} // namespace util
 } // namespace neb

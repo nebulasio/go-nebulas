@@ -83,7 +83,7 @@ public:
     }
     ifs.seekg(0, ifs.end);
     std::ifstream::pos_type size = ifs.tellg();
-    neb::util::bytes buf(size);
+    neb::bytes buf(size);
 
     ifs.seekg(0, ifs.beg);
     ifs.read((char *)buf.value(), buf.size());
@@ -91,7 +91,7 @@ public:
 
     std::shared_ptr<cli_submit_ir_t> req = std::make_shared<cli_submit_ir_t>();
     req->set<p_type>(type);
-    req->set<p_payload>(neb::util::byte_to_string(buf));
+    req->set<p_payload>(neb::byte_to_string(buf));
     m_package = req;
     start_and_join();
   }
@@ -220,7 +220,7 @@ int main(int argc, char *argv[]) {
       auto start_block = vm["start-block"].as<uint64_t>();
       auto end_block = vm["end-block"].as<uint64_t>();
       auto version_str = vm["version"].as<std::string>();
-      neb::util::version v;
+      neb::version v;
       v.from_string(version_str);
       cli_executor ce(rpc_listen, rpc_port);
       ce.send_nr_req(start_block, end_block, v.data());
@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
     if (type == "dip-reward") {
       auto height = vm["height"].as<uint64_t>();
       auto version_str = vm["version"].as<std::string>();
-      neb::util::version v;
+      neb::version v;
       v.from_string(version_str);
       cli_executor ce(rpc_listen, rpc_port);
       ce.send_dip_reward_req(height, v.data());

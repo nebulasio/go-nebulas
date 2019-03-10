@@ -38,20 +38,20 @@ TEST(test_fs, read_blockchain_transcations) {
   EXPECT_EQ(tx->chain_id(), 1003);
 
   std::string hash = tx->hash();
-  std::string hash_hex = neb::util::string_to_byte(hash).to_hex();
+  std::string hash_hex = neb::string_to_byte(hash).to_hex();
   EXPECT_EQ(hash_hex,
             "f2a9f39bbc01d7063eaf8e703da268c043124a732ddfc69fdcbac79dd071eadd");
 
   std::string from = tx->from();
-  std::string from_base58 = neb::util::string_to_byte(from).to_base58();
+  std::string from_base58 = neb::string_to_byte(from).to_base58();
   EXPECT_EQ(from_base58, "n1HQb7j3Ctpj5A9sJnfhRwXS549nGPv2EkD");
 
   std::string value = tx->value();
-  std::string value_hex = neb::util::string_to_byte(value).to_hex();
+  std::string value_hex = neb::string_to_byte(value).to_hex();
   EXPECT_EQ(value_hex, "00000000000000000000000000000000");
 
   std::string price = tx->gas_price();
-  std::string price_hex = neb::util::string_to_byte(price).to_hex();
+  std::string price_hex = neb::string_to_byte(price).to_hex();
   EXPECT_EQ(price.size(), 16);
   EXPECT_EQ(price_hex.size(), 32);
   EXPECT_EQ(price_hex, "000000000000000000000000000f4240");
@@ -61,7 +61,7 @@ TEST(test_fs, read_blockchain_transcations) {
   EXPECT_EQ(type, "binary");
 
   std::string payload = data.payload();
-  std::string payload_base64 = neb::util::string_to_byte(payload).to_base58();
+  std::string payload_base64 = neb::string_to_byte(payload).to_base58();
   std::string want_base64(
       "98b9sMCBs5NGM8ryDcbAtRXDWDeZ8t62hAJjPxVTE6Pk4fWBFT9FUYJwSjZgMd19T9DUsFRb"
       "VbtMwtVNrALuTL6Sw4zkrhDMsHfQbSrSdmV6HmcwXWMLF93K52C8brF3yp8LxUkog4cYn9fy"
@@ -124,7 +124,7 @@ TEST(test_fs, throw_operation_db) {
                neb::fs::storage_exception_no_init);
 
   EXPECT_THROW(
-      rs.put(neb::fs::blockchain::Block_LIB, neb::util::string_to_byte("xxx")),
+      rs.put(neb::fs::blockchain::Block_LIB, neb::string_to_byte("xxx")),
       neb::fs::storage_exception_no_init);
 
   EXPECT_THROW(rs.del(neb::fs::blockchain::Block_LIB),
@@ -150,7 +150,7 @@ TEST(test_fs, load_LIB_block) {
   EXPECT_EQ(block_ptr->transactions_size(), 0);
 
   auto header = block_ptr->header();
-  auto hash_bytes = neb::util::string_to_byte(header.hash());
+  auto hash_bytes = neb::string_to_byte(header.hash());
   EXPECT_EQ(hash_bytes.to_hex(),
             "8da918837dfa46c6d689eb3be3dc2eff4dffb6dca8a1027df0eddd0d0597af8f");
   EXPECT_EQ(header.timestamp(), 1531895265);

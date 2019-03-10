@@ -20,6 +20,8 @@
 #include "util/command.h"
 
 namespace neb {
+namespace util {
+
 int command_executor::execute_command(const std::string &command_string) {
   namespace bp = boost::process;
   bp::ipstream pipe_stream;
@@ -47,4 +49,6 @@ int command_executor::execute_command(const std::string &command_string,
   c.wait();
   return c.exit_code();
 }
+
+} // namespace util
 } // namespace neb

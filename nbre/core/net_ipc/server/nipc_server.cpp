@@ -103,7 +103,7 @@ bool nipc_server::start() {
               neb::configuration::instance().nbre_exe_name()));
       m_client_watcher->start();
       m_heart_beat_watcher =
-          std::make_unique<timer_loop>(&m_server->ioservice());
+          std::make_unique<util::timer_loop>(&m_server->ioservice());
       m_heart_beat_watcher->register_timer_and_callback(1, [this]() {
         auto now = std::chrono::steady_clock::now();
         auto duration = now - m_last_heart_beat_time;

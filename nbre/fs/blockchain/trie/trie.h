@@ -19,8 +19,8 @@
 //
 
 #pragma once
+#include "common/byte.h"
 #include "common/common.h"
-#include "common/util/byte.h"
 #include "crypto/hash.h"
 #include "fs/blockchain/trie/byte_shared.h"
 #include "fs/proto/trie.pb.h"
@@ -38,16 +38,14 @@ constexpr static int32_t trie_node_branch = 3;
 class trie_node {
 public:
   trie_node(trie_node_type type);
-  trie_node(const neb::util::bytes &triepb_bytes);
+  trie_node(const neb::bytes &triepb_bytes);
 
-  trie_node(const std::vector<neb::util::bytes> &val);
+  trie_node(const std::vector<neb::bytes> &val);
 
   trie_node_type get_trie_node_type();
 
-  inline const neb::util::bytes &val_at(size_t index) const {
-    return m_val[index];
-  }
-  inline neb::util::bytes &val_at(size_t index) { return m_val[index]; }
+  inline const neb::bytes &val_at(size_t index) const { return m_val[index]; }
+  inline neb::bytes &val_at(size_t index) { return m_val[index]; }
 
   void change_to_type(trie_node_type new_type);
 
@@ -58,7 +56,7 @@ public:
   std::unique_ptr<triepb::Node> to_proto() const;
 
 private:
-  std::vector<neb::util::bytes> m_val;
+  std::vector<neb::bytes> m_val;
   hash_t m_hash;
 };
 
@@ -69,12 +67,12 @@ public:
   trie(const hash_t &hash);
   trie();
 
-  bool get_trie_node(const neb::util::bytes &root_hash,
-                     const neb::util::bytes &key, neb::util::bytes &trie_node);
+  bool get_trie_node(const neb::bytes &root_hash, const neb::bytes &key,
+                     neb::bytes &trie_node);
 
-  hash_t put(const hash_t &key, const neb::util::bytes &val);
+  hash_t put(const hash_t &key, const neb::bytes &val);
 
-  trie_node_ptr create_node(const std::vector<neb::util::bytes> &val);
+  trie_node_ptr create_node(const std::vector<neb::bytes> &val);
 
   void commit_node(trie_node *node);
 
@@ -83,28 +81,25 @@ public:
   inline bool empty() const { return m_root_hash.size() == 0; }
 
 private:
-  std::unique_ptr<trie_node> fetch_node(const neb::util::bytes &hash);
+  std::unique_ptr<trie_node> fetch_node(const neb::bytes &hash);
   std::unique_ptr<trie_node> fetch_node(const hash_t &hash);
 
-  hash_t update(const hash_t &root, const neb::util::bytes &route,
-                const neb::util::bytes &val);
+  hash_t update(const hash_t &root, const neb::bytes &route,
+                const neb::bytes &val);
 
-  hash_t update_when_meet_branch(trie_node *root_node,
-                                 const neb::util::bytes &route,
-                                 const neb::util::bytes &val);
-  hash_t update_when_meet_ext(trie_node *root_node,
-                              const neb::util::bytes &route,
-                              const neb::util::bytes &val);
-  hash_t update_when_meet_leaf(trie_node *root_node,
-                               const neb::util::bytes &route,
-                               const neb::util::bytes &val);
+  hash_t update_when_meet_branch(trie_node *root_node, const neb::bytes &route,
+                                 const neb::bytes &val);
+  hash_t update_when_meet_ext(trie_node *root_node, const neb::bytes &route,
+                              const neb::bytes &val);
+  hash_t update_when_meet_leaf(trie_node *root_node, const neb::bytes &route,
+                               const neb::bytes &val);
 
 public:
-  static neb::util::bytes route_to_key(const neb::util::bytes &route);
-  template <typename T> static neb::util::bytes key_to_route(const T &key) {
+  static neb::bytes route_to_key(const neb::bytes &route);
+  template <typename T> static neb::bytes key_to_route(const T &key) {
 
     size_t size = key.size() << 1;
-    neb::util::bytes value(size);
+    neb::bytes value(size);
 
     if (size > 0) {
       for (size_t i = 0; i < key.size(); i++) {

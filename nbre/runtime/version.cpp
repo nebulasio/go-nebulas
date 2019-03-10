@@ -21,8 +21,8 @@
 
 namespace neb {
 namespace rt {
-neb::util::version get_version() {
-  neb::util::version v;
+neb::version get_version() {
+  neb::version v;
   v.major_version() = 0;
   v.minor_version() = 1;
   v.patch_version() = 1;

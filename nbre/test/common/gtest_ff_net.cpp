@@ -28,7 +28,7 @@ TEST(test_ff_net, seri_and_deseri) {
   param.set<block_interval>(2);
   param.set<reward_addr>(std::to_string(3));
   param.set<coinbase_addr>(std::to_string(4));
-  param.set<version>(0);
+  param.set<p_version>(0);
   auto ret = param.serialize_to_string();
   std::cout << ret << std::endl;
 }

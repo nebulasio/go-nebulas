@@ -134,7 +134,8 @@ void client_driver_base::init_timer_thread() {
   m_timer_thread = std::unique_ptr<std::thread>(new std::thread([this]() {
     boost::asio::io_service io_service;
 
-    m_timer_loop = std::unique_ptr<timer_loop>(new timer_loop(&io_service));
+    m_timer_loop =
+        std::unique_ptr<util::timer_loop>(new util::timer_loop(&io_service));
     m_timer_loop->register_timer_and_callback(
         neb::configuration::instance().ir_warden_time_interval(),
         []() { ir_warden::instance().on_timer(); });
@@ -155,7 +156,7 @@ void client_driver_base::init_nbre() {
     auto nbre_max_height_bytes =
         rs->get(neb::configuration::instance().nbre_max_height_name());
     auto nbre_max_height =
-        neb::util::byte_to_number<block_height_t>(nbre_max_height_bytes);
+        neb::byte_to_number<block_height_t>(nbre_max_height_bytes);
   } catch (const std::exception &e) {
     LOG(INFO) << "nbre max height not init " << e.what();
   }
@@ -172,7 +173,7 @@ void client_driver::add_handlers() {
         if (ack == nullptr) {
           return;
         }
-        neb::util::version v = neb::rt::get_version();
+        neb::version v = neb::rt::get_version();
         ack->set<p_major>(v.major_version());
         ack->set<p_minor>(v.minor_version());
         ack->set<p_patch>(v.patch_version());
@@ -281,11 +282,9 @@ void client_driver::add_handlers() {
           uint64_t nr_version = req->get<p_nr_version>();
 
           std::stringstream ss;
-          ss << neb::util::number_to_byte<neb::util::bytes>(start_block)
-                    .to_hex()
-             << neb::util::number_to_byte<neb::util::bytes>(end_block).to_hex()
-             << neb::util::number_to_byte<neb::util::bytes>(nr_version)
-                    .to_hex();
+          ss << neb::number_to_byte<neb::bytes>(start_block).to_hex()
+             << neb::number_to_byte<neb::bytes>(end_block).to_hex()
+             << neb::number_to_byte<neb::bytes>(nr_version).to_hex();
 
           auto ack = new_ack_pkg<nbre_nr_handle_ack>(req);
           ack->set<p_nr_handle>(ss.str());

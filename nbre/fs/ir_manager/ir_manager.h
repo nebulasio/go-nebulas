@@ -21,9 +21,9 @@
 #pragma once
 #include "common/address.h"
 #include "common/common.h"
-#include "common/wakeable_queue.h"
 #include "core/net_ipc/nipc_pkg.h"
 #include "fs/ir_manager/ir_manager_helper.h"
+#include "util/wakeable_queue.h"
 
 namespace neb {
 namespace fs {
@@ -40,8 +40,8 @@ public:
   std::unique_ptr<std::vector<nbre::NBREIR>>
   read_irs(const std::string &name, block_height_t height, bool depends);
 
-  void
-  parse_irs(wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> &q_txs);
+  void parse_irs(
+      util::wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> &q_txs);
 
 private:
   void read_ir_depends(const std::string &name, uint64_t version,

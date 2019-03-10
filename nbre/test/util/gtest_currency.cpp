@@ -17,7 +17,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "util/nebulas_currency.h"
+#include "common/nebulas_currency.h"
 #include <gtest/gtest.h>
 
 TEST(test_currency, simple) {

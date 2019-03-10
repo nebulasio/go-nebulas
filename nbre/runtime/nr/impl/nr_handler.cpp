@@ -82,17 +82,17 @@ void nr_handler::start(const std::string &nr_handle) {
     return;
   }
 
-  neb::util::bytes nr_handle_bytes = neb::util::bytes::from_hex(nr_handle);
+  neb::bytes nr_handle_bytes = neb::bytes::from_hex(nr_handle);
   size_t bytes = sizeof(uint64_t) / sizeof(byte_t);
   assert(nr_handle_bytes.size() == 3 * bytes);
 
-  const auto &s = neb::util::bytes(nr_handle_bytes.value(), bytes);
-  const auto &e = neb::util::bytes(nr_handle_bytes.value() + bytes, bytes);
-  const auto &v = neb::util::bytes(nr_handle_bytes.value() + 2 * bytes, bytes);
+  const auto &s = neb::bytes(nr_handle_bytes.value(), bytes);
+  const auto &e = neb::bytes(nr_handle_bytes.value() + bytes, bytes);
+  const auto &v = neb::bytes(nr_handle_bytes.value() + 2 * bytes, bytes);
 
-  uint64_t start_block = neb::util::byte_to_number<uint64_t>(s);
-  uint64_t end_block = neb::util::byte_to_number<uint64_t>(e);
-  uint64_t nr_version = neb::util::byte_to_number<uint64_t>(v);
+  uint64_t start_block = neb::byte_to_number<uint64_t>(s);
+  uint64_t end_block = neb::byte_to_number<uint64_t>(e);
+  uint64_t nr_version = neb::byte_to_number<uint64_t>(v);
 
   if (!nr_version) {
     run_if_default(start_block, end_block, nr_handle);

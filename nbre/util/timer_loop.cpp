@@ -1,4 +1,4 @@
-// Copyright (C) 2018 go-nebulas authors
+// Copyright (C) 2017 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -18,24 +18,27 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "common/util/json_parser.h"
-#include <boost/property_tree/json_parser.hpp>
+#include "util/timer_loop.h"
 
 namespace neb {
 namespace util {
-void json_parser::read_json(const std::string &json_str,
-                            boost::property_tree::ptree &pt) {
-  std::stringstream ss(json_str);
-  boost::property_tree::json_parser::read_json(ss, pt);
-  return;
-}
 
-void json_parser::write_json(std::string &json_str,
-                             const boost::property_tree::ptree &pt) {
-  std::stringstream ss;
-  boost::property_tree::json_parser::write_json(ss, pt, false);
-  json_str = ss.str();
-  return;
+void timer_loop::timer_callback(
+    const boost::system::error_code &ec, long seconds,
+    std::shared_ptr<boost::asio::deadline_timer> timer,
+    std::function<void()> func) {
+  if (m_exit_flag)
+    return;
+  if (ec) {
+    LOG(ERROR) << ec;
+    return;
+  }
+  func();
+  timer->expires_at(timer->expires_at() + boost::posix_time::seconds(seconds));
+  timer->async_wait(
+      [this, timer, seconds, func](const boost::system::error_code &ec) {
+        timer_callback(ec, seconds, timer, func);
+      });
 }
 } // namespace util
 } // namespace neb

@@ -50,7 +50,7 @@ void dummy_driver::run(const std::string &dummy_name, uint64_t block_interval) {
 
   // This for generating block with interval.
   m_block_interval_seconds = block_interval;
-  m_block_gen_timer = std::make_unique<neb::timer_loop>(&m_io_service);
+  m_block_gen_timer = std::make_unique<neb::util::timer_loop>(&m_io_service);
   LOG(INFO) << "start block gen timer with interval: "
             << m_block_interval_seconds << ", for dummy: " << dummy_name;
   m_block_gen_timer->register_timer_and_callback(
@@ -72,7 +72,7 @@ void dummy_driver::run(const std::string &dummy_name, uint64_t block_interval) {
         LOG(INFO) << "gen block " << height;
       });
 
-  m_checker_gen_timer = std::make_unique<neb::timer_loop>(&m_io_service);
+  m_checker_gen_timer = std::make_unique<neb::util::timer_loop>(&m_io_service);
   m_checker_gen_timer->register_timer_and_callback(1, [dummy]() {
     dummy->generate_checker_task();
     LOG(INFO) << "to schedule tasks";

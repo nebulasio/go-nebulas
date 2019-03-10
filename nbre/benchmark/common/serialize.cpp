@@ -18,8 +18,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "benchmark/benchmark_instances.h"
+#include "common/byte.h"
 #include "common/math.h"
-#include "common/util/byte.h"
 #include "fs/proto/ir.pb.h"
 #include <ff/network.h>
 #include <iostream>
@@ -41,7 +41,7 @@ BENCHMARK(ir_size, proto) {
   ni.set_ir_type("llvm");
   auto bytes_long = ni.ByteSizeLong();
   std::cout << "proto bytes: " << bytes_long << std::endl;
-  neb::util::bytes rs(bytes_long);
+  neb::bytes rs(bytes_long);
   ni.SerializeToArray((void *)rs.value(), rs.size());
 }
 

@@ -21,11 +21,10 @@
 #include "common/common.h"
 #include "common/configuration.h"
 #include "common/exception_queue.h"
-#include "common/timer_loop.h"
 #include "core/net_ipc/client/nipc_client.h"
 #include "core/net_ipc/nipc_pkg.h"
 #include "fs/util.h"
-#include <atomic>
+#include "util/timer_loop.h"
 
 namespace neb {
 namespace core {
@@ -53,7 +52,7 @@ protected:
   ::ff::net::tcp_connection_base_ptr m_ipc_conn;
   std::atomic_bool m_exit_flag;
   std::unique_ptr<std::thread> m_timer_thread;
-  std::unique_ptr<timer_loop> m_timer_loop;
+  std::unique_ptr<util::timer_loop> m_timer_loop;
 };
 } // end namespace internal
 

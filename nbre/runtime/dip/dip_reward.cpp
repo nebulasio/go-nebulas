@@ -1,7 +1,7 @@
 
 #include "runtime/dip/dip_reward.h"
 #include "common/configuration.h"
-#include "common/util/conversion.h"
+#include "common/int128_conversion.h"
 #include "runtime/dip/dip_handler.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/foreach.hpp>
@@ -44,7 +44,7 @@ std::vector<std::shared_ptr<dip_info_t>> dip_reward::get_dip_reward(
   address_t dip_coinbase_addr = to_address(dip_params.get<coinbase_addr>());
 
   wei_t balance = adb_ptr->get_balance(dip_reward_addr, end_block);
-  floatxx_t bonus_total = conversion(balance).to_float<floatxx_t>();
+  floatxx_t bonus_total = to_float<floatxx_t>(balance);
   LOG(INFO) << "bonus total " << bonus_total;
   // bonus_total = adb_ptr->get_normalized_value(bonus_total);
 
@@ -68,8 +68,7 @@ std::vector<std::shared_ptr<dip_info_t>> dip_reward::get_dip_reward(
         bonus_total / sum_votes;
     reward_sum += reward_in_wei;
 
-    info.m_reward =
-        neb::math::to_string(neb::conversion().from_float(reward_in_wei));
+    info.m_reward = neb::math::to_string(from_float(reward_in_wei));
     dip_infos.push_back(info_ptr);
   }
   LOG(INFO) << "reward sum " << reward_sum << ", bonus total " << bonus_total;
@@ -87,8 +86,7 @@ void dip_reward::back_to_coinbase(
   if (!dip_coinbase_addr.empty() && reward_left > 0) {
     std::shared_ptr<dip_info_t> info = std::make_shared<dip_info_t>();
     info->m_deployer = dip_coinbase_addr;
-    info->m_reward =
-        neb::math::to_string(neb::conversion().from_float(reward_left));
+    info->m_reward = neb::math::to_string(from_float(reward_left));
     dip_infos.push_back(info);
   }
 }
@@ -160,10 +158,10 @@ dip_reward::json_to_dip_info(const std::string &dip_reward) {
     boost::property_tree::ptree nr = v.second;
     auto info_ptr = std::make_shared<dip_info_t>();
     dip_info_t &info = *info_ptr;
-    neb::util::bytes deployer_bytes =
-        neb::util::bytes::from_base58(nr.get<std::string>("address"));
-    neb::util::bytes contract_bytes =
-        neb::util::bytes::from_base58(nr.get<std::string>("contract"));
+    neb::bytes deployer_bytes =
+        neb::bytes::from_base58(nr.get<std::string>("address"));
+    neb::bytes contract_bytes =
+        neb::bytes::from_base58(nr.get<std::string>("contract"));
     info.m_deployer = deployer_bytes;
     info.m_contract = contract_bytes;
     info.m_reward = nr.get<std::string>("reward");

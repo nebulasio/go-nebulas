@@ -18,9 +18,9 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
+#include "common/byte.h"
 #include "common/common.h"
 #include "common/configuration.h"
-#include "common/util/byte.h"
 #include "util/command.h"
 
 namespace neb {
@@ -29,7 +29,7 @@ class cpp_ir {
 public:
   cpp_ir(const std::string &cpp_content);
 
-  neb::util::bytes llvm_ir_content();
+  neb::bytes llvm_ir_content();
 
 protected:
   int make_ir_bitcode(const std::string &cpp_file,

@@ -22,6 +22,8 @@
 #include <boost/process.hpp>
 
 namespace neb {
+namespace util {
+
 class command_executor {
 public:
   static int execute_command(const std::string &command_string);
@@ -29,4 +31,5 @@ public:
   static int execute_command(const std::string &command_string,
                              std::string &output_string);
 };
+} // namespace util
 } // namespace neb

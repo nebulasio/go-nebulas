@@ -59,5 +59,5 @@ protected:
   address_t m_auth_admin_addr;
 };
 
-neb::util::bytes gen_auth_table_payload(const address_t &nr_admin,
-                                        const address_t &dip_admin);
+neb::bytes gen_auth_table_payload(const address_t &nr_admin,
+                                  const address_t &dip_admin);

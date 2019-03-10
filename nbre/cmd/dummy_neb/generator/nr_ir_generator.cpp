@@ -95,7 +95,7 @@ std::shared_ptr<corepb::Transaction> nr_ir_generator::gen_tx() {
                          m_major_version, m_minor_version, m_patch_version);
   nbre::NBREIR ir;
   ir.set_name("nr");
-  neb::util::version v(m_major_version, m_minor_version, m_patch_version);
+  neb::version v(m_major_version, m_minor_version, m_patch_version);
   ir.set_version(v.data());
   ir.set_height(m_block->height());
   ir.set_ir(payload);
@@ -103,7 +103,7 @@ std::shared_ptr<corepb::Transaction> nr_ir_generator::gen_tx() {
 
   std::string ir_str = ir.SerializeAsString();
   return m_block->add_protocol_transaction(m_nr_admin_addr,
-                                           neb::util::string_to_byte(ir_str));
+                                           neb::string_to_byte(ir_str));
 }
 checker_tasks::task_container_ptr_t nr_ir_generator::gen_tasks() {
   return nullptr;

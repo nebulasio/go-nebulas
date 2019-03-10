@@ -131,6 +131,7 @@ file(GLOB_RECURSE nbre_crypto_src crypto/*.cpp)
 
 list(FILTER nbre_core_src EXCLUDE REGEX "core/driver.cpp")
 list(FILTER nbre_core_src EXCLUDE REGEX "core/neb_ipc*")
+list(FILTER nbre_common_src EXCLUDE REGEX "common/ipc*")
 
 add_library(nbre_rt SHARED
   ${nbre_jit_src}

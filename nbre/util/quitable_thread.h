@@ -19,12 +19,13 @@
 //
 #pragma once
 #include "common/common.h"
-#include "common/wakeable_queue.h"
 #include "core/command.h"
+#include "util/wakeable_queue.h"
 #include <atomic>
 #include <thread>
 
 namespace neb {
+namespace util {
 class quitable_thread {
 public:
   quitable_thread();
@@ -62,4 +63,5 @@ protected:
   queue_t m_queue;
   bool m_started;
 };
+} // namespace util
 } // namespace neb

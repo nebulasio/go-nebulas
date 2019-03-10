@@ -20,12 +20,12 @@
 
 #pragma once
 #include "common/common.h"
-#include "common/quitable_thread.h"
-#include "common/util/singleton.h"
 #include "core/net_ipc/nipc_pkg.h"
 #include "fs/ir_manager/ir_manager.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/storage.h"
+#include "util/quitable_thread.h"
+#include "util/singleton.h"
 #include <boost/asio.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <condition_variable>
@@ -56,7 +56,7 @@ private:
   bool m_is_sync_already;
   mutable std::mutex m_sync_mutex;
   std::condition_variable m_sync_cond_var;
-  wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> m_queue;
+  util::wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> m_queue;
 };
 }
 }

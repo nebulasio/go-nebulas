@@ -32,7 +32,7 @@ TEST(test_fs, write_nbre_until_sync) {
   std::shared_ptr<neb::fs::ir_manager> nbre_ptr =
       std::make_shared<neb::fs::ir_manager>();
 
-  neb::wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> q;
+  neb::util::wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> q;
   nbre_ptr->parse_irs(q);
   nbre_ptr.reset();
 
@@ -47,7 +47,7 @@ TEST(test_fs, write_nbre_until_sync) {
   size_t gap = sizeof(uint64_t) / sizeof(uint8_t);
   for (size_t i = 0; i < version_bytes.size(); i += gap) {
     neb::byte_t *bytes = version_bytes.value() + i;
-    uint64_t version = neb::util::byte_to_number<uint64_t>(bytes, gap);
+    uint64_t version = neb::byte_to_number<uint64_t>(bytes, gap);
     EXPECT_EQ(version, versions[i / gap]);
   }
 
@@ -63,9 +63,9 @@ TEST(test_fs, write_nbre_until_sync) {
     neb::fs::rocksdb_storage rs_read;
     rs_read.open_database(db_read, neb::fs::storage_open_for_readonly);
 
-    neb::util::bytes height_hash =
-        rs_read.get_bytes(neb::util::number_to_byte<neb::util::bytes>(height));
-    neb::util::bytes block_bytes = rs_read.get_bytes(height_hash);
+    neb::bytes height_hash =
+        rs_read.get_bytes(neb::number_to_byte<neb::bytes>(height));
+    neb::bytes block_bytes = rs_read.get_bytes(height_hash);
 
     std::shared_ptr<corepb::Block> block = std::make_shared<corepb::Block>();
     bool ret = block->ParseFromArray(block_bytes.value(), block_bytes.size());
@@ -74,8 +74,7 @@ TEST(test_fs, write_nbre_until_sync) {
     }
     auto it_tx = block->transactions().begin();
     auto payload = it_tx->data().payload();
-    EXPECT_EQ(neb::util::string_to_byte(payload).to_hex(),
-              payload_bytes.to_hex());
+    EXPECT_EQ(neb::string_to_byte(payload).to_hex(), payload_bytes.to_hex());
 
     rs_read.close_database();
   }

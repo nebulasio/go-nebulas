@@ -19,7 +19,7 @@
 //
 #include "cmd/dummy_neb/cli/pkg.h"
 #include "cmd/dummy_neb/generator/generator_base.h"
-#include "common/wakeable_queue.h"
+#include "util/wakeable_queue.h"
 
 class cli_generator : public generator_base {
 public:
@@ -40,5 +40,5 @@ public:
   address_t m_dip_admin_addr;
 
 protected:
-  neb::wakeable_queue<std::shared_ptr<ff::net::package>> m_pkgs;
+  neb::util::wakeable_queue<std::shared_ptr<ff::net::package>> m_pkgs;
 };

@@ -18,15 +18,24 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "runtime/nr/graph/algo.h"
+#include "util/json_parser.h"
+#include <boost/property_tree/json_parser.hpp>
 
-int main(int argc, char *argv[]) {
-
-  neb::rt::transaction_graph tg;
-  tg.add_edge(neb::to_address("a"), neb::to_address("b"), 1, 2);
-  tg.add_edge(neb::to_address("a"), neb::to_address("c"), 3, 4);
-
-  neb::rt::graph_algo::get_degree_sum(tg.internal_graph());
-
-  return 0;
+namespace neb {
+namespace util {
+void json_parser::read_json(const std::string &json_str,
+                            boost::property_tree::ptree &pt) {
+  std::stringstream ss(json_str);
+  boost::property_tree::json_parser::read_json(ss, pt);
+  return;
 }
+
+void json_parser::write_json(std::string &json_str,
+                             const boost::property_tree::ptree &pt) {
+  std::stringstream ss;
+  boost::property_tree::json_parser::write_json(ss, pt, false);
+  json_str = ss.str();
+  return;
+}
+} // namespace util
+} // namespace neb

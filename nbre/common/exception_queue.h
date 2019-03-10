@@ -19,7 +19,7 @@
 //
 #pragma once
 #include "common/common.h"
-#include "common/util/singleton.h"
+#include "util/singleton.h"
 #include <algorithm>
 #include <condition_variable>
 #include <exception>

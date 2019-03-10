@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "common/util/version.h"
+#include "common/version.h"
 #include "fs/ir_manager/ir_manager.h"
 #include "fs/proto/block.pb.h"
 #include "fs/proto/ir.pb.h"
@@ -57,11 +57,11 @@ int main(int argc, char *argv[]) {
   f_del_nbre_auth_table();
 
   auto f_set_nbre_auth_table = [&]() {
-    std::string addr1_base58 = neb::util::string_to_byte("addr1").to_base58();
-    std::string addr2_base58 = neb::util::string_to_byte("addr2").to_base58();
+    std::string addr1_base58 = neb::string_to_byte("addr1").to_base58();
+    std::string addr2_base58 = neb::string_to_byte("addr2").to_base58();
 
     rs.put("nbre_auth_table",
-           neb::util::string_to_byte(boost::str(
+           neb::string_to_byte(boost::str(
                boost::format(
                    "nr,1,%1%,100,200\nnr,2,%2%,150,250\ndip,1,%1%,200,300\n") %
                addr1_base58 % addr2_base58)));

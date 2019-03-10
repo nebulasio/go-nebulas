@@ -22,8 +22,9 @@
 
 #include "common/address.h"
 #include "common/common.h"
-#include "common/util/singleton.h"
+#include "core/net_ipc/nipc_pkg.h"
 #include "fs/rocksdb_storage.h"
+#include "util/singleton.h"
 #include "util/thread_safe_map.h"
 #include "util/thread_safe_vector.h"
 #include <ff/network.h>
@@ -32,14 +33,13 @@ define_nt(start_block, neb::block_height_t);
 define_nt(block_interval, neb::block_height_t);
 define_nt(reward_addr, std::string);
 define_nt(coinbase_addr, std::string);
-define_nt(version, uint64_t);
 
 namespace neb {
 namespace rt {
 namespace dip {
 
 typedef ::ff::net::ntpackage<1, start_block, block_interval, reward_addr,
-                             coinbase_addr, version>
+                             coinbase_addr, p_version>
     dip_params_t;
 
 class dip_handler : public util::singleton<dip_handler> {

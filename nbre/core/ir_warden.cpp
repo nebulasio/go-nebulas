@@ -19,7 +19,6 @@
 //
 
 #include "core/ir_warden.h"
-#include "common/timer_loop.h"
 #include "core/command.h"
 #include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>

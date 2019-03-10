@@ -85,7 +85,7 @@ void rocksdb_storage::close_database() {
   m_db.reset(nullptr);
 }
 
-util::bytes rocksdb_storage::get_bytes(const util::bytes &key) {
+bytes rocksdb_storage::get_bytes(const bytes &key) {
   if (!m_db) {
     throw storage_exception_no_init();
   }
@@ -95,17 +95,16 @@ util::bytes rocksdb_storage::get_bytes(const util::bytes &key) {
   if (!status.ok()) {
     throw storage_general_failure(status.ToString());
   }
-  return util::string_to_byte(value);
+  return string_to_byte(value);
 }
 
-void rocksdb_storage::put_bytes(const util::bytes &key,
-                                const util::bytes &val) {
+void rocksdb_storage::put_bytes(const bytes &key, const bytes &val) {
   if (!m_db) {
     throw storage_exception_no_init();
   }
   if (m_enable_batch) {
     m_batched_ops.emplace_back([key, val](rocksdb::WriteBatch &wb) {
-      std::string str_value = util::byte_to_string(val);
+      std::string str_value = byte_to_string(val);
       rocksdb::Slice s(reinterpret_cast<const char *>(key.value()), key.size());
       auto status = wb.Put(s, str_value);
       if (!status.ok()) {
@@ -114,7 +113,7 @@ void rocksdb_storage::put_bytes(const util::bytes &key,
     });
     return;
   }
-  std::string str_value = util::byte_to_string(val);
+  std::string str_value = byte_to_string(val);
   rocksdb::Slice s(reinterpret_cast<const char *>(key.value()), key.size());
   auto status = m_db->Put(rocksdb::WriteOptions(), s, str_value);
   if (!status.ok()) {
@@ -122,7 +121,7 @@ void rocksdb_storage::put_bytes(const util::bytes &key,
   }
 }
 
-void rocksdb_storage::del_by_bytes(const util::bytes &key) {
+void rocksdb_storage::del_by_bytes(const bytes &key) {
   if (!m_db) {
     throw storage_exception_no_init();
   }

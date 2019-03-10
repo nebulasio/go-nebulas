@@ -19,11 +19,10 @@
 //
 
 #include "fs/ir_manager/ir_manager.h"
+#include "common/byte.h"
 #include "common/common.h"
 #include "common/configuration.h"
-#include "common/util/byte.h"
-#include "common/util/json_parser.h"
-#include "common/util/version.h"
+#include "common/version.h"
 #include "fs/bc_storage_session.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "fs/ir_manager/ir_manager_helper.h"
@@ -32,6 +31,7 @@
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_handler.h"
 #include "runtime/version.h"
+#include "util/json_parser.h"
 #include <boost/format.hpp>
 #include <ff/functionflow.h>
 
@@ -50,7 +50,7 @@ std::unique_ptr<nbre::NBREIR> ir_manager::read_ir(const std::string &name,
   std::stringstream ss;
   ss << name << version;
 
-  neb::util::bytes nbre_bytes;
+  neb::bytes nbre_bytes;
   try {
     nbre_bytes = m_storage->get(ss.str());
   } catch (const std::exception &e) {
@@ -70,7 +70,7 @@ ir_manager::read_irs(const std::string &name, block_height_t height,
                      bool depends) {
   auto irs = std::make_unique<std::vector<nbre::NBREIR>>();
 
-  neb::util::bytes bytes_versions;
+  neb::bytes bytes_versions;
   try {
     bytes_versions = m_storage->get(name);
   } catch (const std::exception &e) {
@@ -96,7 +96,7 @@ void ir_manager::read_ir_depends(const std::string &name, uint64_t version,
                                  std::vector<nbre::NBREIR> &irs) {
 
   if (name == neb::configuration::instance().rt_module_name() &&
-      neb::rt::get_version() < neb::util::version(version)) {
+      neb::rt::get_version() < neb::version(version)) {
     throw std::runtime_error("need to update nbre runtime version");
   }
 
@@ -108,7 +108,7 @@ void ir_manager::read_ir_depends(const std::string &name, uint64_t version,
     return;
   }
 
-  neb::util::bytes nbre_bytes;
+  neb::bytes nbre_bytes;
   try {
     nbre_bytes = m_storage->get(ss.str());
   } catch (const std::exception &e) {
@@ -135,7 +135,7 @@ void ir_manager::read_ir_depends(const std::string &name, uint64_t version,
 }
 
 void ir_manager::parse_irs(
-    wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> &q_txs) {
+    util::wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> &q_txs) {
 
   ir_manager_helper::load_auth_table(m_storage, m_auth_table);
   block_height_t last_height = ir_manager_helper::nbre_block_height(m_storage);
@@ -188,7 +188,7 @@ void ir_manager::parse_next_block(block_height_t height,
   }
 
   for (auto &tx_seri : txs_seri) {
-    auto tx_bytes = util::string_to_byte(tx_seri);
+    auto tx_bytes = string_to_byte(tx_seri);
     std::unique_ptr<corepb::Transaction> tx =
         std::make_unique<corepb::Transaction>();
     bool ret = tx->ParseFromArray(tx_bytes.value(), tx_bytes.size());
@@ -213,7 +213,7 @@ void ir_manager::parse_with_height(
   m_storage->put(
       std::string(neb::configuration::instance().nbre_max_height_name(),
                   std::allocator<char>()),
-      neb::util::number_to_byte<neb::util::bytes>(height));
+      neb::number_to_byte<neb::bytes>(height));
   ir_manager_helper::del_failed_flag(m_storage, failed_flag);
 
   neb::rt::dip::dip_handler::instance().start(height);
@@ -236,8 +236,8 @@ void ir_manager::parse_irs_by_height(
 
     boost::property_tree::ptree pt;
     neb::util::json_parser::read_json(data.payload(), pt);
-    neb::util::bytes payload_bytes =
-        neb::util::bytes::from_base64(pt.get<std::string>("Data"));
+    neb::bytes payload_bytes =
+        neb::bytes::from_base64(pt.get<std::string>("Data"));
 
     std::unique_ptr<nbre::NBREIR> nbre_ir = std::make_unique<nbre::NBREIR>();
     bool ret =
@@ -257,11 +257,11 @@ void ir_manager::parse_irs_by_height(
     if (nbre_ir->ir_type() == ::neb::ir_type::cpp) {
       //! We need compile the code
       cpp::cpp_ir ci(nbre_ir->ir());
-      neb::util::bytes ir = ci.llvm_ir_content();
-      nbre_ir->set_ir(neb::util::byte_to_string(ir));
+      neb::bytes ir = ci.llvm_ir_content();
+      nbre_ir->set_ir(neb::byte_to_string(ir));
 
       auto bytes_long = nbre_ir->ByteSizeLong();
-      payload_bytes = neb::util::bytes(bytes_long);
+      payload_bytes = neb::bytes(bytes_long);
       nbre_ir->SerializeToArray((void *)payload_bytes.value(),
                                 payload_bytes.size());
     } else {

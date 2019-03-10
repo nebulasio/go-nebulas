@@ -17,14 +17,14 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "common/timer_loop.h"
+#include "util/timer_loop.h"
 #include <iostream>
 
 void func1() { std::cout << "func 1" << std::endl; }
 void func2() { std::cout << "func 2" << std::endl; }
 int main(int argc, char *argv[]) {
   boost::asio::io_service io_service;
-  neb::timer_loop tl(&io_service);
+  neb::util::timer_loop tl(&io_service);
   tl.register_timer_and_callback(1, func1);
   tl.register_timer_and_callback(5, func2);
 

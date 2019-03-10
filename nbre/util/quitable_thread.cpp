@@ -17,12 +17,13 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "common/quitable_thread.h"
+#include "util/quitable_thread.h"
 #include "common/exception_queue.h"
 #include "core/command.h"
 
 namespace neb {
-std::string program_name;
+namespace util {
+
 quitable_thread::quitable_thread() : m_exit_flag(false) {}
 
 quitable_thread::~quitable_thread() {
@@ -62,5 +63,6 @@ void wakeable_thread::thread_func() {
     }
   }
 }
+} // namespace util
 
 } // namespace neb

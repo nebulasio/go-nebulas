@@ -18,8 +18,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
-#include "common/util/lru_cache.h"
 #include "fs/blockchain/blockchain_api.h"
+#include "util/lru_cache.h"
 
 namespace neb {
 namespace fs {
@@ -40,7 +40,7 @@ protected:
   std::shared_ptr<corepb::Block> get_block_with_height(block_height_t height);
 
 protected:
-  lru_cache<block_height_t, std::shared_ptr<corepb::Block>> m_block_cache;
+  util::lru_cache<block_height_t, std::shared_ptr<corepb::Block>> m_block_cache;
 };
 } // namespace fs
 } // namespace neb

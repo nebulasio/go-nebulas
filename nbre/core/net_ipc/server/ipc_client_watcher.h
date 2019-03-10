@@ -19,13 +19,13 @@
 //
 #pragma once
 #include "common/common.h"
-#include "common/quitable_thread.h"
+#include "util/quitable_thread.h"
 #include <boost/process/child.hpp>
 #include <chrono>
 
 namespace neb {
 namespace core {
-class ipc_client_watcher : public neb::quitable_thread {
+class ipc_client_watcher : public util::quitable_thread {
 public:
   ipc_client_watcher(const std::string &path);
 

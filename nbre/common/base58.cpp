@@ -2,7 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "common/util/base58.h"
+#include "common/base58.h"
 
 #include <assert.h>
 #include <string.h>

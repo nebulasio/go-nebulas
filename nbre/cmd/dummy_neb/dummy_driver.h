@@ -20,7 +20,7 @@
 #include "cmd/dummy_neb/dummies/dummies.h"
 #include "cmd/dummy_neb/dummy_common.h"
 #include "cmd/dummy_neb/generator/generators.h"
-#include "common/timer_loop.h"
+#include "util/timer_loop.h"
 
 class dummy_driver {
 public:
@@ -42,8 +42,8 @@ public:
 protected:
   boost::asio::io_service m_io_service;
   std::unordered_map<std::string, std::shared_ptr<dummy_base>> m_all_dummies;
-  std::unique_ptr<neb::timer_loop> m_block_gen_timer;
-  std::unique_ptr<neb::timer_loop> m_checker_gen_timer;
+  std::unique_ptr<neb::util::timer_loop> m_block_gen_timer;
+  std::unique_ptr<neb::util::timer_loop> m_checker_gen_timer;
   uint64_t m_block_interval_seconds;
   uint64_t m_current_height;
 };

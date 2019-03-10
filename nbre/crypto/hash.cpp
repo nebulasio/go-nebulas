@@ -22,7 +22,7 @@
 namespace neb {
 namespace crypto {
 
-sha3_256_hash_t sha3_256_hash(const util::bytes &b) {
+sha3_256_hash_t sha3_256_hash(const bytes &b) {
   CryptoPP::SHA3_256 s;
   assert(s.DigestSize() == 32);
   s.Update(b.value(), b.size());

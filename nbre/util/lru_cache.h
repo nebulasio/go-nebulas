@@ -27,6 +27,7 @@
 #include <thread>
 
 namespace neb {
+namespace util {
 
 template <class Key, class Value, class Lock = std::mutex,
           int32_t CacheCleanPeriod = 1, int32_t CacheCleanCounter = 64>
@@ -123,5 +124,5 @@ private:
   std::unique_ptr<std::thread> m_thread;
   std::atomic_int m_thread_exit_flag;
 };
-
+} // namespace util
 } // namespace neb

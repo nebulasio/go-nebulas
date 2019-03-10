@@ -23,6 +23,8 @@
 #include <queue>
 
 namespace neb {
+namespace util {
+
 template <typename T> class wakeable_queue {
 public:
   typedef std::queue<T> queue_t;
@@ -85,5 +87,6 @@ protected:
   mutable std::mutex m_mutex;
   std::condition_variable m_cond_var;
 };
+} // namespace util
 
 } // namespace neb

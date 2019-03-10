@@ -20,9 +20,9 @@
 
 #pragma once
 #include "common/common.h"
-#include "common/timer_loop.h"
 #include "core/net_ipc/nipc_common.h"
 #include "core/net_ipc/server/ipc_callback_holder.h"
+#include "util/timer_loop.h"
 #include <boost/asio.hpp>
 #include <boost/asio/io_service.hpp>
 
@@ -79,7 +79,7 @@ protected:
   timeout_api_requests_t m_api_timeout_callbacks;
   // boost::asio::io_service *m_io_service;
   ipc_callback_holder *m_cb_holder;
-  std::unique_ptr<neb::timer_loop> m_tl;
+  std::unique_ptr<util::timer_loop> m_tl;
 }; // end class api_request_timer
 
 } // namespace core

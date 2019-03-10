@@ -19,10 +19,10 @@
 //
 
 #include "common/address.h"
-#include "common/util/base58.h"
+#include "common/base58.h"
 namespace neb {
 address_t base58_to_address(const base58_address_t &addr) {
-  return util::bytes::from_base58(addr);
+  return bytes::from_base58(addr);
 }
 base58_address_t address_to_base58(const address_t &addr) {
   return addr.to_base58();

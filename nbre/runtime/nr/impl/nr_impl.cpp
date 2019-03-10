@@ -21,11 +21,11 @@
 #include "runtime/nr/impl/nr_impl.h"
 #include "common/common.h"
 #include "common/configuration.h"
-#include "common/util/conversion.h"
+#include "common/int128_conversion.h"
+#include "common/nebulas_currency.h"
 #include "fs/blockchain/blockchain_api_test.h"
 #include "runtime/nr/impl/nebulas_rank.h"
 #include "runtime/util.h"
-#include "util/nebulas_currency.h"
 
 namespace neb {
 namespace rt {

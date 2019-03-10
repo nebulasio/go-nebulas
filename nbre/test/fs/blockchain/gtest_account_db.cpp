@@ -35,11 +35,11 @@ TEST(test_fs, account_state) {
       "6449f1c226e1e4d94837e1e813150b2500d0556ca67147e48c83126216362345";
   std::string addr_base58 = "n1HrPpwwH5gTA2d7QCkVjMw14YbN1NNNXHc";
 
-  neb::util::bytes root_hash_bytes = neb::util::bytes::from_hex(root_hash_str);
-  neb::util::bytes addr_bytes = neb::util::bytes::from_base58(addr_base58);
+  neb::bytes root_hash_bytes = neb::bytes::from_hex(root_hash_str);
+  neb::bytes addr_bytes = neb::bytes::from_base58(addr_base58);
 
   // get block
-  neb::util::bytes block_bytes =
+  neb::bytes block_bytes =
       neb::fs::bc_storage_session::instance().get_bytes(root_hash_bytes);
   std::shared_ptr<corepb::Block> block = std::make_shared<corepb::Block>();
   bool ret = block->ParseFromArray(block_bytes.value(), block_bytes.size());
@@ -48,10 +48,10 @@ TEST(test_fs, account_state) {
   }
   // get block header account state
   std::string state_root_str = block->header().state_root();
-  neb::util::bytes state_root_bytes = neb::util::string_to_byte(state_root_str);
+  neb::bytes state_root_bytes = neb::string_to_byte(state_root_str);
 
   // get trie node
-  neb::util::bytes trie_node_bytes;
+  neb::bytes trie_node_bytes;
   t.get_trie_node(state_root_bytes, addr_bytes, trie_node_bytes);
 
   std::shared_ptr<corepb::Account> corepb_account_ptr =
@@ -62,9 +62,9 @@ TEST(test_fs, account_state) {
     throw std::runtime_error("parse corepb Account failed");
   }
   std::string addr_str = corepb_account_ptr->address();
-  LOG(INFO) << neb::util::string_to_byte(addr_str).to_base58();
+  LOG(INFO) << neb::string_to_byte(addr_str).to_base58();
   std::string balance_str = corepb_account_ptr->balance();
-  std::string hex_str = neb::util::string_to_byte(balance_str).to_hex();
+  std::string hex_str = neb::string_to_byte(balance_str).to_hex();
   LOG(INFO) << hex_str;
 
   std::stringstream ss;

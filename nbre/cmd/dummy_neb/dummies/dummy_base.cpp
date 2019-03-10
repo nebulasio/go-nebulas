@@ -46,13 +46,13 @@ void dummy_base::clean_db() {
   LOG(INFO) << "clean db";
   std::stringstream ss;
   ss << "rm -rf " << db_path();
-  neb::command_executor::execute_command(ss.str());
+  neb::util::command_executor::execute_command(ss.str());
   ss.clear();
   ss << "rm -rf " << neb::configuration::instance().nbre_db_dir();
-  neb::command_executor::execute_command(ss.str());
+  neb::util::command_executor::execute_command(ss.str());
 }
 
-void dummy_base::random_increase_version(neb::util::version &v) {
+void dummy_base::random_increase_version(neb::version &v) {
   int k = std::rand() % 3;
   switch (k) {
   case 0:
