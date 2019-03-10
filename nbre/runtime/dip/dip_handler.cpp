@@ -79,15 +79,8 @@ void dip_handler::init_dip_params(block_height_t height) {
       if (!std::get<0>(dip_ret)) {
         dip_params_t info;
         info.deserialize_from_string(std::get<1>(dip_ret));
-        m_dip_params_list.push_back(std::move(info));
-
-        LOG(INFO) << "show dip history";
-        for (auto &ele : m_dip_params_list) {
-          LOG(INFO) << ele.get<start_block>() << ','
-                    << ele.get<block_interval>() << ','
-                    << ele.get<reward_addr>() << ',' << ele.get<coinbase_addr>()
-                    << ',' << ele.get<version>();
-        }
+        m_dip_params_list.push_back(
+            std::make_shared<dip_params_t>(std::move(info)));
       }
     } catch (const std::exception &e) {
       LOG(INFO) << "dip params init failed " << e.what();
@@ -109,7 +102,8 @@ void dip_handler::start(neb::block_height_t height,
   LOG(INFO) << "dip params init done";
 
   // get start block and block interval if default
-  dip_params_t &last_ele = m_dip_params_list.back();
+  auto last_ele_ptr = m_dip_params_list.back();
+  auto &last_ele = *last_ele_ptr;
   block_height_t dip_start_block = last_ele.get<start_block>();
   block_height_t dip_block_interval = last_ele.get<block_interval>();
 
@@ -209,17 +203,19 @@ dip_handler::get_dip_reward_when_missing(neb::block_height_t height,
   return ret;
 }
 
-const dip_params_t &dip_handler::get_dip_params(neb::block_height_t height) {
+std::shared_ptr<dip_params_t>
+dip_handler::get_dip_params(neb::block_height_t height) {
 
-  dip_params_t tmp;
-  tmp.set<start_block>(height);
-  auto it =
-      std::upper_bound(m_dip_params_list.begin(), m_dip_params_list.end(), tmp,
-                       [](const dip_params_t &d1, const dip_params_t &d2) {
-                         return d1.get<start_block>() < d2.get<start_block>();
-                       });
-  it--;
-  return *it;
+  auto tmp_ptr = std::make_shared<dip_params_t>();
+  tmp_ptr->set<start_block>(height);
+  auto ret = m_dip_params_list.try_lower_bound(
+      tmp_ptr, [](const std::shared_ptr<dip_params_t> &d1,
+                  const std::shared_ptr<dip_params_t> &d2) {
+        return d1->get<start_block>() < d2->get<start_block>();
+      });
+  LOG(INFO) << "try lower bound returned " << ret.first;
+  assert(ret.first);
+  return ret.second;
 }
 
 std::string dip_handler::get_dip_reward(neb::block_height_t height) {
@@ -232,7 +228,8 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   }
 
   if (!m_dip_params_list.empty()) {
-    auto &first_ele = m_dip_params_list.front();
+    auto first_ele_ptr = m_dip_params_list.front();
+    auto &first_ele = *first_ele_ptr;
     if (height <
         first_ele.get<start_block>() + first_ele.get<block_interval>()) {
       auto ret = boost::str(
@@ -244,7 +241,8 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   }
 
   LOG(INFO) << "dip history size " << m_dip_params_list.size();
-  const dip_params_t &it = get_dip_params(height);
+  auto it_ptr = get_dip_params(height);
+  auto &it = *it_ptr;
   block_height_t dip_start_block = it.get<start_block>();
   block_height_t dip_block_interval = it.get<block_interval>();
   LOG(INFO) << "history start block " << dip_start_block << " , block interval "

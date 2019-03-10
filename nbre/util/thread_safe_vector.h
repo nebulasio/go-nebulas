@@ -53,6 +53,19 @@ public:
     return ret;
   }
 
+  template <typename Func>
+  std::pair<bool, typename vector_t::value_type>
+  try_lower_bound(const typename vector_t::value_type &op, Func &&f) {
+    std::unique_lock<std::mutex> _l(m_mutex);
+    if (m_vector.empty()) {
+      return std::make_pair(false, typename vector_t::value_type());
+    }
+    auto it = std::upper_bound(m_vector.begin(), m_vector.end(), op, f);
+    it--;
+    auto ret = *it;
+    return std::make_pair(true, ret);
+  }
+
   size_t size() const {
     std::unique_lock<std::mutex> _l(m_mutex);
     return m_vector.size();
