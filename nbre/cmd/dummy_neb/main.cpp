@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
   neb::configuration::instance().neb_db_dir() =
       neb::fs::join_path(root_dir, std::string("dummy_db"));
 
-  FLAGS_logtostderr = true;
+  FLAGS_logtostderr = false;
 
   po::variables_map vm = get_variables_map(argc, argv);
   neb::glog_log_to_stderr = vm["glog-log-to-stderr"].as<bool>();

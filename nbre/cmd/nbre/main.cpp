@@ -75,7 +75,7 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-  FLAGS_logtostderr = true;
+  FLAGS_logtostderr = false;
   neb::program_name = "nbre";
 
   get_variables_map(argc, argv);
