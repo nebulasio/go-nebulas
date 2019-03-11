@@ -277,9 +277,9 @@ void generate_block::write_to_blockchain_db() {
   header->set_hash(
       byte_to_string(from_fix_bytes(crypto::sha3_256_hash(block_str))));
 
-  block->release_header();
   // 2. update to LIB
   fs::blockchain::write_LIB_block(block.get());
+  block->release_header();
 
   // 3. write all accounts to DB
   //! We use triepb::Node to write all accounts to db.
