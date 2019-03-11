@@ -19,9 +19,7 @@
 package dpos
 
 import (
-	"errors"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/consensus/pb"
@@ -35,33 +33,6 @@ import (
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
-)
-
-// Consensus Related Constants
-const (
-	SecondInMs               = int64(1000)
-	BlockIntervalInMs        = int64(15000)
-	AcceptedNetWorkDelayInMs = int64(3750)
-	MaxMintDurationInMs      = int64(5250)
-	MinMintDurationInMs      = int64(2250)
-	DynastyIntervalInMs      = int64(3150000)
-	DynastySize              = 21
-	ConsensusSize            = DynastySize*2/3 + 1
-)
-
-// Errors in dpos state
-var (
-	ErrTooFewCandidates        = errors.New("the size of candidates in consensus is un-safe, should be greater than or equal " + strconv.Itoa(ConsensusSize))
-	ErrInitialDynastyNotEnough = errors.New("the size of initial dynasty in genesis block is un-safe, should be greater than or equal " + strconv.Itoa(ConsensusSize))
-	ErrInvalidDynasty          = errors.New("the size of initial dynasty in genesis block is invalid, should be equal " + strconv.Itoa(DynastySize))
-	ErrCloneDynastyTrie        = errors.New("Failed to clone dynasty trie")
-	ErrCloneNextDynastyTrie    = errors.New("Failed to clone next dynasty trie")
-	ErrCloneDelegateTrie       = errors.New("Failed to clone delegate trie")
-	ErrCloneCandidatesTrie     = errors.New("Failed to clone candidates trie")
-	ErrCloneVoteTrie           = errors.New("Failed to clone vote trie")
-	ErrCloneMintCntTrie        = errors.New("Failed to clone mint count trie")
-	ErrNotBlockForgTime        = errors.New("now is not time to forg block")
-	ErrFoundNilProposer        = errors.New("found a nil proposer")
 )
 
 // State carry context in dpos consensus
@@ -263,7 +234,8 @@ func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldS
 			"timestamp": ds.timestamp,
 		}).Fatal("Type conversion failed, unexpected error.")
 	}
-	dynastyTrie, err := dpos.getNextDynastyTrieOfState(ds)
+	nextTimestamp := ds.timestamp + BlockIntervalInMs/SecondInMs
+	dynastyTrie, err := dpos.dynasty.getDynasty(nextTimestamp)
 	if err != nil {
 		return nil, err
 	}
