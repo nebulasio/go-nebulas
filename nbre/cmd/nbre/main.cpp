@@ -57,6 +57,7 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
   } else {
     neb::glog_log_to_stderr = false;
   }
+  LOG(INFO) << "log-to-stderr: " << neb::glog_log_to_stderr;
 
   if (!vm.count("ipc-ip")) {
     std::cout << "You must specify \"ipc-ip\"!" << std::endl;
