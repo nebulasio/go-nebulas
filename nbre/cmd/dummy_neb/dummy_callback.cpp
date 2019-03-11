@@ -74,7 +74,6 @@ void nbre_nr_handle_callback(ipc_status_code isc, void *holder,
     LOG(ERROR) << "nbre_nr_handle_callback got failed ";
     return;
   }
-  LOG(INFO) << "nbre_nr_handle_callback: got handle id: " << nr_handle_id;
   callback_handler::instance().handle_nr(holder, nr_handle_id);
 }
 

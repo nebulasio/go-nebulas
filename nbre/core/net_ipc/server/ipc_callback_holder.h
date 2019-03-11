@@ -41,7 +41,7 @@ public:
   get_callback(uint64_t pkg_id) {
     if (m_callbacks.find(pkg_id) == m_callbacks.end()) {
       if (is_pkg_type_has_callback(pkg_id)) {
-        LOG(WARNING) << "Cann't find calback for "
+        LOG(WARNING) << "Cann't find callback for "
                      << pkg_type_id_to_name(pkg_id);
       }
       return [](enum ipc_status_code, ::ff::net::package *) {};

@@ -146,7 +146,6 @@ std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
     if (m_call_ratio != 0 && std::rand() % 1000 < m_call_ratio * 1000) {
       m_call_gen = std::make_unique<call_tx_generator>(
           ret.get(), std::rand() % (m_all_accounts.size() / 5));
-      m_call_gen->m_contract_accounts = &m_contract_gen->m_gen_contracts;
       m_call_gen->run();
     }
 

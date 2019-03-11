@@ -23,7 +23,7 @@
 
 class dip_ir_generator : public generator_base {
 public:
-  dip_ir_generator(generate_block *block, const address_t &nr_admin_addr);
+  dip_ir_generator(generate_block *block, const address_t &dip_admin_addr);
 
   virtual ~dip_ir_generator();
 
@@ -43,6 +43,6 @@ public:
   virtual checker_tasks::task_container_ptr_t gen_tasks();
 
 protected:
-  address_t m_nr_admin_addr;
+  address_t m_dip_admin_addr;
 };
 

@@ -113,14 +113,14 @@ std::string gen_dip_with_params(uint64_t block_nums_of_a_day, uint64_t days,
 
 dip_ir_generator::dip_ir_generator(generate_block *block, const address_t &addr)
     : generator_base(block->get_all_accounts(), block, 0, 1),
-      m_nr_admin_addr(addr) {
+      m_dip_admin_addr(addr) {
   m_block_nums_of_a_day = 5;
   m_days = 1;
   m_dip_start_block = 15;
   m_alpha = 1e-32;
   m_beta = 1;
-  m_reward_addr = m_nr_admin_addr.to_base58();
-  m_coinbase_addr = m_nr_admin_addr.to_base58();
+  m_reward_addr = m_dip_admin_addr.to_base58();
+  m_coinbase_addr = m_dip_admin_addr.to_base58();
 }
 
 dip_ir_generator::~dip_ir_generator() {}
@@ -142,7 +142,7 @@ std::shared_ptr<corepb::Transaction> dip_ir_generator::gen_tx() {
   ir.set_ir_type(neb::ir_type::cpp);
 
   std::string ir_str = ir.SerializeAsString();
-  return m_block->add_protocol_transaction(m_nr_admin_addr,
+  return m_block->add_protocol_transaction(m_dip_admin_addr,
                                            neb::string_to_byte(ir_str));
 }
 checker_tasks::task_container_ptr_t dip_ir_generator::gen_tasks() {
