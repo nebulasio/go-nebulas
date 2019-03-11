@@ -32,8 +32,6 @@ public:
   virtual ~checker_task_base();
   virtual void check() = 0;
   virtual std::string name() const;
-  // virtual std::string serialize_to_string();
-  // virtual void deserialize_from_string(const std::string &s);
   inline uint64_t &task_id() { return m_task_id; };
   inline uint64_t task_id() const { return m_task_id; }
   bool is_running() const { return m_b_is_running; }
@@ -70,11 +68,9 @@ public:
   // void write_to_db();
 
   void add_task(const std::shared_ptr<checker_task_base> &task);
-
   task_container_ptr_t get_tasks_with_name(const std::string &name);
 
   void randomly_schedule_no_running_tasks();
-
   void randomly_schedule_all_tasks(int num = 1);
 
   std::string status() const;

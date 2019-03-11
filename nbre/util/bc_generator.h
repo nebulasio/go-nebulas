@@ -36,17 +36,17 @@ public:
 
   inline address_t random_contract_addr() const {
     auto p = random_contract_account();
-    if (p) {
-      return to_address(p->address());
+    if (!p) {
+      return address_t();
     }
-    return address_t();
+    return to_address(p->address());
   }
   inline address_t random_user_addr() const {
     auto p = random_user_account();
-    if (p) {
-      return to_address(p->address());
+    if (!p) {
+      return address_t();
     }
-    return address_t();
+    return to_address(p->address());
   }
 
   inline size_t size() const { return m_all_accounts.size(); }
@@ -80,7 +80,7 @@ class generate_block {
 public:
   generate_block(all_accounts *accounts, uint64_t height);
 
-  std::shared_ptr<corepb::Account> gen_user_Account(const nas &v = 10000_nas);
+  std::shared_ptr<corepb::Account> gen_user_account(const nas &v = 10000_nas);
 
   std::shared_ptr<corepb::Account>
   add_deploy_transaction(const address_t &owner, const bytes &payload);

@@ -34,7 +34,7 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
     ("list-dummies", "show all dummy names")
     ("run-dummy", po::value<std::string>()->default_value("default_random"), "run a dummy with name (from list-dummies, default [default_random])")
     ("block-interval", po::value<uint64_t>()->default_value(3), "block interval with seconds")
-    ("without-clean-db", "run a dummy without clean previous db")
+    ("without-clean-db", po::value<bool>()->default_value(false), "run a dummy without clean previous db")
     ("clean-dummy-db", po::value<std::string>(), "clean the db file of a dummy")
     ("glog-log-to-stderr", po::value<bool>()->default_value(false), "glog to stderr")
     ("use-test-blockchain", po::value<bool>()->default_value(true), "use test blockchain")
@@ -141,11 +141,11 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-
   if (vm.count("run-dummy")) {
     std::string dummy_name = vm["run-dummy"].as<std::string>();
     uint64_t interval = vm["block-interval"].as<uint64_t>();
-    if (!vm.count("without-clean-db")) {
+    bool without_clean_db = vm["without-clean-db"].as<bool>();
+    if (!without_clean_db) {
       dd.reset_dummy(dummy_name);
     }
     auto dummy = dd.get_dummy_with_name(dummy_name);
