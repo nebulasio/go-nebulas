@@ -117,6 +117,8 @@ void checker_tasks::randomly_schedule_all_tasks(int num) {
   for (auto &kv : m_all_tasks) {
     keys.push_back(kv.first);
   }
+  if (keys.empty())
+    return;
   for (int i = 0; i < num; ++i) {
     uint64_t k = keys[std::rand() % keys.size()];
     auto task = m_all_tasks[k];

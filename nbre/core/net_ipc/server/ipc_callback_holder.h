@@ -42,7 +42,7 @@ public:
     if (m_callbacks.find(pkg_id) == m_callbacks.end()) {
       if (is_pkg_type_has_callback(pkg_id)) {
         LOG(WARNING) << "Cann't find callback for "
-                     << pkg_type_id_to_name(pkg_id);
+                     << pkg_type_id_to_name(pkg_id) << " " << pkg_id;
       }
       return [](enum ipc_status_code, ::ff::net::package *) {};
     }

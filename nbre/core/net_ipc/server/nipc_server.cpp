@@ -102,6 +102,7 @@ bool nipc_server::start() {
           std::unique_ptr<ipc_client_watcher>(new ipc_client_watcher(
               neb::configuration::instance().nbre_exe_name()));
       m_client_watcher->start();
+
       m_heart_beat_watcher =
           std::make_unique<util::timer_loop>(&m_server->ioservice());
       m_heart_beat_watcher->register_timer_and_callback(1, [this]() {

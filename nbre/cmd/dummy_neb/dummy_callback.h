@@ -71,7 +71,7 @@ protected:
     auto h = reinterpret_cast<uint64_t>(holder);
     auto it = hs.find(h);
     if (it == hs.end()) {
-      LOG(INFO) << "can't find handler";
+      // LOG(INFO) << "can't find handler";
       return;
     }
     it->second(h, args...);
