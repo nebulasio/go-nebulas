@@ -172,11 +172,15 @@ address_t random_dummy::enable_auth_gen_with_ratio(double auth_ratio) {
   m_auth_ratio = auth_ratio;
   return admin_addr;
 }
-
 void random_dummy::enable_nr_ir_with_ratio(double nr_ratio) {
   if (m_current_height == 0)
     generate_LIB_block();
   m_nr_ratio = nr_ratio;
+}
+void random_dummy::enable_dip_ir_with_ratio(double dip_ratio) {
+  if (m_current_height == 0)
+    generate_LIB_block();
+  m_dip_ratio = dip_ratio;
 }
 
 void random_dummy::enable_call_tx_with_ratio(double contract_ratio,

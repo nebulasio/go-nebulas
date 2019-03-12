@@ -63,6 +63,7 @@ void init_dummy_driver(dummy_driver &dd, const std::string &rpc_listen,
       "default_random", 20, 10000_nas, 0.05, rpc_listen, rpc_port);
   // default_dummy->enable_auth_gen_with_ratio(0.5);
   // default_dummy->enable_nr_ir_with_ratio(0.5);
+  // default_dummy->enable_dip_ir_with_ratio(0.5);
   default_dummy->enable_call_tx_with_ratio(1, 1);
   dd.add_dummy(default_dummy);
 }
