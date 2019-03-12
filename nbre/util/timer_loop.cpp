@@ -23,10 +23,10 @@
 namespace neb {
 namespace util {
 
-void timer_loop::timer_callback(
-    const boost::system::error_code &ec, long seconds,
-    std::shared_ptr<boost::asio::deadline_timer> timer,
-    std::function<void()> func) {
+void timer_loop::timer_callback(const boost::system::error_code &ec,
+                                long seconds,
+                                boost::asio::deadline_timer *timer,
+                                std::function<void()> func) {
   if (m_exit_flag)
     return;
   if (ec) {
