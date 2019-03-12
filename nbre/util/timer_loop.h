@@ -41,23 +41,28 @@ public:
   template <typename Func>
   void register_timer_and_callback(long seconds, Func &&f) {
 
-    auto timer = std::make_shared<boost::asio::deadline_timer>(
+    auto timer = std::make_unique<boost::asio::deadline_timer>(
         *m_service, boost::posix_time::seconds(seconds));
 
+    m_timers.push_back(std::move(timer));
+    std::unique_ptr<boost::asio::deadline_timer> &t = m_timers.back();
+    auto pt = t.get();
+
     timer->async_wait(
-        [this, timer, seconds, f](const boost::system::error_code &ec) {
-          timer_callback(ec, seconds, timer, f);
+        [this, pt, seconds, f](const boost::system::error_code &ec) {
+          timer_callback(ec, seconds, pt, f);
         });
   }
 
 protected:
   void timer_callback(const boost::system::error_code &ec, long seconds,
-                      std::shared_ptr<boost::asio::deadline_timer> timer,
+                      boost::asio::deadline_timer *timer,
                       std::function<void()> func);
 
 protected:
   boost::asio::io_service *m_service;
   std::atomic_bool m_exit_flag;
+  std::vector<std::unique_ptr<boost::asio::deadline_timer>> m_timers;
 };
 } // namespace util
 } // namespace neb
