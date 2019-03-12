@@ -98,7 +98,6 @@ void dip_handler::start(neb::block_height_t height,
     LOG(INFO) << "dip params not init";
     return;
   }
-  LOG(INFO) << "dip params init done";
 
   // get start block and block interval if default
   auto last_ele_ptr = m_dip_params_list.back();
@@ -257,6 +256,7 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   }
   LOG(INFO) << "dip reward exists";
   auto ret = m_dip_reward.try_get_val(hash_height);
+  assert(ret.first);
   LOG(INFO) << ret.second;
   return ret.second;
 }

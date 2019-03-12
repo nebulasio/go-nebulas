@@ -173,9 +173,12 @@ nebulas_rank::get_account_balance_median(
 
 floatxx_t nebulas_rank::f_account_weight(floatxx_t in_val, floatxx_t out_val) {
   floatxx_t pi = math::constants<floatxx_t>::pi();
-  floatxx_t atan_val = (in_val == 0 ? pi / 2 : math::arctan(out_val / in_val));
-  return (in_val + out_val) * math::exp((-2) * math::sin(pi / 4.0 - atan_val) *
-                                        math::sin(pi / 4.0 - atan_val));
+  floatxx_t atan_val = pi / 2.0;
+  if (in_val > 0) {
+    atan_val = math::arctan(out_val / in_val);
+  }
+  auto tmp = math::sin(pi / 4.0 - atan_val);
+  return (in_val + out_val) * math::exp((-2.0) * tmp * tmp);
 }
 
 std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
@@ -205,9 +208,13 @@ floatxx_t nebulas_rank::f_account_rank(int64_t a, int64_t b, int64_t c,
                                        int64_t d, floatxx_t theta, floatxx_t mu,
                                        floatxx_t lambda, floatxx_t S,
                                        floatxx_t R) {
+  floatxx_t zero = softfloat_cast<uint32_t, typename floatxx_t::value_type>(0);
   floatxx_t one = softfloat_cast<uint32_t, typename floatxx_t::value_type>(1);
   auto gamma = math::pow(theta * R / (R + mu), lambda);
-  auto ret = (S / (one + math::pow(a / S, one / b))) * gamma;
+  auto ret = zero;
+  if (S > 0) {
+    ret = (S / (one + math::pow(a / S, one / b))) * gamma;
+  }
   return ret;
 }
 
