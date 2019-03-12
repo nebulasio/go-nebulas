@@ -55,6 +55,7 @@ void ipc_client_watcher::thread_func() {
         {"--ipc-ip", configuration::instance().nipc_listen(), "--ipc-port",
          std::to_string(configuration::instance().nipc_port())});
 
+    LOG(INFO) << "log-to-stderr: " << neb::glog_log_to_stderr;
     if (glog_log_to_stderr) {
       v.push_back("--log-to-stderr");
     }

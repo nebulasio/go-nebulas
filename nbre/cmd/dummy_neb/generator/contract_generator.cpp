@@ -27,11 +27,10 @@ contract_generator::~contract_generator() {}
 
 std::shared_ptr<corepb::Account> contract_generator::gen_account() {
   auto from_addr = m_all_accounts->random_user_addr();
-  if (!from_addr.empty()) {
+  if (from_addr.empty()) {
     return nullptr;
   }
   auto ret = m_block->add_deploy_transaction(from_addr, neb::bytes());
-  m_gen_contracts.push_back(ret);
   return ret;
 }
 

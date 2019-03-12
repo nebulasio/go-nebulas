@@ -34,7 +34,7 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
     ("list-dummies", "show all dummy names")
     ("run-dummy", po::value<std::string>()->default_value("default_random"), "run a dummy with name (from list-dummies, default [default_random])")
     ("block-interval", po::value<uint64_t>()->default_value(3), "block interval with seconds")
-    ("without-clean-db", "run a dummy without clean previous db")
+    ("without-clean-db", po::value<bool>()->default_value(false), "run a dummy without clean previous db")
     ("clean-dummy-db", po::value<std::string>(), "clean the db file of a dummy")
     ("glog-log-to-stderr", po::value<bool>()->default_value(false), "glog to stderr")
     ("use-test-blockchain", po::value<bool>()->default_value(true), "use test blockchain")
@@ -63,9 +63,7 @@ void init_dummy_driver(dummy_driver &dd, const std::string &rpc_listen,
       "default_random", 20, 10000_nas, 0.05, rpc_listen, rpc_port);
   // default_dummy->enable_auth_gen_with_ratio(0.5);
   // default_dummy->enable_nr_ir_with_ratio(0.5);
-  // default_dummy->enable_call_tx_with_ratio(0.9, 0.9);
-
-  // default_dummy->enable_auth_gen_with_ratio(0.5);
+  default_dummy->enable_call_tx_with_ratio(1, 1);
   dd.add_dummy(default_dummy);
 }
 
@@ -123,11 +121,12 @@ int main(int argc, char *argv[]) {
   neb::configuration::instance().neb_db_dir() =
       neb::fs::join_path(root_dir, std::string("dummy_db"));
 
-  FLAGS_logtostderr = true;
+  FLAGS_logtostderr = false;
 
   po::variables_map vm = get_variables_map(argc, argv);
   neb::glog_log_to_stderr = vm["glog-log-to-stderr"].as<bool>();
   neb::use_test_blockchain = vm["use-test-blockchain"].as<bool>();
+  LOG(INFO) << "log-to-stderr: " << neb::glog_log_to_stderr;
 
   std::string rpc_listen = vm["rpc-listen"].as<std::string>();
   uint16_t rpc_port = vm["rpc-port"].as<uint16_t>();
@@ -142,11 +141,11 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-
   if (vm.count("run-dummy")) {
     std::string dummy_name = vm["run-dummy"].as<std::string>();
     uint64_t interval = vm["block-interval"].as<uint64_t>();
-    if (!vm.count("without-clean-db")) {
+    bool without_clean_db = vm["without-clean-db"].as<bool>();
+    if (!without_clean_db) {
       dd.reset_dummy(dummy_name);
     }
     auto dummy = dd.get_dummy_with_name(dummy_name);
