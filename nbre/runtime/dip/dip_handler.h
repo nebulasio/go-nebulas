@@ -56,7 +56,7 @@ private:
   std::string get_dip_reward_when_missing(block_height_t height,
                                           const dip_params_t &dip_params);
 
-  void init_dip_params(block_height_t height);
+  void check_dip_params(block_height_t height);
   void load_dip_rewards();
   void write_to_storage(block_height_t height, const std::string &dip_reward);
 

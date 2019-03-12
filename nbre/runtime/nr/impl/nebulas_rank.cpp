@@ -198,7 +198,10 @@ nebulas_rank::get_account_weight(
     floatxx_t normalized_in_val = db_ptr->get_normalized_value(f_in_val);
     floatxx_t normalized_out_val = db_ptr->get_normalized_value(f_out_val);
 
+    LOG(INFO) << "in val " << normalized_in_val << ", out val "
+              << normalized_out_val;
     auto tmp = f_account_weight(normalized_in_val, normalized_out_val);
+    LOG(INFO) << "weight " << tmp;
     ret->insert(std::make_pair(it->first, tmp));
   }
   return ret;
@@ -230,9 +233,11 @@ nebulas_rank::get_account_rank(
        it_m++) {
     auto it_w = account_weight.find(it_m->first);
     if (it_w != account_weight.end()) {
+      LOG(INFO) << "median " << it_m->second << ", weight " << it_w->second;
       floatxx_t rank_val =
           f_account_rank(rp.m_a, rp.m_b, rp.m_c, rp.m_d, rp.m_theta, rp.m_mu,
                          rp.m_lambda, it_m->second, it_w->second);
+      LOG(INFO) << "score " << rank_val;
       ret->insert(std::make_pair(it_m->first, rank_val));
     }
   }
@@ -266,8 +271,8 @@ std::vector<std::shared_ptr<nr_info_t>> nebulas_rank::get_nr_score(
   LOG(INFO) << "we have " << tgs_ptr->size() << " subgraphs.";
   for (auto it = tgs_ptr->begin(); it != tgs_ptr->end(); it++) {
     transaction_graph *ptr = it->get();
-    graph_algo::remove_cycles_based_on_time_sequence(ptr->internal_graph());
     graph_algo::merge_edges_with_same_from_and_same_to(ptr->internal_graph());
+    graph_algo::remove_cycles_based_on_time_sequence(ptr->internal_graph());
   }
   LOG(INFO) << "done with remove cycle.";
 

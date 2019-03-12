@@ -40,7 +40,7 @@ dip_handler::dip_handler() : m_has_curr(false) {
   m_storage = neb::fs::storage_holder::instance().nbre_db_ptr();
 }
 
-void dip_handler::init_dip_params(block_height_t height) {
+void dip_handler::check_dip_params(block_height_t height) {
 
   if (!m_has_curr && m_incoming.empty()) {
     load_dip_rewards();
@@ -93,7 +93,7 @@ void dip_handler::deploy(version_t version, block_height_t available_height) {
 
 void dip_handler::start(neb::block_height_t height,
                         const dip_params_t *dip_params) {
-  init_dip_params(height);
+  check_dip_params(height);
   if (!m_has_curr) {
     LOG(INFO) << "dip params not init";
     return;

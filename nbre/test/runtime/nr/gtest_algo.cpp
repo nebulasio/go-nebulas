@@ -360,6 +360,15 @@ TEST(test_algo, find_a_cycle_based_on_time_sequence) {
   std::string source_name = boost::get(boost::vertex_name_t(), graph, source);
   std::string target_name = boost::get(boost::vertex_name_t(), graph, target);
   neb::wei_t val = boost::get(boost::edge_timestamp_t(), graph, *it);
+  EXPECT_TRUE(source_name.compare("a") == 0 && target_name.compare("b") == 0 &&
+              val == 5);
+  it++;
+
+  source = boost::source(*it, graph);
+  target = boost::target(*it, graph);
+  source_name = boost::get(boost::vertex_name_t(), graph, source);
+  target_name = boost::get(boost::vertex_name_t(), graph, target);
+  val = boost::get(boost::edge_timestamp_t(), graph, *it);
   EXPECT_TRUE(source_name.compare("b") == 0 && target_name.compare("d") == 0 &&
               val == 2);
   it++;
@@ -369,17 +378,8 @@ TEST(test_algo, find_a_cycle_based_on_time_sequence) {
   source_name = boost::get(boost::vertex_name_t(), graph, source);
   target_name = boost::get(boost::vertex_name_t(), graph, target);
   val = boost::get(boost::edge_timestamp_t(), graph, *it);
-  EXPECT_TRUE(source_name.compare("d") == 0 && target_name.compare("c") == 0 &&
-              val == 3);
-  it++;
-
-  source = boost::source(*it, graph);
-  target = boost::target(*it, graph);
-  source_name = boost::get(boost::vertex_name_t(), graph, source);
-  target_name = boost::get(boost::vertex_name_t(), graph, target);
-  val = boost::get(boost::edge_timestamp_t(), graph, *it);
-  EXPECT_TRUE(source_name.compare("c") == 0 && target_name.compare("b") == 0 &&
-              val == 4);
+  EXPECT_TRUE(source_name.compare("d") == 0 && target_name.compare("a") == 0 &&
+              val == 1);
   it++;
 }
 
@@ -449,13 +449,13 @@ TEST(test_algo, remove_cycles_based_on_time_sequence_case2) {
       neb::wei_t val = boost::get(boost::edge_weight_t(), graph, *oei);
       int64_t ts = boost::get(boost::edge_timestamp_t(), graph, *oei);
       if (source_name.compare("c") == 0 && target_name.compare("a") == 0) {
-        EXPECT_TRUE(val == 3 && ts == 2);
+        EXPECT_TRUE(val == 1 && ts == 2);
       } else if (source_name.compare("c") == 0 &&
                  target_name.compare("b") == 0) {
-        EXPECT_TRUE(val == 2 && ts == 4);
+        EXPECT_TRUE(val == 4 && ts == 4);
       } else if (source_name.compare("b") == 0 &&
                  target_name.compare("a") == 0) {
-        EXPECT_TRUE(val == 3 && ts == 5);
+        EXPECT_TRUE(val == 5 && ts == 5);
       }
     }
   }
@@ -509,9 +509,49 @@ TEST(test_algo, remove_cycles_based_on_time_sequence_case4) {
       neb::wei_t val = boost::get(boost::edge_weight_t(), graph, *oei);
       int64_t ts = boost::get(boost::edge_timestamp_t(), graph, *oei);
       if (source_name.compare("b") == 0 && target_name.compare("a") == 0) {
-        EXPECT_TRUE(val == 3 && ts == 1);
+        EXPECT_TRUE(val == 1 && ts == 1);
+      } else if (source_name.compare("b") == 0 &&
+                 target_name.compare("c") == 0) {
+        EXPECT_TRUE(val == 2 && ts == 3);
       } else if (source_name.compare("c") == 0 &&
                  target_name.compare("a") == 0) {
+        EXPECT_TRUE((val == 1 && ts == 4) || (val == 2 && ts == 4));
+      }
+    }
+  }
+}
+
+TEST(test_algo, remove_cycles_based_on_time_sequence_case5) {
+  neb::rt::transaction_graph tg5;
+  tg5.add_edge(neb::to_address("a"), neb::to_address("b"), 2, 2);
+  tg5.add_edge(neb::to_address("b"), neb::to_address("c"), 3, 1);
+  tg5.add_edge(neb::to_address("c"), neb::to_address("d"), 1, 4);
+  tg5.add_edge(neb::to_address("d"), neb::to_address("b"), 2, 4);
+
+  auto graph = tg5.internal_graph();
+  neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
+
+  neb::rt::transaction_graph::viterator_t vi, vi_end;
+  for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
+    neb::rt::transaction_graph::oeiterator_t oei, oei_end;
+    for (boost::tie(oei, oei_end) = boost::out_edges(*vi, graph);
+         oei != oei_end; oei++) {
+      auto source = boost::source(*oei, graph);
+      auto target = boost::target(*oei, graph);
+      std::string source_name =
+          boost::get(boost::vertex_name_t(), graph, source);
+      std::string target_name =
+          boost::get(boost::vertex_name_t(), graph, target);
+
+      neb::wei_t val = boost::get(boost::edge_weight_t(), graph, *oei);
+      int64_t ts = boost::get(boost::edge_timestamp_t(), graph, *oei);
+      if (source_name.compare("a") == 0 && target_name.compare("b") == 0) {
+        EXPECT_TRUE(val == 2 && ts == 2);
+      } else if (source_name.compare("b") == 0 &&
+                 target_name.compare("c") == 0) {
+        EXPECT_TRUE(val == 2 && ts == 1);
+      } else if (source_name.compare("d") == 0 &&
+                 target_name.compare("b") == 0) {
         EXPECT_TRUE(val == 1 && ts == 4);
       }
     }

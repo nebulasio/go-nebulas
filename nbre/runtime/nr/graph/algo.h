@@ -70,9 +70,9 @@ private:
   static void dfs_find_a_cycle_from_vertex_based_on_time_sequence(
       const transaction_graph::vertex_descriptor_t &start_vertex,
       const transaction_graph::vertex_descriptor_t &v,
-      const transaction_graph::internal_graph_t &graph,
-      std::set<transaction_graph::vertex_descriptor_t> &visited,
-      std::vector<transaction_graph::edge_descriptor_t> &edges, bool &has_cycle,
+      const transaction_graph::internal_graph_t &graph, bool &has_cycle,
+      std::unordered_map<transaction_graph::vertex_descriptor_t, bool> &visited,
+      std::vector<transaction_graph::edge_descriptor_t> &edges,
       std::vector<transaction_graph::edge_descriptor_t> &ret);
 
   static auto find_a_cycle_from_vertex_based_on_time_sequence(
