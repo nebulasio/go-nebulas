@@ -58,6 +58,7 @@ void dummy_driver::run(const std::string &dummy_name, uint64_t block_interval) {
         auto block = dummy->generate_LIB_block();
         block->write_to_blockchain_db();
         block_height_t height = dummy->current_height();
+
         ipc_nbre_ir_transactions_create(nullptr, height);
         for (auto &tx : block->all_transactions()) {
           corepb::Data d = tx->data();
@@ -75,15 +76,7 @@ void dummy_driver::run(const std::string &dummy_name, uint64_t block_interval) {
   m_checker_gen_timer = std::make_unique<neb::util::timer_loop>(&m_io_service);
   m_checker_gen_timer->register_timer_and_callback(1, [dummy]() {
     dummy->generate_checker_task();
-    LOG(INFO) << "to schedule tasks";
     checker_tasks::instance().randomly_schedule_no_running_tasks();
-    LOG(INFO) << "schedule tasks done";
-    // if (!task)
-    // return;
-    // task_executor::instance().schedule([task]() {
-    // ff::para<> a;
-    // a([task]() { task->check(); });
-    //});
   });
 
   m_io_service.run();

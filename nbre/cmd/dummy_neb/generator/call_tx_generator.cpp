@@ -31,15 +31,16 @@ std::shared_ptr<corepb::Account> call_tx_generator::gen_account() {
 std::shared_ptr<corepb::Transaction> call_tx_generator::gen_tx() {
   auto from_addr = m_all_accounts->random_user_addr();
   address_t contract_addr;
-  if (m_contract_accounts == nullptr || m_contract_accounts->empty()) {
+  if (m_contract_accounts.empty()) {
     contract_addr = m_all_accounts->random_contract_addr();
   } else {
-    auto t = m_contract_accounts->at(std::rand() % m_contract_accounts->size());
-    contract_addr = neb::to_address(t->address());
+    contract_addr =
+        m_contract_accounts.at(std::rand() % m_contract_accounts.size());
   }
-  if (!from_addr.empty() && !contract_addr.empty()) {
+  if (from_addr.empty() || contract_addr.empty()) {
     return nullptr;
   }
+  m_contract_accounts.push_back(contract_addr);
   return m_block->add_call_transaction(from_addr, contract_addr);
 }
 checker_tasks::task_container_ptr_t call_tx_generator::gen_tasks() {

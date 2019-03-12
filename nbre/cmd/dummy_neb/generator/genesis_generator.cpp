@@ -27,7 +27,7 @@ genesis_generator::genesis_generator(generate_block *block, int number,
 genesis_generator::~genesis_generator() {}
 
 std::shared_ptr<corepb::Account> genesis_generator::gen_account() {
-  return m_block->gen_user_Account(m_init_value);
+  return m_block->gen_user_account(m_init_value);
 }
 std::shared_ptr<corepb::Transaction> genesis_generator::gen_tx() {
   return nullptr;

@@ -48,10 +48,9 @@ public:
     std::unique_ptr<boost::asio::deadline_timer> &t = m_timers.back();
     auto pt = t.get();
 
-    timer->async_wait(
-        [this, pt, seconds, f](const boost::system::error_code &ec) {
-          timer_callback(ec, seconds, pt, f);
-        });
+    pt->async_wait([this, pt, seconds, f](const boost::system::error_code &ec) {
+      timer_callback(ec, seconds, pt, f);
+    });
   }
 
 protected:

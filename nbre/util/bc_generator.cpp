@@ -73,17 +73,18 @@ void all_accounts::increase_balance(const address_t &addr, const wei &val) {
 
 bool all_accounts::decrease_balance(const address_t &addr, const wei &val) {
   auto it = m_all_accounts.find(addr);
-  if (it == m_all_accounts.end())
+  if (it == m_all_accounts.end()) {
     return false;
+  }
 
   auto account = it->second;
   wei_t b = storage_to_wei(string_to_byte(account->balance()));
   b = b - val.wei_value();
-  if (b > 0) {
-    account->set_balance(byte_to_string(wei_to_storage(b)));
-    return true;
+  if (b < 0) {
+    return false;
   }
-  return false;
+  account->set_balance(byte_to_string(wei_to_storage(b)));
+  return true;
 }
 
 corepb::Account *all_accounts::random_user_account() const {
@@ -99,13 +100,11 @@ corepb::Account *all_accounts::random_user_account() const {
 corepb::Account *all_accounts::random_contract_account() const {
   corepb::Account *account = random_account();
   address_t addr = get_address_from_account(account);
-  uint32_t retry_max_num = 16;
-  uint32_t i = 0;
+  uint32_t retry_max_num = m_all_accounts.size();
   while (!is_contract_address(addr)) {
     account = random_account();
     addr = get_address_from_account(account);
-    i++;
-    if (i > retry_max_num) {
+    if (--retry_max_num < 0) {
       return nullptr;
     }
   }
@@ -120,7 +119,7 @@ generate_block::generate_block(all_accounts *accounts, uint64_t height)
     : m_all_accounts(accounts), m_height(height) {}
 
 std::shared_ptr<corepb::Account>
-generate_block::gen_user_Account(const nas &v) {
+generate_block::gen_user_account(const nas &v) {
   std::shared_ptr<corepb::Account> ret = std::make_shared<corepb::Account>();
   address_t addr(NAS_ADDRESS_LEN);
   addr[0] = NAS_ADDRESS_MAGIC_NUM;
