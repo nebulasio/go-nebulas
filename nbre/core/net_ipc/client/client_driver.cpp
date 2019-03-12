@@ -167,12 +167,14 @@ client_driver::client_driver() : internal::client_driver_base() {}
 
 void client_driver::add_handlers() {
 
+  LOG(INFO) << "client is " << m_client.get();
   m_client->add_handler<nbre_version_req>(
       [this](std::shared_ptr<nbre_version_req> req) {
         auto ack = new_ack_pkg<nbre_version_ack>(req);
         if (ack == nullptr) {
           return;
         }
+
         neb::version v = neb::rt::get_version();
         ack->set<p_major>(v.major_version());
         ack->set<p_minor>(v.minor_version());

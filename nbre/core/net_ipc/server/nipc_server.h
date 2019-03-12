@@ -47,7 +47,8 @@ public:
             conn->send(pkg);
           };
         },
-        ipc_callback_holder::instance().get_callback(PkgType().type_id()));
+        ipc_callback_holder::instance().get_callback(
+            typename get_pkg_ack_type<PkgType>::type().type_id()));
     return ipc_status_succ;
   }
 
@@ -56,7 +57,6 @@ public:
 protected:
   template <typename PkgType> void to_recv_pkg() {
     m_pkg_hub->to_recv_pkg<PkgType>([this](std::shared_ptr<PkgType> pkg) {
-      LOG(INFO) << "got package " << pkg_type_id_to_name(pkg->type_id());
       ipc_callback_holder::instance().call_callback<PkgType>(pkg);
       m_request_timer->remove_api(pkg->template get<p_holder>());
     });

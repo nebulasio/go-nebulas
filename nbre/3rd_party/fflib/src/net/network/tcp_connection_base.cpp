@@ -65,15 +65,17 @@ net_tcp_connection_base::~net_tcp_connection_base() {
 }
 
 void net_tcp_connection_base::send(const package_ptr &pkg) {
-  if (m_iPointState != state_valid) {
-    m_pEH->triger<tcp_pkg_send_failed>(this, pkg);
-    return;
-  }
-  m_oToSendPkgs.push(pkg);
-  if (!m_bIsSending) {
-    m_bIsSending = true;
-    start_send();
-  }
+  m_oIOService.post([this, pkg]() {
+    if (m_iPointState != state_valid) {
+      m_pEH->triger<tcp_pkg_send_failed>(this, pkg);
+      return;
+    }
+    m_oToSendPkgs.push(pkg);
+    if (!m_bIsSending) {
+      m_bIsSending = true;
+      start_send();
+    }
+  });
 }
 
 void net_tcp_connection_base::start_send() {

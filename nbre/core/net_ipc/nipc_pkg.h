@@ -62,5 +62,19 @@ std::shared_ptr<PkgType1> new_ack_pkg(PkgType2 req) {
 
 std::string pkg_type_id_to_name(uint64_t type);
 bool is_pkg_type_has_callback(uint64_t type);
+
+template <typename T> struct get_pkg_ack_type { typedef T type; };
+#define define_ipc_param(type, name)
+#define define_ipc_pkg(type, ...)
+
+#define define_ipc_api(req, ack)                                               \
+  template <> struct get_pkg_ack_type<req> { typedef ack type; };
+
+#include "core/net_ipc/ipc_interface_impl.h"
+
+#undef define_ipc_api
+#undef define_ipc_pkg
+#undef define_ipc_param
+
 } // namespace core
 } // namespace neb
