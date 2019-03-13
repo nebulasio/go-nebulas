@@ -36,7 +36,7 @@ type Dynasty struct {
 	genesisTimestamp int64
 
 	dynasty *corepb.Dynasty
-	tries   map[uint64]*trie.Trie
+	tries   map[int64]*trie.Trie
 }
 
 // NewDynasty create dynasty
@@ -46,7 +46,7 @@ func NewDynasty(neb core.Neblet) (*Dynasty, error) {
 		return nil, err
 	}
 
-	tries := make(map[uint64]*trie.Trie)
+	tries := make(map[int64]*trie.Trie)
 	for _, v := range dynasty.Candidate {
 		dynastyTrie, err := trie.NewTrie(nil, neb.Storage(), false)
 		if err != nil {
@@ -62,7 +62,7 @@ func NewDynasty(neb core.Neblet) (*Dynasty, error) {
 				return nil, err
 			}
 		}
-		tries[v.Serial] = dynastyTrie
+		tries[int64(v.Serial)] = dynastyTrie
 	}
 
 	return &Dynasty{
@@ -81,7 +81,7 @@ func loadDynastyConf(genesis *corepb.Genesis, filePath string) (*corepb.Dynasty,
 		},
 		Candidate: []*corepb.DynastyCandidate{
 			{
-				Serial:  1,
+				Serial:  0,
 				Dynasty: genesis.Consensus.Dpos.Dynasty,
 			},
 		},
@@ -134,32 +134,49 @@ func loadDynastyConf(genesis *corepb.Genesis, filePath string) (*corepb.Dynasty,
 func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 
 	var (
-		offset     uint64
-		curDynasty uint64
-		tmpDynasty uint64
+		interval   int64
+		curDynasty int64
+		tmpDynasty int64
 		dt         *trie.Trie
 	)
 
 	if d.genesisTimestamp == 0 {
 		curDynasty = GenesisDynasty
-		offset = GenesisDynasty
 		secondBlock := d.chain.GetBlockOnCanonicalChainByHeight(2)
 		if secondBlock != nil {
 			d.genesisTimestamp = secondBlock.Timestamp() - BlockIntervalInMs/SecondInMs
+		} else {
+			interval = BlockIntervalInMs
 		}
-	} else {
-		interval := (timestamp - d.genesisTimestamp) * SecondInMs
-		offset = uint64(interval % DynastyIntervalInMs)
-		curDynasty = uint64(interval / DynastyIntervalInMs)
+	}
+	if d.genesisTimestamp > 0 {
+		interval = (timestamp - d.genesisTimestamp) * SecondInMs
+		curDynasty = interval/DynastyIntervalInMs + 1
 	}
 
 	// eg: dynasty is: 1----3-----6, if serial={1,2}  dynasty=1, serial={3,4,5}, dynasty=3
 	for k, v := range d.tries {
-		if (k < curDynasty || (k == curDynasty && offset > 0)) && k > tmpDynasty {
-			tmpDynasty = k
+		start := int64(k)
+
+		if start < curDynasty && start >= tmpDynasty && interval > start*DynastyIntervalInMs {
+			tmpDynasty = start
 			dt = v
 		}
 	}
+
+	if dt == nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"timestamp":  timestamp,
+			"tmpDynasty": tmpDynasty,
+			"curDynasty": curDynasty,
+		}).Fatal("Failed to get dynasty with current genesis and dynasty.")
+	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"timestamp":  timestamp,
+		"curDynasty": curDynasty,
+		"dt":         dt,
+	}).Debug("dynasty info.")
 
 	dynastyTrie, err := dt.Clone()
 	if err != nil {
