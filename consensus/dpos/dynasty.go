@@ -134,6 +134,7 @@ func loadDynastyConf(genesis *corepb.Genesis, filePath string) (*corepb.Dynasty,
 func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 
 	var (
+		offset     uint64
 		curDynasty uint64
 		tmpDynasty uint64
 		dt         *trie.Trie
@@ -141,17 +142,20 @@ func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 
 	if d.genesisTimestamp == 0 {
 		curDynasty = GenesisDynasty
+		offset = GenesisDynasty
 		secondBlock := d.chain.GetBlockOnCanonicalChainByHeight(2)
 		if secondBlock != nil {
 			d.genesisTimestamp = secondBlock.Timestamp() - BlockIntervalInMs/SecondInMs
 		}
 	} else {
-		curDynasty = uint64((timestamp - d.genesisTimestamp) * SecondInMs / DynastyIntervalInMs)
+		interval := (timestamp - d.genesisTimestamp) * SecondInMs
+		offset = uint64(interval % DynastyIntervalInMs)
+		curDynasty = uint64(interval / DynastyIntervalInMs)
 	}
 
 	// eg: dynasty is: 1----3-----6, if serial={1,2}  dynasty=1, serial={3,4,5}, dynasty=3
 	for k, v := range d.tries {
-		if k <= uint64(curDynasty) && k > tmpDynasty {
+		if (k < curDynasty || (k == curDynasty && offset > 0)) && k > tmpDynasty {
 			tmpDynasty = k
 			dt = v
 		}
