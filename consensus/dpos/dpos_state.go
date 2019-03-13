@@ -118,7 +118,6 @@ func (dpos *Dpos) GenesisConsensusState(chain *core.BlockChain, conf *corepb.Gen
 			return nil, err
 		}
 	}
-	core.GenesisDynastyTrie = dynastyTrie
 	return &State{
 		timestamp: core.GenesisTimestamp,
 		proposer:  nil,
