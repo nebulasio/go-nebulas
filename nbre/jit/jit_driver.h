@@ -91,7 +91,6 @@ public:
     context->m_time_counter = 30 * 60;
     m_mutex.unlock();
     struct using_helper {
-
       using_helper(jit_context *jc) : m_jc(jc) { jc->m_using = true; }
       ~using_helper() { m_jc->m_using = false; }
       jit_context *m_jc;

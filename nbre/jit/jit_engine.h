@@ -28,6 +28,7 @@ class jit_engine {
 public:
 
   template <typename RT, typename... ARGS> RT run(ARGS... args) {
+    std::unique_lock<std::mutex> _l(m_mutex);
     using MainFnPtr = RT (*)(ARGS...);
     auto main_func = fromTargetAddress<MainFnPtr>(
         cantFail(m_main_sym->getAddress(), nullptr));
@@ -51,6 +52,7 @@ protected:
   std::unique_ptr<llvm::EngineBuilder> m_EB;
   std::unique_ptr<Triple> m_T;
   std::unique_ptr<OrcLazyJIT> m_jit;
+  std::mutex m_mutex;
 
   std::unique_ptr<llvm::JITSymbol> m_main_sym;
 }; // end class jit_engine
