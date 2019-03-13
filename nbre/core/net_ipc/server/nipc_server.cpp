@@ -114,7 +114,13 @@ bool nipc_server::start() {
           m_client_watcher->kill_client();
         }
       });
-      m_server->run();
+      while (true) {
+        try {
+          m_server->run();
+        } catch (...) {
+          m_server->ioservice().reset();
+        }
+      }
     } catch (const std::exception &e) {
       got_exception_when_start_ipc = true;
       LOG(ERROR) << "get exception when start ipc, " << typeid(e).name() << ", "
