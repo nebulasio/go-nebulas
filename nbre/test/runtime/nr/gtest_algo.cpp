@@ -352,34 +352,35 @@ TEST(test_algo, find_a_cycle_based_on_time_sequence) {
   tg.add_edge(neb::to_address("d"), neb::to_address("c"), 5, 3);
 
   auto graph = tg.internal_graph();
-  auto cycle = neb::rt::graph_algo::find_a_cycle_based_on_time_sequence(graph);
+  auto cycle =
+      neb::rt::graph_algo::find_a_cycle_based_on_time_sequence(graph, {});
 
   auto it = cycle.begin();
   auto source = boost::source(*it, graph);
   auto target = boost::target(*it, graph);
   std::string source_name = boost::get(boost::vertex_name_t(), graph, source);
   std::string target_name = boost::get(boost::vertex_name_t(), graph, target);
-  neb::wei_t val = boost::get(boost::edge_timestamp_t(), graph, *it);
-  EXPECT_TRUE(source_name.compare("a") == 0 && target_name.compare("b") == 0 &&
-              val == 5);
-  it++;
-
-  source = boost::source(*it, graph);
-  target = boost::target(*it, graph);
-  source_name = boost::get(boost::vertex_name_t(), graph, source);
-  target_name = boost::get(boost::vertex_name_t(), graph, target);
-  val = boost::get(boost::edge_timestamp_t(), graph, *it);
+  auto ts = boost::get(boost::edge_timestamp_t(), graph, *it);
   EXPECT_TRUE(source_name.compare("b") == 0 && target_name.compare("d") == 0 &&
-              val == 2);
+              ts == 2);
   it++;
 
   source = boost::source(*it, graph);
   target = boost::target(*it, graph);
   source_name = boost::get(boost::vertex_name_t(), graph, source);
   target_name = boost::get(boost::vertex_name_t(), graph, target);
-  val = boost::get(boost::edge_timestamp_t(), graph, *it);
-  EXPECT_TRUE(source_name.compare("d") == 0 && target_name.compare("a") == 0 &&
-              val == 1);
+  ts = boost::get(boost::edge_timestamp_t(), graph, *it);
+  EXPECT_TRUE(source_name.compare("d") == 0 && target_name.compare("c") == 0 &&
+              ts == 3);
+  it++;
+
+  source = boost::source(*it, graph);
+  target = boost::target(*it, graph);
+  source_name = boost::get(boost::vertex_name_t(), graph, source);
+  target_name = boost::get(boost::vertex_name_t(), graph, target);
+  ts = boost::get(boost::edge_timestamp_t(), graph, *it);
+  EXPECT_TRUE(source_name.compare("c") == 0 && target_name.compare("b") == 0 &&
+              ts == 4);
   it++;
 }
 
@@ -449,13 +450,13 @@ TEST(test_algo, remove_cycles_based_on_time_sequence_case2) {
       neb::wei_t val = boost::get(boost::edge_weight_t(), graph, *oei);
       int64_t ts = boost::get(boost::edge_timestamp_t(), graph, *oei);
       if (source_name.compare("c") == 0 && target_name.compare("a") == 0) {
-        EXPECT_TRUE(val == 1 && ts == 2);
+        EXPECT_TRUE(val == 3 && ts == 2);
       } else if (source_name.compare("c") == 0 &&
                  target_name.compare("b") == 0) {
-        EXPECT_TRUE(val == 4 && ts == 4);
+        EXPECT_TRUE(val == 2 && ts == 4);
       } else if (source_name.compare("b") == 0 &&
                  target_name.compare("a") == 0) {
-        EXPECT_TRUE(val == 5 && ts == 5);
+        EXPECT_TRUE(val == 3 && ts == 5);
       }
     }
   }
@@ -509,13 +510,10 @@ TEST(test_algo, remove_cycles_based_on_time_sequence_case4) {
       neb::wei_t val = boost::get(boost::edge_weight_t(), graph, *oei);
       int64_t ts = boost::get(boost::edge_timestamp_t(), graph, *oei);
       if (source_name.compare("b") == 0 && target_name.compare("a") == 0) {
-        EXPECT_TRUE(val == 1 && ts == 1);
-      } else if (source_name.compare("b") == 0 &&
-                 target_name.compare("c") == 0) {
-        EXPECT_TRUE(val == 2 && ts == 3);
+        EXPECT_TRUE(val == 3 && ts == 1);
       } else if (source_name.compare("c") == 0 &&
                  target_name.compare("a") == 0) {
-        EXPECT_TRUE((val == 1 && ts == 4) || (val == 2 && ts == 4));
+        EXPECT_TRUE(val == 1 && ts == 4);
       }
     }
   }
@@ -549,10 +547,13 @@ TEST(test_algo, remove_cycles_based_on_time_sequence_case5) {
         EXPECT_TRUE(val == 2 && ts == 2);
       } else if (source_name.compare("b") == 0 &&
                  target_name.compare("c") == 0) {
-        EXPECT_TRUE(val == 2 && ts == 1);
+        EXPECT_TRUE(val == 3 && ts == 1);
+      } else if (source_name.compare("c") == 0 &&
+                 target_name.compare("d") == 0) {
+        EXPECT_TRUE(val == 1 && ts == 4);
       } else if (source_name.compare("d") == 0 &&
                  target_name.compare("b") == 0) {
-        EXPECT_TRUE(val == 1 && ts == 4);
+        EXPECT_TRUE(val == 2 && ts == 4);
       }
     }
   }

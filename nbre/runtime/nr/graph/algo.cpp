@@ -25,12 +25,35 @@ namespace neb {
 namespace rt {
 
 void graph_algo::dfs_find_a_cycle_from_vertex_based_on_time_sequence(
+    const transaction_graph::internal_graph_t &graph,
     const transaction_graph::vertex_descriptor_t &s,
     const transaction_graph::vertex_descriptor_t &v,
-    const transaction_graph::internal_graph_t &graph, bool &has_cycle,
+    const std::unordered_set<transaction_graph::vertex_descriptor_t> &dead_v,
+    bool &has_cycle,
     std::unordered_map<transaction_graph::vertex_descriptor_t, bool> &visited,
     std::vector<transaction_graph::edge_descriptor_t> &edges,
     std::vector<transaction_graph::edge_descriptor_t> &ret) {
+
+  auto in_time_order =
+      [&graph, &edges](const transaction_graph::oeiterator_t &oei) -> bool {
+    if (!edges.empty()) {
+      int64_t ts = boost::get(boost::edge_timestamp_t(), graph, edges.back());
+      int64_t ts_next = boost::get(boost::edge_timestamp_t(), graph, *oei);
+      if (ts >= ts_next) {
+        return false;
+      }
+    }
+    return true;
+  };
+  auto exit_cond = [&has_cycle, &edges,
+                    &ret](const transaction_graph::oeiterator_t &oei) {
+    edges.push_back(*oei);
+    has_cycle = true;
+
+    for (auto it = edges.begin(); it != edges.end(); it++) {
+      ret.push_back(*it);
+    }
+  };
 
   transaction_graph::oeiterator_t oei, oei_end;
   for (boost::tie(oei, oei_end) = boost::out_edges(v, graph); oei != oei_end;
@@ -39,30 +62,12 @@ void graph_algo::dfs_find_a_cycle_from_vertex_based_on_time_sequence(
       return;
     }
     auto target = boost::target(*oei, graph);
-
-    auto is_time_order = [&graph,
-                          &edges](transaction_graph::oeiterator_t oei) -> bool {
-      if (!edges.empty()) {
-        int64_t ts = boost::get(boost::edge_timestamp_t(), graph, edges.back());
-        int64_t ts_next = boost::get(boost::edge_timestamp_t(), graph, *oei);
-        if (ts >= ts_next) {
-          return false;
-        }
-      }
-      return true;
-    };
-    auto exit_cond = [&has_cycle, &edges,
-                      &ret](transaction_graph::oeiterator_t oei) {
-      edges.push_back(*oei);
-      has_cycle = true;
-
-      for (auto it = edges.begin(); it != edges.end(); it++) {
-        ret.push_back(*it);
-      }
-    };
+    if (dead_v.find(target) != dead_v.end()) {
+      continue;
+    }
 
     if (target == s) {
-      if (!is_time_order(oei)) {
+      if (!in_time_order(oei)) {
         continue;
       }
       exit_cond(oei);
@@ -70,7 +75,7 @@ void graph_algo::dfs_find_a_cycle_from_vertex_based_on_time_sequence(
     }
 
     if (visited[target]) {
-      if (!is_time_order(oei)) {
+      if (!in_time_order(oei)) {
         continue;
       }
 
@@ -88,10 +93,10 @@ void graph_algo::dfs_find_a_cycle_from_vertex_based_on_time_sequence(
 
     visited[target] = true;
 
-    if (edges.empty() || (!edges.empty() && is_time_order(oei))) {
+    if (edges.empty() || (!edges.empty() && in_time_order(oei))) {
       edges.push_back(*oei);
       dfs_find_a_cycle_from_vertex_based_on_time_sequence(
-          s, target, graph, has_cycle, visited, edges, ret);
+          graph, s, target, dead_v, has_cycle, visited, edges, ret);
       edges.pop_back();
     }
 
@@ -102,9 +107,9 @@ void graph_algo::dfs_find_a_cycle_from_vertex_based_on_time_sequence(
 
 std::vector<transaction_graph::edge_descriptor_t>
 graph_algo::find_a_cycle_from_vertex_based_on_time_sequence(
+    const transaction_graph::internal_graph_t &graph,
     const transaction_graph::vertex_descriptor_t &v,
-    const transaction_graph::internal_graph_t &graph) {
-  std::cout << ", find a cycle from one vertex";
+    const std::unordered_set<transaction_graph::vertex_descriptor_t> &dead_v) {
 
   std::vector<transaction_graph::edge_descriptor_t> ret;
   std::vector<transaction_graph::edge_descriptor_t> edges;
@@ -112,60 +117,137 @@ graph_algo::find_a_cycle_from_vertex_based_on_time_sequence(
   bool has_cycle = false;
 
   visited[v] = true;
-  dfs_find_a_cycle_from_vertex_based_on_time_sequence(v, v, graph, has_cycle,
-                                                      visited, edges, ret);
+  dfs_find_a_cycle_from_vertex_based_on_time_sequence(
+      graph, v, v, dead_v, has_cycle, visited, edges, ret);
   return ret;
 }
 
 std::vector<transaction_graph::edge_descriptor_t>
 graph_algo::find_a_cycle_based_on_time_sequence(
-    const transaction_graph::internal_graph_t &graph) {
-  std::cout << "call func find a cycle based on time sequence" << std::endl;
+    const transaction_graph::internal_graph_t &graph,
+    const std::unordered_set<transaction_graph::vertex_descriptor_t> &dead_v) {
+  std::vector<transaction_graph::edge_descriptor_t> ret;
+
   std::vector<transaction_graph::vertex_descriptor_t> to_visit;
-
   transaction_graph::viterator_t vi, vi_end;
-
   for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
-    to_visit.push_back(*vi);
+    if (dead_v.find(*vi) == dead_v.end()) {
+      to_visit.push_back(*vi);
+    }
   }
 
   for (auto it = to_visit.begin(); it != to_visit.end(); it++) {
     auto v_name = boost::get(boost::vertex_name_t(), graph, *it);
-    std::cout << "for vertex " << v_name;
-    auto ret = find_a_cycle_from_vertex_based_on_time_sequence(*it, graph);
+    auto ret =
+        find_a_cycle_from_vertex_based_on_time_sequence(graph, *it, dead_v);
     if (!ret.empty()) {
-      std::cout << ", find size " << ret.size() << std::endl;
       return ret;
     }
-    std::cout << ", no cycle" << std::endl;
   }
-  return std::vector<transaction_graph::edge_descriptor_t>();
+  return ret;
+}
+
+void graph_algo::bfs_decrease_graph_edges(
+    const transaction_graph::internal_graph_t &graph,
+    std::unordered_set<transaction_graph::vertex_descriptor_t> &dead_v) {
+
+  std::queue<transaction_graph::vertex_descriptor_t> q;
+  std::unordered_map<transaction_graph::vertex_descriptor_t, size_t> out_dead;
+
+  auto update_out_dead = [&graph, &dead_v, &out_dead](
+                             const transaction_graph::vertex_descriptor_t &v) {
+    transaction_graph::ieiterator_t iei, iei_end;
+    for (boost::tie(iei, iei_end) = boost::in_edges(v, graph); iei != iei_end;
+         iei++) {
+      auto source = boost::source(*iei, graph);
+      if (dead_v.find(source) == dead_v.end()) {
+        if (out_dead.find(source) != out_dead.end()) {
+          out_dead[source]++;
+        } else {
+          out_dead.insert(std::make_pair(source, 1));
+        }
+      }
+    }
+  };
+
+  for (auto &v : dead_v) {
+    q.push(v);
+    update_out_dead(v);
+  }
+
+  while (!q.empty()) {
+    auto &v = q.front();
+    q.pop();
+
+    transaction_graph::ieiterator_t iei, iei_end;
+    for (boost::tie(iei, iei_end) = boost::in_edges(v, graph); iei != iei_end;
+         iei++) {
+      auto source = boost::source(*iei, graph);
+
+      if (dead_v.find(source) == dead_v.end()) {
+        auto ret = boost::out_degree(source, graph);
+        if (ret && out_dead.find(source) != out_dead.end() &&
+            ret == out_dead[source]) {
+          q.push(source);
+          dead_v.insert(source);
+          update_out_dead(source);
+        }
+      }
+    }
+  }
+}
+
+bool graph_algo::decrease_graph_edges(
+    const transaction_graph::internal_graph_t &graph,
+    std::unordered_set<transaction_graph::vertex_descriptor_t> &dead_v) {
+
+  transaction_graph::viterator_t vi, vi_end;
+  for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
+    if (dead_v.find(*vi) == dead_v.end()) {
+      auto ret = boost::out_degree(*vi, graph);
+      if (!ret) {
+        dead_v.insert(*vi);
+      }
+    }
+  }
+  bfs_decrease_graph_edges(graph, dead_v);
+  return boost::num_vertices(graph) != dead_v.size();
+}
+
+void graph_algo::remove_a_cycle(
+    transaction_graph::internal_graph_t &graph,
+    const std::vector<transaction_graph::edge_descriptor_t> &edges) {
+
+  wei_t min_w = -1;
+  for (auto it = edges.begin(); it != edges.end(); it++) {
+    wei_t w = boost::get(boost::edge_weight_t(), graph, *it);
+    min_w = (min_w == -1 ? w : math::min(min_w, w));
+  }
+
+  for (auto it = edges.begin(); it != edges.end(); it++) {
+    wei_t w = boost::get(boost::edge_weight_t(), graph, *it);
+    boost::put(boost::edge_weight_t(), graph, *it, w - min_w);
+    if (w == min_w) {
+      boost::remove_edge(*it, graph);
+    }
+  }
 }
 
 void graph_algo::remove_cycles_based_on_time_sequence(
     transaction_graph::internal_graph_t &graph) {
 
-  std::vector<transaction_graph::edge_descriptor_t> ret =
-      find_a_cycle_based_on_time_sequence(graph);
-  while (!ret.empty()) {
+  std::vector<transaction_graph::edge_descriptor_t> ret;
+  std::unordered_set<transaction_graph::vertex_descriptor_t> dead_v;
 
-    wei_t min_w = -1;
-    for (auto it = ret.begin(); it != ret.end(); it++) {
-      wei_t w = boost::get(boost::edge_weight_t(), graph, *it);
-      min_w = (min_w == -1 ? w : math::min(min_w, w));
+  while (true) {
+    if (!decrease_graph_edges(graph, dead_v)) {
+      break;
     }
-
-    for (auto it = ret.begin(); it != ret.end(); it++) {
-      wei_t w = boost::get(boost::edge_weight_t(), graph, *it);
-      boost::put(boost::edge_weight_t(), graph, *it, w - min_w);
-      if (w == min_w) {
-        boost::remove_edge(*it, graph);
-      }
+    ret = find_a_cycle_based_on_time_sequence(graph, dead_v);
+    if (ret.empty()) {
+      break;
     }
-
-    std::cout << "remove cycle" << std::endl;
-
-    ret = find_a_cycle_based_on_time_sequence(graph);
+    remove_a_cycle(graph, ret);
   }
 }
 
