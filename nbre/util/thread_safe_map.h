@@ -26,18 +26,19 @@ class thread_safe_map {
 public:
   typedef std::unordered_map<Key, Val> map_t;
   typedef Lock lock_t;
-  using guard_t = boost::shared_lock<lock_t>;
+  using r_guard_t = boost::shared_lock<lock_t>;
+  using w_guard_t = std::unique_lock<lock_t>;
 
   thread_safe_map() = default;
 
   void insert(const typename map_t::value_type &op) {
-    guard_t _l(m_mutex);
+    w_guard_t _l(m_mutex);
     m_map.insert(op);
   }
 
   std::pair<bool, typename map_t::mapped_type>
   try_get_val(const typename map_t::key_type &k) {
-    guard_t _l(m_mutex);
+    r_guard_t _l(m_mutex);
     if (m_map.find(k) == m_map.end()) {
       return std::make_pair(false, typename map_t::mapped_type());
     }
@@ -46,17 +47,17 @@ public:
   }
 
   bool exist(const typename map_t::key_type &k) {
-    guard_t _l(m_mutex);
+    r_guard_t _l(m_mutex);
     return m_map.find(k) != m_map.end();
   }
 
   size_t size() const {
-    guard_t _l(m_mutex);
+    r_guard_t _l(m_mutex);
     return m_map.size();
   }
 
   bool empty() const {
-    guard_t _l(m_mutex);
+    r_guard_t _l(m_mutex);
     return m_map.empty();
   }
 

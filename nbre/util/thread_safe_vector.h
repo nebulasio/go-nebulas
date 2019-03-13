@@ -26,17 +26,18 @@ class thread_safe_vector {
 public:
   typedef std::vector<T> vector_t;
   typedef Lock lock_t;
-  using guard_t = boost::shared_lock<lock_t>;
+  using r_guard_t = boost::shared_lock<lock_t>;
+  using w_guard_t = std::unique_lock<lock_t>;
 
   thread_safe_vector() = default;
 
   void push_back(const typename vector_t::value_type &op) {
-    guard_t _l(m_mutex);
+    w_guard_t _l(m_mutex);
     m_vector.push_back(op);
   }
 
   std::pair<bool, typename vector_t::value_type> try_pop_back() {
-    guard_t _l(m_mutex);
+    w_guard_t _l(m_mutex);
     if (m_vector.empty()) {
       return std::make_pair(false, typename vector_t::value_type());
     }
@@ -46,13 +47,13 @@ public:
   }
 
   typename vector_t::value_type front() {
-    guard_t _l(m_mutex);
+    r_guard_t _l(m_mutex);
     auto ret = m_vector.front();
     return ret;
   }
 
   typename vector_t::value_type back() {
-    guard_t _l(m_mutex);
+    r_guard_t _l(m_mutex);
     auto ret = m_vector.back();
     return ret;
   }
@@ -60,7 +61,7 @@ public:
   template <typename Func>
   std::pair<bool, typename vector_t::value_type>
   try_lower_bound(const typename vector_t::value_type &op, Func &&f) {
-    guard_t _l(m_mutex);
+    r_guard_t _l(m_mutex);
     if (m_vector.empty()) {
       return std::make_pair(false, typename vector_t::value_type());
     }
@@ -71,12 +72,12 @@ public:
   }
 
   size_t size() const {
-    guard_t _l(m_mutex);
+    r_guard_t _l(m_mutex);
     return m_vector.size();
   }
 
   bool empty() const {
-    guard_t _l(m_mutex);
+    r_guard_t _l(m_mutex);
     return m_vector.empty();
   }
 

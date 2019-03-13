@@ -559,3 +559,45 @@ TEST(test_algo, remove_cycles_based_on_time_sequence_case5) {
   }
 }
 
+TEST(test_algo, remove_cycles_based_on_time_sequence_case6) {
+  neb::rt::transaction_graph tg6;
+  char cc = 'b';
+  int32_t n = 3;
+  for (char ch = 'a'; ch < cc; ch++) {
+    for (int32_t i = 0; i < n; i++) {
+      tg6.add_edge(neb::to_address(std::string(1, ch)),
+                   neb::to_address(std::string(1, ch + 1)), ch - 'a' + 1,
+                   ch - 'a' + 1);
+    }
+  }
+  for (int32_t i = 0; i < n; i++) {
+    tg6.add_edge(neb::to_address(std::string(1, cc)),
+                 neb::to_address(std::string(1, 'a')), cc - 'a' + 1,
+                 cc - 'a' + 1);
+  }
+
+  auto graph = tg6.internal_graph();
+  neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
+
+  neb::rt::transaction_graph::viterator_t vi, vi_end;
+  for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
+    neb::rt::transaction_graph::oeiterator_t oei, oei_end;
+    for (boost::tie(oei, oei_end) = boost::out_edges(*vi, graph);
+         oei != oei_end; oei++) {
+      auto source = boost::source(*oei, graph);
+      auto target = boost::target(*oei, graph);
+      std::string source_name =
+          boost::get(boost::vertex_name_t(), graph, source);
+      std::string target_name =
+          boost::get(boost::vertex_name_t(), graph, target);
+      EXPECT_EQ(source_name, "b");
+      EXPECT_EQ(target_name, "a");
+
+      neb::wei_t val = boost::get(boost::edge_weight_t(), graph, *oei);
+      int64_t ts = boost::get(boost::edge_timestamp_t(), graph, *oei);
+      EXPECT_EQ(val, 1);
+      EXPECT_EQ(ts, 2);
+    }
+  }
+}
+
