@@ -139,6 +139,21 @@ std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
       m_nr_gen->run();
     }
 
+    if (m_dip_ratio != 0 && std::rand() % 1000 < m_dip_ratio * 1000) {
+      if (m_dip_admin_addr.empty()) {
+        m_dip_admin_addr =
+            neb::to_address(m_all_accounts.random_user_account()->address());
+      }
+      m_dip_gen =
+          std::make_unique<dip_ir_generator>(ret.get(), m_dip_admin_addr);
+      random_increase_version(m_dip_version);
+      m_dip_gen->m_major_version = m_dip_version.major_version();
+      m_dip_gen->m_minor_version = m_dip_version.minor_version();
+      m_dip_gen->m_patch_version = m_dip_version.patch_version();
+
+      m_dip_gen->run();
+    }
+
     if (m_contract_ratio != 0 && std::rand() % 1000 < m_contract_ratio * 1000) {
       m_contract_gen = std::make_unique<contract_generator>(ret.get(), 1);
       m_contract_gen->run();

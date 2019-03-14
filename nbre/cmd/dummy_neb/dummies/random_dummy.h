@@ -49,6 +49,7 @@ protected:
   std::unique_ptr<genesis_generator> m_genesis_gen;
   std::unique_ptr<auth_table_generator> m_auth_gen;
   std::unique_ptr<nr_ir_generator> m_nr_gen;
+  std::unique_ptr<dip_ir_generator> m_dip_gen;
   std::unique_ptr<call_tx_generator> m_call_gen;
   std::unique_ptr<contract_generator> m_contract_gen;
   std::unique_ptr<cli_generator> m_cli_generator;
@@ -65,6 +66,7 @@ protected:
   uint16_t m_rpc_port;
 
   neb::version m_nr_version;
+  neb::version m_dip_version;
 
   address_t m_auth_admin_addr;
   address_t m_nr_admin_addr;
