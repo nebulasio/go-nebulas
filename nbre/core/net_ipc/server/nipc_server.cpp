@@ -87,6 +87,7 @@ bool nipc_server::start() {
                 m_mutex.unlock();
                 m_request_timer->reset_conn(conn);
                 m_last_heart_beat_time = std::chrono::steady_clock::now();
+                m_start_complete_cond_var.notify_one();
               });
       m_server->get_event_handler()
           ->listen<::ff::net::event::tcp_lost_connection>(

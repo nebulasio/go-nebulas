@@ -151,15 +151,6 @@ void client_driver_base::init_nbre() {
 
   fs::bc_storage_session::instance().init(
       configuration::instance().neb_db_dir(), fs::storage_open_for_readonly);
-  try {
-    auto rs = neb::fs::storage_holder::instance().nbre_db_ptr();
-    auto nbre_max_height_bytes =
-        rs->get(neb::configuration::instance().nbre_max_height_name());
-    auto nbre_max_height =
-        neb::byte_to_number<block_height_t>(nbre_max_height_bytes);
-  } catch (const std::exception &e) {
-    LOG(INFO) << "nbre max height not init " << e.what();
-  }
 }
 } // end namespace internal
 
