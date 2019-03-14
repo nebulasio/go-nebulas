@@ -149,6 +149,7 @@ type Compatibility interface {
 	NvmGasLimitWithoutTimeoutHeight() uint64
 	WsResetRecordDependencyHeight2() uint64 //reserve change log
 	TransferFromContractFailureEventRecordableHeight2() uint64
+	NvmValueCheckUpdateHeight() uint64
 	NbreAvailableHeight() uint64
 }
 
@@ -440,6 +441,11 @@ func GetNearestInstructionCounterVersionAtHeight(blockHeight uint64) string {
 func EnableInnerContractAtHeight(blockHeight uint64) bool {
 	m := NebCompatibility.V8JSLibVersionHeightMap()
 	return blockHeight >= m.Data["1.1.0"]
+}
+
+// NvmValueCheckUpdateHeight ..
+func NvmValueCheckUpdateHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.NvmValueCheckUpdateHeight()
 }
 
 // NbreAvailableHeight ..

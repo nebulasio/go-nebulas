@@ -32,6 +32,8 @@ type CompatibilityMainNet struct {
 
 	wsResetRecordDependencyHeight2 uint64
 
+	nvmValueCheckUpdateHeight uint64
+
 	nbreAvailableHeight uint64
 }
 
@@ -59,6 +61,7 @@ func NewCompatibilityMainNet() Compatibility {
 		nvmGasLimitWithoutTimeoutHeight:                   600000,
 		wsResetRecordDependencyHeight2:                    600000,
 		transferFromContractFailureEventRecordableHeight2: 600000,
+		nvmValueCheckUpdateHeight:                         840000,
 		nbreAvailableHeight:                               2000000,
 	}
 }
@@ -136,6 +139,11 @@ func (c *CompatibilityMainNet) V8JSLibVersionHeightMap() *V8JSLibVersionHeightMa
 // NvmGasLimitWithoutTimeoutHeight ..
 func (c *CompatibilityMainNet) NvmGasLimitWithoutTimeoutHeight() uint64 {
 	return c.nvmGasLimitWithoutTimeoutHeight
+}
+
+// NvmValueCheckUpdateHeight ..
+func (c *CompatibilityMainNet) NvmValueCheckUpdateHeight() uint64 {
+	return c.nvmValueCheckUpdateHeight
 }
 
 // NbreAvailableHeight ..

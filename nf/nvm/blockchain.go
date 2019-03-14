@@ -239,6 +239,16 @@ func transfer(e *V8Engine, from *core.Address, to *core.Address, amount *util.Ui
 		}).Error("Failed to get from account state")
 		return ErrTransferGetAccount
 	}
+	// TestNet sync adjust
+	if amount == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(e.lcsHandler),
+			"address": from,
+			"err":     err,
+		}).Error("Failed to get amount failed.")
+		return ErrTransferStringToUint128
+	}
+
 	// update balance
 	if amount.Cmp(util.NewUint128()) > 0 {
 		err = fromAcc.SubBalance(amount) //TODO: add unit amount不足，超大, NaN
@@ -303,29 +313,20 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 		return ErrTransferAddressParse
 	}
 
-	// in old world state, toAcc accountstate create before amount check
-	if !core.TransferFromContractFailureEventRecordableAtHeight2(height) {
-		_, err := engine.ctx.state.GetOrCreateUserAccount(addr.Bytes())
+	transferValueStr := C.GoString(v)
+	amount, err := util.NewUint128FromString(transferValueStr)
+	// in old world state, accountstate create before amount check
+	if core.NvmValueCheckUpdateHeight(height) {
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"handler": uint64(uintptr(handler)),
-				"address": addr,
+				"address": addr.String(),
 				"err":     err,
-			}).Fatal("GetAccountStateFunc get account state failed.")
+				"val":     transferValueStr,
+			}).Error("Failed to get amount failed.")
+			recordTransferEvent(ErrTransferStringToUint128, cAddr.String(), addr.String(), transferValueStr, height, wsState, txHash)
+			return ErrTransferStringToUint128
 		}
-	}
-
-	transferValueStr := C.GoString(v)
-	amount, err := util.NewUint128FromString(transferValueStr)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"handler": uint64(uintptr(handler)),
-			"address": addr.String(),
-			"err":     err,
-			"val":     transferValueStr,
-		}).Error("Failed to get amount failed.")
-		recordTransferEvent(ErrTransferStringToUint128, cAddr.String(), addr.String(), transferValueStr, height, wsState, txHash)
-		return ErrTransferStringToUint128
 	}
 	ret := TransferByAddress(handler, cAddr, addr, amount)
 
