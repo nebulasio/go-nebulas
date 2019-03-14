@@ -27,7 +27,10 @@ namespace neb {
 namespace cpp {
 class cpp_ir {
 public:
-  cpp_ir(const std::string &cpp_content);
+  typedef std::string name_version_t;
+  typedef std::string cpp_content_t;
+  typedef std::pair<name_version_t, cpp_content_t> cpp_t;
+  cpp_ir(const cpp_t &cpp);
 
   neb::bytes llvm_ir_content();
 
@@ -38,7 +41,8 @@ protected:
   std::string generate_fp();
 
 protected:
-  std::string m_cpp_content;
+  name_version_t m_name_version;
+  cpp_content_t m_cpp_content;
   std::string m_cpp_fp;
   std::string m_llvm_ir_fp;
   bool m_b_got_error;

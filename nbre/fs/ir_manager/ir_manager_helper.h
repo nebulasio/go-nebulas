@@ -58,7 +58,12 @@ public:
   static void deploy_ir(const std::string &name, uint64_t version,
                         const neb::bytes &payload_bytes, rocksdb_storage *rs);
 
+  static void compile_payload_code(nbre::NBREIR *nbre_ir, bytes &payload_bytes);
+
 private:
+  static void deploy_cpp(const std::string &name, uint64_t version,
+                         const std::string &cpp_content, rocksdb_storage *rs);
+
   static void update_to_storage(const std::string &key,
                                 const boost::property_tree::ptree &val_pt,
                                 rocksdb_storage *rs);

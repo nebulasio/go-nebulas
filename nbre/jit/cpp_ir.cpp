@@ -25,13 +25,14 @@ namespace neb {
 namespace cpp {
 std::atomic_int cpp_ir::s_file_counter(1);
 
-cpp_ir::cpp_ir(const std::string &cpp_content)
-    : m_cpp_content(cpp_content), m_b_got_error(false) {}
+cpp_ir::cpp_ir(const cpp_t &cpp)
+    : m_name_version(cpp.first), m_cpp_content(cpp.second),
+      m_b_got_error(false) {}
 
 neb::bytes cpp_ir::llvm_ir_content() {
   if (m_llvm_ir_fp == std::string("") && !m_b_got_error) {
 
-    std::string fp_base = generate_fp();
+    std::string fp_base = generate_fp() + '_' + m_name_version;
     std::string cpp_fp = fp_base + ".cpp";
     std::string ir_fp = fp_base + ".bc";
     m_cpp_fp = cpp_fp;

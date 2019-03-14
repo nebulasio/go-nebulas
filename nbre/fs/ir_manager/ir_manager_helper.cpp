@@ -20,6 +20,7 @@
 #include "fs/ir_manager/ir_manager_helper.h"
 #include "common/configuration.h"
 #include "fs/ir_manager/api/ir_api.h"
+#include "jit/cpp_ir.h"
 #include "jit/jit_driver.h"
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -257,5 +258,33 @@ void ir_manager_helper::deploy_ir(const std::string &name, uint64_t version,
   LOG(INFO) << "deploy " << name << " version " << version << " successfully!";
 }
 
+void ir_manager_helper::deploy_cpp(const std::string &name, uint64_t version,
+                                   const std::string &cpp_content,
+                                   rocksdb_storage *rs) {
+  std::stringstream ss;
+  ss << name << version << "_cpp";
+  rs->put(ss.str(), string_to_byte(cpp_content));
+  LOG(INFO) << "deploy " << name << " version " << version << " source code!";
+}
+
+void ir_manager_helper::compile_payload_code(nbre::NBREIR *nbre_ir,
+                                             bytes &payload_bytes) {
+  if (nbre_ir->ir_type() == ::neb::ir_type::cpp) {
+    //! We need compile the code
+    std::stringstream ss;
+    ss << nbre_ir->name();
+    ss << nbre_ir->version();
+    cpp::cpp_ir ci(std::make_pair(ss.str(), nbre_ir->ir()));
+
+    neb::bytes ir = ci.llvm_ir_content();
+    nbre_ir->set_ir(neb::byte_to_string(ir));
+
+    auto bytes_long = nbre_ir->ByteSizeLong();
+    payload_bytes = neb::bytes(bytes_long);
+    nbre_ir->SerializeToArray((void *)payload_bytes.value(),
+                              payload_bytes.size());
+  } else {
+  }
+}
 } // namespace fs
 } // namespace neb

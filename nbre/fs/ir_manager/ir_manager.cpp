@@ -254,23 +254,11 @@ void ir_manager::parse_irs_by_height(
       continue;
     }
 
-    if (nbre_ir->ir_type() == ::neb::ir_type::cpp) {
-      //! We need compile the code
-      cpp::cpp_ir ci(nbre_ir->ir());
-      neb::bytes ir = ci.llvm_ir_content();
-      nbre_ir->set_ir(neb::byte_to_string(ir));
-
-      auto bytes_long = nbre_ir->ByteSizeLong();
-      payload_bytes = neb::bytes(bytes_long);
-      nbre_ir->SerializeToArray((void *)payload_bytes.value(),
-                                payload_bytes.size());
-    } else {
-    }
-
     address_t from = to_address(tx.from());
     // deploy auth table
     if (neb::configuration::instance().auth_module_name() == name &&
         neb::configuration::instance().admin_pub_addr() == from) {
+      ir_manager_helper::compile_payload_code(nbre_ir.get(), payload_bytes);
       ir_manager_helper::deploy_auth_table(m_storage, *nbre_ir.get(),
                                            m_auth_table, payload_bytes);
       continue;
@@ -291,6 +279,7 @@ void ir_manager::parse_irs_by_height(
       LOG(INFO) << "ir already becomes invalid";
       continue;
     }
+    ir_manager_helper::compile_payload_code(nbre_ir.get(), payload_bytes);
 
     // update ir list and versions
     ir_manager_helper::update_ir_list(name, m_storage);

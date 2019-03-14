@@ -19,6 +19,7 @@
 //
 #pragma once
 #include "common/common.h"
+#include "fs/proto/ir.pb.h"
 #include "fs/rocksdb_storage.h"
 
 namespace neb {
@@ -32,8 +33,16 @@ public:
   static std::unique_ptr<std::vector<version_t>>
   get_ir_versions(const std::string &name, rocksdb_storage *rs);
 
+  typedef std::pair<bool, std::unique_ptr<nbre::NBREIR>> ir_version_ret_type;
+  static ir_version_ret_type get_ir_version(const std::string &name,
+                                            version_t version,
+                                            rocksdb_storage *rs);
+
   static bool ir_version_exist(const std::string &name, version_t version,
                                rocksdb_storage *rs);
+
+  void get_ir_depends(const std::string &name, version_t version,
+                      rocksdb_storage *rs, std::vector<std::string> &irs);
 };
 }
 } // namespace neb

@@ -83,11 +83,52 @@ ir_api::get_ir_versions(const std::string &name, rocksdb_storage *rs) {
   return ret;
 }
 
+ir_api::ir_version_ret_type ir_api::get_ir_version(const std::string &name,
+                                                   version_t version,
+                                                   rocksdb_storage *rs) {
+  ir_version_ret_type ret_pair;
+  ret_pair.second = std::make_unique<nbre::NBREIR>();
+  auto &nbre_ir = ret_pair.second;
+  bytes nbre_bytes;
+  try {
+    std::stringstream ss;
+    ss << name << version;
+    nbre_bytes = rs->get(ss.str());
+  } catch (const std::exception &e) {
+    LOG(INFO) << "ir name " << name << ", version " << version << " empty "
+              << e.what();
+    ret_pair.first = false;
+    return ret_pair;
+  }
+
+  bool ret = nbre_ir->ParseFromArray(nbre_bytes.value(), nbre_bytes.size());
+  if (!ret) {
+    throw std::runtime_error("parse nbre failed");
+  }
+  ret_pair.first = true;
+  return ret_pair;
+}
+
+void ir_api::get_ir_depends(const std::string &name, version_t version,
+                            rocksdb_storage *rs,
+                            std::vector<std::string> &irs) {
+  auto ret = get_ir_version(name, version, rs);
+  if (!ret.first) {
+    return;
+  }
+
+  for (auto &dep : ret.second->depends()) {
+    get_ir_depends(dep.name(), dep.version(), rs, irs);
+  }
+  std::stringstream ss;
+  ss << name << version;
+  irs.push_back(ss.str());
+}
+
 bool ir_api::ir_version_exist(const std::string &name, version_t version,
                               rocksdb_storage *rs) {
-  auto versions = get_ir_versions(name, rs);
-  return std::find(versions->begin(), versions->end(), version) !=
-         versions->end();
+  auto ret = get_ir_version(name, version, rs);
+  return ret.first;
 }
 } // namespace fs
 } // namespace neb
