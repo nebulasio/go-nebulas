@@ -24,6 +24,7 @@
 #include "common/common.h"
 #include "core/net_ipc/nipc_pkg.h"
 #include "fs/rocksdb_storage.h"
+#include "runtime/dip/dip_reward.h"
 #include "util/singleton.h"
 #include "util/thread_safe_map.h"
 #include "util/thread_safe_vector.h"
@@ -42,6 +43,9 @@ typedef ::ff::net::ntpackage<1, start_block, block_interval, reward_addr,
                              coinbase_addr, p_version>
     dip_params_t;
 
+using dip_ret_type =
+    std::tuple<int32_t, std::string, std::vector<std::shared_ptr<dip_info_t>>>;
+
 class dip_handler : public util::singleton<dip_handler> {
 public:
   dip_handler();
@@ -59,6 +63,9 @@ private:
   void check_dip_params(block_height_t height);
   void load_dip_rewards();
   void write_to_storage(block_height_t height, const std::string &dip_reward);
+
+  dip_ret_type run_dip_ir(const std::string &name, version_t version,
+                          block_height_t height);
 
 private:
   neb::fs::rocksdb_storage *m_storage;

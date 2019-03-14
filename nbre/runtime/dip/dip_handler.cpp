@@ -70,12 +70,7 @@ void dip_handler::check_dip_params(block_height_t height) {
 
   if (tmp.first && tmp.second) {
     try {
-      jit_driver &jd = jit_driver::instance();
-      LOG(INFO) << "to init dip params";
-      auto dip_ret = jd.run_ir<dip_ret_type>(
-          "dip", std::numeric_limits<uint64_t>::max(),
-          neb::configuration::instance().dip_func_name(), 0);
-
+      auto dip_ret = run_dip_ir("dip", tmp.first, tmp.second);
       if (!std::get<0>(dip_ret)) {
         auto info = std::make_shared<dip_params_t>();
         info->deserialize_from_string(std::get<1>(dip_ret));
@@ -143,25 +138,7 @@ void dip_handler::start(neb::block_height_t height,
   ff::para<> p;
   p([this, dip_name, dip_version, hash_height]() {
     try {
-      std::stringstream ss;
-      ss << dip_name << dip_version;
-      std::string name_version = ss.str();
-      LOG(INFO) << "dip name version " << name_version;
-
-      auto irs_ptr = neb::core::ir_warden::instance().get_ir_by_name_height(
-          dip_name, hash_height);
-      LOG(INFO) << "dip ir and depends size " << irs_ptr->size();
-
-      jit_driver &jd = jit_driver::instance();
-      LOG(INFO) << "jit driver run with " << name_version << ','
-                << irs_ptr->size() << ','
-                << neb::configuration::instance().dip_func_name() << ','
-                << hash_height;
-      auto dip_ret = jd.run<dip_ret_type>(
-          name_version, *irs_ptr,
-          neb::configuration::instance().dip_func_name(), hash_height);
-      LOG(INFO) << "dip reward returned";
-
+      auto dip_ret = run_dip_ir(dip_name, dip_version, hash_height);
       if (std::get<0>(dip_ret)) {
         const auto &meta_info_json = std::get<1>(dip_ret);
         const auto &meta_info = neb::rt::json_to_meta_info(meta_info_json);
@@ -172,7 +149,6 @@ void dip_handler::start(neb::block_height_t height,
       } else {
         LOG(INFO) << std::get<1>(dip_ret);
       }
-
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute dip failed " << e.what();
     }
@@ -341,6 +317,27 @@ void dip_handler::load_dip_rewards() {
   }
 }
 
+dip_ret_type dip_handler::run_dip_ir(const std::string &name, version_t version,
+                                     block_height_t height) {
+  std::stringstream ss;
+  ss << name << version;
+  std::string name_version = ss.str();
+  LOG(INFO) << "dip name version " << name_version;
+
+  auto irs_ptr =
+      neb::core::ir_warden::instance().get_ir_by_name_height(name, height);
+  LOG(INFO) << "dip ir and depends size " << irs_ptr->size();
+
+  jit_driver &jd = jit_driver::instance();
+  LOG(INFO) << "jit driver run with " << name_version << ',' << irs_ptr->size()
+            << ',' << neb::configuration::instance().dip_func_name() << ','
+            << height;
+  auto dip_ret = jd.run<dip_ret_type>(
+      name_version, *irs_ptr, neb::configuration::instance().dip_func_name(),
+      height);
+  LOG(INFO) << "dip reward returned";
+  return dip_ret;
+}
 } // namespace dip
 } // namespace rt
 } // namespace neb

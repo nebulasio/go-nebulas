@@ -22,6 +22,7 @@
 
 #include "common/math/softfloat.hpp"
 #include "runtime/nr/impl/nebulas_rank.h"
+#include "runtime/nr/impl/nr_handler.h"
 #include "runtime/stdrt.h"
 
 namespace neb {
