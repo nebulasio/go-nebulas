@@ -92,7 +92,7 @@ func NewNbre(neb Neblet) core.Nbre {
 	})
 	return &Nbre{
 		neb:       neb,
-		libHeight: 0,
+		libHeight: 2, //lib start from 2
 		quitCh:    make(chan int, 1),
 	}
 }
@@ -110,6 +110,11 @@ func (n *Nbre) Start() error {
 	if n.neb.Config().Nbre == nil {
 		return ErrConfigNotFound
 	}
+
+	if n.neb.BlockChain().LIB() != nil {
+		n.libHeight = n.neb.BlockChain().LIB().Height()
+	}
+
 	var (
 		rootDir     = defaultRootDir
 		logDir      = defaultLogDir
@@ -187,22 +192,24 @@ func (n *Nbre) Start() error {
 		m_nipc_port:         C.uint16_t(n.neb.Config().Nbre.IpcPort),
 	}
 
+	cResult := C.start_nbre_ipc(p)
+	if int(cResult) != 0 {
+		return ErrNbreStartFailed
+	}
+
 	logging.CLog().WithFields(logrus.Fields{
 		"data":  nbreDataDir,
 		"nbre":  nbrePath,
 		"admin": n.neb.Config().Nbre.AdminAddress,
 	}).Info("Started nbre.")
 
-	cResult := C.start_nbre_ipc(p)
-	if int(cResult) != 0 {
-		return ErrNbreStartFailed
-	}
-
 	go n.loop()
 	return nil
 }
 
 func (n *Nbre) loop() {
+
+	logging.CLog().Info("started nbre loop.")
 
 	timerChan := time.NewTicker(time.Second * 15).C
 	for {
@@ -219,28 +226,25 @@ func (n *Nbre) loop() {
 // checkIRUpdate check lib block for ir transactions packaged.
 // If ir transactions are missed, nbre looks for database completion
 func (n *Nbre) checkIRUpdate() {
-	block := n.neb.BlockChain().LIB()
-	if block.Height() < n.neb.Config().Nbre.StartHeight {
+	lib := n.neb.BlockChain().LIB()
+	if lib == nil || lib.Height() < n.neb.Config().Nbre.StartHeight {
 		return
 	}
 
-	// Initialize lib for the first time
-	if n.libHeight == 0 {
-		n.libHeight = block.Height()
-	}
-	for block.Height() >= n.libHeight {
-		block = n.neb.BlockChain().GetBlockOnCanonicalChainByHeight(n.libHeight)
+	for lib.Height() >= n.libHeight {
+		block := n.neb.BlockChain().GetBlockOnCanonicalChainByHeight(n.libHeight)
 		txs := []*core.Transaction{}
 		for _, tx := range block.Transactions() {
 			if tx.Type() == core.TxPayloadProtocolType {
 				txs = append(txs, tx)
 			}
 		}
-		if len(txs) > 0 {
-			handle := unsafe.Pointer(uintptr(block.Height()))
-			//prepare for tx send
-			C.ipc_nbre_ir_transactions_create(handle, C.uint64_t(block.Height()))
 
+		handle := unsafe.Pointer(uintptr(block.Height()))
+		//prepare for tx send
+		C.ipc_nbre_ir_transactions_create(handle, C.uint64_t(block.Height()))
+
+		if len(txs) > 0 {
 			//append tx data
 			for _, tx := range txs {
 				pbTx, err := tx.ToProto()
@@ -262,15 +266,15 @@ func (n *Nbre) checkIRUpdate() {
 				cBytes := (*C.char)(unsafe.Pointer(&bytes[0]))
 				C.ipc_nbre_ir_transactions_append(handle, C.uint64_t(block.Height()), cBytes, C.int32_t(len(bytes)))
 			}
-
-			// commit tx send
-			C.ipc_nbre_ir_transactions_send(handle, C.uint64_t(block.Height()))
-
-			logging.VLog().WithFields(logrus.Fields{
-				"height": block.Height(),
-				"txs":    txs,
-			}).Debug("Update ir block.")
 		}
+
+		// commit tx send
+		C.ipc_nbre_ir_transactions_send(handle, C.uint64_t(block.Height()))
+
+		logging.VLog().WithFields(logrus.Fields{
+			"height":   block.Height(),
+			"ir count": len(txs),
+		}).Debug("Update ir block.")
 
 		n.libHeight++
 	}

@@ -154,7 +154,9 @@ else()
   add_definitions(-DENABLE_UNITTEST)
   add_subdirectory(test)
 endif()
-add_subdirectory(benchmark)
+if(UNIX AND NOT APPLE)
+  add_subdirectory(benchmark)
+endif()
 
 
 file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_common common/*.h common/*.hpp)
