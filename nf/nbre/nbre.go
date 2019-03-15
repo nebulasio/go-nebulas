@@ -239,11 +239,12 @@ func (n *Nbre) checkIRUpdate() {
 				txs = append(txs, tx)
 			}
 		}
-		if len(txs) > 0 {
-			handle := unsafe.Pointer(uintptr(block.Height()))
-			//prepare for tx send
-			C.ipc_nbre_ir_transactions_create(handle, C.uint64_t(block.Height()))
 
+		handle := unsafe.Pointer(uintptr(block.Height()))
+		//prepare for tx send
+		C.ipc_nbre_ir_transactions_create(handle, C.uint64_t(block.Height()))
+
+		if len(txs) > 0 {
 			//append tx data
 			for _, tx := range txs {
 				pbTx, err := tx.ToProto()
@@ -265,21 +266,15 @@ func (n *Nbre) checkIRUpdate() {
 				cBytes := (*C.char)(unsafe.Pointer(&bytes[0]))
 				C.ipc_nbre_ir_transactions_append(handle, C.uint64_t(block.Height()), cBytes, C.int32_t(len(bytes)))
 			}
-
-			// commit tx send
-			C.ipc_nbre_ir_transactions_send(handle, C.uint64_t(block.Height()))
-
-			logging.VLog().WithFields(logrus.Fields{
-				"height":   block.Height(),
-				"ir count": len(txs),
-			}).Info("Update ir block.")
 		}
+
+		// commit tx send
+		C.ipc_nbre_ir_transactions_send(handle, C.uint64_t(block.Height()))
 
 		logging.VLog().WithFields(logrus.Fields{
 			"height":   block.Height(),
-			"lib":      n.libHeight,
 			"ir count": len(txs),
-		}).Debug("Check ir block.")
+		}).Debug("Update ir block.")
 
 		n.libHeight++
 	}

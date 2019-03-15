@@ -21,6 +21,7 @@
 #include "common/common.h"
 #include "runtime/dip/dip_reward.h"
 #include <gtest/gtest.h>
+#include <random>
 #define PRECESION 1e-5
 
 template <typename T> T precesion(const T &x, float pre = PRECESION) {

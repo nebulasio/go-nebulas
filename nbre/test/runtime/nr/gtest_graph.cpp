@@ -21,6 +21,7 @@
 #include "common/common.h"
 #include "runtime/nr/graph/graph.h"
 #include <gtest/gtest.h>
+#include <random>
 
 TEST(test_runtime_graph, add_edge_simple) {
   neb::rt::transaction_graph tg;
