@@ -41,6 +41,8 @@ void nipc_server::init_params(const nbre_params_t &params) {
   neb::configuration::instance().nipc_listen() = params.m_nipc_listen;
   neb::configuration::instance().nipc_port() = params.m_nipc_port;
 
+#if 0
+  // supervisor start failed with reading file
   // read errno_list file
   {
     std::string errno_file =
@@ -58,6 +60,7 @@ void nipc_server::init_params(const nbre_params_t &params) {
     }
     ifs.close();
   }
+#endif
 }
 
 bool nipc_server::start() {
