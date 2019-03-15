@@ -80,9 +80,9 @@ int cpp_ir::make_ir_bitcode(const std::string &cpp_file,
                             const std::string &ir_bc_file) {
   int result = -1;
 
-  std::string current_path = neb::fs::cur_dir();
+  std::string nbre_path = ::neb::configuration::instance().nbre_root_dir();
   std::string command_string(
-      neb::fs::join_path(current_path, "lib_llvm/bin/clang") +
+      neb::fs::join_path(nbre_path, "lib_llvm/bin/clang") +
       " -O2 -c -emit-llvm ");
 
   std::string include_string =

@@ -80,6 +80,10 @@ jit_driver::~jit_driver() { llvm::llvm_shutdown(); }
 
 bool jit_driver::find_mangling(llvm::Module *M, const std::string &func_name,
                                std::string &mangling_name) {
+  if (!M) {
+    return false;
+  }
+
   auto contains = [](const std::string &str,
                      const std::string &substr) -> bool {
     size_t str_len = str.size();
