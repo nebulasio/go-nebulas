@@ -113,10 +113,8 @@ std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
     if (m_auth_ratio != 0 && std::rand() % 1000 < m_auth_ratio * 1000) {
       m_auth_gen =
           std::make_unique<auth_table_generator>(&m_all_accounts, ret.get());
-      address_t nr_admin_addr =
-          neb::to_address(m_all_accounts.random_user_account()->address());
-      address_t dip_admin_addr =
-          neb::to_address(m_all_accounts.random_user_account()->address());
+      address_t nr_admin_addr = m_auth_admin_addr;
+      address_t dip_admin_addr = m_auth_admin_addr;
       m_nr_admin_addr = nr_admin_addr;
       m_dip_admin_addr = dip_admin_addr;
       m_auth_gen->set_auth_admin_addr(m_auth_admin_addr);
@@ -127,8 +125,7 @@ std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
 
     if (m_nr_ratio != 0 && std::rand() % 1000 < m_nr_ratio * 1000) {
       if (m_nr_admin_addr.empty()) {
-        m_nr_admin_addr =
-            neb::to_address(m_all_accounts.random_user_account()->address());
+        m_nr_admin_addr = m_auth_admin_addr;
       }
       m_nr_gen = std::make_unique<nr_ir_generator>(ret.get(), m_nr_admin_addr);
       random_increase_version(m_nr_version);
@@ -141,8 +138,7 @@ std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
 
     if (m_dip_ratio != 0 && std::rand() % 1000 < m_dip_ratio * 1000) {
       if (m_dip_admin_addr.empty()) {
-        m_dip_admin_addr =
-            neb::to_address(m_all_accounts.random_user_account()->address());
+        m_dip_admin_addr = m_auth_admin_addr;
       }
       m_dip_gen =
           std::make_unique<dip_ir_generator>(ret.get(), m_dip_admin_addr);
@@ -150,6 +146,7 @@ std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
       m_dip_gen->m_major_version = m_dip_version.major_version();
       m_dip_gen->m_minor_version = m_dip_version.minor_version();
       m_dip_gen->m_patch_version = m_dip_version.patch_version();
+      m_dip_gen->m_nr_version = m_nr_version.data();
 
       m_dip_gen->run();
     }

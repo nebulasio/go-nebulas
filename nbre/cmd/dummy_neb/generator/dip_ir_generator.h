@@ -42,6 +42,8 @@ public:
   virtual std::shared_ptr<corepb::Transaction> gen_tx();
   virtual checker_tasks::task_container_ptr_t gen_tasks();
 
+  uint64_t m_nr_version;
+
 protected:
   address_t m_dip_admin_addr;
 };

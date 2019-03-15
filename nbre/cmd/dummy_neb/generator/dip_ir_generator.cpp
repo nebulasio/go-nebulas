@@ -130,6 +130,7 @@ std::shared_ptr<corepb::Account> dip_ir_generator::gen_account() {
   return nullptr;
 }
 std::shared_ptr<corepb::Transaction> dip_ir_generator::gen_tx() {
+
   std::string payload =
       gen_dip_with_params(m_block_nums_of_a_day, m_days, m_dip_start_block,
                           m_reward_addr, m_coinbase_addr, m_alpha, m_beta,
@@ -141,6 +142,10 @@ std::shared_ptr<corepb::Transaction> dip_ir_generator::gen_tx() {
   ir.set_height(m_block->height());
   ir.set_ir(payload);
   ir.set_ir_type(neb::ir_type::cpp);
+
+  auto deps_ptr = ir.add_depends();
+  deps_ptr->set_name("nr");
+  deps_ptr->set_version(m_nr_version);
 
   std::string ir_str = ir.SerializeAsString();
   return m_block->add_protocol_transaction(m_dip_admin_addr,
