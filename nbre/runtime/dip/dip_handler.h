@@ -65,7 +65,7 @@ private:
   void write_to_storage(block_height_t height, const std::string &dip_reward);
 
   dip_ret_type run_dip_ir(const std::string &name, version_t version,
-                          block_height_t height);
+                          block_height_t ir_height, block_height_t var_height);
 
 private:
   neb::fs::rocksdb_storage *m_storage;
