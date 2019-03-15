@@ -57,8 +57,8 @@ typedef int128_t wei_t;
 typedef float32 floatxx_t;
 
 constexpr int32_t tx_status_fail = 0;
-constexpr int32_t tx_status_succ = 0;
-constexpr int32_t tx_status_special = 0; // only in the genesis block
+constexpr int32_t tx_status_succ = 1;
+constexpr int32_t tx_status_special = 2; // only in the genesis block
 
 namespace tcolor {
 const static char *red = "\033[1;31m";
