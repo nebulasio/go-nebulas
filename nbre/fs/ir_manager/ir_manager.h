@@ -36,7 +36,7 @@ public:
   ir_manager &operator=(const ir_manager &im) = delete;
 
   std::unique_ptr<nbre::NBREIR> read_ir(const std::string &name,
-                                        uint64_t version);
+                                        version_t version);
   std::unique_ptr<std::vector<nbre::NBREIR>>
   read_irs(const std::string &name, block_height_t height, bool depends);
 
@@ -44,9 +44,8 @@ public:
       util::wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> &q_txs);
 
 private:
-  void read_ir_depends(const std::string &name, uint64_t version,
+  void read_ir_depends(const std::string &name, version_t version,
                        block_height_t height, bool depends,
-                       std::unordered_set<std::string> &ir_set,
                        std::vector<nbre::NBREIR> &irs);
 
   void parse_next_block(block_height_t height,
@@ -59,7 +58,7 @@ private:
   void parse_with_height(block_height_t height,
                          const std::vector<corepb::Transaction> &txs);
 
-  void deploy_if_dip(const std::string &name, uint64_t version,
+  void deploy_if_dip(const std::string &name, version_t version,
                      block_height_t available_height);
 
 private:
