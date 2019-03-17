@@ -45,24 +45,8 @@ ir_manager::ir_manager() {
 ir_manager::~ir_manager() { m_storage->close_database(); }
 
 std::unique_ptr<nbre::NBREIR> ir_manager::read_ir(const std::string &name,
-                                                  uint64_t version) {
-  std::unique_ptr<nbre::NBREIR> nbre_ir = std::make_unique<nbre::NBREIR>();
-  std::stringstream ss;
-  ss << name << version;
-
-  neb::bytes nbre_bytes;
-  try {
-    nbre_bytes = m_storage->get(ss.str());
-  } catch (const std::exception &e) {
-    LOG(INFO) << "no such ir named " << name << " with version " << version
-              << ' ' << e.what();
-  }
-  bool ret = nbre_ir->ParseFromArray(nbre_bytes.value(), nbre_bytes.size());
-  if (!ret) {
-    throw std::runtime_error("parse nbre failed");
-  }
-
-  return nbre_ir;
+                                                  version_t version) {
+  return ir_api::get_ir(name, version, m_storage).second;
 }
 
 std::unique_ptr<std::vector<nbre::NBREIR>>
@@ -78,10 +62,9 @@ ir_manager::read_irs(const std::string &name, block_height_t height,
     return irs;
   }
 
-  std::unordered_set<std::string> ir_set;
   auto versions_ptr = ir_api::get_ir_versions(name, m_storage);
   for (auto version : *versions_ptr) {
-    read_ir_depends(name, version, height, depends, ir_set, *irs);
+    read_ir_depends(name, version, height, depends, *irs);
     if (!irs->empty()) {
       break;
     }
@@ -90,9 +73,8 @@ ir_manager::read_irs(const std::string &name, block_height_t height,
   return irs;
 }
 
-void ir_manager::read_ir_depends(const std::string &name, uint64_t version,
+void ir_manager::read_ir_depends(const std::string &name, version_t version,
                                  block_height_t height, bool depends,
-                                 std::unordered_set<std::string> &ir_set,
                                  std::vector<nbre::NBREIR> &irs) {
 
   if (name == neb::configuration::instance().rt_module_name() &&
@@ -101,37 +83,41 @@ void ir_manager::read_ir_depends(const std::string &name, uint64_t version,
   }
 
   std::unique_ptr<nbre::NBREIR> nbre_ir = std::make_unique<nbre::NBREIR>();
-  std::stringstream ss;
-  ss << name << version;
-  // ir already exists
-  if (ir_set.find(ss.str()) != ir_set.end()) {
-    return;
-  }
+  std::unordered_set<std::string> ir_set;
+  std::queue<std::pair<std::string, version_t>> q;
+  q.push(std::make_pair(name, version));
 
-  neb::bytes nbre_bytes;
-  try {
-    nbre_bytes = m_storage->get(ss.str());
-  } catch (const std::exception &e) {
-    LOG(INFO) << "get ir " << name << " failed " << e.what();
-    return;
-  }
+  while (!q.empty()) {
+    auto &ele = q.front();
+    q.pop();
+    std::stringstream ss;
+    ss << ele.first << ele.second;
 
-  bool ret = nbre_ir->ParseFromArray(nbre_bytes.value(), nbre_bytes.size());
-  if (!ret) {
-    throw std::runtime_error("parse nbre failed");
-  }
+    if (ir_set.find(ss.str()) == ir_set.end()) {
+      ir_set.insert(ss.str());
+      neb::bytes nbre_bytes;
+      try {
+        nbre_bytes = m_storage->get(ss.str());
+      } catch (const std::exception &e) {
+        LOG(INFO) << "get ir " << ele.first << " failed " << e.what();
+        return;
+      }
 
-  if (nbre_ir->height() <= height) {
-    if (depends) {
-      for (auto &dep : nbre_ir->depends()) {
-        read_ir_depends(dep.name(), dep.version(), height, depends, ir_set,
-                        irs);
+      bool ret = nbre_ir->ParseFromArray(nbre_bytes.value(), nbre_bytes.size());
+      if (!ret) {
+        throw std::runtime_error("parse nbre failed");
+      }
+
+      if (nbre_ir->height() <= height) {
+        if (depends) {
+          for (auto &deps : nbre_ir->depends()) {
+            q.push(std::make_pair(deps.name(), deps.version()));
+          }
+        }
+        irs.push_back(*nbre_ir);
       }
     }
-    irs.push_back(*nbre_ir);
-    ir_set.insert(ss.str());
   }
-  return;
 }
 
 void ir_manager::parse_irs(
@@ -248,9 +234,9 @@ void ir_manager::parse_irs_by_height(
     }
 
     const std::string &name = nbre_ir->name();
-    uint64_t version = nbre_ir->version();
-    if (ir_api::ir_version_exist(name, version, m_storage)) {
-      LOG(INFO) << "ignore ir with version: " << version;
+    version_t version = nbre_ir->version();
+    if (ir_api::ir_exist(name, version, m_storage)) {
+      LOG(INFO) << "ignore ir name: " << name << " with version: " << version;
       continue;
     }
 
@@ -273,7 +259,7 @@ void ir_manager::parse_irs_by_height(
       ir_manager_helper::show_auth_table(m_auth_table);
       continue;
     }
-    uint64_t ht = nbre_ir->height();
+    block_height_t ht = nbre_ir->height();
     // ir in auth table but already invalid
     if (ht < std::get<0>(it->second) || ht >= std::get<1>(it->second)) {
       LOG(INFO) << "ir already becomes invalid";
@@ -292,7 +278,7 @@ void ir_manager::parse_irs_by_height(
   }
 }
 
-void ir_manager::deploy_if_dip(const std::string &name, uint64_t version,
+void ir_manager::deploy_if_dip(const std::string &name, version_t version,
                                block_height_t available_height) {
   if (name != std::string("dip")) {
     return;
