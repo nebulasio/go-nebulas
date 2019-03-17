@@ -57,7 +57,8 @@ public:
   std::string get_dip_reward(neb::block_height_t height);
 
 private:
-  std::string get_dip_reward_when_missing(block_height_t height,
+  std::shared_ptr<dip_params_t> get_dip_params_previous(block_height_t height);
+  std::string get_dip_reward_when_missing(block_height_t hash_height,
                                           const dip_params_t &dip_params);
 
   void check_dip_params(block_height_t height);

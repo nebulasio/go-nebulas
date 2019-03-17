@@ -71,6 +71,22 @@ public:
     return std::make_pair(true, ret);
   }
 
+  template <typename Func>
+  std::pair<bool, typename vector_t::value_type>
+  try_previous(const typename vector_t::value_type &op, Func &&f) {
+    r_guard_t _l(m_mutex);
+    if (m_vector.empty()) {
+      return std::make_pair(false, typename vector_t::value_type());
+    }
+    auto it = std::lower_bound(m_vector.begin(), m_vector.end(), op, f);
+    if (it == m_vector.begin()) {
+      return std::make_pair(false, typename vector_t::value_type());
+    }
+    it--;
+    auto ret = *it;
+    return std::make_pair(true, ret);
+  }
+
   size_t size() const {
     r_guard_t _l(m_mutex);
     return m_vector.size();
