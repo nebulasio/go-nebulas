@@ -26,6 +26,8 @@ import "C"
 import (
 	"unsafe"
 
+	"github.com/nebulasio/go-nebulas/nr"
+
 	"encoding/json"
 
 	"github.com/gogo/protobuf/proto"
@@ -424,23 +426,38 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, offset C.ulonglong,
 }
 
 // GetLatestNebulasRankFunc returns nebulas rank value of given account address
-// export GetLatestNebulasRankFunc
+//export GetLatestNebulasRankFunc
 func GetLatestNebulasRankFunc(handler unsafe.Pointer, address *C.char,
 	gasCnt *C.size_t, result **C.char, exceptionInfo **C.char) int {
+
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	if engine == nil || engine.ctx.block == nil {
+		logging.VLog().Error("Unexpected error: failed to get engine")
+		return C.NVM_UNEXPECTED_ERR
+	}
 
 	*result = nil
 	*exceptionInfo = nil
 	*gasCnt = C.size_t(GetLatestNebulasRankGasBase)
-	//addr, err := core.AddressParse(C.GoString(address))
-	_, err := core.AddressParse(C.GoString(address))
+
+	addr, err := core.AddressParse(C.GoString(address))
 	if err != nil {
 		*exceptionInfo = C.CString("Address is invalid")
-		return 0
+		return C.NVM_EXCEPTION_ERR
 	}
 
-	//TODO: add logic to get NR from NBRE
-	testVal := "123.456"
-	*result = C.CString(testVal)
+	data, err := engine.ctx.block.NR().GetNRByAddress(addr)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": engine.ctx.block.Height(),
+			"addr":   addr,
+			"err":    err,
+		}).Debug("Failed to get nr value")
+		*exceptionInfo = C.CString("Failed to get nr value.")
+		return C.NVM_EXCEPTION_ERR
+	}
 
+	item := data.(*nr.NRItem)
+	*result = C.CString(item.Score)
 	return C.NVM_SUCCESS
 }

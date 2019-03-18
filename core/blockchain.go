@@ -70,6 +70,8 @@ type BlockChain struct {
 
 	nvm NVM
 
+	nr NR
+
 	dip Dip
 
 	quitCh chan int
@@ -144,6 +146,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		storage:            neb.Storage(),
 		eventEmitter:       neb.EventEmitter(),
 		nvm:                neb.Nvm(),
+		nr:                 neb.Nr(),
 		dip:                neb.Dip(),
 		quitCh:             make(chan int, 1),
 		superNode:          neb.Config().Chain.SuperNode,

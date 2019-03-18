@@ -22,6 +22,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -30,6 +31,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/nebulasio/go-nebulas/nr"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/account"
@@ -56,8 +59,31 @@ func newUint128FromIntWrapper(a int64) *util.Uint128 {
 	return b
 }
 
+type testNR struct {
+}
+
+func (r *testNR) GetNRByAddress(addr *core.Address) (core.Data, error) {
+	if addr.String() != "n1FkntVUMPAsESuCAAPK711omQk19JotBjM" {
+		return nil, errors.New("nr not found")
+	}
+	data := &nr.NRItem{
+		Score: "10.09",
+	}
+	return data, nil
+}
+
+func (r *testNR) GetNRHandler(start, end, version uint64) (string, error) {
+	return "", nil
+}
+
+func (r *testNR) GetNRList(hash []byte) (core.Data, error) {
+	return nil, nil
+}
+
 type testBlock struct {
 	height uint64
+
+	nr *testNR
 }
 
 // Coinbase mock
@@ -91,6 +117,11 @@ func (block *testBlock) DateAvailable() bool {
 	return true
 }
 
+// NR
+func (block *testBlock) NR() core.NR {
+	return block.nr
+}
+
 // GetTransaction mock
 func (block *testBlock) GetTransaction(hash byteutils.Hash) (*core.Transaction, error) {
 	return nil, nil
@@ -106,12 +137,12 @@ func (block *testBlock) Timestamp() int64 {
 }
 
 func mockBlock() Block {
-	block := &testBlock{core.NvmMemoryLimitWithoutInjectHeight}
+	block := &testBlock{core.NvmMemoryLimitWithoutInjectHeight, &testNR{}}
 	return block
 }
 
 func mockBlockForLib(height uint64) Block {
-	block := &testBlock{height}
+	block := &testBlock{height, &testNR{}}
 	return block
 }
 
@@ -1633,7 +1664,7 @@ func (n *Neb) Dip() core.Dip {
 	return n.dip
 }
 
-func (n *Neb) Nr() core.Nr {
+func (n *Neb) Nr() core.NR {
 	return nil
 }
 
@@ -2062,6 +2093,45 @@ func TestCallTimeout(t *testing.T) {
 			assert.Equal(t, tt.expectedErr, err)
 			engine.Dispose()
 
+		})
+	}
+}
+
+func TestNebulasRank(t *testing.T) {
+	core.SetCompatibilityOptions(100)
+
+	tests := []struct {
+		name         string
+		contractPath string
+		function     string
+		args         string
+		expectedErr  error
+		result       string
+	}{
+		{"case1", "./test/test_nebulas_rank.js", "rank", "[\"addr\"]", core.ErrExecutionFailed, "Address is invalid"},
+		{"case2", "./test/test_nebulas_rank.js", "rank", "[\"n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE\"]", core.ErrExecutionFailed, "Failed to get nr value."},
+		{"case3", "./test/test_nebulas_rank.js", "rank", "[\"n1FkntVUMPAsESuCAAPK711omQk19JotBjM\"]", nil, "\"10.09\""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contractPath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
+			assert.Nil(t, err)
+			owner.AddBalance(newUint128FromIntWrapper(1000000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
+			ctx, err := NewContext(mockBlockForLib(2), mockTransaction(), contract, context)
+
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(900000, 10000000)
+			result, err := engine.Call(string(data), "js", tt.function, tt.args)
+			assert.Equal(t, tt.expectedErr, err)
+			assert.Equal(t, tt.result, result)
+			engine.Dispose()
 		})
 	}
 }

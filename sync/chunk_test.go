@@ -140,7 +140,7 @@ func (n *Neb) Dip() core.Dip {
 	return n.dip
 }
 
-func (n *Neb) Nr() core.Nr {
+func (n *Neb) Nr() core.NR {
 	return nil
 }
 

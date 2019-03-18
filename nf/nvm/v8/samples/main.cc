@@ -238,7 +238,7 @@ int main(int argc, const char *argv[]) {
   InitializeRequireDelegate(RequireDelegateFunc, AttachLibVersionDelegateFunc);
   InitializeExecutionEnvDelegate(AttachLibVersionDelegateFunc);
   InitializeStorage(StorageGet, StoragePut, StorageDel);
-  InitializeBlockchain(GetTxByHash, GetAccountState, Transfer, VerifyAddress, GetPreBlockHash, GetPreBlockSeed);
+  InitializeBlockchain(GetTxByHash, GetAccountState, Transfer, VerifyAddress, GetPreBlockHash, GetPreBlockSeed, GetLatestNebulasRank);
   InitializeEvent(eventTriggerFunc);
 
   int argcIdx = 1;

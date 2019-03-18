@@ -98,7 +98,7 @@ int GetPreBlockSeedFunc_cgo(void *handler, unsigned long long offset, size_t *ga
 }
 
 int GetLatestNebulasRankFunc_cgo(void *handler, const char *address, size_t *gasCnt, char **result, char **info) {
-  return GetLatestNebulasRankFunc(handler, address, gasCnt, result, info);
+ 	return GetLatestNebulasRankFunc(handler, address, gasCnt, result, info);
 }
 
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt) {

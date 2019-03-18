@@ -138,8 +138,7 @@ func InitV8Engine() {
 		(C.VerifyAddressFunc)(unsafe.Pointer(C.VerifyAddressFunc_cgo)),
 		(C.GetPreBlockHashFunc)(unsafe.Pointer(C.GetPreBlockHashFunc_cgo)),
 		(C.GetPreBlockSeedFunc)(unsafe.Pointer(C.GetPreBlockSeedFunc_cgo)),
-    (C.GetLatestNebulasRankFunc)(unsafe.Pointer(C.GetLatestNebulasRankFunc_cgo)),
-	)
+		(C.GetLatestNebulasRankFunc)(unsafe.Pointer(C.GetLatestNebulasRankFunc_cgo)))
 
 	// Event.
 	C.InitializeEvent((C.EventTriggerFunc)(unsafe.Pointer(C.EventTriggerFunc_cgo)))
