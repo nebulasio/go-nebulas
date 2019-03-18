@@ -152,8 +152,24 @@ void graph_algo::bfs_decrease_graph_edges(
     std::unordered_set<transaction_graph::vertex_descriptor_t> &dead_v) {
 
   std::queue<transaction_graph::vertex_descriptor_t> q;
+  std::unordered_map<transaction_graph::vertex_descriptor_t, size_t> dead_in;
   std::unordered_map<transaction_graph::vertex_descriptor_t, size_t> out_dead;
 
+  auto update_dead_in = [&graph, &dead_v, &dead_in](
+                            const transaction_graph::vertex_descriptor_t &v) {
+    transaction_graph::oeiterator_t oei, oei_end;
+    for (boost::tie(oei, oei_end) = boost::out_edges(v, graph); oei != oei_end;
+         oei++) {
+      auto target = boost::target(*oei, graph);
+      if (dead_v.find(target) == dead_v.end()) {
+        if (dead_in.find(target) != dead_in.end()) {
+          dead_in[target]++;
+        } else {
+          dead_in.insert(std::make_pair(target, 1));
+        }
+      }
+    }
+  };
   auto update_out_dead = [&graph, &dead_v, &out_dead](
                              const transaction_graph::vertex_descriptor_t &v) {
     transaction_graph::ieiterator_t iei, iei_end;
@@ -172,12 +188,29 @@ void graph_algo::bfs_decrease_graph_edges(
 
   for (auto &v : dead_v) {
     q.push(v);
+    update_dead_in(v);
     update_out_dead(v);
   }
 
   while (!q.empty()) {
     auto &v = q.front();
     q.pop();
+
+    transaction_graph::oeiterator_t oei, oei_end;
+    for (boost::tie(oei, oei_end) = boost::out_edges(v, graph); oei != oei_end;
+         oei++) {
+      auto target = boost::target(*oei, graph);
+
+      if (dead_v.find(target) == dead_v.end()) {
+        auto ret = boost::in_degree(target, graph);
+        if (ret && dead_in.find(target) != dead_in.end() &&
+            ret == dead_in[target]) {
+          q.push(target);
+          dead_v.insert(target);
+          update_dead_in(target);
+        }
+      }
+    }
 
     transaction_graph::ieiterator_t iei, iei_end;
     for (boost::tie(iei, iei_end) = boost::in_edges(v, graph); iei != iei_end;
@@ -204,8 +237,9 @@ bool graph_algo::decrease_graph_edges(
   transaction_graph::viterator_t vi, vi_end;
   for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
     if (dead_v.find(*vi) == dead_v.end()) {
-      auto ret = boost::out_degree(*vi, graph);
-      if (!ret) {
+      auto ins = boost::in_degree(*vi, graph);
+      auto outs = boost::out_degree(*vi, graph);
+      if (!ins || !outs) {
         dead_v.insert(*vi);
       }
     }
