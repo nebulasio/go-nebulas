@@ -422,3 +422,25 @@ func GetPreBlockSeedFunc(handler unsafe.Pointer, offset C.ulonglong,
 	*result = C.CString(byteutils.Hex(pbBlock.GetHeader().GetRandom().GetVrfSeed()))
 	return C.NVM_SUCCESS
 }
+
+// GetLatestNebulasRankFunc returns nebulas rank value of given account address
+// export GetLatestNebulasRankFunc
+func GetLatestNebulasRankFunc(handler unsafe.Pointer, address *C.char,
+	gasCnt *C.size_t, result **C.char, exceptionInfo **C.char) int {
+
+	*result = nil
+	*exceptionInfo = nil
+	*gasCnt = C.size_t(GetLatestNebulasRankGasBase)
+	//addr, err := core.AddressParse(C.GoString(address))
+	_, err := core.AddressParse(C.GoString(address))
+	if err != nil {
+		*exceptionInfo = C.CString("Address is invalid")
+		return 0
+	}
+
+	//TODO: add logic to get NR from NBRE
+	testVal := "123.456"
+	*result = C.CString(testVal)
+
+	return C.NVM_SUCCESS
+}

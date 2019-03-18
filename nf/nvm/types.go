@@ -76,6 +76,7 @@ const (
 	VerifyAddressGasBase   = 100
 	GetPreBlockHashGasBase = 2000
 	GetPreBlockSeedGasBase = 2000
+  GetLatestNebulasRankGasBase = 20000
 )
 
 // Block interface breaks cycle import dependency and hides unused services.
