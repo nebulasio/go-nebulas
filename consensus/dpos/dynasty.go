@@ -150,6 +150,10 @@ func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 		}
 	}
 	if d.genesisTimestamp > 0 {
+		// for the real genesis block, the timestamp is 0.
+		if timestamp < d.genesisTimestamp {
+			timestamp += d.genesisTimestamp
+		}
 		interval = (timestamp - d.genesisTimestamp) * SecondInMs
 		curDynasty = interval/DynastyIntervalInMs + 1
 	}
