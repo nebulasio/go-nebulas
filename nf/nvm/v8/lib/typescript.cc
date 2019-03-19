@@ -66,7 +66,7 @@ int TypeScriptTranspileDelegate(char **result, Isolate *isolate,
       Integer::New(isolate, source_line_offset));
   MaybeLocal<Script> script = Script::Compile(context, src, &sourceSrcOrigin);
 
-  std::cout<<">>>>>>  Compiling the source code, while the src is: "<<sourceSrcOrigin<<std::endl;
+  std::cout<<">>>>>>  Compiling the source code, while the src is: "<<std::endl;
 
   if (script.IsEmpty()) {
     PrintException(context, trycatch);
