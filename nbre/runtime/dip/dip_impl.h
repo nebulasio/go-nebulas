@@ -35,12 +35,11 @@ using dip_float_t = float32;
 using version_t = compatible_uint64_t;
 using nr_info_t = ::neb::rt::nr::nr_info_t;
 
-dip_ret_type
-entry_point_dip_impl(compatible_uint64_t start_block,
-                     compatible_uint64_t end_block, version_t version,
-                     compatible_uint64_t height,
-                     const std::vector<std::shared_ptr<nr_info_t>> &nr_result,
-                     dip_float_t alpha, dip_float_t beta);
+dip_ret_type entry_point_dip_impl(compatible_uint64_t start_block,
+                                  compatible_uint64_t end_block,
+                                  version_t version, compatible_uint64_t height,
+                                  const nr::nr_ret_type &nr_ret,
+                                  dip_float_t alpha, dip_float_t beta);
 
 std::string dip_param_list(compatible_uint64_t dip_start_block,
                            compatible_uint64_t dip_block_interval,

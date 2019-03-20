@@ -1,8 +1,28 @@
+// Copyright (C) 2018 go-nebulas authors
+//
+// This file is part of the go-nebulas library.
+//
+// the go-nebulas library is free software: you can redistribute it and/or
+// modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// the go-nebulas library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the go-nebulas library.  If not, see
+// <http://www.gnu.org/licenses/>.
+//
 
 #include "runtime/dip/dip_reward.h"
 #include "common/configuration.h"
 #include "common/int128_conversion.h"
 #include "runtime/dip/dip_handler.h"
+#include "runtime/util.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -102,17 +122,18 @@ void dip_reward::full_fill_meta_info(
   }
 }
 
-std::string dip_reward::dip_info_to_json(
-    const std::vector<std::shared_ptr<dip_info_t>> &dip_infos,
-    const std::vector<std::pair<std::string, std::string>> &meta) {
+std::string dip_reward::dip_info_to_json(const dip_ret_type &dip_ret) {
 
   boost::property_tree::ptree root;
   boost::property_tree::ptree arr;
 
-  if (!meta.empty()) {
-    full_fill_meta_info(meta, root);
+  const auto &meta_info_json = std::get<1>(dip_ret);
+  const auto &meta_info = neb::rt::json_to_meta_info(meta_info_json);
+  if (!meta_info.empty()) {
+    full_fill_meta_info(meta_info, root);
   }
 
+  auto &dip_infos = std::get<2>(dip_ret);
   if (dip_infos.empty()) {
     boost::property_tree::ptree p;
     arr.push_back(std::make_pair(std::string(), p));
@@ -144,15 +165,27 @@ std::string dip_reward::dip_info_to_json(
   return tmp;
 }
 
-std::vector<std::shared_ptr<dip_info_t>>
-dip_reward::json_to_dip_info(const std::string &dip_reward) {
+dip_ret_type dip_reward::json_to_dip_info(const std::string &dip_reward) {
+
+  dip_ret_type dip_ret;
+  std::get<0>(dip_ret) = 0;
 
   boost::property_tree::ptree pt;
   std::stringstream ss(dip_reward);
   boost::property_tree::json_parser::read_json(ss, pt);
 
+  auto start_block = pt.get<std::string>("start_height");
+  auto end_block = pt.get<std::string>("end_height");
+  auto version = pt.get<std::string>("version");
+
+  std::vector<std::pair<std::string, std::string>> meta_info;
+  meta_info.push_back(std::make_pair("start_height", start_block));
+  meta_info.push_back(std::make_pair("end_height", end_block));
+  meta_info.push_back(std::make_pair("version", version));
+  std::get<1>(dip_ret) = meta_info_to_json(meta_info);
+
   boost::property_tree::ptree dips = pt.get_child("dips");
-  std::vector<std::shared_ptr<dip_info_t>> infos;
+  auto &infos = std::get<2>(dip_ret);
 
   BOOST_FOREACH (boost::property_tree::ptree::value_type &v, dips) {
     boost::property_tree::ptree nr = v.second;
@@ -167,7 +200,7 @@ dip_reward::json_to_dip_info(const std::string &dip_reward) {
     info.m_reward = nr.get<std::string>("reward");
     infos.push_back(info_ptr);
   }
-  return infos;
+  return dip_ret;
 }
 
 std::unique_ptr<

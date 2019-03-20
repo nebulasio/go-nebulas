@@ -34,12 +34,11 @@ namespace neb {
 namespace rt {
 namespace dip {
 
-dip_ret_type
-entry_point_dip_impl(compatible_uint64_t start_block,
-                     compatible_uint64_t end_block, version_t version,
-                     compatible_uint64_t height,
-                     const std::vector<std::shared_ptr<nr_info_t>> &nr_result,
-                     dip_float_t alpha, dip_float_t beta) {
+dip_ret_type entry_point_dip_impl(compatible_uint64_t start_block,
+                                  compatible_uint64_t end_block,
+                                  version_t version, compatible_uint64_t height,
+                                  const nr::nr_ret_type &nr_ret,
+                                  dip_float_t alpha, dip_float_t beta) {
 
   std::unique_ptr<neb::fs::blockchain_api_base> pba;
   if (neb::use_test_blockchain) {
@@ -63,9 +62,14 @@ entry_point_dip_impl(compatible_uint64_t start_block,
   dip_ret_type ret;
   std::get<0>(ret) = 1;
   std::get<1>(ret) = meta_info_to_json(meta_info);
+
+  auto &nr_result = std::get<2>(nr_ret);
   std::get<2>(ret) = dip_reward::get_dip_reward(
       start_block, end_block, height, nr_result, tdb_ptr, adb_ptr, alpha, beta);
   LOG(INFO) << "get dip reward resurned";
+
+  std::get<3>(ret) = nr_ret;
+  LOG(INFO) << "append nr_ret to dip_ret";
 
   return ret;
 }

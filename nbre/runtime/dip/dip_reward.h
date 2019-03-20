@@ -35,6 +35,9 @@ struct dip_info_t {
 };
 
 using nr_info_t = ::neb::rt::nr::nr_info_t;
+using dip_ret_type =
+    std::tuple<int32_t, std::string, std::vector<std::shared_ptr<dip_info_t>>,
+               nr::nr_ret_type>;
 
 class dip_reward {
 public:
@@ -46,12 +49,8 @@ public:
                  const neb::rt::nr::account_db_ptr_t &adb_ptr, floatxx_t alpha,
                  floatxx_t beta) -> std::vector<std::shared_ptr<dip_info_t>>;
 
-  static std::string dip_info_to_json(
-      const std::vector<std::shared_ptr<dip_info_t>> &dip_infos,
-      const std::vector<std::pair<std::string, std::string>> &meta = {});
-
-  static auto json_to_dip_info(const std::string &dip_reward)
-      -> std::vector<std::shared_ptr<dip_info_t>>;
+  static std::string dip_info_to_json(const dip_ret_type &dip_ret);
+  static dip_ret_type json_to_dip_info(const std::string &dip_reward);
 
 #ifdef ENABLE_UNITTEST
 public:

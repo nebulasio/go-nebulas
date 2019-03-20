@@ -20,6 +20,7 @@
 
 #include "common/common.h"
 #include "runtime/dip/dip_reward.h"
+#include "runtime/util.h"
 #include <gtest/gtest.h>
 #include <random>
 #define PRECESION 1e-5
@@ -53,10 +54,15 @@ gen_dip_infos(std::vector<std::pair<std::string, std::string>> &meta) {
 }
 
 TEST(test_runtime_dip_reward, json_seri_deseri) {
+  neb::rt::dip::dip_ret_type dip_ret;
+  std::get<0>(dip_ret) = 1;
   std::vector<std::pair<std::string, std::string>> meta;
-  auto ret = gen_dip_infos(meta);
-  auto json_str = neb::rt::dip::dip_reward::dip_info_to_json(ret, meta);
-  auto info_v = neb::rt::dip::dip_reward::json_to_dip_info(json_str);
+  std::get<1>(dip_ret) = neb::rt::meta_info_to_json(meta);
+  auto &ret = std::get<2>(dip_ret);
+  ret = gen_dip_infos(meta);
+  auto json_str = neb::rt::dip::dip_reward::dip_info_to_json(dip_ret);
+  dip_ret = neb::rt::dip::dip_reward::json_to_dip_info(json_str);
+  auto &info_v = std::get<2>(dip_ret);
   EXPECT_EQ(ret.size(), info_v.size());
 
   for (size_t i = 0; i < ret.size(); i++) {
