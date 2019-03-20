@@ -43,7 +43,8 @@ dip_handler::dip_handler() : m_has_curr(false) {
 void dip_handler::check_dip_params(block_height_t height) {
 
   if (!m_has_curr && m_incoming.empty()) {
-    load_dip_rewards();
+    load_storage("dip_rewards", m_dip_reward);
+    load_storage("nr_results", m_nr_result);
     auto dip_versions_ptr = neb::fs::ir_api::get_ir_versions("dip", m_storage);
     if (dip_versions_ptr->empty()) {
       return;
@@ -144,12 +145,14 @@ void dip_handler::start(neb::block_height_t height,
       auto dip_ret =
           run_dip_ir(dip_name, dip_version, hash_height, hash_height);
       if (std::get<0>(dip_ret)) {
-        const auto &meta_info_json = std::get<1>(dip_ret);
-        const auto &meta_info = neb::rt::json_to_meta_info(meta_info_json);
-        auto &tmp = std::get<2>(dip_ret);
-        auto dip_str = dip_reward::dip_info_to_json(tmp, meta_info);
-        write_to_storage(hash_height, dip_str);
-        LOG(INFO) << "write dip reward to storage";
+        auto dip_str = dip_reward::dip_info_to_json(dip_ret);
+        dump_storage("dip_rewards", hash_height, dip_str, m_dip_reward);
+        LOG(INFO) << "dump dip rewards done";
+
+        auto &nr_ret = std::get<3>(dip_ret);
+        auto nr_str = nr::nebulas_rank::nr_info_to_json(nr_ret);
+        dump_storage("nr_results", hash_height, nr_str, m_nr_result);
+        LOG(INFO) << "dump nr results done";
       } else {
         LOG(INFO) << std::get<1>(dip_ret);
       }
@@ -262,8 +265,21 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   return ret.second;
 }
 
-void dip_handler::write_to_storage(neb::block_height_t hash_height,
-                                   const std::string &dip_reward) {
+std::string dip_handler::get_nr_result(neb::block_height_t height) {
+  auto ret = m_nr_result.try_lower_bound(height);
+  if (!ret.first) {
+    return std::string("{\"err\":\"no such nr result\"}");
+  }
+  auto &tmp = ret.second;
+  return tmp.second;
+}
+
+void dip_handler::dump_storage(
+    const std::string &key, neb::block_height_t hash_height,
+    const std::string &val,
+    thread_safe_map<block_height_t, std::string> &mem_cache,
+    int32_t storage_max_size) {
+
   auto update_to_storage = [](const std::string &key,
                               const boost::property_tree::ptree &val_pt,
                               neb::fs::rocksdb_storage *rs) {
@@ -272,73 +288,73 @@ void dip_handler::write_to_storage(neb::block_height_t hash_height,
     rs->put(key, neb::string_to_byte(ss.str()));
   };
 
-  LOG(INFO) << "call func write_to_storage";
-  neb::bytes dip_rewards_bytes;
-  std::string key = "dip_rewards";
+  LOG(INFO) << "call func dump_storage";
+  neb::bytes val_bytes;
   try {
-    dip_rewards_bytes = m_storage->get(key);
+    val_bytes = m_storage->get(key);
   } catch (const std::exception &e) {
-    LOG(INFO) << "dip reward empty " << e.what();
+    LOG(INFO) << key << " empty " << e.what();
 
     boost::property_tree::ptree ele, arr, root;
-    ele.put("", dip_reward);
+    ele.put("", val);
     arr.push_back(std::make_pair("", ele));
     root.add_child(key, arr);
     update_to_storage(key, root, m_storage);
 
-    m_dip_reward.insert(std::make_pair(hash_height, dip_reward));
-    LOG(INFO) << "insert dip reward pair height " << hash_height
-              << ", dip_reward " << dip_reward;
+    mem_cache.insert(hash_height, val);
+    LOG(INFO) << "insert " << key << "pair height " << hash_height << ", "
+              << val;
     return;
   }
 
-  LOG(INFO) << "dip reward not empty";
+  LOG(INFO) << key << " not empty";
   boost::property_tree::ptree root;
-  std::stringstream ss(neb::byte_to_string(dip_rewards_bytes));
+  std::stringstream ss(neb::byte_to_string(val_bytes));
   boost::property_tree::json_parser::read_json(ss, root);
 
   boost::property_tree::ptree &arr = root.get_child(key);
   boost::property_tree::ptree ele;
-  ele.put("", dip_reward);
+  ele.put("", val);
   arr.push_back(std::make_pair("", ele));
-  LOG(INFO) << "insert dip_reward";
+  LOG(INFO) << "insert " << key;
   update_to_storage(key, root, m_storage);
 
-  m_dip_reward.insert(std::make_pair(hash_height, dip_reward));
-  LOG(INFO) << "insert dip reward pair height " << hash_height
-            << ", dip_reward " << dip_reward;
+  mem_cache.insert(hash_height, val);
+  LOG(INFO) << "insert " << key << " pair height " << hash_height << ", "
+            << val;
 }
 
-void dip_handler::load_dip_rewards() {
+void dip_handler::load_storage(
+    const std::string &key,
+    thread_safe_map<block_height_t, std::string> &mem_cache) {
 
-  LOG(INFO) << "call func load_dip_rewards";
-  std::string key = "dip_rewards";
-  neb::bytes dip_rewards_bytes;
+  LOG(INFO) << "call func load_storage";
+  neb::bytes val_bytes;
   try {
-    dip_rewards_bytes = m_storage->get(key);
+    val_bytes = m_storage->get(key);
   } catch (const std::exception &e) {
-    LOG(INFO) << "dip reward empty " << e.what();
+    LOG(INFO) << key << " empty " << e.what();
     return;
   }
 
-  LOG(INFO) << "dip reward not empty";
+  LOG(INFO) << key << " not empty";
   boost::property_tree::ptree root;
-  std::stringstream ss(neb::byte_to_string(dip_rewards_bytes));
+  std::stringstream ss(neb::byte_to_string(val_bytes));
   boost::property_tree::json_parser::read_json(ss, root);
 
   BOOST_FOREACH (boost::property_tree::ptree::value_type &v,
                  root.get_child(key)) {
     boost::property_tree::ptree pt = v.second;
-    std::string dip_reward = pt.get<std::string>(std::string());
+    std::string record = pt.get<std::string>(std::string());
 
-    boost::property_tree::ptree reward_pt;
-    std::stringstream ss(dip_reward);
-    boost::property_tree::json_parser::read_json(ss, reward_pt);
-    block_height_t end_height = reward_pt.get<block_height_t>("end_height");
+    boost::property_tree::ptree tmp_pt;
+    std::stringstream ss(record);
+    boost::property_tree::json_parser::read_json(ss, tmp_pt);
+    block_height_t end_height = tmp_pt.get<block_height_t>("end_height");
 
-    m_dip_reward.insert(std::make_pair(end_height + 1, dip_reward));
-    LOG(INFO) << "insert dip reward pair height " << end_height + 1
-              << ", dip_reward " << dip_reward;
+    auto h = end_height + 1;
+    mem_cache.insert(h, record);
+    LOG(INFO) << "insert " << key << " pair height " << h << ", " << record;
   }
 }
 
@@ -364,6 +380,7 @@ dip_ret_type dip_handler::run_dip_ir(const std::string &name, version_t version,
   LOG(INFO) << "dip reward returned";
   return dip_ret;
 }
+
 } // namespace dip
 } // namespace rt
 } // namespace neb

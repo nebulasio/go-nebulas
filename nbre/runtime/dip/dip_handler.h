@@ -43,9 +43,6 @@ typedef ::ff::net::ntpackage<1, start_block, block_interval, reward_addr,
                              coinbase_addr, p_version>
     dip_params_t;
 
-using dip_ret_type =
-    std::tuple<int32_t, std::string, std::vector<std::shared_ptr<dip_info_t>>>;
-
 class dip_handler : public util::singleton<dip_handler> {
 public:
   dip_handler();
@@ -56,20 +53,27 @@ public:
   std::shared_ptr<dip_params_t> get_dip_params(block_height_t height);
   std::string get_dip_reward(neb::block_height_t height);
 
+  std::string get_nr_result(neb::block_height_t height);
+
 private:
   std::shared_ptr<dip_params_t> get_dip_params_previous(block_height_t height);
   std::string get_dip_reward_when_missing(block_height_t hash_height,
                                           const dip_params_t &dip_params);
 
   void check_dip_params(block_height_t height);
-  void load_dip_rewards();
-  void write_to_storage(block_height_t height, const std::string &dip_reward);
-
   dip_ret_type run_dip_ir(const std::string &name, version_t version,
                           block_height_t ir_height, block_height_t var_height);
 
+  void load_storage(const std::string &key,
+                    thread_safe_map<block_height_t, std::string> &mem_cache);
+  void dump_storage(const std::string &key, block_height_t height,
+                    const std::string &val,
+                    thread_safe_map<block_height_t, std::string> &mem_cache,
+                    int32_t storage_max_size = 1024);
+
 private:
   neb::fs::rocksdb_storage *m_storage;
+  thread_safe_map<block_height_t, std::string> m_nr_result;
   thread_safe_map<block_height_t, std::string> m_dip_reward;
   // dip params info list
   thread_safe_vector<std::shared_ptr<dip_params_t>> m_dip_params_list;

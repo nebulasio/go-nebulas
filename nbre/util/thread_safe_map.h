@@ -24,16 +24,21 @@ namespace neb {
 template <typename Key, typename Val, typename Lock = boost::shared_mutex>
 class thread_safe_map {
 public:
-  typedef std::unordered_map<Key, Val> map_t;
+  typedef std::map<Key, Val> map_t;
   typedef Lock lock_t;
   using r_guard_t = boost::shared_lock<lock_t>;
   using w_guard_t = std::unique_lock<lock_t>;
 
   thread_safe_map() = default;
 
-  void insert(const typename map_t::value_type &op) {
+  void insert(const typename map_t::key_type &k,
+              const typename map_t::mapped_type &v) {
     w_guard_t _l(m_mutex);
-    m_map.insert(op);
+    if (m_map.find(k) != m_map.end()) {
+      m_map[k] = v;
+      return;
+    }
+    m_map.insert(std::make_pair(k, v));
   }
 
   std::pair<bool, typename map_t::mapped_type>
@@ -43,6 +48,27 @@ public:
       return std::make_pair(false, typename map_t::mapped_type());
     }
     auto ret = m_map.find(k)->second;
+    return std::make_pair(true, ret);
+  }
+
+  std::pair<bool, typename map_t::mapped_type>
+  try_get_and_update_val(const typename map_t::key_type &k,
+                         const typename map_t::mapped_type &v) {
+    w_guard_t _l(m_mutex);
+    auto ret = try_get_val(k);
+    insert(k, v);
+    return ret;
+  }
+
+  std::pair<bool, typename map_t::value_type>
+  try_lower_bound(const typename map_t::key_type &k) {
+    r_guard_t _l(m_mutex);
+    if (m_map.empty()) {
+      return std::make_pair(false, typename map_t::value_type());
+    }
+    auto it = m_map.upper_bound(k);
+    it--;
+    auto ret = *it;
     return std::make_pair(true, ret);
   }
 
@@ -59,6 +85,11 @@ public:
   bool empty() const {
     r_guard_t _l(m_mutex);
     return m_map.empty();
+  }
+
+  void clear() {
+    w_guard_t _l(m_mutex);
+    m_map.clear();
   }
 
 private:
