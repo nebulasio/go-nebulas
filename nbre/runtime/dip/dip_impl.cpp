@@ -26,7 +26,6 @@
 #include "runtime/dip/dip_handler.h"
 #include "runtime/dip/dip_reward.h"
 #include "runtime/nr/impl/nebulas_rank.h"
-#include "runtime/util.h"
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 

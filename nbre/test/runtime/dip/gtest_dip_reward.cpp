@@ -60,8 +60,8 @@ TEST(test_runtime_dip_reward, json_seri_deseri) {
   std::get<1>(dip_ret) = neb::rt::meta_info_to_json(meta);
   auto &ret = std::get<2>(dip_ret);
   ret = gen_dip_infos(meta);
-  auto json_str = neb::rt::dip::dip_reward::dip_info_to_json(dip_ret);
-  dip_ret = neb::rt::dip::dip_reward::json_to_dip_info(json_str);
+  auto str_ptr = neb::rt::dip::dip_reward::dip_info_to_json(dip_ret);
+  dip_ret = neb::rt::dip::dip_reward::json_to_dip_info(*str_ptr);
   auto &info_v = std::get<2>(dip_ret);
   EXPECT_EQ(ret.size(), info_v.size());
 

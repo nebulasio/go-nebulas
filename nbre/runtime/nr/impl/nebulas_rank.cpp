@@ -21,7 +21,6 @@
 #include "runtime/nr/impl/nebulas_rank.h"
 #include "common/int128_conversion.h"
 #include "common/version.h"
-#include "runtime/util.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -393,7 +392,7 @@ void nebulas_rank::full_fill_meta_info(
   }
 }
 
-std::string nebulas_rank::nr_info_to_json(const nr_ret_type &nr_ret) {
+str_uptr_t nebulas_rank::nr_info_to_json(const nr_ret_type &nr_ret) {
 
   boost::property_tree::ptree root;
   boost::property_tree::ptree arr;
@@ -420,9 +419,9 @@ std::string nebulas_rank::nr_info_to_json(const nr_ret_type &nr_ret) {
 
   std::stringstream ss;
   boost::property_tree::json_parser::write_json(ss, root, false);
-  std::string tmp = ss.str();
-  boost::replace_all(tmp, "[\"\"]", "[]");
-  return tmp;
+  auto tmp_ptr = std::make_unique<std::string>(ss.str());
+  boost::replace_all(*tmp_ptr, "[\"\"]", "[]");
+  return tmp_ptr;
 }
 
 nr_ret_type nebulas_rank::json_to_nr_info(const std::string &nr_result) {

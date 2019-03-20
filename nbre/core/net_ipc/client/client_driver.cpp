@@ -304,10 +304,9 @@ void client_driver::add_handlers() {
             return;
           }
 
-          auto nr_result_str =
-              neb::rt::nr::nebulas_rank::nr_info_to_json(nr_ret);
-          LOG(INFO) << "nr result \n" << nr_result_str;
-          ack->set<p_nr_result>(nr_result_str);
+          auto str_ptr = neb::rt::nr::nebulas_rank::nr_info_to_json(nr_ret);
+          LOG(INFO) << "nr result \n" << *str_ptr;
+          ack->set<p_nr_result>(*str_ptr);
           m_ipc_conn->send(ack);
         } catch (const std::exception &e) {
           LOG(ERROR) << "got exception " << typeid(e).name()
@@ -320,10 +319,10 @@ void client_driver::add_handlers() {
         try {
           auto ack = new_ack_pkg<nbre_nr_result_by_height_ack>(req);
           auto height = req->get<p_height>();
-          auto nr_result =
+          auto ret_ptr =
               neb::rt::dip::dip_handler::instance().get_nr_result(height);
-          LOG(INFO) << "nr result \n" << nr_result;
-          ack->set<p_nr_result>(nr_result);
+          LOG(INFO) << "nr result \n" << *ret_ptr;
+          ack->set<p_nr_result>(*ret_ptr);
           m_ipc_conn->send(ack);
         } catch (const std::exception &e) {
           LOG(ERROR) << "got exception " << typeid(e).name()
@@ -336,9 +335,9 @@ void client_driver::add_handlers() {
         try {
           auto ack = new_ack_pkg<nbre_dip_reward_ack>(req);
           auto height = req->get<p_height>();
-          std::string dip_result =
+          auto ret_ptr =
               neb::rt::dip::dip_handler::instance().get_dip_reward(height);
-          ack->set<p_dip_reward>(dip_result);
+          ack->set<p_dip_reward>(*ret_ptr);
           m_ipc_conn->send(ack);
         } catch (const std::exception &e) {
           LOG(ERROR) << "got exception " << typeid(e).name()

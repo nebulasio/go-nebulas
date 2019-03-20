@@ -23,6 +23,7 @@
 #include "fs/blockchain/account/account_db.h"
 #include "fs/blockchain/transaction/transaction_db.h"
 #include "runtime/nr/graph/algo.h"
+#include "runtime/util.h"
 #include <boost/property_tree/ptree.hpp>
 
 namespace neb {
@@ -66,7 +67,7 @@ public:
                const account_db_ptr_t &adb_ptr, const rank_params_t &rp,
                neb::block_height_t start_block, neb::block_height_t end_block);
 
-  static std::string nr_info_to_json(const nr_ret_type &nr_ret);
+  static str_uptr_t nr_info_to_json(const nr_ret_type &nr_ret);
   static nr_ret_type json_to_nr_info(const std::string &nr_result);
 
 #ifdef ENABLE_UNITTEST

@@ -448,8 +448,8 @@ TEST(test_runtime_nebulas_rank, json_seri_deseri) {
   std::get<0>(nr_ret) = 1;
   std::get<1>(nr_ret) = neb::rt::meta_info_to_json(meta);
   std::get<2>(nr_ret) = infos;
-  auto json_str = neb::rt::nr::nebulas_rank::nr_info_to_json(nr_ret);
-  nr_ret = neb::rt::nr::nebulas_rank::json_to_nr_info(json_str);
+  auto str_ptr = neb::rt::nr::nebulas_rank::nr_info_to_json(nr_ret);
+  nr_ret = neb::rt::nr::nebulas_rank::json_to_nr_info(*str_ptr);
   auto &info_v = std::get<2>(nr_ret);
   EXPECT_EQ(infos_size, info_v.size());
 

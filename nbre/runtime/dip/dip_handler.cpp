@@ -26,7 +26,6 @@
 #include "fs/storage_holder.h"
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_reward.h"
-#include "runtime/util.h"
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -145,13 +144,15 @@ void dip_handler::start(neb::block_height_t height,
       auto dip_ret =
           run_dip_ir(dip_name, dip_version, hash_height, hash_height);
       if (std::get<0>(dip_ret)) {
-        auto dip_str = dip_reward::dip_info_to_json(dip_ret);
-        dump_storage("dip_rewards", hash_height, dip_str, m_dip_reward);
+        auto dip_str_ptr = dip_reward::dip_info_to_json(dip_ret);
+        dump_storage("dip_rewards", hash_height,
+                     str_sptr_t{std::move(dip_str_ptr)}, m_dip_reward);
         LOG(INFO) << "dump dip rewards done";
 
         auto &nr_ret = std::get<3>(dip_ret);
-        auto nr_str = nr::nebulas_rank::nr_info_to_json(nr_ret);
-        dump_storage("nr_results", hash_height, nr_str, m_nr_result);
+        auto nr_str_ptr = nr::nebulas_rank::nr_info_to_json(nr_ret);
+        dump_storage("nr_results", hash_height,
+                     str_sptr_t{std::move(nr_str_ptr)}, m_nr_result);
         LOG(INFO) << "dump nr results done";
       } else {
         LOG(INFO) << std::get<1>(dip_ret);
@@ -220,13 +221,13 @@ dip_handler::get_dip_params(neb::block_height_t height) {
   return ret.second;
 }
 
-std::string dip_handler::get_dip_reward(neb::block_height_t height) {
+str_sptr_t dip_handler::get_dip_reward(neb::block_height_t height) {
   LOG(INFO) << "call func get_dip_reward";
 
   if (!m_has_curr) {
     auto ret = std::string("{\"err\":\"dip params not init yet\"}");
     LOG(INFO) << ret;
-    return ret;
+    return std::make_shared<std::string>(ret);
   }
 
   if (!m_dip_params_list.empty()) {
@@ -238,7 +239,7 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
           boost::format("{\"err\":\"available height is %1%\"}") %
           (first_ele.get<start_block>() + first_ele.get<block_interval>()));
       LOG(INFO) << ret;
-      return ret;
+      return std::make_shared<std::string>(ret);
     }
   }
 
@@ -256,7 +257,8 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
 
   if (!m_dip_reward.exist(hash_height)) {
     LOG(INFO) << "dip reward not exists";
-    return get_dip_reward_when_missing(hash_height, it);
+    auto ret = get_dip_reward_when_missing(hash_height, it);
+    return std::make_shared<std::string>(ret);
   }
   LOG(INFO) << "dip reward exists";
   auto ret = m_dip_reward.try_get_val(hash_height);
@@ -265,10 +267,11 @@ std::string dip_handler::get_dip_reward(neb::block_height_t height) {
   return ret.second;
 }
 
-std::string dip_handler::get_nr_result(neb::block_height_t height) {
+str_sptr_t dip_handler::get_nr_result(neb::block_height_t height) {
   auto ret = m_nr_result.try_lower_bound(height);
   if (!ret.first) {
-    return std::string("{\"err\":\"no such nr result\"}");
+    auto ret = std::string("{\"err\":\"no such nr result\"}");
+    return std::make_shared<std::string>(ret);
   }
   auto &tmp = ret.second;
   return tmp.second;
@@ -276,8 +279,8 @@ std::string dip_handler::get_nr_result(neb::block_height_t height) {
 
 void dip_handler::dump_storage(
     const std::string &key, neb::block_height_t hash_height,
-    const std::string &val,
-    thread_safe_map<block_height_t, std::string> &mem_cache,
+    const str_sptr_t &val_ptr,
+    thread_safe_map<block_height_t, str_sptr_t> &mem_cache,
     int32_t storage_max_size) {
 
   auto update_to_storage = [](const std::string &key,
@@ -296,14 +299,14 @@ void dip_handler::dump_storage(
     LOG(INFO) << key << " empty " << e.what();
 
     boost::property_tree::ptree ele, arr, root;
-    ele.put("", val);
+    ele.put("", *val_ptr);
     arr.push_back(std::make_pair("", ele));
     root.add_child(key, arr);
     update_to_storage(key, root, m_storage);
 
-    mem_cache.insert(hash_height, val);
+    mem_cache.insert(hash_height, val_ptr);
     LOG(INFO) << "insert " << key << "pair height " << hash_height << ", "
-              << val;
+              << *val_ptr;
     return;
   }
 
@@ -314,19 +317,19 @@ void dip_handler::dump_storage(
 
   boost::property_tree::ptree &arr = root.get_child(key);
   boost::property_tree::ptree ele;
-  ele.put("", val);
+  ele.put("", *val_ptr);
   arr.push_back(std::make_pair("", ele));
   LOG(INFO) << "insert " << key;
   update_to_storage(key, root, m_storage);
 
-  mem_cache.insert(hash_height, val);
+  mem_cache.insert(hash_height, val_ptr);
   LOG(INFO) << "insert " << key << " pair height " << hash_height << ", "
-            << val;
+            << *val_ptr;
 }
 
 void dip_handler::load_storage(
     const std::string &key,
-    thread_safe_map<block_height_t, std::string> &mem_cache) {
+    thread_safe_map<block_height_t, str_sptr_t> &mem_cache) {
 
   LOG(INFO) << "call func load_storage";
   neb::bytes val_bytes;
@@ -345,16 +348,18 @@ void dip_handler::load_storage(
   BOOST_FOREACH (boost::property_tree::ptree::value_type &v,
                  root.get_child(key)) {
     boost::property_tree::ptree pt = v.second;
-    std::string record = pt.get<std::string>(std::string());
+    auto record_ptr =
+        std::make_shared<std::string>(pt.get<std::string>(std::string()));
 
     boost::property_tree::ptree tmp_pt;
-    std::stringstream ss(record);
+    std::stringstream ss(*record_ptr);
     boost::property_tree::json_parser::read_json(ss, tmp_pt);
     block_height_t end_height = tmp_pt.get<block_height_t>("end_height");
 
     auto h = end_height + 1;
-    mem_cache.insert(h, record);
-    LOG(INFO) << "insert " << key << " pair height " << h << ", " << record;
+    mem_cache.insert(h, record_ptr);
+    LOG(INFO) << "insert " << key << " pair height " << h << ", "
+              << *record_ptr;
   }
 }
 

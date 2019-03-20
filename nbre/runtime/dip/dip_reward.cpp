@@ -22,7 +22,6 @@
 #include "common/configuration.h"
 #include "common/int128_conversion.h"
 #include "runtime/dip/dip_handler.h"
-#include "runtime/util.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -122,7 +121,7 @@ void dip_reward::full_fill_meta_info(
   }
 }
 
-std::string dip_reward::dip_info_to_json(const dip_ret_type &dip_ret) {
+str_uptr_t dip_reward::dip_info_to_json(const dip_ret_type &dip_ret) {
 
   boost::property_tree::ptree root;
   boost::property_tree::ptree arr;
@@ -159,10 +158,10 @@ std::string dip_reward::dip_info_to_json(const dip_ret_type &dip_ret) {
 
   std::stringstream ss;
   boost::property_tree::json_parser::write_json(ss, root, false);
-  std::string tmp = ss.str();
-  boost::replace_all(tmp, "[\"\"]", "[]");
+  auto tmp_ptr = std::make_unique<std::string>(ss.str());
+  boost::replace_all(*tmp_ptr, "[\"\"]", "[]");
   LOG(INFO) << "ptree serialize done";
-  return tmp;
+  return tmp_ptr;
 }
 
 dip_ret_type dip_reward::json_to_dip_info(const std::string &dip_reward) {

@@ -25,7 +25,6 @@
 #include "common/nebulas_currency.h"
 #include "fs/blockchain/blockchain_api_test.h"
 #include "runtime/nr/impl/nebulas_rank.h"
-#include "runtime/util.h"
 
 namespace neb {
 namespace rt {

@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
 
   if (std::get<0>(nr_ret)) {
     auto ret = neb::rt::nr::nebulas_rank::nr_info_to_json(nr_ret);
-    std::cout << ret << std::endl;
+    std::cout << *ret << std::endl;
   }
   return 0;
 }

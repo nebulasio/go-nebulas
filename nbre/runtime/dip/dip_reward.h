@@ -49,7 +49,7 @@ public:
                  const neb::rt::nr::account_db_ptr_t &adb_ptr, floatxx_t alpha,
                  floatxx_t beta) -> std::vector<std::shared_ptr<dip_info_t>>;
 
-  static std::string dip_info_to_json(const dip_ret_type &dip_ret);
+  static str_uptr_t dip_info_to_json(const dip_ret_type &dip_ret);
   static dip_ret_type json_to_dip_info(const std::string &dip_reward);
 
 #ifdef ENABLE_UNITTEST
