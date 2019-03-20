@@ -44,6 +44,21 @@ func NewNR(neb Neblet) *NR {
 }
 
 // GetNRHandler returns the nr query handler
+func (n *NR) GetNRByAddress(addr *core.Address) (core.Data, error) {
+	data, err := n.GetNRList(nil)
+	if err != nil {
+		return nil, err
+	}
+	nrdata := data.(*NRData)
+	for _, nr := range nrdata.Nrs {
+		if nr.Address == addr.String() {
+			return nr, nil
+		}
+	}
+	return nil, ErrNRNotFound
+}
+
+// GetNRHandler returns the nr query handler
 func (n *NR) GetNRHandler(start, end, version uint64) (string, error) {
 	if start < n.conf.Nbre.StartHeight {
 		return "", ErrInvalidStartHeight

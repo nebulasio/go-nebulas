@@ -650,6 +650,29 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightReq
 	return &rpcpb.GetDynastyResponse{Miners: result}, nil
 }
 
+// GetNRHash return nr item.
+func (s *APIService) GetNRByAddress(ctx context.Context, req *rpcpb.GetNRByAddressRequest) (*rpcpb.NRItem, error) {
+	neb := s.server.Neblet()
+
+	addr, err := core.AddressParse(req.GetAddress())
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := neb.Nr().GetNRByAddress(addr)
+	if err != nil {
+		return nil, err
+	}
+	item := data.(*nr.NRItem)
+
+	return &rpcpb.NRItem{
+		Address: addr.String(),
+		Value:   item.Score,
+		Median:  item.Median,
+		Weight:  item.Weight,
+	}, nil
+}
+
 // GetNRHash return nr query hash.
 func (s *APIService) GetNRHash(ctx context.Context, req *rpcpb.GetNRHashRequest) (*rpcpb.GetNRHashResponse, error) {
 	neb := s.server.Neblet()
@@ -709,7 +732,6 @@ func (s *APIService) GetDIPList(ctx context.Context, req *rpcpb.GetDIPListReques
 	}
 
 	data, err := neb.Dip().GetDipList(height, 0)
-
 	if err != nil {
 		return nil, err
 	}

@@ -83,14 +83,15 @@ typedef int (*GetPreBlockHashFunc)(void *handler, unsigned long long offset, siz
 
 typedef int (*GetPreBlockSeedFunc)(void *handler, unsigned long long offset, size_t *counterVal, char **result, char **info);
 
-
+typedef int (*GetLatestNebulasRankFunc)(void *handler, const char *address, size_t *counterVal, char **result, char **info);
 
 EXPORT void InitializeBlockchain(GetTxByHashFunc getTx,
                                  GetAccountStateFunc getAccount,
                                  TransferFunc transfer,
                                  VerifyAddressFunc verifyAddress,
                                  GetPreBlockHashFunc getPreBlockHash,
-                                 GetPreBlockSeedFunc getPreBlockSeed);
+                                 GetPreBlockSeedFunc getPreBlockSeed,
+                                 GetLatestNebulasRankFunc getLatestNR);
 
 // crypto
 typedef char *(*Sha256Func)(const char *data, size_t *counterVal);

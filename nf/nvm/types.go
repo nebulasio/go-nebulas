@@ -70,12 +70,13 @@ const (
 	CryptoBase64GasBase         = 3000
 
 	//In blockChain
-	GetTxByHashGasBase     = 1000
-	GetAccountStateGasBase = 2000
-	TransferGasBase        = 2000
-	VerifyAddressGasBase   = 100
-	GetPreBlockHashGasBase = 2000
-	GetPreBlockSeedGasBase = 2000
+	GetTxByHashGasBase          = 1000
+	GetAccountStateGasBase      = 2000
+	TransferGasBase             = 2000
+	VerifyAddressGasBase        = 100
+	GetPreBlockHashGasBase      = 2000
+	GetPreBlockSeedGasBase      = 2000
+	GetLatestNebulasRankGasBase = 20000
 )
 
 // Block interface breaks cycle import dependency and hides unused services.
@@ -86,6 +87,7 @@ type Block interface {
 	RandomSeed() string
 	RandomAvailable() bool
 	DateAvailable() bool
+	NR() core.NR
 }
 
 // Transaction interface breaks cycle import dependency and hides unused services.

@@ -40,6 +40,7 @@ int TransferFunc(void *handler, const char *to, const char *value, size_t *gasCn
 int VerifyAddressFunc(void *handler, const char *address, size_t *gasCnt);
 int GetPreBlockHashFunc(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info);
 int GetPreBlockSeedFunc(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info);
+int GetLatestNebulasRankFunc(void *handler, const char *address, size_t *gasCnt, char **result, char **info);
 
 // event.
 void EventTriggerFunc(void *handler, const char *topic, const char *data, size_t *gasCnt);
@@ -94,6 +95,10 @@ int GetPreBlockHashFunc_cgo(void *handler, unsigned long long offset, size_t *ga
 
 int GetPreBlockSeedFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info) {
 	return GetPreBlockSeedFunc(handler, offset, gasCnt, result, info);
+}
+
+int GetLatestNebulasRankFunc_cgo(void *handler, const char *address, size_t *gasCnt, char **result, char **info) {
+ 	return GetLatestNebulasRankFunc(handler, address, gasCnt, result, info);
 }
 
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt) {

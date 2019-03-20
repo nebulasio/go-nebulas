@@ -41,6 +41,7 @@ int TransferFunc_cgo(void *handler, const char *to, const char *value);
 int VerifyAddressFunc_cgo(void *handler, const char *address);
 char *GetPreBlockHashFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt);
 char *GetPreBlockSeedFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt);
+char *GetLatestNebulasRankFunc_cgo(void *handler, const char* address, size_t *gasCnt);
 
 char *Sha256Func_cgo(const char *data, size_t *gasCnt);
 char *Sha3256Func_cgo(const char *data, size_t *gasCnt);
@@ -137,7 +138,7 @@ func InitV8Engine() {
 		(C.VerifyAddressFunc)(unsafe.Pointer(C.VerifyAddressFunc_cgo)),
 		(C.GetPreBlockHashFunc)(unsafe.Pointer(C.GetPreBlockHashFunc_cgo)),
 		(C.GetPreBlockSeedFunc)(unsafe.Pointer(C.GetPreBlockSeedFunc_cgo)),
-	)
+		(C.GetLatestNebulasRankFunc)(unsafe.Pointer(C.GetLatestNebulasRankFunc_cgo)))
 
 	// Event.
 	C.InitializeEvent((C.EventTriggerFunc)(unsafe.Pointer(C.EventTriggerFunc_cgo)))

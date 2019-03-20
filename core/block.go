@@ -148,8 +148,10 @@ type Block struct {
 	txPool       *TransactionPool
 	eventEmitter *EventEmitter
 	nvm          NVM
+	nr           NR
 	dip          Dip
-	storage      storage.Storage
+
+	storage storage.Storage
 }
 
 // ToProto converts domain Block into proto Block
@@ -253,6 +255,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		txPool:       parent.txPool,
 		eventEmitter: parent.eventEmitter,
 		nvm:          parent.nvm,
+		nr:           parent.nr,
 		dip:          parent.dip,
 		storage:      parent.storage,
 	}
@@ -410,6 +413,11 @@ func (block *Block) DateAvailable() bool {
 	return block.height >= DateAvailableHeight
 }
 
+// DateAvailable return nr
+func (block *Block) NR() NR {
+	return block.nr
+}
+
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
 func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error {
 	if !block.ParentHash().Equals(parentBlock.Hash()) {
@@ -433,6 +441,7 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	block.storage = parentBlock.storage
 	block.eventEmitter = parentBlock.eventEmitter
 	block.nvm = parentBlock.nvm
+	block.nr = parentBlock.nr
 	block.dip = parentBlock.dip
 
 	return nil
@@ -1349,6 +1358,7 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 	block.txPool = chain.txPool
 	block.eventEmitter = chain.eventEmitter
 	block.nvm = chain.nvm
+	block.nr = chain.nr
 	block.dip = chain.dip
 	block.storage = chain.storage
 	return block, nil

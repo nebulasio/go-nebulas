@@ -133,9 +133,17 @@ service ApiService {
 		};
     }
 
+    // get nr by address
+    rpc GetNRByAddress (GetNRByAddressRequest) returns (NRItem) {
+        option (google.api.http) = {
+            post: "/v1/user/nr"
+            body: "*"
+		};
+    }
+
     // get nr hash with height interval
     rpc GetNRHash (GetNRHashRequest) returns (GetNRHashResponse) {
-		option (google.api.http) = {
+        option (google.api.http) = {
             post: "/v1/user/getNrHash"
             body: "*"
 		};
@@ -675,6 +683,11 @@ message GetConfigResponse {
     nebletpb.Config config = 1;
 }
 
+message GetNRByAddressRequest {
+    // nr address
+    string address = 1;
+}
+
 message GetNRHashRequest {
     // start block height of nr calculate interval
     uint64 start = 1;
@@ -682,7 +695,7 @@ message GetNRHashRequest {
     // end block height of nr calculate interval. If not specified, use 0 as tail height.
     uint64 end = 2;
 
-    // nr version 
+    // nr version
     uint64 version = 3;
 }
 

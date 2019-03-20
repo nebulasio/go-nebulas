@@ -31,6 +31,7 @@ var (
 	ErrInvalidStartHeight    = errors.New("invalid nr start height")
 	ErrInvalidEndHeight      = errors.New("invalid nr end height")
 	ErrInvalidHeightInterval = errors.New("invalid nr height interval")
+	ErrNRNotFound            = errors.New("nr not found")
 )
 
 type Neblet interface {
@@ -45,6 +46,19 @@ type NRItem struct {
 	Median  string `json:"median"`
 	Weight  string `json:"weight"`
 	Score   string `json:"score"`
+}
+
+// ToBytes serialize data
+func (n *NRItem) ToBytes() ([]byte, error) {
+	return json.Marshal(n)
+}
+
+// FromBytes
+func (n *NRItem) FromBytes(data []byte) error {
+	if err := json.Unmarshal(data, n); err != nil {
+		return err
+	}
+	return nil
 }
 
 // NRData nr data

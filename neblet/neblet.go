@@ -77,7 +77,7 @@ type Neblet struct {
 
 	nbre core.Nbre
 
-	nr core.Nr
+	nr core.NR
 
 	dip core.Dip
 
@@ -440,8 +440,8 @@ func (n *Neblet) Nbre() core.Nbre {
 	return n.nbre
 }
 
-// Nr return the nr
-func (n *Neblet) Nr() core.Nr {
+// NR return the nr
+func (n *Neblet) Nr() core.NR {
 	return n.nr
 }
 
