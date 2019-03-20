@@ -304,10 +304,8 @@ void client_driver::add_handlers() {
             return;
           }
 
-          const auto &meta_info_json = std::get<1>(nr_ret);
-          const auto &meta_info = neb::rt::json_to_meta_info(meta_info_json);
-          auto nr_result_str = neb::rt::nr::nebulas_rank::nr_info_to_json(
-              std::get<2>(nr_ret), meta_info);
+          auto nr_result_str =
+              neb::rt::nr::nebulas_rank::nr_info_to_json(nr_ret);
           LOG(INFO) << "nr result \n" << nr_result_str;
           ack->set<p_nr_result>(nr_result_str);
           m_ipc_conn->send(ack);

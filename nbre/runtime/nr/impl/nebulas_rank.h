@@ -56,6 +56,8 @@ struct rank_params_t {
 using uintxx_t = uint64_t;
 using transaction_db_ptr_t = std::unique_ptr<neb::fs::transaction_db>;
 using account_db_ptr_t = std::unique_ptr<neb::fs::account_db>;
+using nr_ret_type =
+    std::tuple<int32_t, std::string, std::vector<std::shared_ptr<nr_info_t>>>;
 
 class nebulas_rank {
 public:
@@ -64,12 +66,8 @@ public:
                const account_db_ptr_t &adb_ptr, const rank_params_t &rp,
                neb::block_height_t start_block, neb::block_height_t end_block);
 
-  static std::string nr_info_to_json(
-      const std::vector<std::shared_ptr<nr_info_t>> &nr_infos,
-      const std::vector<std::pair<std::string, std::string>> &meta = {});
-
-  static auto json_to_nr_info(const std::string &nr_result)
-      -> std::vector<std::shared_ptr<nr_info_t>>;
+  static std::string nr_info_to_json(const nr_ret_type &nr_ret);
+  static nr_ret_type json_to_nr_info(const std::string &nr_result);
 
 #ifdef ENABLE_UNITTEST
 public:

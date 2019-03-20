@@ -20,6 +20,7 @@
 
 #include "common/common.h"
 #include "runtime/nr/impl/nebulas_rank.h"
+#include "runtime/util.h"
 #include <gtest/gtest.h>
 #include <random>
 #define PRECESION 1e-5
@@ -442,8 +443,14 @@ TEST(test_runtime_nebulas_rank, json_seri_deseri) {
             neb::floatxx_t(dis(mt)), neb::floatxx_t(dis(mt))});
     infos.push_back(info_ptr);
   }
-  auto json_str = neb::rt::nr::nebulas_rank::nr_info_to_json(infos, meta);
-  auto info_v = neb::rt::nr::nebulas_rank::json_to_nr_info(json_str);
+
+  neb::rt::nr::nr_ret_type nr_ret;
+  std::get<0>(nr_ret) = 1;
+  std::get<1>(nr_ret) = neb::rt::meta_info_to_json(meta);
+  std::get<2>(nr_ret) = infos;
+  auto json_str = neb::rt::nr::nebulas_rank::nr_info_to_json(nr_ret);
+  nr_ret = neb::rt::nr::nebulas_rank::json_to_nr_info(json_str);
+  auto &info_v = std::get<2>(nr_ret);
   EXPECT_EQ(infos_size, info_v.size());
 
   for (int32_t i = 0; i < infos_size; i++) {

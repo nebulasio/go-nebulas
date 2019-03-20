@@ -29,9 +29,6 @@ namespace neb {
 namespace rt {
 namespace nr {
 
-using nr_ret_type =
-    std::tuple<int32_t, std::string, std::vector<std::shared_ptr<nr_info_t>>>;
-
 class nr_handler : public util::singleton<nr_handler> {
 public:
   nr_handler();

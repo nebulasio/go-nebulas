@@ -21,6 +21,7 @@
 #include "runtime/nr/impl/nebulas_rank.h"
 #include "common/int128_conversion.h"
 #include "common/version.h"
+#include "runtime/util.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -392,23 +393,24 @@ void nebulas_rank::full_fill_meta_info(
   }
 }
 
-std::string nebulas_rank::nr_info_to_json(
-    const std::vector<std::shared_ptr<nr_info_t>> &rs,
-    const std::vector<std::pair<std::string, std::string>> &meta) {
+std::string nebulas_rank::nr_info_to_json(const nr_ret_type &nr_ret) {
 
   boost::property_tree::ptree root;
   boost::property_tree::ptree arr;
 
-  if (!meta.empty()) {
-    full_fill_meta_info(meta, root);
+  const auto &meta_info_json = std::get<1>(nr_ret);
+  const auto &meta_info = neb::rt::json_to_meta_info(meta_info_json);
+  if (!meta_info.empty()) {
+    full_fill_meta_info(meta_info, root);
   }
 
-  if (rs.empty()) {
+  auto &nr_infos = std::get<2>(nr_ret);
+  if (nr_infos.empty()) {
     boost::property_tree::ptree p;
     arr.push_back(std::make_pair(std::string(), p));
   }
 
-  for (auto &it : rs) {
+  for (auto &it : nr_infos) {
     const neb::rt::nr::nr_info_t &info = *it;
     boost::property_tree::ptree p;
     convert_nr_info_to_ptree(info, p);
@@ -423,15 +425,27 @@ std::string nebulas_rank::nr_info_to_json(
   return tmp;
 }
 
-std::vector<std::shared_ptr<nr_info_t>>
-nebulas_rank::json_to_nr_info(const std::string &nr_result) {
+nr_ret_type nebulas_rank::json_to_nr_info(const std::string &nr_result) {
+
+  nr_ret_type nr_ret;
+  std::get<0>(nr_ret) = 0;
 
   boost::property_tree::ptree pt;
   std::stringstream ss(nr_result);
   boost::property_tree::json_parser::read_json(ss, pt);
 
+  auto start_block = pt.get<std::string>("start_height");
+  auto end_block = pt.get<std::string>("end_height");
+  auto version = pt.get<std::string>("version");
+
+  std::vector<std::pair<std::string, std::string>> meta_info;
+  meta_info.push_back(std::make_pair("start_height", start_block));
+  meta_info.push_back(std::make_pair("end_height", end_block));
+  meta_info.push_back(std::make_pair("version", version));
+  std::get<1>(nr_ret) = meta_info_to_json(meta_info);
+
   boost::property_tree::ptree nrs = pt.get_child("nrs");
-  std::vector<std::shared_ptr<nr_info_t>> infos;
+  auto &infos = std::get<2>(nr_ret);
 
   BOOST_FOREACH (boost::property_tree::ptree::value_type &v, nrs) {
     boost::property_tree::ptree nr = v.second;
@@ -459,8 +473,9 @@ nebulas_rank::json_to_nr_info(const std::string &nr_result) {
     info.m_nr_score = neb::math::from_string<floatxx_t>(score);
     infos.push_back(info_ptr);
   }
+  std::get<0>(nr_ret) = 1;
 
-  return infos;
+  return nr_ret;
 }
 
 } // namespace nr
