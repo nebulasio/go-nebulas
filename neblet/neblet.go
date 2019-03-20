@@ -192,7 +192,11 @@ func (n *Neblet) Setup() {
 	n.nbre = nbre.NewNbre(n)
 
 	// nr
-	n.nr = nr.NewNR(n)
+	if n.nr, err = nr.NewNR(n); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to setup nr.")
+	}
 
 	logging.CLog().Info("Setuped Neblet.")
 }

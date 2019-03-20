@@ -58,9 +58,16 @@ func NbreNrHandleFunc(code C.int, holder unsafe.Pointer, nr_handle *C.char) {
 	nbreHandled(code, holder, result, nil)
 }
 
-// NbreNrResultFunc returns nbre nr list
-//export NbreNrResultFunc
-func NbreNrResultFunc(code C.int, holder unsafe.Pointer, nr_result *C.char) {
+// NbreNrResultByhandleFunc returns nbre nr list
+//export NbreNrResultByhandleFunc
+func NbreNrResultByhandleFunc(code C.int, holder unsafe.Pointer, nr_result *C.char) {
+	result := C.GoString(nr_result)
+	nbreHandled(code, holder, result, nil)
+}
+
+// NbreNrResultByHeightFunc returns nbre nr list
+//export NbreNrResultByHeightFunc
+func NbreNrResultByHeightFunc(code C.int, holder unsafe.Pointer, nr_result *C.char) {
 	result := C.GoString(nr_result)
 	nbreHandled(code, holder, result, nil)
 }

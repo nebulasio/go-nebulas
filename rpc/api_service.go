@@ -659,7 +659,7 @@ func (s *APIService) GetNRByAddress(ctx context.Context, req *rpcpb.GetNRByAddre
 		return nil, err
 	}
 
-	data, err := neb.Nr().GetNRByAddress(addr)
+	data, err := neb.Nr().GetNRByAddress(addr, neb.BlockChain().TailBlock().Height())
 	if err != nil {
 		return nil, err
 	}
