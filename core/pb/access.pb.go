@@ -23,9 +23,12 @@ type Access struct {
 func (m *Access) Reset() { *m = Access{} }
 func (m *Access) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Access) ProtoMessage() {}
 
@@ -51,9 +54,12 @@ type Whitelist struct {
 func (m *Whitelist) Reset() { *m = Whitelist{} }
 func (m *Whitelist) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Whitelist) ProtoMessage() {}
 
@@ -76,9 +82,12 @@ type Blacklist struct {
 func (m *Blacklist) Reset() { *m = Blacklist{} }
 func (m *Blacklist) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Blacklist) ProtoMessage() {}
 
@@ -115,9 +124,12 @@ type Contract struct {
 func (m *Contract) Reset() { *m = Contract{} }
 func (m *Contract) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Contract) ProtoMessage() {}
 
@@ -143,6 +155,9 @@ func (m *Contract) GetKeywords() []string {
 }
 
 func (m *Access) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilAccess
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -181,6 +196,9 @@ func (m *Access) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *Whitelist) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilAccess
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -214,6 +232,9 @@ func (m *Whitelist) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *Blacklist) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilAccess
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -274,6 +295,9 @@ func (m *Blacklist) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *Contract) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilAccess
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -807,4 +831,5 @@ func (m *Contract) Unmarshal(dAtA []byte) error {
 var (
 	ErrInvalidLengthAccess = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowAccess   = fmt.Errorf("proto: integer overflow")
+	ErrNilAccess           = fmt.Errorf("proto: can not deal with nil data")
 )

@@ -58,9 +58,12 @@ type Config struct {
 func (m *Config) Reset() { *m = Config{} }
 func (m *Config) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Config) ProtoMessage() {}
 
@@ -129,9 +132,12 @@ type NetworkConfig struct {
 func (m *NetworkConfig) Reset() { *m = NetworkConfig{} }
 func (m *NetworkConfig) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*NetworkConfig) ProtoMessage() {}
 
@@ -214,9 +220,12 @@ type ChainConfig struct {
 func (m *ChainConfig) Reset() { *m = ChainConfig{} }
 func (m *ChainConfig) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*ChainConfig) ProtoMessage() {}
 
@@ -355,9 +364,12 @@ type RPCConfig struct {
 func (m *RPCConfig) Reset() { *m = RPCConfig{} }
 func (m *RPCConfig) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*RPCConfig) ProtoMessage() {}
 
@@ -418,9 +430,12 @@ type AppConfig struct {
 func (m *AppConfig) Reset() { *m = AppConfig{} }
 func (m *AppConfig) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*AppConfig) ProtoMessage() {}
 
@@ -485,9 +500,12 @@ type PprofConfig struct {
 func (m *PprofConfig) Reset() { *m = PprofConfig{} }
 func (m *PprofConfig) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*PprofConfig) ProtoMessage() {}
 
@@ -520,9 +538,12 @@ type MiscConfig struct {
 func (m *MiscConfig) Reset() { *m = MiscConfig{} }
 func (m *MiscConfig) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*MiscConfig) ProtoMessage() {}
 
@@ -545,9 +566,12 @@ type StatsConfig struct {
 func (m *StatsConfig) Reset() { *m = StatsConfig{} }
 func (m *StatsConfig) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*StatsConfig) ProtoMessage() {}
 
@@ -595,9 +619,12 @@ type InfluxdbConfig struct {
 func (m *InfluxdbConfig) Reset() { *m = InfluxdbConfig{} }
 func (m *InfluxdbConfig) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*InfluxdbConfig) ProtoMessage() {}
 
@@ -654,9 +681,12 @@ type NbreConfig struct {
 func (m *NbreConfig) Reset() { *m = NbreConfig{} }
 func (m *NbreConfig) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*NbreConfig) ProtoMessage() {}
 
@@ -703,6 +733,9 @@ func (m *NbreConfig) GetStartHeight() uint64 {
 }
 
 func (m *Config) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilConfig
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -799,6 +832,9 @@ func (m *Config) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *NetworkConfig) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilConfig
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -868,6 +904,9 @@ func (m *NetworkConfig) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *ChainConfig) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilConfig
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1034,6 +1073,9 @@ func (m *ChainConfig) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *RPCConfig) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilConfig
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1122,6 +1164,9 @@ func (m *RPCConfig) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *AppConfig) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilConfig
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1191,6 +1236,9 @@ func (m *AppConfig) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *PprofConfig) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilConfig
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1227,6 +1275,9 @@ func (m *PprofConfig) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *MiscConfig) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilConfig
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1251,6 +1302,9 @@ func (m *MiscConfig) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *StatsConfig) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilConfig
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1321,6 +1375,9 @@ func (m *StatsConfig) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *InfluxdbConfig) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilConfig
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1368,6 +1425,9 @@ func (m *InfluxdbConfig) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *NbreConfig) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilConfig
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3673,4 +3733,5 @@ func (m *NbreConfig) Unmarshal(dAtA []byte) error {
 var (
 	ErrInvalidLengthConfig = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowConfig   = fmt.Errorf("proto: integer overflow")
+	ErrNilConfig           = fmt.Errorf("proto: can not deal with nil data")
 )

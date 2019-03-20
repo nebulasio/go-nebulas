@@ -22,9 +22,12 @@ type ConsensusRoot struct {
 func (m *ConsensusRoot) Reset() { *m = ConsensusRoot{} }
 func (m *ConsensusRoot) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*ConsensusRoot) ProtoMessage() {}
 
@@ -50,6 +53,9 @@ func (m *ConsensusRoot) GetDynastyRoot() []byte {
 }
 
 func (m *ConsensusRoot) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilState
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -238,4 +244,5 @@ func (m *ConsensusRoot) Unmarshal(dAtA []byte) error {
 var (
 	ErrInvalidLengthState = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowState   = fmt.Errorf("proto: integer overflow")
+	ErrNilState           = fmt.Errorf("proto: can not deal with nil data")
 )

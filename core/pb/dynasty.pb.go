@@ -23,9 +23,12 @@ type Dynasty struct {
 func (m *Dynasty) Reset() { *m = Dynasty{} }
 func (m *Dynasty) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Dynasty) ProtoMessage() {}
 
@@ -51,9 +54,12 @@ type DynastyMeta struct {
 func (m *DynastyMeta) Reset() { *m = DynastyMeta{} }
 func (m *DynastyMeta) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*DynastyMeta) ProtoMessage() {}
 
@@ -74,9 +80,12 @@ type DynastyCandidate struct {
 func (m *DynastyCandidate) Reset() { *m = DynastyCandidate{} }
 func (m *DynastyCandidate) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*DynastyCandidate) ProtoMessage() {}
 
@@ -95,6 +104,9 @@ func (m *DynastyCandidate) GetDynasty() []string {
 }
 
 func (m *Dynasty) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilDynasty
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -135,6 +147,9 @@ func (m *Dynasty) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *DynastyMeta) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilDynasty
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -158,6 +173,9 @@ func (m *DynastyMeta) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *DynastyCandidate) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilDynasty
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -490,4 +508,5 @@ func (m *DynastyCandidate) Unmarshal(dAtA []byte) error {
 var (
 	ErrInvalidLengthDynasty = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowDynasty   = fmt.Errorf("proto: integer overflow")
+	ErrNilDynasty           = fmt.Errorf("proto: can not deal with nil data")
 )

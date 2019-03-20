@@ -21,9 +21,12 @@ type Hello struct {
 func (m *Hello) Reset() { *m = Hello{} }
 func (m *Hello) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Hello) ProtoMessage() {}
 
@@ -49,9 +52,12 @@ type OK struct {
 func (m *OK) Reset() { *m = OK{} }
 func (m *OK) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*OK) ProtoMessage() {}
 
@@ -76,9 +82,12 @@ type Peers struct {
 func (m *Peers) Reset() { *m = Peers{} }
 func (m *Peers) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Peers) ProtoMessage() {}
 
@@ -97,9 +106,12 @@ type PeerInfo struct {
 func (m *PeerInfo) Reset() { *m = PeerInfo{} }
 func (m *PeerInfo) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*PeerInfo) ProtoMessage() {}
 
@@ -118,6 +130,9 @@ func (m *PeerInfo) GetAddrs() []string {
 }
 
 func (m *Hello) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilMessage
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -148,6 +163,9 @@ func (m *Hello) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *OK) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilMessage
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -178,6 +196,9 @@ func (m *OK) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *Peers) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilMessage
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -208,6 +229,9 @@ func (m *Peers) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *PeerInfo) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilMessage
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -650,4 +674,5 @@ func (m *PeerInfo) Unmarshal(dAtA []byte) error {
 var (
 	ErrInvalidLengthMessage = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowMessage   = fmt.Errorf("proto: integer overflow")
+	ErrNilMessage           = fmt.Errorf("proto: can not deal with nil data")
 )

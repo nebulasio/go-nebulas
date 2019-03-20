@@ -21,9 +21,12 @@ type Sync struct {
 func (m *Sync) Reset() { *m = Sync{} }
 func (m *Sync) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Sync) ProtoMessage() {}
 
@@ -42,9 +45,12 @@ type ChunkHeader struct {
 func (m *ChunkHeader) Reset() { *m = ChunkHeader{} }
 func (m *ChunkHeader) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*ChunkHeader) ProtoMessage() {}
 
@@ -70,9 +76,12 @@ type ChunkHeaders struct {
 func (m *ChunkHeaders) Reset() { *m = ChunkHeaders{} }
 func (m *ChunkHeaders) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*ChunkHeaders) ProtoMessage() {}
 
@@ -98,9 +107,12 @@ type ChunkData struct {
 func (m *ChunkData) Reset() { *m = ChunkData{} }
 func (m *ChunkData) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*ChunkData) ProtoMessage() {}
 
@@ -119,6 +131,9 @@ func (m *ChunkData) GetRoot() []byte {
 }
 
 func (m *Sync) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilSync
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -143,6 +158,9 @@ func (m *Sync) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *ChunkHeader) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilSync
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -175,6 +193,9 @@ func (m *ChunkHeader) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *ChunkHeaders) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilSync
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -211,6 +232,9 @@ func (m *ChunkHeaders) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *ChunkData) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilSync
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -668,4 +692,5 @@ func (m *ChunkData) Unmarshal(dAtA []byte) error {
 var (
 	ErrInvalidLengthSync = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowSync   = fmt.Errorf("proto: integer overflow")
+	ErrNilSync           = fmt.Errorf("proto: can not deal with nil data")
 )

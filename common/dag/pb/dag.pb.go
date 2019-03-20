@@ -20,9 +20,12 @@ type Dag struct {
 func (m *Dag) Reset() { *m = Dag{} }
 func (m *Dag) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Dag) ProtoMessage() {}
 
@@ -42,9 +45,12 @@ type Node struct {
 func (m *Node) Reset() { *m = Node{} }
 func (m *Node) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Node) ProtoMessage() {}
 
@@ -70,6 +76,9 @@ func (m *Node) GetChildren() []int32 {
 }
 
 func (m *Dag) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilDag
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -100,6 +109,9 @@ func (m *Dag) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *Node) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilDag
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -418,4 +430,5 @@ func (m *Node) Unmarshal(dAtA []byte) error {
 var (
 	ErrInvalidLengthDag = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowDag   = fmt.Errorf("proto: integer overflow")
+	ErrNilDag           = fmt.Errorf("proto: can not deal with nil data")
 )

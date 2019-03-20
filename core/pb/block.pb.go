@@ -27,9 +27,12 @@ type Account struct {
 func (m *Account) Reset() { *m = Account{} }
 func (m *Account) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Account) ProtoMessage() {}
 
@@ -82,9 +85,12 @@ type ContractMeta struct {
 func (m *ContractMeta) Reset() { *m = ContractMeta{} }
 func (m *ContractMeta) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*ContractMeta) ProtoMessage() {}
 
@@ -103,9 +109,12 @@ type Data struct {
 func (m *Data) Reset() { *m = Data{} }
 func (m *Data) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Data) ProtoMessage() {}
 
@@ -141,9 +150,12 @@ type Transaction struct {
 func (m *Transaction) Reset() { *m = Transaction{} }
 func (m *Transaction) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Transaction) ProtoMessage() {}
 
@@ -249,9 +261,12 @@ type BlockHeader struct {
 func (m *BlockHeader) Reset() { *m = BlockHeader{} }
 func (m *BlockHeader) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*BlockHeader) ProtoMessage() {}
 
@@ -349,9 +364,12 @@ type Block struct {
 func (m *Block) Reset() { *m = Block{} }
 func (m *Block) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Block) ProtoMessage() {}
 
@@ -392,9 +410,12 @@ type NetBlocks struct {
 func (m *NetBlocks) Reset() { *m = NetBlocks{} }
 func (m *NetBlocks) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*NetBlocks) ProtoMessage() {}
 
@@ -428,9 +449,12 @@ type NetBlock struct {
 func (m *NetBlock) Reset() { *m = NetBlock{} }
 func (m *NetBlock) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*NetBlock) ProtoMessage() {}
 
@@ -463,9 +487,12 @@ type DownloadBlock struct {
 func (m *DownloadBlock) Reset() { *m = DownloadBlock{} }
 func (m *DownloadBlock) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*DownloadBlock) ProtoMessage() {}
 
@@ -491,9 +518,12 @@ type Random struct {
 func (m *Random) Reset() { *m = Random{} }
 func (m *Random) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Random) ProtoMessage() {}
 
@@ -512,6 +542,9 @@ func (m *Random) GetVrfProof() []byte {
 }
 
 func (m *Account) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilBlock
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -569,6 +602,9 @@ func (m *Account) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *ContractMeta) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilBlock
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -593,6 +629,9 @@ func (m *ContractMeta) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *Data) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilBlock
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -623,6 +662,9 @@ func (m *Data) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *Transaction) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilBlock
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -713,6 +755,9 @@ func (m *Transaction) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *BlockHeader) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilBlock
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -808,6 +853,9 @@ func (m *BlockHeader) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *Block) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilBlock
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -863,6 +911,9 @@ func (m *Block) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *NetBlocks) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilBlock
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -904,6 +955,9 @@ func (m *NetBlocks) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *NetBlock) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilBlock
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -943,6 +997,9 @@ func (m *NetBlock) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *DownloadBlock) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilBlock
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -973,6 +1030,9 @@ func (m *DownloadBlock) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *Random) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilBlock
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -2848,4 +2908,5 @@ func (m *Random) Unmarshal(dAtA []byte) error {
 var (
 	ErrInvalidLengthBlock = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowBlock   = fmt.Errorf("proto: integer overflow")
+	ErrNilBlock           = fmt.Errorf("proto: can not deal with nil data")
 )

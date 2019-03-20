@@ -26,9 +26,12 @@ type Genesis struct {
 func (m *Genesis) Reset() { *m = Genesis{} }
 func (m *Genesis) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Genesis) ProtoMessage() {}
 
@@ -61,9 +64,12 @@ type GenesisMeta struct {
 func (m *GenesisMeta) Reset() { *m = GenesisMeta{} }
 func (m *GenesisMeta) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GenesisMeta) ProtoMessage() {}
 
@@ -82,9 +88,12 @@ type GenesisConsensus struct {
 func (m *GenesisConsensus) Reset() { *m = GenesisConsensus{} }
 func (m *GenesisConsensus) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GenesisConsensus) ProtoMessage() {}
 
@@ -103,9 +112,12 @@ type GenesisConsensusDpos struct {
 func (m *GenesisConsensusDpos) Reset() { *m = GenesisConsensusDpos{} }
 func (m *GenesisConsensusDpos) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GenesisConsensusDpos) ProtoMessage() {}
 
@@ -124,9 +136,12 @@ type GenesisTokenDistribution struct {
 func (m *GenesisTokenDistribution) Reset() { *m = GenesisTokenDistribution{} }
 func (m *GenesisTokenDistribution) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GenesisTokenDistribution) ProtoMessage() {}
 
@@ -145,6 +160,9 @@ func (m *GenesisTokenDistribution) GetValue() string {
 }
 
 func (m *Genesis) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilGenesis
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -195,6 +213,9 @@ func (m *Genesis) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GenesisMeta) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilGenesis
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -218,6 +239,9 @@ func (m *GenesisMeta) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GenesisConsensus) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilGenesis
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -246,6 +270,9 @@ func (m *GenesisConsensus) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GenesisConsensusDpos) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilGenesis
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -279,6 +306,9 @@ func (m *GenesisConsensusDpos) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GenesisTokenDistribution) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilGenesis
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -791,4 +821,5 @@ func (m *GenesisTokenDistribution) Unmarshal(dAtA []byte) error {
 var (
 	ErrInvalidLengthGenesis = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowGenesis   = fmt.Errorf("proto: integer overflow")
+	ErrNilGenesis           = fmt.Errorf("proto: can not deal with nil data")
 )

@@ -26,9 +26,12 @@ type SubscribeRequest struct {
 func (m *SubscribeRequest) Reset() { *m = SubscribeRequest{} }
 func (m *SubscribeRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*SubscribeRequest) ProtoMessage() {}
 
@@ -48,9 +51,12 @@ type SubscribeResponse struct {
 func (m *SubscribeResponse) Reset() { *m = SubscribeResponse{} }
 func (m *SubscribeResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*SubscribeResponse) ProtoMessage() {}
 
@@ -75,9 +81,12 @@ type NonParamsRequest struct {
 func (m *NonParamsRequest) Reset() { *m = NonParamsRequest{} }
 func (m *NonParamsRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*NonParamsRequest) ProtoMessage() {}
 
@@ -103,9 +112,12 @@ type NodeInfoResponse struct {
 func (m *NodeInfoResponse) Reset() { *m = NodeInfoResponse{} }
 func (m *NodeInfoResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*NodeInfoResponse) ProtoMessage() {}
 
@@ -173,9 +185,12 @@ type RouteTable struct {
 func (m *RouteTable) Reset() { *m = RouteTable{} }
 func (m *RouteTable) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*RouteTable) ProtoMessage() {}
 
@@ -214,9 +229,12 @@ type GetNebStateResponse struct {
 func (m *GetNebStateResponse) Reset() { *m = GetNebStateResponse{} }
 func (m *GetNebStateResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GetNebStateResponse) ProtoMessage() {}
 
@@ -278,9 +296,12 @@ type AccountsResponse struct {
 func (m *AccountsResponse) Reset() { *m = AccountsResponse{} }
 func (m *AccountsResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*AccountsResponse) ProtoMessage() {}
 
@@ -302,9 +323,12 @@ type GetAccountStateRequest struct {
 func (m *GetAccountStateRequest) Reset() { *m = GetAccountStateRequest{} }
 func (m *GetAccountStateRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GetAccountStateRequest) ProtoMessage() {}
 
@@ -339,9 +363,12 @@ type GetAccountStateResponse struct {
 func (m *GetAccountStateResponse) Reset() { *m = GetAccountStateResponse{} }
 func (m *GetAccountStateResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GetAccountStateResponse) ProtoMessage() {}
 
@@ -393,9 +420,12 @@ type CallResponse struct {
 func (m *CallResponse) Reset() { *m = CallResponse{} }
 func (m *CallResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*CallResponse) ProtoMessage() {}
 
@@ -428,9 +458,12 @@ type ByBlockHeightRequest struct {
 func (m *ByBlockHeightRequest) Reset() { *m = ByBlockHeightRequest{} }
 func (m *ByBlockHeightRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*ByBlockHeightRequest) ProtoMessage() {}
 
@@ -449,9 +482,12 @@ type GetDynastyResponse struct {
 func (m *GetDynastyResponse) Reset() { *m = GetDynastyResponse{} }
 func (m *GetDynastyResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GetDynastyResponse) ProtoMessage() {}
 
@@ -489,9 +525,12 @@ type TransactionRequest struct {
 func (m *TransactionRequest) Reset() { *m = TransactionRequest{} }
 func (m *TransactionRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*TransactionRequest) ProtoMessage() {}
 
@@ -579,9 +618,12 @@ type ContractRequest struct {
 func (m *ContractRequest) Reset() { *m = ContractRequest{} }
 func (m *ContractRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*ContractRequest) ProtoMessage() {}
 
@@ -622,9 +664,12 @@ type SendRawTransactionRequest struct {
 func (m *SendRawTransactionRequest) Reset() { *m = SendRawTransactionRequest{} }
 func (m *SendRawTransactionRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*SendRawTransactionRequest) ProtoMessage() {}
 
@@ -646,9 +691,12 @@ type SendTransactionResponse struct {
 func (m *SendTransactionResponse) Reset() { *m = SendTransactionResponse{} }
 func (m *SendTransactionResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*SendTransactionResponse) ProtoMessage() {}
 
@@ -677,9 +725,12 @@ type GetBlockByHashRequest struct {
 func (m *GetBlockByHashRequest) Reset() { *m = GetBlockByHashRequest{} }
 func (m *GetBlockByHashRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GetBlockByHashRequest) ProtoMessage() {}
 
@@ -708,9 +759,12 @@ type GetBlockByHeightRequest struct {
 func (m *GetBlockByHeightRequest) Reset() { *m = GetBlockByHeightRequest{} }
 func (m *GetBlockByHeightRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GetBlockByHeightRequest) ProtoMessage() {}
 
@@ -737,9 +791,12 @@ type GetTransactionByHashRequest struct {
 func (m *GetTransactionByHashRequest) Reset() { *m = GetTransactionByHashRequest{} }
 func (m *GetTransactionByHashRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GetTransactionByHashRequest) ProtoMessage() {}
 
@@ -759,9 +816,12 @@ type GetTransactionByContractRequest struct {
 func (m *GetTransactionByContractRequest) Reset() { *m = GetTransactionByContractRequest{} }
 func (m *GetTransactionByContractRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GetTransactionByContractRequest) ProtoMessage() {}
 
@@ -811,9 +871,12 @@ type BlockResponse struct {
 func (m *BlockResponse) Reset() { *m = BlockResponse{} }
 func (m *BlockResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*BlockResponse) ProtoMessage() {}
 
@@ -962,9 +1025,12 @@ type TransactionResponse struct {
 func (m *TransactionResponse) Reset() { *m = TransactionResponse{} }
 func (m *TransactionResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*TransactionResponse) ProtoMessage() {}
 
@@ -1094,9 +1160,12 @@ type NewAccountRequest struct {
 func (m *NewAccountRequest) Reset() { *m = NewAccountRequest{} }
 func (m *NewAccountRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*NewAccountRequest) ProtoMessage() {}
 
@@ -1114,9 +1183,12 @@ type NewAccountResponse struct {
 func (m *NewAccountResponse) Reset() { *m = NewAccountResponse{} }
 func (m *NewAccountResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*NewAccountResponse) ProtoMessage() {}
 
@@ -1136,9 +1208,12 @@ type UnlockAccountRequest struct {
 func (m *UnlockAccountRequest) Reset() { *m = UnlockAccountRequest{} }
 func (m *UnlockAccountRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*UnlockAccountRequest) ProtoMessage() {}
 
@@ -1170,9 +1245,12 @@ type UnlockAccountResponse struct {
 func (m *UnlockAccountResponse) Reset() { *m = UnlockAccountResponse{} }
 func (m *UnlockAccountResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*UnlockAccountResponse) ProtoMessage() {}
 
@@ -1190,9 +1268,12 @@ type LockAccountRequest struct {
 func (m *LockAccountRequest) Reset() { *m = LockAccountRequest{} }
 func (m *LockAccountRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*LockAccountRequest) ProtoMessage() {}
 
@@ -1210,9 +1291,12 @@ type LockAccountResponse struct {
 func (m *LockAccountResponse) Reset() { *m = LockAccountResponse{} }
 func (m *LockAccountResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*LockAccountResponse) ProtoMessage() {}
 
@@ -1235,9 +1319,12 @@ type SignHashRequest struct {
 func (m *SignHashRequest) Reset() { *m = SignHashRequest{} }
 func (m *SignHashRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*SignHashRequest) ProtoMessage() {}
 
@@ -1269,9 +1356,12 @@ type SignHashResponse struct {
 func (m *SignHashResponse) Reset() { *m = SignHashResponse{} }
 func (m *SignHashResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*SignHashResponse) ProtoMessage() {}
 
@@ -1294,9 +1384,12 @@ type GenerateRandomSeedRequest struct {
 func (m *GenerateRandomSeedRequest) Reset() { *m = GenerateRandomSeedRequest{} }
 func (m *GenerateRandomSeedRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GenerateRandomSeedRequest) ProtoMessage() {}
 
@@ -1329,9 +1422,12 @@ type GenerateRandomSeedResponse struct {
 func (m *GenerateRandomSeedResponse) Reset() { *m = GenerateRandomSeedResponse{} }
 func (m *GenerateRandomSeedResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GenerateRandomSeedResponse) ProtoMessage() {}
 
@@ -1359,9 +1455,12 @@ type SignTransactionPassphraseRequest struct {
 func (m *SignTransactionPassphraseRequest) Reset() { *m = SignTransactionPassphraseRequest{} }
 func (m *SignTransactionPassphraseRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*SignTransactionPassphraseRequest) ProtoMessage() {}
 
@@ -1386,9 +1485,12 @@ type SignTransactionPassphraseResponse struct {
 func (m *SignTransactionPassphraseResponse) Reset() { *m = SignTransactionPassphraseResponse{} }
 func (m *SignTransactionPassphraseResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*SignTransactionPassphraseResponse) ProtoMessage() {}
 
@@ -1409,9 +1511,12 @@ type SendTransactionPassphraseRequest struct {
 func (m *SendTransactionPassphraseRequest) Reset() { *m = SendTransactionPassphraseRequest{} }
 func (m *SendTransactionPassphraseRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*SendTransactionPassphraseRequest) ProtoMessage() {}
 
@@ -1436,9 +1541,12 @@ type GasPriceResponse struct {
 func (m *GasPriceResponse) Reset() { *m = GasPriceResponse{} }
 func (m *GasPriceResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GasPriceResponse) ProtoMessage() {}
 
@@ -1458,9 +1566,12 @@ type HashRequest struct {
 func (m *HashRequest) Reset() { *m = HashRequest{} }
 func (m *HashRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*HashRequest) ProtoMessage() {}
 
@@ -1479,9 +1590,12 @@ type GasResponse struct {
 func (m *GasResponse) Reset() { *m = GasResponse{} }
 func (m *GasResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GasResponse) ProtoMessage() {}
 
@@ -1506,9 +1620,12 @@ type EventsResponse struct {
 func (m *EventsResponse) Reset() { *m = EventsResponse{} }
 func (m *EventsResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*EventsResponse) ProtoMessage() {}
 
@@ -1527,9 +1644,12 @@ type Event struct {
 func (m *Event) Reset() { *m = Event{} }
 func (m *Event) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*Event) ProtoMessage() {}
 
@@ -1554,9 +1674,12 @@ type PprofRequest struct {
 func (m *PprofRequest) Reset() { *m = PprofRequest{} }
 func (m *PprofRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*PprofRequest) ProtoMessage() {}
 
@@ -1574,9 +1697,12 @@ type PprofResponse struct {
 func (m *PprofResponse) Reset() { *m = PprofResponse{} }
 func (m *PprofResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*PprofResponse) ProtoMessage() {}
 
@@ -1595,9 +1721,12 @@ type GetConfigResponse struct {
 func (m *GetConfigResponse) Reset() { *m = GetConfigResponse{} }
 func (m *GetConfigResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GetConfigResponse) ProtoMessage() {}
 
@@ -1618,9 +1747,12 @@ type VerifySignatureRequest struct {
 func (m *VerifySignatureRequest) Reset() { *m = VerifySignatureRequest{} }
 func (m *VerifySignatureRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*VerifySignatureRequest) ProtoMessage() {}
 
@@ -1660,9 +1792,12 @@ type VerifySignatureResponse struct {
 func (m *VerifySignatureResponse) Reset() { *m = VerifySignatureResponse{} }
 func (m *VerifySignatureResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*VerifySignatureResponse) ProtoMessage() {}
 
@@ -1692,9 +1827,12 @@ type GetNRHashRequest struct {
 func (m *GetNRHashRequest) Reset() { *m = GetNRHashRequest{} }
 func (m *GetNRHashRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GetNRHashRequest) ProtoMessage() {}
 
@@ -1726,9 +1864,12 @@ type GetNRHashResponse struct {
 func (m *GetNRHashResponse) Reset() { *m = GetNRHashResponse{} }
 func (m *GetNRHashResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GetNRHashResponse) ProtoMessage() {}
 
@@ -1747,9 +1888,12 @@ type GetNRListRequest struct {
 func (m *GetNRListRequest) Reset() { *m = GetNRListRequest{} }
 func (m *GetNRListRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GetNRListRequest) ProtoMessage() {}
 
@@ -1774,9 +1918,12 @@ type GetNRListResponse struct {
 func (m *GetNRListResponse) Reset() { *m = GetNRListResponse{} }
 func (m *GetNRListResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GetNRListResponse) ProtoMessage() {}
 
@@ -1820,9 +1967,12 @@ type NRItem struct {
 func (m *NRItem) Reset() { *m = NRItem{} }
 func (m *NRItem) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*NRItem) ProtoMessage() {}
 
@@ -1862,9 +2012,12 @@ type GetDIPListRequest struct {
 func (m *GetDIPListRequest) Reset() { *m = GetDIPListRequest{} }
 func (m *GetDIPListRequest) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GetDIPListRequest) ProtoMessage() {}
 
@@ -1889,9 +2042,12 @@ type GetDIPListResponse struct {
 func (m *GetDIPListResponse) Reset() { *m = GetDIPListResponse{} }
 func (m *GetDIPListResponse) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*GetDIPListResponse) ProtoMessage() {}
 
@@ -1935,9 +2091,12 @@ type DIPItem struct {
 func (m *DIPItem) Reset() { *m = DIPItem{} }
 func (m *DIPItem) String() string {
 	if b, err := m.Marshal(); err == nil {
+		if b == nil {
+			return string("nil")
+		}
 		return string(b)
 	}
-	return string("")
+	return string("error")
 }
 func (*DIPItem) ProtoMessage() {}
 
@@ -3103,6 +3262,9 @@ var _AdminService_serviceDesc = grpc.ServiceDesc{
 }
 
 func (m *SubscribeRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3136,6 +3298,9 @@ func (m *SubscribeRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *SubscribeResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3166,6 +3331,9 @@ func (m *SubscribeResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *NonParamsRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3184,6 +3352,9 @@ func (m *NonParamsRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *NodeInfoResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3257,6 +3428,9 @@ func (m *NodeInfoResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *RouteTable) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3296,6 +3470,9 @@ func (m *RouteTable) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GetNebStateResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3358,6 +3535,9 @@ func (m *GetNebStateResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *AccountsResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3391,6 +3571,9 @@ func (m *AccountsResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GetAccountStateRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3420,6 +3603,9 @@ func (m *GetAccountStateRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GetAccountStateResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3464,6 +3650,9 @@ func (m *GetAccountStateResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *CallResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3500,6 +3689,9 @@ func (m *CallResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *ByBlockHeightRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3523,6 +3715,9 @@ func (m *ByBlockHeightRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GetDynastyResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3556,6 +3751,9 @@ func (m *GetDynastyResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *TransactionRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3639,6 +3837,9 @@ func (m *TransactionRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *ContractRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3681,6 +3882,9 @@ func (m *ContractRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *SendRawTransactionRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3705,6 +3909,9 @@ func (m *SendRawTransactionRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *SendTransactionResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3735,6 +3942,9 @@ func (m *SendTransactionResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GetBlockByHashRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3769,6 +3979,9 @@ func (m *GetBlockByHashRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GetBlockByHeightRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3802,6 +4015,9 @@ func (m *GetBlockByHeightRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GetTransactionByHashRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3826,6 +4042,9 @@ func (m *GetTransactionByHashRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GetTransactionByContractRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3850,6 +4069,9 @@ func (m *GetTransactionByContractRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *BlockResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3976,6 +4198,9 @@ func (m *BlockResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *TransactionResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4095,6 +4320,9 @@ func (m *TransactionResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *NewAccountRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4119,6 +4347,9 @@ func (m *NewAccountRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *NewAccountResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4143,6 +4374,9 @@ func (m *NewAccountResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *UnlockAccountRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4178,6 +4412,9 @@ func (m *UnlockAccountRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *UnlockAccountResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4206,6 +4443,9 @@ func (m *UnlockAccountResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *LockAccountRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4230,6 +4470,9 @@ func (m *LockAccountRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *LockAccountResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4258,6 +4501,9 @@ func (m *LockAccountResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *SignHashRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4293,6 +4539,9 @@ func (m *SignHashRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *SignHashResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4317,6 +4566,9 @@ func (m *SignHashResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GenerateRandomSeedRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4353,6 +4605,9 @@ func (m *GenerateRandomSeedRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GenerateRandomSeedResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4383,6 +4638,9 @@ func (m *GenerateRandomSeedResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *SignTransactionPassphraseRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4417,6 +4675,9 @@ func (m *SignTransactionPassphraseRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *SignTransactionPassphraseResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4441,6 +4702,9 @@ func (m *SignTransactionPassphraseResponse) MarshalTo(dAtA []byte) (int, error) 
 }
 
 func (m *SendTransactionPassphraseRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4475,6 +4739,9 @@ func (m *SendTransactionPassphraseRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GasPriceResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4499,6 +4766,9 @@ func (m *GasPriceResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *HashRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4523,6 +4793,9 @@ func (m *HashRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GasResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4553,6 +4826,9 @@ func (m *GasResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *EventsResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4583,6 +4859,9 @@ func (m *EventsResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *Event) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4613,6 +4892,9 @@ func (m *Event) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *PprofRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4637,6 +4919,9 @@ func (m *PprofRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *PprofResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4665,6 +4950,9 @@ func (m *PprofResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GetConfigResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4693,6 +4981,9 @@ func (m *GetConfigResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *VerifySignatureRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4734,6 +5025,9 @@ func (m *VerifySignatureRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *VerifySignatureResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4768,6 +5062,9 @@ func (m *VerifySignatureResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GetNRHashRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4801,6 +5098,9 @@ func (m *GetNRHashRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GetNRHashResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4825,6 +5125,9 @@ func (m *GetNRHashResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GetNRListRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4849,6 +5152,9 @@ func (m *GetNRListRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GetNRListResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4894,6 +5200,9 @@ func (m *GetNRListResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *NRItem) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4936,6 +5245,9 @@ func (m *NRItem) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GetDIPListRequest) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4959,6 +5271,9 @@ func (m *GetDIPListRequest) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GetDIPListResponse) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -5004,6 +5319,9 @@ func (m *GetDIPListResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *DIPItem) Marshal() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, ErrNilRpc
+	}
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -11375,4 +11693,5 @@ func (m *DIPItem) Unmarshal(dAtA []byte) error {
 var (
 	ErrInvalidLengthRpc = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowRpc   = fmt.Errorf("proto: integer overflow")
+	ErrNilRpc           = fmt.Errorf("proto: can not deal with nil data")
 )
