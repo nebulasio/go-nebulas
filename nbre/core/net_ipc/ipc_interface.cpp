@@ -247,13 +247,26 @@ void set_recv_nbre_nr_handle_callback(nbre_nr_handle_callback_t func) {
   ipc_callback<nbre_nr_handle_ack, p_holder, p_nr_handle>::bind(func, _2, _3);
 }
 
-// interface get nr result
-int ipc_nbre_nr_result(void *holder, const char *nr_handle) {
-  return ipc_call<nbre_nr_result_req, p_holder, p_nr_handle>::bind(holder,
-                                                                   nr_handle);
+// interface get nr result by handle
+int ipc_nbre_nr_result_by_handle(void *holder, const char *nr_handle) {
+  return ipc_call<nbre_nr_result_by_handle_req, p_holder, p_nr_handle>::bind(
+      holder, nr_handle);
 }
-void set_recv_nbre_nr_result_callback(nbre_nr_result_callback_t func) {
-  ipc_callback<nbre_nr_result_ack, p_holder, p_nr_result>::bind(func, _2, _3);
+void set_recv_nbre_nr_result_by_handle_callback(
+    nbre_nr_result_by_handle_callback_t func) {
+  ipc_callback<nbre_nr_result_by_handle_ack, p_holder, p_nr_result>::bind(
+      func, _2, _3);
+}
+
+// interface get nr result by height
+int ipc_nbre_nr_result_by_height(void *holder, uint64_t height) {
+  return ipc_call<nbre_nr_result_by_height_req, p_holder, p_height>::bind(
+      holder, height);
+}
+void set_recv_nbre_nr_result_by_height_callback(
+    nbre_nr_result_by_height_callback_t func) {
+  ipc_callback<nbre_nr_result_by_height_ack, p_holder, p_nr_result>::bind(
+      func, _2, _3);
 }
 
 // interface get dip reward

@@ -55,7 +55,7 @@ void nbre_nr_result_check::check() {
         apply_result(result);
       });
   m_b_is_running = true;
-  ipc_nbre_nr_result(this, m_nr_handle.c_str());
+  ipc_nbre_nr_result_by_handle(this, m_nr_handle.c_str());
 }
 
 std::string nbre_nr_result_check::name() const {

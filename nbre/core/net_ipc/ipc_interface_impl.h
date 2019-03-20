@@ -61,9 +61,13 @@ define_ipc_pkg(nbre_nr_handle_ack, p_holder, p_nr_handle)
 define_ipc_api(nbre_nr_handle_req, nbre_nr_handle_ack)
 
 define_ipc_param(std::string, p_nr_result)
-define_ipc_pkg(nbre_nr_result_req, p_holder, p_nr_handle)
-define_ipc_pkg(nbre_nr_result_ack, p_holder, p_nr_result)
-define_ipc_api(nbre_nr_result_req, nbre_nr_result_ack)
+define_ipc_pkg(nbre_nr_result_by_handle_req, p_holder, p_nr_handle)
+define_ipc_pkg(nbre_nr_result_by_handle_ack, p_holder, p_nr_result)
+define_ipc_api(nbre_nr_result_by_handle_req, nbre_nr_result_by_handle_ack)
+
+define_ipc_pkg(nbre_nr_result_by_height_req, p_holder, p_height)
+define_ipc_pkg(nbre_nr_result_by_height_ack, p_holder, p_nr_result)
+define_ipc_api(nbre_nr_result_by_height_req, nbre_nr_result_by_height_ack)
 
 define_ipc_param(uint64_t, p_version)
 define_ipc_param(std::string, p_dip_reward)

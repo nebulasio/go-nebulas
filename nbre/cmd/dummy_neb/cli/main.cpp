@@ -107,8 +107,8 @@ public:
     start_and_join();
   }
   void send_nr_result_req(const std::string &handle) {
-    std::shared_ptr<nbre_nr_result_req> req =
-        std::make_shared<nbre_nr_result_req>();
+    std::shared_ptr<nbre_nr_result_by_handle_req> req =
+        std::make_shared<nbre_nr_result_by_handle_req>();
     req->set<p_holder>(reinterpret_cast<uint64_t>(this));
     req->set<p_nr_handle>(handle);
     m_package = req;
@@ -152,8 +152,8 @@ protected:
           conn->close();
           exit(-1);
         });
-    hub.to_recv_pkg<nbre_nr_result_ack>(
-        [&](std::shared_ptr<nbre_nr_result_ack> ack) {
+    hub.to_recv_pkg<nbre_nr_result_by_handle_ack>(
+        [&](std::shared_ptr<nbre_nr_result_by_handle_ack> ack) {
           std::cout << "\t " << ack->get<p_nr_result>() << std::endl;
           conn->close();
           exit(-1);

@@ -66,8 +66,8 @@ random_dummy::random_dummy(const std::string &name, int initial_account_num,
           m_pkgs.push_back(req);
         });
 
-    hub.to_recv_pkg<nbre_nr_result_req>(
-        [this](std::shared_ptr<nbre_nr_result_req> req) {
+    hub.to_recv_pkg<nbre_nr_result_by_handle_req>(
+        [this](std::shared_ptr<nbre_nr_result_by_handle_req> req) {
           m_pkgs.push_back(req);
         });
 
@@ -272,18 +272,20 @@ void random_dummy::handle_cli_pkgs() {
                          req->get<p_start_block>(), req->get<p_end_block>(),
                          req->get<p_nr_version>());
 
-    } else if (pkg->type_id() == nbre_nr_result_req_pkg) {
-      nbre_nr_result_req *req = (nbre_nr_result_req *)pkg.get();
+    } else if (pkg->type_id() == nbre_nr_result_by_handle_req_pkg) {
+      nbre_nr_result_by_handle_req *req =
+          (nbre_nr_result_by_handle_req *)pkg.get();
       callback_handler::instance().add_nr_result_handler(
           req->get<p_holder>(), [this](uint64_t holder, const char *nr_result) {
-            std::shared_ptr<nbre_nr_result_ack> ack =
-                std::make_shared<nbre_nr_result_ack>();
+            std::shared_ptr<nbre_nr_result_by_handle_ack> ack =
+                std::make_shared<nbre_nr_result_by_handle_ack>();
             ack->set<p_holder>(holder);
             ack->set<p_nr_result>(std::string(nr_result));
             m_conn->send(ack);
           });
-      ipc_nbre_nr_result(reinterpret_cast<void *>(req->get<p_holder>()),
-                         req->get<p_nr_handle>().c_str());
+      ipc_nbre_nr_result_by_handle(
+          reinterpret_cast<void *>(req->get<p_holder>()),
+          req->get<p_nr_handle>().c_str());
     } else if (pkg->type_id() == nbre_dip_reward_req_pkg) {
       nbre_dip_reward_req *req = (nbre_dip_reward_req *)pkg.get();
       callback_handler::instance().add_dip_reward_handler(

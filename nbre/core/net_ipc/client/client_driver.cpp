@@ -291,10 +291,10 @@ void client_driver::add_handlers() {
                      << " with what: " << e.what();
         }
       });
-  m_client->add_handler<nbre_nr_result_req>(
-      [this](std::shared_ptr<nbre_nr_result_req> req) {
+  m_client->add_handler<nbre_nr_result_by_handle_req>(
+      [this](std::shared_ptr<nbre_nr_result_by_handle_req> req) {
         try {
-          auto ack = new_ack_pkg<nbre_nr_result_ack>(req);
+          auto ack = new_ack_pkg<nbre_nr_result_by_handle_ack>(req);
           std::string nr_handle = req->get<p_nr_handle>();
           auto nr_ret =
               neb::rt::nr::nr_handler::instance().get_nr_result(nr_handle);
@@ -308,6 +308,22 @@ void client_driver::add_handlers() {
               neb::rt::nr::nebulas_rank::nr_info_to_json(nr_ret);
           LOG(INFO) << "nr result \n" << nr_result_str;
           ack->set<p_nr_result>(nr_result_str);
+          m_ipc_conn->send(ack);
+        } catch (const std::exception &e) {
+          LOG(ERROR) << "got exception " << typeid(e).name()
+                     << " with what: " << e.what();
+        }
+      });
+
+  m_client->add_handler<nbre_nr_result_by_height_req>(
+      [this](std::shared_ptr<nbre_nr_result_by_height_req> req) {
+        try {
+          auto ack = new_ack_pkg<nbre_nr_result_by_height_ack>(req);
+          auto height = req->get<p_height>();
+          auto nr_result =
+              neb::rt::dip::dip_handler::instance().get_nr_result(height);
+          LOG(INFO) << "nr result \n" << nr_result;
+          ack->set<p_nr_result>(nr_result);
           m_ipc_conn->send(ack);
         } catch (const std::exception &e) {
           LOG(ERROR) << "got exception " << typeid(e).name()
