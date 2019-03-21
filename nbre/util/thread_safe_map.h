@@ -41,14 +41,12 @@ public:
     m_map.insert(std::make_pair(k, v));
   }
 
-  std::pair<bool, typename map_t::mapped_type>
-  try_get_val(const typename map_t::key_type &k) {
-    r_guard_t _l(m_mutex);
-    if (m_map.find(k) == m_map.end()) {
-      return std::make_pair(false, typename map_t::mapped_type());
+  void erase(const typename map_t::key_type &k) {
+    w_guard_t _l(m_mutex);
+    auto it = m_map.find(k);
+    if (it != m_map.end()) {
+      m_map.erase(it);
     }
-    auto ret = m_map.find(k)->second;
-    return std::make_pair(true, ret);
   }
 
   std::pair<bool, typename map_t::mapped_type>
@@ -58,6 +56,16 @@ public:
     auto ret = try_get_val(k);
     insert(k, v);
     return ret;
+  }
+
+  std::pair<bool, typename map_t::mapped_type>
+  try_get_val(const typename map_t::key_type &k) {
+    r_guard_t _l(m_mutex);
+    if (m_map.find(k) == m_map.end()) {
+      return std::make_pair(false, typename map_t::mapped_type());
+    }
+    auto ret = m_map.find(k)->second;
+    return std::make_pair(true, ret);
   }
 
   std::pair<bool, typename map_t::value_type>
@@ -70,6 +78,18 @@ public:
     it--;
     auto ret = *it;
     return std::make_pair(true, ret);
+  }
+
+  typename map_t::value_type begin() {
+    r_guard_t _l(m_mutex);
+    auto ret = m_map.begin();
+    return *ret;
+  }
+
+  typename map_t::value_type end() {
+    r_guard_t _l(m_mutex);
+    auto ret = m_map.end();
+    return *ret;
   }
 
   bool exist(const typename map_t::key_type &k) {

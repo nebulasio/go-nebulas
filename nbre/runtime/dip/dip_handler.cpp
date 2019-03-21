@@ -43,7 +43,7 @@ void dip_handler::check_dip_params(block_height_t height) {
 
   if (!m_has_curr && m_incoming.empty()) {
     load_storage("dip_rewards", m_dip_reward);
-    load_storage("nr_results", m_nr_result);
+    load_storage("nr_results", m_nr_result, 1 << 4);
     auto dip_versions_ptr = neb::fs::ir_api::get_ir_versions("dip", m_storage);
     if (dip_versions_ptr->empty()) {
       return;
@@ -152,7 +152,7 @@ void dip_handler::start(neb::block_height_t height,
         auto &nr_ret = std::get<3>(dip_ret);
         auto nr_str_ptr = nr::nebulas_rank::nr_info_to_json(nr_ret);
         dump_storage("nr_results", hash_height,
-                     str_sptr_t{std::move(nr_str_ptr)}, m_nr_result);
+                     str_sptr_t{std::move(nr_str_ptr)}, m_nr_result, 1 << 4);
         LOG(INFO) << "dump nr results done";
       } else {
         LOG(INFO) << std::get<1>(dip_ret);
@@ -281,7 +281,8 @@ void dip_handler::dump_storage(
     const std::string &key, neb::block_height_t hash_height,
     const str_sptr_t &val_ptr,
     thread_safe_map<block_height_t, str_sptr_t> &mem_cache,
-    int32_t storage_max_size) {
+    size_t storage_max_size) {
+  std::unique_lock<std::mutex> _l(m_mutex);
 
   auto update_to_storage = [](const std::string &key,
                               const boost::property_tree::ptree &val_pt,
@@ -325,11 +326,18 @@ void dip_handler::dump_storage(
   mem_cache.insert(hash_height, val_ptr);
   LOG(INFO) << "insert " << key << " pair height " << hash_height << ", "
             << *val_ptr;
+
+  if (mem_cache.size() > storage_max_size) {
+    auto first_ele = mem_cache.begin();
+    mem_cache.erase(first_ele.first);
+  }
 }
 
 void dip_handler::load_storage(
     const std::string &key,
-    thread_safe_map<block_height_t, str_sptr_t> &mem_cache) {
+    thread_safe_map<block_height_t, str_sptr_t> &mem_cache,
+    size_t storage_max_size) {
+  std::unique_lock<std::mutex> _l(m_mutex);
 
   LOG(INFO) << "call func load_storage";
   neb::bytes val_bytes;
@@ -360,6 +368,11 @@ void dip_handler::load_storage(
     mem_cache.insert(h, record_ptr);
     LOG(INFO) << "insert " << key << " pair height " << h << ", "
               << *record_ptr;
+
+    if (mem_cache.size() > storage_max_size) {
+      auto first_ele = mem_cache.begin();
+      mem_cache.erase(first_ele.first);
+    }
   }
 }
 

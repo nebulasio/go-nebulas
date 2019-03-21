@@ -65,14 +65,16 @@ private:
                           block_height_t ir_height, block_height_t var_height);
 
   void load_storage(const std::string &key,
-                    thread_safe_map<block_height_t, str_sptr_t> &mem_cache);
+                    thread_safe_map<block_height_t, str_sptr_t> &mem_cache,
+                    size_t storage_max_size = 1024);
   void dump_storage(const std::string &key, block_height_t height,
                     const str_sptr_t &val_ptr,
                     thread_safe_map<block_height_t, str_sptr_t> &mem_cache,
-                    int32_t storage_max_size = 1024);
+                    size_t storage_max_size = 1024);
 
 private:
   neb::fs::rocksdb_storage *m_storage;
+  mutable std::mutex m_mutex;
   thread_safe_map<block_height_t, str_sptr_t> m_nr_result;
   thread_safe_map<block_height_t, str_sptr_t> m_dip_reward;
   // dip params info list
