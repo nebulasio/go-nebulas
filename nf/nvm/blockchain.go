@@ -453,7 +453,7 @@ func GetLatestNebulasRankFunc(handler unsafe.Pointer, address *C.char,
 			"addr":   addr,
 			"err":    err,
 		}).Debug("Failed to get nr value")
-		*exceptionInfo = C.CString("Failed to get nr value.")
+		*exceptionInfo = C.CString("Failed to get nr value")
 		return C.NVM_EXCEPTION_ERR
 	}
 

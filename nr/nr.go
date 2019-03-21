@@ -24,15 +24,11 @@ import (
 	"github.com/hashicorp/golang-lru"
 
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/nf/nbre"
 )
 
 type NR struct {
-	conf *nebletpb.Config
-	nbre core.Nbre
-
-	chain *core.BlockChain
+	neb Neblet
 
 	cache *lru.Cache
 }
@@ -40,15 +36,12 @@ type NR struct {
 // NewNR create nr
 func NewNR(neb Neblet) (*NR, error) {
 	cache, err := lru.New(8)
-
 	if err != nil {
 		return nil, err
 	}
 
 	nr := &NR{
-		conf:  neb.Config(),
-		nbre:  neb.Nbre(),
-		chain: neb.BlockChain(),
+		neb:   neb,
 		cache: cache,
 	}
 	return nr, nil
@@ -73,12 +66,12 @@ func (n *NR) GetNRByAddress(addr *core.Address, height uint64) (core.Data, error
 // it is necessary to add a buffer height when querying the NR value,
 // and query the NR value corresponding to the block height
 func (n *NR) delayHeight() uint64 {
-	chainID := n.chain.ChainID()
+	chainID := n.neb.BlockChain().ChainID()
 	// for Mainnet and Testnet, delay 1 day to query nr value.
 	if chainID == core.MainNetID {
-		return 12 * 60 * 60 / 15
+		return 24 * 60 * 60 / 15
 	} else if chainID == core.TestNetID {
-		return 12 * 60 * 60 / 15
+		return 24 * 60 * 60 / 15
 	} else {
 		return 33
 	}
@@ -90,33 +83,40 @@ func (n *NR) getLatestNRList(height uint64) (*NRData, error) {
 		return nil, ErrNRNotFound
 	}
 	var (
-		nrdata *NRData
+		nrData *NRData
 	)
+
 	if data, ok := n.cache.Get(height); ok {
-		nrdata = data.(*NRData)
+		nrData = data.(*NRData)
 	} else {
-		data, err := n.nbre.Execute(nbre.CommandNRListByHeight, height)
+		data, err := n.neb.Nbre().Execute(nbre.CommandNRListByHeight, height)
 		if err != nil {
 			return nil, err
 		}
-		nrdata = data.(*NRData)
-		n.cache.Add(height, nrdata)
+		nrData = &NRData{}
+		if err := nrData.FromBytes([]byte(data.(string))); err != nil {
+			return nil, err
+		}
+		if len(nrData.Err) > 0 {
+			return nil, errors.New(nrData.Err)
+		}
+		n.cache.Add(height, nrData)
 	}
-	return nrdata, nil
+	return nrData, nil
 }
 
 // GetNRHandler returns the nr query handler
 func (n *NR) GetNRHandler(start, end, version uint64) (string, error) {
-	if start < n.conf.Nbre.StartHeight {
+	if start < n.neb.Config().Nbre.StartHeight {
 		return "", ErrInvalidStartHeight
 	}
 	if start >= end {
 		return "", ErrInvalidHeightInterval
 	}
-	if end <= 0 || end > n.chain.TailBlock().Height() {
+	if end <= 0 || end > n.neb.BlockChain().TailBlock().Height() {
 		return "", ErrInvalidEndHeight
 	}
-	data, err := n.nbre.Execute(nbre.CommandNRHandler, start, end, version)
+	data, err := n.neb.Nbre().Execute(nbre.CommandNRHandler, start, end, version)
 	if err != nil {
 		return "", err
 	}
@@ -125,7 +125,7 @@ func (n *NR) GetNRHandler(start, end, version uint64) (string, error) {
 
 // GetNRList returns the nr list
 func (n *NR) GetNRList(hash []byte) (core.Data, error) {
-	data, err := n.nbre.Execute(nbre.CommandNRListByHandle, string(hash))
+	data, err := n.neb.Nbre().Execute(nbre.CommandNRListByHandle, string(hash))
 	if err != nil {
 		return nil, err
 	}
