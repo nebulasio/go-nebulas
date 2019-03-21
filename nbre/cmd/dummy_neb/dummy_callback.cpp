@@ -38,6 +38,10 @@ void callback_handler::handle_nr(void *holder, const char *nr_handler_id) {
 void callback_handler::handle_nr_result(void *holder, const char *nr_result) {
   handle(m_nr_result_handlers, holder, nr_result);
 }
+void callback_handler::handle_nr_result_by_height(void *holder,
+                                                  const char *nr_result) {
+  handle(m_nr_result_by_height_handlers, holder, nr_result);
+}
 void callback_handler::handle_dip_reward(void *holder, const char *dip_reward) {
   handle(m_dip_reward_handlers, holder, dip_reward);
 }
@@ -84,6 +88,15 @@ void nbre_nr_result_callback(ipc_status_code isc, void *holder,
     return;
   }
   callback_handler::instance().handle_nr_result(holder, nr_result);
+}
+
+void nbre_nr_result_by_height_callback(ipc_status_code isc, void *holder,
+                                       const char *nr_result) {
+  if (isc != ipc_status_succ) {
+    LOG(ERROR) << "nbre_nr_result_by_height_callback got failed ";
+    return;
+  }
+  callback_handler::instance().handle_nr_result_by_height(holder, nr_result);
 }
 
 void nbre_dip_reward_callback(ipc_status_code isc, void *holder,

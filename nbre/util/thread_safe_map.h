@@ -69,9 +69,9 @@ public:
   }
 
   std::pair<bool, typename map_t::value_type>
-  try_lower_bound(const typename map_t::key_type &k) {
+  try_lower_than(const typename map_t::key_type &k) {
     r_guard_t _l(m_mutex);
-    if (m_map.empty()) {
+    if (m_map.empty() || k < m_map.begin()->first) {
       return std::make_pair(false, typename map_t::value_type());
     }
     auto it = m_map.upper_bound(k);

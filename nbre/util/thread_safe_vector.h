@@ -60,7 +60,7 @@ public:
 
   template <typename Func>
   std::pair<bool, typename vector_t::value_type>
-  try_lower_bound(const typename vector_t::value_type &op, Func &&f) {
+  try_lower_than(const typename vector_t::value_type &op, Func &&f) {
     r_guard_t _l(m_mutex);
     if (m_vector.empty()) {
       return std::make_pair(false, typename vector_t::value_type());

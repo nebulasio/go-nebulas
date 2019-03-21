@@ -106,6 +106,7 @@ std::shared_ptr<corepb::Account> nr_ir_generator::gen_account() {
   return nullptr;
 }
 std::shared_ptr<corepb::Transaction> nr_ir_generator::gen_tx() {
+
   std::string payload =
       gen_ir_with_params(m_a, m_b, m_c, m_d, m_theta, m_mu, m_lambda,
                          m_major_version, m_minor_version, m_patch_version);

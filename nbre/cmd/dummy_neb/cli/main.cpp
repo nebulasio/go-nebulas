@@ -115,6 +115,15 @@ public:
     start_and_join();
   }
 
+  void send_nr_result_by_height_req(uint64_t height) {
+    std::shared_ptr<nbre_nr_result_by_height_req> req =
+        std::make_shared<nbre_nr_result_by_height_req>();
+    req->set<p_holder>(reinterpret_cast<uint64_t>(this));
+    req->set<p_height>(height);
+    m_package = req;
+    start_and_join();
+  }
+
   void send_dip_reward_req(uint64_t height, uint64_t version) {
     std::shared_ptr<nbre_dip_reward_req> req =
         std::make_shared<nbre_dip_reward_req>();
@@ -165,6 +174,12 @@ protected:
           exit(-1);
         });
 
+    hub.to_recv_pkg<nbre_nr_result_by_height_ack>(
+        [&](std::shared_ptr<nbre_nr_result_by_height_ack> ack) {
+          std::cout << "\t " << ack->get<p_nr_result>() << std::endl;
+          conn->close();
+          exit(-1);
+        });
     hub.to_recv_pkg<nbre_dip_reward_ack>(
         [&](std::shared_ptr<nbre_dip_reward_ack> ack) {
           std::cout << "\t" << ack->get<p_dip_reward>() << std::endl;
@@ -207,12 +222,12 @@ int main(int argc, char *argv[]) {
     ce.send_brief_req();
   } else if (vm.count("query")) {
     std::string type = vm["query"].as<std::string>();
-    if (type != "nr" && type != "nr-result") {
+    if (type != "nr" && type != "nr-result" && type != "dip-reward") {
       std::cout << "invalid type " << type << std::endl;
       exit(-1);
     }
     if (type == "nr") {
-      if (!vm.count("start-block") && !vm.count("end-block") &&
+      if (!vm.count("start-block") || !vm.count("end-block") ||
           !vm.count("version")) {
         std::cout << "no start, end block, or version" << std::endl;
         exit(-1);
@@ -226,13 +241,16 @@ int main(int argc, char *argv[]) {
       ce.send_nr_req(start_block, end_block, v.data());
     }
     if (type == "nr-result") {
-      if (!vm.count("handle")) {
-        std::cout << "no handle" << std::endl;
-        exit(-1);
+      if (vm.count("handle")) {
+        auto handle = vm["handle"].as<std::string>();
+        cli_executor ce(rpc_listen, rpc_port);
+        ce.send_nr_result_req(handle);
+      } else if (vm.count("height")) {
+        auto height = vm["height"].as<uint64_t>();
+        LOG(INFO) << "cli query nr-result by height " << height;
+        cli_executor ce(rpc_listen, rpc_port);
+        ce.send_nr_result_by_height_req(height);
       }
-      auto handle = vm["handle"].as<std::string>();
-      cli_executor ce(rpc_listen, rpc_port);
-      ce.send_nr_result_req(handle);
     }
     if (type == "dip-reward") {
       auto height = vm["height"].as<uint64_t>();

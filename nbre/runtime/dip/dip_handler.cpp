@@ -209,14 +209,15 @@ dip_handler::get_dip_reward_when_missing(neb::block_height_t hash_height,
 std::shared_ptr<dip_params_t>
 dip_handler::get_dip_params(neb::block_height_t height) {
 
+  LOG(INFO) << "get dip params height " << height;
   auto tmp_ptr = std::make_shared<dip_params_t>();
   tmp_ptr->set<start_block>(height);
-  auto ret = m_dip_params_list.try_lower_bound(
+  auto ret = m_dip_params_list.try_lower_than(
       tmp_ptr, [](const std::shared_ptr<dip_params_t> &d1,
                   const std::shared_ptr<dip_params_t> &d2) {
         return d1->get<start_block>() < d2->get<start_block>();
       });
-  LOG(INFO) << "try lower bound status " << ret.first;
+  LOG(INFO) << "try lower than status " << ret.first;
   assert(ret.first);
   return ret.second;
 }
@@ -268,12 +269,17 @@ str_sptr_t dip_handler::get_dip_reward(neb::block_height_t height) {
 }
 
 str_sptr_t dip_handler::get_nr_result(neb::block_height_t height) {
-  auto ret = m_nr_result.try_lower_bound(height);
+  LOG(INFO) << "call func get_nr_result height " << height;
+  auto ret = m_nr_result.try_lower_than(height);
+  LOG(INFO) << "try lower than returned status " << ret.first;
   if (!ret.first) {
     auto ret = std::string("{\"err\":\"no such nr result\"}");
+    LOG(INFO) << ret;
     return std::make_shared<std::string>(ret);
   }
+  assert(ret.first);
   auto &tmp = ret.second;
+  LOG(INFO) << "mapped to height " << tmp.first;
   return tmp.second;
 }
 

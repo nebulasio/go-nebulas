@@ -71,6 +71,13 @@ random_dummy::random_dummy(const std::string &name, int initial_account_num,
           m_pkgs.push_back(req);
         });
 
+    hub.to_recv_pkg<nbre_nr_result_by_height_req>(
+        [this](std::shared_ptr<nbre_nr_result_by_height_req> req) {
+          LOG(INFO) << "dummy server recv cli nr result req with height "
+                    << req->get<p_height>();
+          m_pkgs.push_back(req);
+        });
+
     hub.to_recv_pkg<nbre_dip_reward_req>(
         [this](std::shared_ptr<nbre_dip_reward_req> req) {
           m_pkgs.push_back(req);
@@ -286,6 +293,20 @@ void random_dummy::handle_cli_pkgs() {
       ipc_nbre_nr_result_by_handle(
           reinterpret_cast<void *>(req->get<p_holder>()),
           req->get<p_nr_handle>().c_str());
+    } else if (pkg->type_id() == nbre_nr_result_by_height_req_pkg) {
+      LOG(INFO) << "handle pkg nr result by height req";
+      nbre_nr_result_by_height_req *req =
+          (nbre_nr_result_by_height_req *)pkg.get();
+      callback_handler::instance().add_nr_result_by_height_handler(
+          req->get<p_holder>(), [this](uint64_t holder, const char *nr_result) {
+            std::shared_ptr<nbre_nr_result_by_height_ack> ack =
+                std::make_shared<nbre_nr_result_by_height_ack>();
+            ack->set<p_holder>(holder);
+            ack->set<p_nr_result>(std::string(nr_result));
+            m_conn->send(ack);
+          });
+      ipc_nbre_nr_result_by_height(
+          reinterpret_cast<void *>(req->get<p_holder>()), req->get<p_height>());
     } else if (pkg->type_id() == nbre_dip_reward_req_pkg) {
       nbre_dip_reward_req *req = (nbre_dip_reward_req *)pkg.get();
       callback_handler::instance().add_dip_reward_handler(
@@ -299,6 +320,8 @@ void random_dummy::handle_cli_pkgs() {
           });
       ipc_nbre_dip_reward(reinterpret_cast<void *>(req->get<p_holder>()),
                           req->get<p_height>(), req->get<p_version>());
+    } else {
+      LOG(INFO) << "pkg type id " << pkg->type_id() << " not found";
     }
   }
 }
