@@ -446,7 +446,7 @@ func GetLatestNebulasRankFunc(handler unsafe.Pointer, address *C.char,
 		return C.NVM_EXCEPTION_ERR
 	}
 
-	data, err := engine.ctx.block.NR().GetNRByAddress(addr, engine.ctx.block.Height())
+	data, err := engine.ctx.block.NR().GetNRByAddress(addr)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"height": engine.ctx.block.Height(),

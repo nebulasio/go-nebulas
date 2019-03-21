@@ -650,7 +650,7 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightReq
 	return &rpcpb.GetDynastyResponse{Miners: result}, nil
 }
 
-// GetNRHash return nr item.
+// GetNRByAddress return nr item by address.
 func (s *APIService) GetNRByAddress(ctx context.Context, req *rpcpb.GetNRByAddressRequest) (*rpcpb.NRItem, error) {
 	neb := s.server.Neblet()
 
@@ -659,7 +659,7 @@ func (s *APIService) GetNRByAddress(ctx context.Context, req *rpcpb.GetNRByAddre
 		return nil, err
 	}
 
-	data, err := neb.Nr().GetNRByAddress(addr, neb.BlockChain().TailBlock().Height())
+	data, err := neb.Nr().GetNRByAddress(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -667,45 +667,64 @@ func (s *APIService) GetNRByAddress(ctx context.Context, req *rpcpb.GetNRByAddre
 
 	return &rpcpb.NRItem{
 		Address: addr.String(),
-		Value:   item.Score,
+		Score:   item.Score,
 		Median:  item.Median,
 		Weight:  item.Weight,
 	}, nil
 }
 
-// GetNRHash return nr query hash.
-func (s *APIService) GetNRHash(ctx context.Context, req *rpcpb.GetNRHashRequest) (*rpcpb.GetNRHashResponse, error) {
+// GetLatestNRList return latest nr list
+func (s *APIService) GetLatestNRList(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.GetNRListResponse, error) {
+	neb := s.server.Neblet()
+
+	height := neb.BlockChain().TailBlock().Height()
+	data, err := neb.Nr().GetNRListByHeight(height)
+	if err != nil {
+		return nil, err
+	}
+	return handleNRList(data)
+}
+
+// GetNRHandle return nr query handle.
+func (s *APIService) GetNRHandle(ctx context.Context, req *rpcpb.GetNRHandleRequest) (*rpcpb.GetNRHandleResponse, error) {
 	neb := s.server.Neblet()
 
 	if req.End == 0 {
 		req.End = neb.BlockChain().TailBlock().Height()
 	}
 
-	data, err := neb.Nr().GetNRHandler(req.Start, req.End, req.Version)
+	data, err := neb.Nr().GetNRHandle(req.Start, req.End, req.Version)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &rpcpb.GetNRHashResponse{Hash: data}, nil
+	return &rpcpb.GetNRHandleResponse{Handle: data}, nil
 }
 
-// GetNRList return nr data.
-func (s *APIService) GetNRList(ctx context.Context, req *rpcpb.GetNRListRequest) (*rpcpb.GetNRListResponse, error) {
+// GetNRListByHandle return nr data.
+func (s *APIService) GetNRListByHandle(ctx context.Context, req *rpcpb.GetNRListByHandleRequest) (*rpcpb.GetNRListResponse, error) {
+	if len(req.Handle) == 0 {
+		return nil, errors.New("invalid nr handle")
+	}
 	neb := s.server.Neblet()
 
-	data, err := neb.Nr().GetNRList([]byte(req.Hash))
+	data, err := neb.Nr().GetNRListByHandle([]byte(req.Handle))
 
 	if err != nil {
 		return nil, err
 	}
 
+	return handleNRList(data)
+}
+
+func handleNRList(data core.Data) (*rpcpb.GetNRListResponse, error) {
 	nrData := data.(*nr.NRData)
 	nrItems := make([]*rpcpb.NRItem, len(nrData.Nrs))
 	for idx, v := range nrData.Nrs {
 		item := &rpcpb.NRItem{
 			Address: v.Address,
-			Value:   v.Score,
+			Score:   v.Score,
 			Median:  v.Median,
 			Weight:  v.Weight,
 		}
