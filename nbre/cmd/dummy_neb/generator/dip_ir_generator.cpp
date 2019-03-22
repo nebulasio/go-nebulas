@@ -69,13 +69,12 @@ static std::string dip_slice =
     "  s -= block_interval; \n"
     "\n"
     "  auto nr_ret = entry_point_nr(s, e); \n"
-    "  auto &nr_result = std::get<2>(nr_ret); \n"
     "\n"
     "  neb::rt::dip::dip_float_t alpha = VAR_alpha; \n"
     "  neb::rt::dip::dip_float_t beta = VAR_beta; \n"
     "  return neb::rt::dip::entry_point_dip_impl(s, e, "
     "to_version_t(VERSION_major, VERSION_minor, VERSION_patch), height, "
-    "nr_result, VAR_alpha, VAR_beta); \n"
+    "nr_ret, VAR_alpha, VAR_beta); \n"
     "} \n";
 
 std::string gen_dip_with_params(uint64_t block_nums_of_a_day, uint64_t days,
