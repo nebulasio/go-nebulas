@@ -32,6 +32,7 @@ random_dummy::random_dummy(const std::string &name, int initial_account_num,
   m_cli_generator = std::make_unique<cli_generator>();
   m_thread = std::make_unique<std::thread>([this]() {
     ff::net::net_nervure nn;
+    m_p_nn = &nn;
     ff::net::typed_pkg_hub hub;
     hub.tcp_to_recv_pkg<cli_brief_req_t>(
         [this](std::shared_ptr<cli_brief_req_t> req,
@@ -94,8 +95,13 @@ random_dummy::random_dummy(const std::string &name, int initial_account_num,
 }
 
 random_dummy::~random_dummy() {
+  if (m_p_nn) {
+    m_p_nn->stop();
+  }
+  LOG(INFO) << "to kill thread";
   if (m_thread)
     m_thread->join();
+  LOG(INFO) << "kill thread done";
 }
 
 std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
