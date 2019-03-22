@@ -25,6 +25,7 @@
 class dummy_driver {
 public:
   dummy_driver();
+  ~dummy_driver();
   void add_dummy(const std::shared_ptr<dummy_base> &dummy);
   std::vector<std::string> get_all_dummy_names() const;
 
@@ -32,6 +33,7 @@ public:
   get_dummy_with_name(const std::string &dummy_name) const;
 
   void run(const std::string &dummy_name, uint64_t block_interval_seconds);
+  void shutdown();
 
   void check_all_dummy_tasks(const std::string &dummy_name);
   void check_dummy_task(const std::string &dummy_name,

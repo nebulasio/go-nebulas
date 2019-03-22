@@ -72,11 +72,15 @@ func (r *testNR) GetNRByAddress(addr *core.Address) (core.Data, error) {
 	return data, nil
 }
 
-func (r *testNR) GetNRHandler(start, end, version uint64) (string, error) {
+func (r *testNR) GetNRListByHeight(height uint64) (core.Data, error) {
+	return nil, nil
+}
+
+func (r *testNR) GetNRHandle(start, end, version uint64) (string, error) {
 	return "", nil
 }
 
-func (r *testNR) GetNRList(hash []byte) (core.Data, error) {
+func (r *testNR) GetNRListByHandle(handle []byte) (core.Data, error) {
 	return nil, nil
 }
 

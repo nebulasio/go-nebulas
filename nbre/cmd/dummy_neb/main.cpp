@@ -110,20 +110,33 @@ void init_and_start_nbre(const address_t &auth_admin_addr,
 
 int main(int argc, char *argv[]) {
 
-  std::thread quiter_thrd([]() {
+  dummy_driver dd;
+  std::thread quiter_thrd([&]() {
     char c = 'a';
     while (c != 'x') {
       std::cin >> c;
     }
     neb::core::command_queue::instance().send_command(
         std::make_shared<neb::core::exit_command>());
-    // nbre_ipc_shutdown();
+    nbre_ipc_shutdown();
+    LOG(INFO) << "nbre_ipc_shutdown shut down done";
+
+    dd.shutdown();
   });
+  struct _t {
+    _t(std::thread &t) : thread(t) {}
+    ~_t() {
+      thread.join();
+      neb::fs::bc_storage_session::instance().release();
+    }
+    std::thread &thread;
+  } __(quiter_thrd);
+
   std::string root_dir = neb::configuration::instance().nbre_root_dir();
   neb::configuration::instance().neb_db_dir() =
       neb::fs::join_path(root_dir, std::string("dummy_db"));
 
-  FLAGS_logtostderr = false;
+  FLAGS_logtostderr = true;
 
   po::variables_map vm = get_variables_map(argc, argv);
   neb::glog_log_to_stderr = vm["glog-log-to-stderr"].as<bool>();
@@ -133,7 +146,6 @@ int main(int argc, char *argv[]) {
   std::string rpc_listen = vm["rpc-listen"].as<std::string>();
   uint16_t rpc_port = vm["rpc-port"].as<uint16_t>();
 
-  dummy_driver dd;
   init_dummy_driver(dd, rpc_listen, rpc_port);
   if (vm.count("list_dummies")) {
     auto dummies = dd.get_all_dummy_names();
@@ -168,6 +180,7 @@ int main(int argc, char *argv[]) {
     init_and_start_nbre(admin_addr, db_path, nipc_listen, nipc_port);
     LOG(INFO) << "init nbre done!";
     thrd.join();
+    LOG(INFO) << "to quit nbre";
     return 0;
   }
   if (vm.count("clean-dummy-db")) {

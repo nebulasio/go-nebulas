@@ -27,6 +27,7 @@ dummy_driver::dummy_driver() : m_io_service(), m_block_interval_seconds(0) {}
 void dummy_driver::add_dummy(const std::shared_ptr<dummy_base> &dummy) {
   m_all_dummies.insert(std::make_pair(dummy->name(), dummy));
 }
+dummy_driver::~dummy_driver() { LOG(INFO) << "To quit dummy driver"; }
 
 std::vector<std::string> dummy_driver::get_all_dummy_names() const {
   std::vector<std::string> ret;
@@ -82,6 +83,8 @@ void dummy_driver::run(const std::string &dummy_name, uint64_t block_interval) {
 
   m_io_service.run();
 }
+
+void dummy_driver::shutdown() { m_io_service.stop(); }
 
 void dummy_driver::reset_dummy(const std::string &dummy_name) {
   auto it = m_all_dummies.find(dummy_name);

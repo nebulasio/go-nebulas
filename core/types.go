@@ -328,9 +328,10 @@ type Nbre interface {
 }
 
 type NR interface {
-	GetNRByAddress(addr *Address, height uint64) (Data, error)
-	GetNRHandler(start, end, version uint64) (string, error)
-	GetNRList(hash []byte) (Data, error)
+	GetNRByAddress(addr *Address) (Data, error)
+	GetNRListByHeight(height uint64) (Data, error)
+	GetNRHandle(start, end, version uint64) (string, error)
+	GetNRListByHandle(hash []byte) (Data, error)
 }
 
 type Dip interface {

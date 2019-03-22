@@ -26,7 +26,11 @@
 namespace neb {
 namespace core {
 nipc_server::nipc_server() : m_server(nullptr), m_conn(nullptr) {}
-nipc_server::~nipc_server() { LOG(INFO) << "~nipc_server"; }
+nipc_server::~nipc_server() {
+  if (m_thread) {
+    m_thread->join();
+  }
+}
 
 void nipc_server::init_params(const nbre_params_t &params) {
   neb::configuration::instance().nbre_root_dir() = params.m_nbre_root_dir;
@@ -41,8 +45,9 @@ void nipc_server::init_params(const nbre_params_t &params) {
   neb::configuration::instance().nipc_listen() = params.m_nipc_listen;
   neb::configuration::instance().nipc_port() = params.m_nipc_port;
 
-#if 0
+#ifdef NDEBUG
   // supervisor start failed with reading file
+#else
   // read errno_list file
   {
     std::string errno_file =
@@ -119,6 +124,8 @@ bool nipc_server::start() {
         }
       });
       while (true) {
+        if (m_server->ioservice().stopped())
+          break;
         try {
           m_server->run();
         } catch (...) {

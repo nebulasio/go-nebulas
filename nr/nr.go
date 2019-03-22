@@ -48,12 +48,15 @@ func NewNR(neb Neblet) (*NR, error) {
 }
 
 // GetNRHandler returns the nr query handler
-func (n *NR) GetNRByAddress(addr *core.Address, height uint64) (core.Data, error) {
-	nrdata, err := n.getLatestNRList(height)
+func (n *NR) GetNRByAddress(addr *core.Address) (core.Data, error) {
+
+	height := n.neb.BlockChain().TailBlock().Height()
+	data, err := n.GetNRListByHeight(height)
 	if err != nil {
 		return nil, err
 	}
-	for _, nr := range nrdata.Nrs {
+	nrData := data.(*NRData)
+	for _, nr := range nrData.Nrs {
 		if nr.Address == addr.String() {
 			return nr, nil
 		}
@@ -77,14 +80,16 @@ func (n *NR) delayHeight() uint64 {
 	}
 }
 
-func (n *NR) getLatestNRList(height uint64) (*NRData, error) {
+// GetNRListByHeight return nr list, which subtract the deplay height, ensure all node is equal.
+func (n *NR) GetNRListByHeight(height uint64) (core.Data, error) {
+	var (
+		nrData *NRData
+	)
+
 	height = height - n.delayHeight()
 	if height < 1 {
 		return nil, ErrNRNotFound
 	}
-	var (
-		nrData *NRData
-	)
 
 	if data, ok := n.cache.Get(height); ok {
 		nrData = data.(*NRData)
@@ -106,7 +111,7 @@ func (n *NR) getLatestNRList(height uint64) (*NRData, error) {
 }
 
 // GetNRHandler returns the nr query handler
-func (n *NR) GetNRHandler(start, end, version uint64) (string, error) {
+func (n *NR) GetNRHandle(start, end, version uint64) (string, error) {
 	if start < n.neb.Config().Nbre.StartHeight {
 		return "", ErrInvalidStartHeight
 	}
@@ -124,8 +129,8 @@ func (n *NR) GetNRHandler(start, end, version uint64) (string, error) {
 }
 
 // GetNRList returns the nr list
-func (n *NR) GetNRList(hash []byte) (core.Data, error) {
-	data, err := n.neb.Nbre().Execute(nbre.CommandNRListByHandle, string(hash))
+func (n *NR) GetNRListByHandle(handle []byte) (core.Data, error) {
+	data, err := n.neb.Nbre().Execute(nbre.CommandNRListByHandle, string(handle))
 	if err != nil {
 		return nil, err
 	}

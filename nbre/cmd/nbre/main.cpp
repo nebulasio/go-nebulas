@@ -81,6 +81,13 @@ int main(int argc, char *argv[]) {
   get_variables_map(argc, argv);
   LOG(INFO) << "nbre started!";
 
+#ifdef NDEBUG
+  neb::core::client_driver d;
+  d.init();
+  d.run();
+  LOG(INFO) << "to quit nbre";
+#else
+
   std::thread thrd([]() {
     neb::core::client_driver d;
     d.init();
@@ -88,9 +95,11 @@ int main(int argc, char *argv[]) {
     LOG(INFO) << "to quit nbre";
   });
 
-  neb::util::elfin ef;
-  ef.run();
-  LOG(INFO) << "ef run done";
+  // neb::util::elfin ef;
+  // ef.run();
+  // LOG(INFO) << "ef run done";
+  thrd.join();
+#endif
 
   return 0;
 }

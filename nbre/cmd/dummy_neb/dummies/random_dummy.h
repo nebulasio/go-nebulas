@@ -77,4 +77,5 @@ protected:
   ff::net::tcp_connection_base_ptr m_conn;
 
   std::shared_ptr<nbre_version_checker> m_version_checker;
+  ff::net::net_nervure *m_p_nn;
 };
