@@ -437,9 +437,7 @@ TEST(test_runtime_nebulas_rank, json_seri_deseri) {
   for (int32_t i = 0; i < infos_size; i++) {
     auto info_ptr =
         std::shared_ptr<neb::rt::nr::nr_info_t>(new neb::rt::nr::nr_info_t{
-            uint32_t(std::sqrt(dis(mt))), uint32_t(dis(mt)), uint32_t(dis(mt)),
-            uint32_t(dis(mt)), neb::floatxx_t(dis(mt)), neb::floatxx_t(dis(mt)),
-            neb::floatxx_t(dis(mt)), neb::floatxx_t(dis(mt)),
+            uint32_t(std::sqrt(dis(mt))), neb::floatxx_t(dis(mt)),
             neb::floatxx_t(dis(mt)), neb::floatxx_t(dis(mt))});
     infos.push_back(info_ptr);
   }
@@ -455,12 +453,6 @@ TEST(test_runtime_nebulas_rank, json_seri_deseri) {
 
   for (int32_t i = 0; i < infos_size; i++) {
     EXPECT_EQ(infos[i]->m_address, info_v[i]->m_address);
-    EXPECT_EQ(infos[i]->m_in_degree, info_v[i]->m_in_degree);
-    EXPECT_EQ(infos[i]->m_out_degree, info_v[i]->m_out_degree);
-    EXPECT_EQ(infos[i]->m_degrees, info_v[i]->m_degrees);
-    EXPECT_EQ(infos[i]->m_in_val, info_v[i]->m_in_val);
-    EXPECT_EQ(infos[i]->m_out_val, info_v[i]->m_out_val);
-    EXPECT_EQ(infos[i]->m_in_outs, info_v[i]->m_in_outs);
     EXPECT_EQ(infos[i]->m_median, info_v[i]->m_median);
     EXPECT_EQ(infos[i]->m_weight, info_v[i]->m_weight);
     EXPECT_EQ(infos[i]->m_nr_score, info_v[i]->m_nr_score);

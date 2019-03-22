@@ -33,12 +33,6 @@ namespace nr {
 
 struct nr_info_t {
   address_t m_address;
-  uint32_t m_in_degree;
-  uint32_t m_out_degree;
-  uint32_t m_degrees;
-  floatxx_t m_in_val;
-  floatxx_t m_out_val;
-  floatxx_t m_in_outs;
   floatxx_t m_median;
   floatxx_t m_weight;
   floatxx_t m_nr_score;
