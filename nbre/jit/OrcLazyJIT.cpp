@@ -99,13 +99,13 @@ llvm::Error llvm::OrcLazyJIT::addModule(std::shared_ptr<Module> M) {
       Ctor.Func->setName(NewCtorName);
       Ctor.Func->setLinkage(GlobalValue::ExternalLinkage);
       Ctor.Func->setVisibility(GlobalValue::HiddenVisibility);
-      CtorNames.push_back(mangle_std(NewCtorName));
+      CtorNames.push_back(mangle(NewCtorName));
     }
     for (auto Dtor : orc::getDestructors(*M)) {
       std::string NewDtorName = ("$static_dtor." + Twine(DtorId++)).str();
       Dtor.Func->setLinkage(GlobalValue::ExternalLinkage);
       Dtor.Func->setVisibility(GlobalValue::HiddenVisibility);
-      DtorNames.push_back(mangle_std(Dtor.Func->getName()));
+      DtorNames.push_back(mangle(Dtor.Func->getName()));
       Dtor.Func->setName(NewDtorName);
     }
   }
@@ -117,13 +117,12 @@ llvm::Error llvm::OrcLazyJIT::addModule(std::shared_ptr<Module> M) {
   if (!ModulesHandle) {
     auto Resolver = orc::createLambdaResolver(
         [this](const std::string &Name) -> JITSymbol {
-          if (auto Sym = CODLayer.findSymbol(mangle_std(Name), true))
+          if (auto Sym = CODLayer.findSymbol(Name, true))
             return Sym;
-          return CXXRuntimeOverrides.searchOverrides(mangle_std(Name));
+          return CXXRuntimeOverrides.searchOverrides(Name);
         },
         [this](const std::string &Name) {
-          if (auto Addr = RTDyldMemoryManager::getSymbolAddressInProcess(
-                  mangle_std(Name)))
+          if (auto Addr = RTDyldMemoryManager::getSymbolAddressInProcess(Name))
             return JITSymbol(Addr, JITSymbolFlags::Exported);
           return JITSymbol(nullptr);
         });
