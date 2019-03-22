@@ -27,9 +27,11 @@ public:
                nas initial_nas, double account_increase_ratio,
                const std::string &rpc_listen, uint16_t rpc_port);
 
-  address_t enable_auth_gen_with_ratio(double auth_ratio);
-  void enable_nr_ir_with_ratio(double nr_ratio);
-  void enable_dip_ir_with_ratio(double dip_ratio);
+  address_t enable_auth_gen_with_ratio(double auth_ratio,
+                                       block_height_t block_interval);
+  void enable_nr_ir_with_ratio(double nr_ratio, block_height_t block_interval);
+  void enable_dip_ir_with_ratio(double dip_ratio,
+                                block_height_t block_interval);
 
   void enable_call_tx_with_ratio(double contract_ratio, double call_ratio);
 
@@ -61,6 +63,10 @@ protected:
   double m_dip_ratio;
   double m_contract_ratio;
   double m_call_ratio;
+
+  block_height_t m_auth_interval;
+  block_height_t m_nr_interval;
+  block_height_t m_dip_interval;
 
   std::string m_rpc_listen;
   uint16_t m_rpc_port;
