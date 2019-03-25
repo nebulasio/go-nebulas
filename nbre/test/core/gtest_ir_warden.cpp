@@ -18,8 +18,11 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "common/configuration.h"
+#include "common/version.h"
 #include "core/ir_warden.h"
+#include "fs/storage_holder.h"
 #include "fs/util.h"
+#include <boost/format.hpp>
 #include <gtest/gtest.h>
 
 TEST(test_core, ir_warden_instance_init) {
@@ -44,85 +47,73 @@ std::string get_db_path_for_write() {
 }
 
 std::string get_blockchain_path_for_read() {
-  std::string cur_path = neb::configuration::instance().nbre_root_dir();
-  return neb::fs::join_path(cur_path, "../data.db/");
+  std::string cur_path = neb::configuration::instance().neb_db_dir();
+  return cur_path;
 }
 
-TEST(test_core, wait_until_sync) {
-  auto &instance = neb::core::ir_warden::instance();
-  instance.on_timer();
-  instance.wait_until_sync();
+typedef std::pair<std::string, neb::version> depend_t;
+void gen_ir(const std::string &name, const neb::version &v,
+            neb::block_height_t height, const std::vector<depend_t> &depends,
+            neb::fs::rocksdb_storage *rs) {
 
-  std::string db_read = get_blockchain_path_for_read();
-  std::string db_write = get_db_path_for_write();
-
-  neb::fs::rocksdb_storage rs_write;
-  rs_write.open_database(db_write, neb::fs::storage_open_for_readonly);
-  auto version_bytes = rs_write.get("dip");
-  std::vector<uint64_t> versions({1LL << 48});
-  size_t gap = sizeof(uint64_t) / sizeof(uint8_t);
-  for (size_t i = 0; i < version_bytes.size(); i += gap) {
-    neb::byte_t *bytes = version_bytes.value() + i;
-    uint64_t version = neb::byte_to_number<uint64_t>(bytes, gap);
-    EXPECT_EQ(version, versions[i / gap]);
+  nbre::NBREIR ir;
+  ir.set_name(name);
+  ir.set_version(v.data());
+  ir.set_height(height);
+  for (auto &dep : depends) {
+    auto deps = ir.add_depends();
+    deps->set_name(dep.first);
+    deps->set_version(dep.second.data());
   }
 
-  std::vector<std::pair<uint64_t, neb::block_height_t>> version_and_height(
-      {{1LL << 48, 121523}});
-  for (auto &it : version_and_height) {
-    uint64_t version = it.first;
-    neb::block_height_t height = it.second;
+  auto size = ir.ByteSizeLong();
+  neb::bytes buf(size);
+  ir.SerializeToArray((void *)buf.value(), buf.size());
 
-    auto payload_bytes = rs_write.get("dip" + std::to_string(version));
-
-    neb::fs::rocksdb_storage rs_read;
-    rs_read.open_database(db_read, neb::fs::storage_open_for_readonly);
-
-    neb::bytes height_hash =
-        rs_read.get_bytes(neb::number_to_byte<neb::bytes>(height));
-    neb::bytes block_bytes = rs_read.get_bytes(height_hash);
-
-    std::shared_ptr<corepb::Block> block = std::make_shared<corepb::Block>();
-    bool ret = block->ParseFromArray(block_bytes.value(), block_bytes.size());
-    if (!ret) {
-      throw std::runtime_error("parse block failed");
-    }
-    auto it_tx = block->transactions().begin();
-    auto payload = it_tx->data().payload();
-    EXPECT_TRUE(payload_bytes == neb::string_to_byte(payload));
-
-    rs_read.close_database();
-  }
-  rs_write.close_database();
+  neb::fs::ir_manager_helper::update_ir_list(name, rs);
+  neb::fs::ir_manager_helper::update_ir_versions(name, v.data(), rs);
+  neb::fs::ir_manager_helper::deploy_ir(name, v.data(), buf, rs);
 }
 
 TEST(test_core, get_ir_by_name_version) {
 
-  auto &instance = neb::core::ir_warden::instance();
-
   std::string name = "nr";
-  uint64_t version = (1LL << 48);
-  auto nbreir_ptr = instance.get_ir_by_name_version(name, version);
+  neb::version v(0, 0, 1);
+  neb::block_height_t height = 123;
+  std::vector<depend_t> depends;
+  auto rs = neb::fs::storage_holder::instance().nbre_db_ptr();
+  gen_ir(name, v, height, depends, rs);
+
+  auto &instance = neb::core::ir_warden::instance();
+  auto nbreir_ptr = instance.get_ir_by_name_version(name, v.data());
 
   EXPECT_EQ(nbreir_ptr->name(), "nr");
-  EXPECT_EQ(nbreir_ptr->version(), 1LL << 48);
-  EXPECT_EQ(nbreir_ptr->height(), 90000);
+  EXPECT_EQ(nbreir_ptr->version(), v.data());
+  EXPECT_EQ(nbreir_ptr->height(), 123);
   EXPECT_EQ(nbreir_ptr->depends().size(), 0);
 }
 
 TEST(test_core, get_ir_by_name_height) {
 
-  auto &instance = neb::core::ir_warden::instance();
+  std::string name = "dip";
+  neb::version v(1, 2, 3);
+  neb::block_height_t height = 456;
+  std::vector<depend_t> depends;
+  depends.push_back(std::make_pair("nr", neb::version(0, 0, 1)));
+  auto rs = neb::fs::storage_holder::instance().nbre_db_ptr();
+  gen_ir(name, v, height, depends, rs);
 
-  auto ret_ptr = instance.get_ir_by_name_height("dip", 90000);
+  auto &instance = neb::core::ir_warden::instance();
+  auto ret_ptr = instance.get_ir_by_name_height(name, height);
   auto ret = *ret_ptr;
-  EXPECT_EQ(ret.size(), 1);
+  EXPECT_EQ(ret.size(), 2);
+
   auto it = ret.begin();
   auto nbre_ir_ptr = it;
-  EXPECT_EQ(nbre_ir_ptr->name(), "dip");
-  EXPECT_EQ(nbre_ir_ptr->version(), 1LL << 48);
-  EXPECT_EQ(nbre_ir_ptr->height(), 90000);
-  EXPECT_EQ(nbre_ir_ptr->depends_size(), 0);
+  EXPECT_EQ(nbre_ir_ptr->name(), name);
+  EXPECT_EQ(nbre_ir_ptr->version(), v.data());
+  EXPECT_EQ(nbre_ir_ptr->height(), height);
+  EXPECT_EQ(nbre_ir_ptr->depends_size(), 1);
 }
 
 TEST(test_core, ir_warden_instance_dealloc) {

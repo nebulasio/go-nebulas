@@ -325,7 +325,7 @@ TEST(test_common_math, exp) {
   EXPECT_TRUE(neb::math::abs(actual_x, neb::floatxx_t(expect_x)) <
               precesion(expect_x));
 
-  float delta(0.001);
+  float delta(0.01);
   for (float x = -50.0; x <= 50.0; x += delta) {
     auto actual_x = neb::math::exp(neb::floatxx_t(x));
     auto expect_x = std::exp(x);
@@ -347,7 +347,7 @@ TEST(test_common_math, arctan) {
   EXPECT_TRUE(neb::math::abs(actual_x, neb::floatxx_t(expect_x)) <
               precesion(expect_x));
 
-  float delta(0.001);
+  float delta(0.01);
   for (float x = -100.0; x <= 100.0; x += delta) {
     auto actual_x = neb::math::arctan(neb::floatxx_t(x));
     auto expect_x = std::atan(x);
@@ -359,7 +359,7 @@ TEST(test_common_math, arctan) {
                   precesion(expect_x, 1e1 * PRECESION));
     } else {
       EXPECT_TRUE(neb::math::abs(actual_x, neb::floatxx_t(expect_x)) <
-                  precesion(expect_x));
+                  precesion(expect_x, 1e1 * PRECESION));
     }
   }
 }
@@ -405,7 +405,7 @@ TEST(test_common_math, sin) {
                 precesion(1.0f, 1e2 * PRECESION));
   }
 
-  float delta(0.001);
+  float delta(0.01);
   for (float x = -100.0; x <= 100.0; x += delta) {
     auto actual_x = neb::math::sin(neb::floatxx_t(x));
     auto expect_x = std::sin(x);
@@ -432,7 +432,7 @@ TEST(test_common_math, ln) {
   EXPECT_TRUE(neb::math::abs(actual_x, neb::floatxx_t(expect_x)) <
               precesion(expect_x, 1e1 * PRECESION));
 
-  float delta(0.001);
+  float delta(0.01);
   for (float x = delta; x < 1.0; x += delta) {
     auto actual_x = neb::math::ln(neb::floatxx_t(x));
     auto expect_x = std::log(x);
@@ -452,7 +452,7 @@ TEST(test_common_math, ln) {
     }
   }
 
-  delta = 0.1;
+  delta = 1.0;
   for (float x = 1.0 + delta; x < 100.0; x += delta) {
     auto actual_x = neb::math::ln(neb::floatxx_t(x));
     auto expect_x = std::log(x);
@@ -460,7 +460,7 @@ TEST(test_common_math, ln) {
                 precesion(expect_x, 1e2 * PRECESION));
   }
 
-  delta = 1.0;
+  delta = 10.0;
   for (float x = 1.0 + delta; x < 1000.0; x += delta) {
     auto actual_x = neb::math::ln(neb::floatxx_t(x));
     auto expect_x = std::log(x);
@@ -468,7 +468,7 @@ TEST(test_common_math, ln) {
                 precesion(expect_x, 1e3 * PRECESION));
   }
 
-  delta = 10.0;
+  delta = 100.0;
   for (float x = 1.0 + delta; x < 10000.0; x += delta) {
     auto actual_x = neb::math::ln(neb::floatxx_t(x));
     auto expect_x = std::log(x);
@@ -476,7 +476,7 @@ TEST(test_common_math, ln) {
                 precesion(expect_x, 1e3 * PRECESION));
   }
 
-  delta = 100.0;
+  delta = 1000.0;
   // for (float x = 1.0 + delta; x < 100000.0; x += delta) {
   // auto actual_x = neb::math::ln(neb::floatxx_t(x));
   // auto expect_x = std::log(x);
@@ -485,7 +485,7 @@ TEST(test_common_math, ln) {
   //}
 
   // takes time
-  delta = 1000.0;
+  delta = 10000.0;
   // for (float x = 1.0 + delta; x < 1000000.0; x += delta) {
   // auto actual_x = neb::math::ln(neb::floatxx_t(x));
   // auto expect_x = std::log(x);
@@ -512,7 +512,7 @@ TEST(test_common_math, fast_ln) {
   EXPECT_TRUE(neb::math::abs(actual_x, neb::floatxx_t(expect_x)) <
               precesion(expect_x, PRECESION));
 
-  float delta(0.001);
+  float delta(0.01);
   for (float x = delta; x < 1.0; x += delta) {
     auto actual_x = neb::math::fast_ln(neb::floatxx_t(x));
     auto expect_x = std::log(x);
@@ -529,7 +529,7 @@ TEST(test_common_math, fast_ln) {
     }
   }
 
-  delta = 0.1;
+  delta = 1.0;
   for (float x = 1.0 + delta; x < 100.0; x += delta) {
     auto actual_x = neb::math::fast_ln(neb::floatxx_t(x));
     auto expect_x = std::log(x);
@@ -537,7 +537,7 @@ TEST(test_common_math, fast_ln) {
                 precesion(expect_x, 1e1 * PRECESION));
   }
 
-  delta = 1.0;
+  delta = 10.0;
   for (float x = 1.0 + delta; x < 1000.0; x += delta) {
     auto actual_x = neb::math::fast_ln(neb::floatxx_t(x));
     auto expect_x = std::log(x);
@@ -545,7 +545,7 @@ TEST(test_common_math, fast_ln) {
                 precesion(expect_x, 1e2 * PRECESION));
   }
 
-  delta = 10.0;
+  delta = 100.0;
   for (float x = 1.0 + delta; x < 10000.0; x += delta) {
     auto actual_x = neb::math::fast_ln(neb::floatxx_t(x));
     auto expect_x = std::log(x);
@@ -553,7 +553,7 @@ TEST(test_common_math, fast_ln) {
                 precesion(expect_x, 1e3 * PRECESION));
   }
 
-  delta = 100.0;
+  delta = 1000.0;
   // for (float x = 1.0 + delta; x < 100000.0; x += delta) {
   // auto actual_x = neb::math::fast_ln(neb::floatxx_t(x));
   // auto expect_x = std::log(x);
@@ -562,7 +562,7 @@ TEST(test_common_math, fast_ln) {
   //}
 
   // takes time
-  delta = 1000.0;
+  delta = 10000.0;
   // for (float x = 1.0 + delta; x < 1000000.0; x += delta) {
   // auto actual_x = neb::math::fast_ln(neb::floatxx_t(x));
   // auto expect_x = std::log(x);
