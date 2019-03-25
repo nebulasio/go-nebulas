@@ -123,7 +123,9 @@ std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
         m_account_increase_ratio * m_initial_account_num, tx_num);
     m_tx_gen->run();
 
-    if (m_auth_ratio != 0 && std::rand() % 1000 < m_auth_ratio * 1000) {
+    if (std::abs(m_auth_ratio) > 1e-9 &&
+        std::rand() % 1000 < m_auth_ratio * 1000 &&
+        m_current_height % m_auth_interval == 0) {
       m_auth_gen =
           std::make_unique<auth_table_generator>(&m_all_accounts, ret.get());
       address_t nr_admin_addr = m_auth_admin_addr;
@@ -136,7 +138,8 @@ std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
       m_auth_gen->run();
     }
 
-    if (m_nr_ratio != 0 && std::rand() % 1000 < m_nr_ratio * 1000) {
+    if (std::abs(m_nr_ratio) > 1e-9 && std::rand() % 1000 < m_nr_ratio * 1000 &&
+        m_current_height % m_nr_interval == 0) {
       if (m_nr_admin_addr.empty()) {
         m_nr_admin_addr = m_auth_admin_addr;
       }
@@ -149,7 +152,9 @@ std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
       m_nr_gen->run();
     }
 
-    if (m_dip_ratio != 0 && std::rand() % 1000 < m_dip_ratio * 1000) {
+    if (std::abs(m_dip_ratio) > 1e-9 &&
+        std::rand() % 1000 < m_dip_ratio * 1000 &&
+        m_current_height % m_dip_interval == 0) {
       if (m_dip_admin_addr.empty()) {
         m_dip_admin_addr = m_auth_admin_addr;
       }
@@ -164,11 +169,13 @@ std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
       m_dip_gen->run();
     }
 
-    if (m_contract_ratio != 0 && std::rand() % 1000 < m_contract_ratio * 1000) {
+    if (std::abs(m_contract_ratio) > 1e-9 &&
+        std::rand() % 1000 < m_contract_ratio * 1000) {
       m_contract_gen = std::make_unique<contract_generator>(ret.get(), 1);
       m_contract_gen->run();
     }
-    if (m_call_ratio != 0 && std::rand() % 1000 < m_call_ratio * 1000) {
+    if (std::abs(m_call_ratio) > 1e-9 &&
+        std::rand() % 1000 < m_call_ratio * 1000) {
       m_call_gen = std::make_unique<call_tx_generator>(
           ret.get(), std::rand() % (m_all_accounts.size() / 5));
       m_call_gen->run();
@@ -188,24 +195,31 @@ std::shared_ptr<generate_block> random_dummy::generate_LIB_block() {
   return ret;
 }
 
-address_t random_dummy::enable_auth_gen_with_ratio(double auth_ratio) {
+address_t
+random_dummy::enable_auth_gen_with_ratio(double auth_ratio,
+                                         block_height_t block_interval) {
   if (m_current_height == 0)
     generate_LIB_block();
   corepb::Account *admin_account = m_all_accounts.random_user_account();
   address_t admin_addr = neb::to_address(admin_account->address());
   m_auth_admin_addr = admin_addr;
   m_auth_ratio = auth_ratio;
+  m_auth_interval = block_interval;
   return admin_addr;
 }
-void random_dummy::enable_nr_ir_with_ratio(double nr_ratio) {
+void random_dummy::enable_nr_ir_with_ratio(double nr_ratio,
+                                           block_height_t block_interval) {
   if (m_current_height == 0)
     generate_LIB_block();
   m_nr_ratio = nr_ratio;
+  m_nr_interval = block_interval;
 }
-void random_dummy::enable_dip_ir_with_ratio(double dip_ratio) {
+void random_dummy::enable_dip_ir_with_ratio(double dip_ratio,
+                                            block_height_t block_interval) {
   if (m_current_height == 0)
     generate_LIB_block();
   m_dip_ratio = dip_ratio;
+  m_dip_interval = block_interval;
 }
 
 void random_dummy::enable_call_tx_with_ratio(double contract_ratio,

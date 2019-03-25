@@ -158,7 +158,6 @@ endif()
 
 if(Release)
 else()
-  add_definitions(-DENABLE_UNITTEST)
   add_subdirectory(test)
 endif()
 if(UNIX AND NOT APPLE)

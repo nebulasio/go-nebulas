@@ -43,6 +43,21 @@ template <typename T> T from_string(const std::string &str) {
   return val;
 }
 
+template <typename T> bool exit_cond(const T &x, const T &y) {
+  if (x - y < MATH_MIN && y - x < MATH_MIN) {
+    return true;
+  }
+  if (to_string(x) == std::string("inf") &&
+      to_string(y) == std::string("inf")) {
+    return true;
+  }
+  if (to_string(x) == std::string("-nan") &&
+      to_string(y) == std::string("-nan")) {
+    return true;
+  }
+  return false;
+}
+
 template <typename T> T exp(const T &x) {
   T zero = softfloat_cast<uint32_t, typename T::value_type>(0);
   T one = softfloat_cast<uint32_t, typename T::value_type>(1);
@@ -59,7 +74,7 @@ template <typename T> T exp(const T &x) {
     T tmp;
 
     tmp = ret + tail;
-    if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
+    if (exit_cond(tmp, ret)) {
       break;
     }
 
@@ -96,7 +111,7 @@ template <typename T> T arctan(const T &x) {
     } else {
       tmp = ret + s / i;
     }
-    if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
+    if (exit_cond(tmp, ret)) {
       break;
     }
     ret = tmp;
@@ -134,7 +149,7 @@ template <typename T> T sin(const T &x) {
     } else {
       tmp = ret + tail;
     }
-    if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
+    if (exit_cond(tmp, ret)) {
       break;
     }
     ret = tmp;
@@ -165,7 +180,7 @@ template <typename T> T ln(const T &x) {
       } else {
         tmp = ret - s / i;
       }
-      if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
+      if (exit_cond(tmp, ret)) {
         break;
       }
 
@@ -198,7 +213,7 @@ template <typename T> T fast_ln(const T &x) {
       T tmp;
 
       tmp = ret + s / i;
-      if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
+      if (exit_cond(tmp, ret)) {
         break;
       }
 

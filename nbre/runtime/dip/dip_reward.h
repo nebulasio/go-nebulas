@@ -52,10 +52,10 @@ public:
   static str_uptr_t dip_info_to_json(const dip_ret_type &dip_ret);
   static dip_ret_type json_to_dip_info(const std::string &dip_reward);
 
-#ifdef ENABLE_UNITTEST
-public:
-#else
+#ifdef Release
 private:
+#else
+public:
 #endif
   static auto account_call_contract_count(
       const std::vector<neb::fs::transaction_info_t> &txs)

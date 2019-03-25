@@ -76,8 +76,8 @@ void dummy_driver::run(const std::string &dummy_name, uint64_t block_interval) {
 
   m_checker_gen_timer = std::make_unique<neb::util::timer_loop>(&m_io_service);
   m_checker_gen_timer->register_timer_and_callback(1, [dummy]() {
-    // dummy->generate_checker_task();
-    // checker_tasks::instance().randomly_schedule_no_running_tasks();
+    dummy->generate_checker_task();
+    checker_tasks::instance().randomly_schedule_no_running_tasks();
     // checker_tasks::instance().randomly_schedule_all_tasks(20);
   });
 

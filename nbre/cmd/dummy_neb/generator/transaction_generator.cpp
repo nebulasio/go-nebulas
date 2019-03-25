@@ -29,7 +29,7 @@ transaction_generator::transaction_generator(all_accounts *accounts,
 transaction_generator::~transaction_generator() {}
 
 std::shared_ptr<corepb::Account> transaction_generator::gen_account() {
-  auto ret = m_block->gen_user_account(0_nas);
+  auto ret = m_block->gen_user_account(100_nas);
   m_new_addresses.push_back(neb::to_address(ret->address()));
   return ret;
 }

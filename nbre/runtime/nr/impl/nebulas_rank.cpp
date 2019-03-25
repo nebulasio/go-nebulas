@@ -275,17 +275,10 @@ std::vector<std::shared_ptr<nr_info_t>> nebulas_rank::get_nr_score(
   graph_algo::merge_topk_edges_with_same_from_and_same_to(tg->internal_graph());
   LOG(INFO) << "done with merge graphs.";
 
-  // degree and in_out amount
-  auto in_out_degrees_p = graph_algo::get_in_out_degrees(tg->internal_graph());
-  auto degrees_p = neb::rt::graph_algo::get_degree_sum(tg->internal_graph());
+  // in_out amount
   auto in_out_vals_p = graph_algo::get_in_out_vals(tg->internal_graph());
-  auto stakes_p = neb::rt::graph_algo::get_stakes(tg->internal_graph());
-
-  auto in_out_degrees = *in_out_degrees_p;
-  auto degrees = *degrees_p;
   auto in_out_vals = *in_out_vals_p;
-  auto stakes = *stakes_p;
-  LOG(INFO) << "done with get stakes";
+  LOG(INFO) << "done with get in_out_vals";
 
   // median, weight, rank
   auto accounts_ptr = get_normal_accounts(*inter_txs_ptr);
@@ -314,33 +307,14 @@ std::vector<std::shared_ptr<nr_info_t>> nebulas_rank::get_nr_score(
   std::vector<std::shared_ptr<nr_info_t>> infos;
   for (auto it = accounts_ptr->begin(); it != accounts_ptr->end(); it++) {
     address_t addr = *it;
-    if (account_median.find(addr) == account_median.end() ||
-        account_rank.find(addr) == account_rank.end() ||
-        in_out_degrees.find(addr) == in_out_degrees.end() ||
-        in_out_vals.find(addr) == in_out_vals.end() ||
-        stakes.find(addr) == stakes.end()) {
-      continue;
+    if (account_median.find(addr) != account_median.end() &&
+        account_weight.find(addr) != account_weight.end() &&
+        account_rank.find(addr) != account_rank.end()) {
+      auto info = std::shared_ptr<nr_info_t>(
+          new nr_info_t({addr, account_median[addr], account_weight[addr],
+                         account_rank[addr]}));
+      infos.push_back(info);
     }
-
-    auto in_val = in_out_vals.find(addr)->second.m_in_val;
-    auto out_val = in_out_vals.find(addr)->second.m_out_val;
-    auto stake = stakes.find(addr)->second;
-
-    auto f_in_val = to_float<floatxx_t>(in_val);
-    auto f_out_val = to_float<floatxx_t>(out_val);
-    auto f_stake = to_float<floatxx_t>(stake);
-
-    neb::floatxx_t nas_in_val = adb_ptr->get_normalized_value(f_in_val);
-    neb::floatxx_t nas_out_val = adb_ptr->get_normalized_value(f_out_val);
-    neb::floatxx_t nas_stake = adb_ptr->get_normalized_value(f_stake);
-
-    auto info = std::shared_ptr<nr_info_t>(
-        new nr_info_t({addr, in_out_degrees[addr].m_in_degree,
-                       in_out_degrees[addr].m_out_degree, degrees[addr],
-                       nas_in_val, nas_out_val, nas_stake, account_median[addr],
-                       account_weight[addr], account_rank[addr]}));
-
-    infos.push_back(info);
   }
 
   auto end_time = std::chrono::high_resolution_clock::now();
@@ -356,26 +330,11 @@ void nebulas_rank::convert_nr_info_to_ptree(const nr_info_t &info,
                                             boost::property_tree::ptree &p) {
 
   neb::bytes addr_bytes = info.m_address;
-
-  uint32_t in_degree = info.m_in_degree;
-  uint32_t out_degree = info.m_out_degree;
-  uint32_t degrees = info.m_degrees;
-
-  floatxx_t f_in_val = info.m_in_val;
-  floatxx_t f_out_val = info.m_out_val;
-  floatxx_t f_in_outs = info.m_in_outs;
-
   floatxx_t f_median = info.m_median;
   floatxx_t f_weight = info.m_weight;
   floatxx_t f_nr_score = info.m_nr_score;
 
   p.put(std::string("address"), addr_bytes.to_base58());
-  p.put(std::string("in_degree"), neb::math::to_string(in_degree));
-  p.put(std::string("out_degree"), neb::math::to_string(out_degree));
-  p.put(std::string("degrees"), neb::math::to_string(degrees));
-  p.put(std::string("in_val"), neb::math::to_string(f_in_val));
-  p.put(std::string("out_val"), neb::math::to_string(f_out_val));
-  p.put(std::string("in_outs"), neb::math::to_string(f_in_outs));
   p.put(std::string("median"), neb::math::to_string(f_median));
   p.put(std::string("weight"), neb::math::to_string(f_weight));
   p.put(std::string("score"), neb::math::to_string(f_nr_score));
@@ -452,17 +411,6 @@ nr_ret_type nebulas_rank::json_to_nr_info(const std::string &nr_result) {
     nr_info_t &info = *info_ptr;
     const auto &address = nr.get<base58_address_t>("address");
     info.m_address = neb::bytes::from_base58(address);
-
-    info.m_in_degree = nr.get<uint32_t>("in_degree");
-    info.m_out_degree = nr.get<uint32_t>("out_degree");
-    info.m_degrees = nr.get<uint32_t>("degrees");
-
-    const auto &in_val = nr.get<std::string>("in_val");
-    const auto &out_val = nr.get<std::string>("out_val");
-    const auto &in_outs = nr.get<std::string>("in_outs");
-    info.m_in_val = neb::math::from_string<floatxx_t>(in_val);
-    info.m_out_val = neb::math::from_string<floatxx_t>(out_val);
-    info.m_in_outs = neb::math::from_string<floatxx_t>(in_outs);
 
     const auto &median = nr.get<std::string>("median");
     const auto &weight = nr.get<std::string>("weight");

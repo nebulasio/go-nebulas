@@ -33,12 +33,6 @@ namespace nr {
 
 struct nr_info_t {
   address_t m_address;
-  uint32_t m_in_degree;
-  uint32_t m_out_degree;
-  uint32_t m_degrees;
-  floatxx_t m_in_val;
-  floatxx_t m_out_val;
-  floatxx_t m_in_outs;
   floatxx_t m_median;
   floatxx_t m_weight;
   floatxx_t m_nr_score;
@@ -70,10 +64,10 @@ public:
   static str_uptr_t nr_info_to_json(const nr_ret_type &nr_ret);
   static nr_ret_type json_to_nr_info(const std::string &nr_result);
 
-#ifdef ENABLE_UNITTEST
-public:
-#else
+#ifdef NDEBUG
 private:
+#else
+public:
 #endif
   static auto split_transactions_by_block_interval(
       const std::vector<neb::fs::transaction_info_t> &txs,
