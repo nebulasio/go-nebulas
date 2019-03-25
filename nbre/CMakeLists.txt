@@ -8,7 +8,7 @@ if(Release)
   add_definitions(-DNBRE_PATH=${PROJECT_SOURCE_DIR})
   add_definitions(-DNDEBUG)
 else(Release)
-  add_definitions(-g)
+  add_definitions(-g -O2 -DNDEBUG)
   add_definitions(-DNBRE_PATH=${PROJECT_SOURCE_DIR})
 endif(Release)
 
@@ -57,6 +57,13 @@ function(enable_clang_tidy target_name)
   endif()
 endfunction(enable_clang_tidy)
 
+if(CMAKE_BUILD_TYPE STREQUAL "coverage" OR CODE_COVERAGE)
+  message("Building with llvm Code Coverage Tools")
+  # set Flags
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
+endif()
+
 enable_testing()
 
 
@@ -69,7 +76,7 @@ llvm_map_components_to_libnames(llvm_libs
   nativecodegen
   irreader
   orcjit
-  )
+)
 
 set(jit_libs nbre_jit ${llvm_libs})
 

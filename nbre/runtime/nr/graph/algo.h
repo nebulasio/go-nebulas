@@ -40,6 +40,9 @@ public:
   static void remove_cycles_based_on_time_sequence(
       transaction_graph::internal_graph_t &graph);
 
+  static void
+  non_recursive_remove_cycles_based_on_time_sequence(transaction_graph &graph);
+
   static void merge_edges_with_same_from_and_same_to(
       transaction_graph::internal_graph_t &graph);
 

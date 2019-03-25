@@ -24,7 +24,7 @@
 namespace neb {
 namespace rt {
 
-transaction_graph::transaction_graph() : m_cur_max_index(0) {}
+transaction_graph::transaction_graph() : m_cur_max_index(0), m_edge_index(0) {}
 
 void transaction_graph::add_edge(const address_t &from, const address_t &to,
                                  wei_t val, int64_t ts) {
@@ -46,7 +46,13 @@ void transaction_graph::add_edge(const address_t &from, const address_t &to,
   from_vertex = tmp_func(from);
   to_vertex = tmp_func(to);
 
-  boost::add_edge(from_vertex, to_vertex, {val, ts}, m_graph);
+  // boost::add_edge(from_vertex, to_vertex, {val, ts, m_edge_index}, m_graph);
+  edge_property_t prop;
+  boost::get_property_value(prop, boost::edge_weight) = val;
+  boost::get_property_value(prop, boost::edge_timestamp) = ts;
+  boost::get_property_value(prop, boost::edge_sort_id) = m_edge_index;
+  boost::add_edge(from_vertex, to_vertex, prop, m_graph);
+  m_edge_index++;
 
   boost::put(boost::vertex_name_t(), m_graph, from_vertex,
              std::to_string(from));

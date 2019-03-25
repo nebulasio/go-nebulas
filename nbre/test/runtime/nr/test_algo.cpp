@@ -19,12 +19,14 @@
 //
 
 #include "runtime/nr/graph/algo.h"
+#include "util/chrono.h"
 
 int main(int argc, char *argv[]) {
   neb::rt::transaction_graph tg;
   int32_t n = std::stoi(argv[1]);
   std::string s = argv[2];
   char cc = s[0];
+  int opt = std::stoi(argv[3]);
 
   for (char ch = 'a'; ch < cc; ch++) {
     for (int32_t i = 0; i < n; i++) {
@@ -35,14 +37,22 @@ int main(int argc, char *argv[]) {
   }
   for (int32_t i = 0; i < n; i++) {
     tg.add_edge(neb::to_address(std::string(1, cc)),
-                neb::to_address(std::string(1, 'a')), cc - 'a' + 1,
-                cc - 'a' + 1);
+                neb::to_address(std::string(1, 'a')), cc - 'a' + 1, 0);
   }
 
-  auto &graph = tg.internal_graph();
-  LOG(INFO) << "start to remove cycle";
-  neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
-  LOG(INFO) << "done with remove cycle";
+  auto start_ts = neb::util::now();
+  if (opt == 0) {
+    auto &graph = tg.internal_graph();
+    LOG(INFO) << "start to remove cycle";
+    neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
+    LOG(INFO) << "done with remove cycle";
+  } else if (opt == 1) {
+    LOG(INFO) << "start to remove cycle";
+    neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(tg);
+    LOG(INFO) << "done with remove cycle";
+  }
+  auto end_ts = neb::util::now();
+  std::cout << "ts: " << end_ts - start_ts << std::endl;
 
   return 0;
 }
