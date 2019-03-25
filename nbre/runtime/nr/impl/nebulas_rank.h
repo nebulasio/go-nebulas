@@ -64,10 +64,10 @@ public:
   static str_uptr_t nr_info_to_json(const nr_ret_type &nr_ret);
   static nr_ret_type json_to_nr_info(const std::string &nr_result);
 
-#ifdef ENABLE_UNITTEST
-public:
-#else
+#ifdef NDEBUG
 private:
+#else
+public:
 #endif
   static auto split_transactions_by_block_interval(
       const std::vector<neb::fs::transaction_info_t> &txs,

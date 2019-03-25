@@ -302,7 +302,7 @@ void graph_algo::remove_cycles_based_on_time_sequence(
     if (ret.empty()) {
       break;
     }
-    ::neb::rt::graph_algo::remove_a_cycle(graph, ret);
+    remove_a_cycle(graph, adj, ret);
   }
 }
 

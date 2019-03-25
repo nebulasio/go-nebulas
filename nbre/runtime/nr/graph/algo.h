@@ -62,10 +62,18 @@ public:
   static auto get_degree_sum(const transaction_graph::internal_graph_t &graph)
       -> std::unique_ptr<std::unordered_map<address_t, uint32_t>>;
 
-#ifdef ENABLE_UNITTEST
-public:
-#else
+  static bool decrease_graph_edges(
+      const transaction_graph::internal_graph_t &graph,
+      std::unordered_set<transaction_graph::vertex_descriptor_t> &dead_v,
+      std::unordered_map<transaction_graph::vertex_descriptor_t, size_t>
+          &dead_to,
+      std::unordered_map<transaction_graph::vertex_descriptor_t, size_t>
+          &to_dead);
+
+#ifdef NDEBUG
 private:
+#else
+public:
 #endif
   static void dfs_find_a_cycle_from_vertex_based_on_time_sequence(
       const transaction_graph::internal_graph_t &graph,
@@ -92,14 +100,6 @@ private:
       const transaction_graph::internal_graph_t &graph,
       const std::unordered_set<transaction_graph::vertex_descriptor_t> &dead_v,
       std::unordered_set<transaction_graph::vertex_descriptor_t> &tmp_dead,
-      std::unordered_map<transaction_graph::vertex_descriptor_t, size_t>
-          &dead_to,
-      std::unordered_map<transaction_graph::vertex_descriptor_t, size_t>
-          &to_dead);
-
-  static bool decrease_graph_edges(
-      const transaction_graph::internal_graph_t &graph,
-      std::unordered_set<transaction_graph::vertex_descriptor_t> &dead_v,
       std::unordered_map<transaction_graph::vertex_descriptor_t, size_t>
           &dead_to,
       std::unordered_map<transaction_graph::vertex_descriptor_t, size_t>
