@@ -37,10 +37,9 @@ gen_dip_infos(std::vector<std::pair<std::string, std::string>> &meta) {
   std::uniform_int_distribution<> dis(0, std::numeric_limits<int16_t>::max());
 
   std::vector<std::shared_ptr<neb::rt::dip::dip_info_t>> ret;
-  meta = std::vector<std::pair<std::string, std::string>>(
-      {{"start_height", std::to_string(dis(mt))},
-       {"end_height", std::to_string(dis(mt))},
-       {"version", std::to_string(dis(mt))}});
+  meta.push_back(std::make_pair("start_height", std::to_string(dis(mt))));
+  meta.push_back(std::make_pair("end_height", std::to_string(dis(mt))));
+  meta.push_back(std::make_pair("version", std::to_string(dis(mt))));
   int32_t infos_size = std::sqrt(dis(mt));
   for (int32_t i = 0; i < infos_size; i++) {
     auto info_ptr =
@@ -57,9 +56,9 @@ TEST(test_runtime_dip_reward, json_seri_deseri) {
   neb::rt::dip::dip_ret_type dip_ret;
   std::get<0>(dip_ret) = 1;
   std::vector<std::pair<std::string, std::string>> meta;
-  std::get<1>(dip_ret) = neb::rt::meta_info_to_json(meta);
   auto &ret = std::get<2>(dip_ret);
   ret = gen_dip_infos(meta);
+  std::get<1>(dip_ret) = neb::rt::meta_info_to_json(meta);
   auto str_ptr = neb::rt::dip::dip_reward::dip_info_to_json(dip_ret);
   dip_ret = neb::rt::dip::dip_reward::json_to_dip_info(*str_ptr);
   auto &info_v = std::get<2>(dip_ret);

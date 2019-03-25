@@ -348,7 +348,7 @@ TEST(test_runtime_nebulas_rank, f_accout_rank) {
   std::mt19937 mt(rd());
   std::uniform_int_distribution<> dis(0, std::numeric_limits<int32_t>::max());
 
-  for (int32_t i = 0; i < 100; i++) {
+  for (int32_t i = 0; i < 10; i++) {
     auto S = dis(mt);
     auto R = dis(mt);
     auto expect_ret = tmp_func(a, b, c, d, theta, mu, lambda, S, R);

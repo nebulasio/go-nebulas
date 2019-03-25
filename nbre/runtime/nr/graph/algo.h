@@ -117,6 +117,14 @@ namespace opt {
 
 class graph_algo {
 public:
+  static void remove_cycles_based_on_time_sequence(
+      transaction_graph::internal_graph_t &graph);
+
+#ifdef NDEBUG
+private:
+#else
+public:
+#endif
   static auto find_a_cycle_from_vertex_based_on_time_sequence(
       const transaction_graph::internal_graph_t &graph,
       const std::unordered_map<
@@ -145,9 +153,6 @@ public:
       std::unordered_map<transaction_graph::vertex_descriptor_t,
                          std::vector<transaction_graph::edge_descriptor_t>>
           &adj);
-
-  static void remove_cycles_based_on_time_sequence(
-      transaction_graph::internal_graph_t &graph);
 
   static void remove_a_cycle(
       transaction_graph::internal_graph_t &graph,
