@@ -11,7 +11,7 @@
     "sample.cpp"
   ],
   "include_header_files":[
-    "../../../"
+    "../../../lib/include"
   ],
   "link_path":[
     "../../../lib"

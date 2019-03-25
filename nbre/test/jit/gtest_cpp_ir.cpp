@@ -18,8 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "jit/jit_driver.h"
+#include "jit/cpp_ir.h"
 #include <gtest/gtest.h>
 
-TEST(test_jit_driver, simple) { neb::jit_driver jd; }
-
+TEST(test_cpp_ir, simple) {}
