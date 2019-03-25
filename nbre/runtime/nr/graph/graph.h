@@ -24,8 +24,12 @@
 
 namespace boost {
 enum edge_timestamp_t { edge_timestamp };
+enum edge_sort_id_t { edge_sort_id };
+enum edge_check_id_t { edge_check_id };
 
 BOOST_INSTALL_PROPERTY(edge, timestamp);
+BOOST_INSTALL_PROPERTY(edge, sort_id);
+BOOST_INSTALL_PROPERTY(edge, check_id);
 } // namespace boost
 
 namespace neb {
@@ -33,11 +37,17 @@ namespace rt {
 
 class transaction_graph {
 public:
+  typedef boost::property<
+      boost::edge_weight_t, wei_t,
+      boost::property<
+          boost::edge_timestamp_t, int64_t,
+          boost::property<boost::edge_sort_id_t, int64_t,
+                          boost::property<boost::edge_check_id_t, int32_t>>>>
+      edge_property_t;
+
   typedef boost::adjacency_list<
       boost::vecS, boost::vecS, boost::bidirectionalS,
-      boost::property<boost::vertex_name_t, std::string>,
-      boost::property<boost::edge_weight_t, wei_t,
-                      boost::property<boost::edge_timestamp_t, int64_t>>>
+      boost::property<boost::vertex_name_t, std::string>, edge_property_t>
       internal_graph_t;
 
   typedef typename boost::graph_traits<internal_graph_t>::vertex_descriptor
@@ -63,6 +73,8 @@ public:
 
   inline internal_graph_t &internal_graph() { return m_graph; }
   inline const internal_graph_t &internal_graph() const { return m_graph; }
+  inline int64_t edge_num() const { return m_edge_index; }
+  inline int64_t vertex_num() const { return m_cur_max_index; }
 
 protected:
   internal_graph_t m_graph;
@@ -71,7 +83,7 @@ protected:
   std::unordered_map<address_t, int64_t> m_addr_to_vertex;
 
   uint64_t m_cur_max_index;
-
+  uint64_t m_edge_index;
 }; // end class transaction_graph
 
 using transaction_graph_ptr_t = std::unique_ptr<transaction_graph>;

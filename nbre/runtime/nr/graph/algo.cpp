@@ -20,6 +20,7 @@
 
 #include "runtime/nr/graph/algo.h"
 #include "common/math.h"
+#include "util/chrono.h"
 #include <stack>
 
 namespace neb {
@@ -727,8 +728,395 @@ void graph_algo::remove_a_cycle(
     }
   }
 }
+}
 
-} // namespace opt
+class non_recursive_remove_cycles_based_on_time_sequence_helper {
+public:
+  typedef transaction_graph::internal_graph_t graph_t;
+  non_recursive_remove_cycles_based_on_time_sequence_helper(
+      transaction_graph &g)
+      : m_graph(g.internal_graph()), m_sorted_vs(g.vertex_num(), 0),
+        m_dead_vs(g.vertex_num(), 0), m_dead_es(g.edge_num(), 0),
+        m_sorted_ves(g.vertex_num(),
+                     std::vector<transaction_graph::edge_descriptor_t>()) {
+    m_path_vs_has_cycle = false;
+  }
+
+  inline void add_dead_vertex(const transaction_graph::vertex_descriptor_t &v) {
+    m_dead_vs[v] = true;
+  }
+  inline bool is_dead_vertex(const transaction_graph::vertex_descriptor_t &v) {
+    return m_dead_vs[v];
+  }
+  inline void add_dead_edge(const transaction_graph::edge_descriptor_t &e) {
+    m_dead_es[boost::get(boost::edge_sort_id_t(), m_graph, e)] = true;
+  }
+  inline bool is_dead_edge(const transaction_graph::edge_descriptor_t &e) {
+    return m_dead_es[boost::get(boost::edge_sort_id_t(), m_graph, e)];
+  }
+
+  std::vector<transaction_graph::vertex_descriptor_t>
+  possible_start_nodes_of_cycles() {
+    std::vector<transaction_graph::vertex_descriptor_t> nodes;
+    transaction_graph::viterator_t vi, vi_end;
+    for (boost::tie(vi, vi_end) = boost::vertices(m_graph); vi != vi_end;
+         vi++) {
+      auto ins = boost::in_degree(*vi, m_graph);
+      auto outs = boost::in_degree(*vi, m_graph);
+      if (!ins || !outs) {
+        add_dead_vertex(*vi);
+      } else {
+        int64_t ts_in_max = std::numeric_limits<int64_t>::min();
+        int64_t ts_out_min = std::numeric_limits<int64_t>::max();
+
+        transaction_graph::ieiterator_t iei, iei_end;
+        for (boost::tie(iei, iei_end) = boost::in_edges(*vi, m_graph);
+             iei != iei_end; ++iei) {
+          int64_t ts = boost::get(boost::edge_timestamp_t(), m_graph, *iei);
+          if (ts > ts_in_max)
+            ts_in_max = ts;
+        }
+        transaction_graph::oeiterator_t oei, oei_end;
+        for (boost::tie(oei, oei_end) = boost::out_edges(*vi, m_graph);
+             oei != oei_end; ++oei) {
+          int64_t ts = boost::get(boost::edge_timestamp_t(), m_graph, *oei);
+          if (ts < ts_out_min)
+            ts_out_min = ts;
+        }
+        if (ts_in_max >= ts_out_min) {
+          nodes.push_back(*vi);
+        }
+      }
+    }
+    return nodes;
+}
+
+std::pair<bool, transaction_graph::edge_descriptor_t>
+larger_min_out_edge(const transaction_graph::vertex_descriptor_t &v,
+                    int64_t larger_than) {
+  transaction_graph::edge_descriptor_t edge;
+  transaction_graph::oeiterator_t oei, oei_end;
+  std::vector<transaction_graph::edge_descriptor_t> &es = m_sorted_ves[v];
+  auto it = std::lower_bound(
+      es.begin(), es.end(), larger_than,
+      [this](transaction_graph::edge_descriptor_t e1, int64_t m2) {
+        auto m1 = boost::get(boost::edge_timestamp_t(), m_graph, e1);
+        return m1 < m2;
+      });
+  return std::make_pair(it != es.end(), *it);
+  // LOG(INFO) << "v:" << v << ", es size: " << es.size();
+  int s = 0;
+  int e = es.size() - 1;
+  while (s < e) {
+    int mid = (s + e) / 2;
+    auto ms = boost::get(boost::edge_timestamp_t(), m_graph, es[mid]);
+    if (ms < larger_than) {
+      s = mid + 1;
+    } else if (ms > larger_than) {
+      e = mid - 1;
+    } else {
+      int ret = mid;
+      while (mid >= 0 && ms == larger_than) {
+        ret = mid;
+        mid--;
+        if (mid >= 0) {
+          ms = boost::get(boost::edge_timestamp_t(), m_graph, es[mid]);
+        }
+      }
+      return std::make_pair(true, es[ret]);
+    }
+    // LOG(INFO) << "v:" << v << ",s: " << s << ", e: " << e;
+  }
+  if (s > e && s < es.size()) {
+    return std::make_pair(true, es[s]);
+  }
+  // LOG(INFO) << "larger_min_out_edge: " << es[s];
+  return std::make_pair(true, es[s]);
+  // return std::make_pair(found, edge);
+}
+
+std::pair<bool, transaction_graph::edge_descriptor_t>
+min_out_edge(const transaction_graph::vertex_descriptor_t &v) {
+  sort_out_edges_if_not(v);
+  if (m_sorted_ves.empty()) {
+    return std::make_pair(false, transaction_graph::edge_descriptor_t());
+  }
+  return std::make_pair(true, m_sorted_ves[v][0]);
+}
+
+std::vector<transaction_graph::vertex_descriptor_t>
+ascend_sort_vertex_by_min_out_edge(
+    const std::vector<transaction_graph::vertex_descriptor_t> &vs) {
+
+  std::vector<transaction_graph::vertex_descriptor_t> ret = vs;
+  std::sort(ret.begin(), ret.end(),
+            [this](transaction_graph::vertex_descriptor_t v1,
+                   transaction_graph::vertex_descriptor_t v2) {
+              auto t1 = boost::get(boost::edge_timestamp_t(), m_graph,
+                                   min_out_edge(v1).second);
+              auto t2 = boost::get(boost::edge_timestamp_t(), m_graph,
+                                   min_out_edge(v2).second);
+              return t1 < t2;
+            });
+  return ret;
+}
+bool path_is_cycle() {
+  return m_path_vs_has_cycle;
+}
+
+bool check_and_update_dead_edge(
+    const transaction_graph::edge_descriptor_t &edge) {
+
+  if (is_dead_edge(edge))
+    return true;
+
+  auto target = boost::target(edge, m_graph);
+  auto source = boost::source(edge, m_graph);
+  if (is_dead_vertex(source))
+    return true;
+
+  if (is_dead_vertex(target)) {
+    add_dead_edge(edge);
+
+    // if all the edges from soure are dead, the the source is a dead node.
+
+    transaction_graph::oeiterator_t oei, oei_end;
+    bool found_one_live_edges = false;
+    for (boost::tie(oei, oei_end) = boost::out_edges(source, m_graph);
+         oei != oei_end; ++oei) {
+      if (!is_dead_edge(*oei)) {
+        found_one_live_edges = true;
+        break;
+      }
+    }
+    if (!found_one_live_edges) {
+      add_dead_vertex(source);
+    }
+    return true;
+  }
+  return false;
+}
+
+std::pair<bool, transaction_graph::edge_descriptor_t>
+get_next_edge_with_the_same_source(
+    const transaction_graph::edge_descriptor_t &e) {
+  auto source = boost::source(e, m_graph);
+  auto check_id = boost::get(boost::edge_check_id_t(), m_graph, e);
+  transaction_graph::edge_descriptor_t ret;
+  transaction_graph::oeiterator_t oei, oei_end;
+  bool found = false;
+  if (check_id >= m_sorted_ves[source].size() - 1) {
+    return std::make_pair(found, ret);
+  } else {
+    return std::make_pair(true, m_sorted_ves[source][check_id + 1]);
+  }
+}
+
+void remove_a_cycle(
+    const std::vector<transaction_graph::edge_descriptor_t> &edges) {
+
+  // if (edges.empty())
+  // return;
+  std::vector<transaction_graph::edge_descriptor_t> cycle;
+  bool found = false;
+  bool target = boost::target(edges.back(), m_graph);
+  bool source = boost::source(edges.front(), m_graph);
+  if (target == source) {
+    cycle = edges;
+  } else {
+    for (size_t i = 0; i < edges.size(); ++i) {
+      auto edge = edges[i];
+      // LOG(INFO) << "edge: " << edge;
+      if (boost::source(edge, m_graph) == target) {
+        found = true;
+      }
+      if (found) {
+        cycle.push_back(edge);
+      }
+    }
+  }
+  wei_t min_w = std::numeric_limits<wei_t>::max();
+  for (auto it = cycle.begin(); it != cycle.end(); it++) {
+    wei_t w = boost::get(boost::edge_weight_t(), m_graph, *it);
+    min_w = std::min(w, min_w);
+  }
+
+  // LOG(INFO) << "cycle size: " << cycle.size();
+  for (auto it = cycle.begin(); it != cycle.end(); it++) {
+    // LOG(INFO) << "to change edge: " << *it;
+    wei_t w = boost::get(boost::edge_weight_t(), m_graph, *it);
+    boost::put(boost::edge_weight_t(), m_graph, *it, w - min_w);
+    if (w == min_w) {
+      boost::remove_edge(*it, m_graph);
+      // LOG(INFO) << "to remove " << *it;
+      auto source = boost::source(*it, m_graph);
+      auto target = boost::target(*it, m_graph);
+      // m_sorted_vs[source] = false;
+      // sort_out_edges_if_not(source);
+      auto &tes = m_sorted_ves[source];
+      auto tid = boost::get(boost::edge_sort_id_t(), m_graph, *it);
+      auto rit = std::remove_if(
+          tes.begin(), tes.end(),
+          [this, tid](transaction_graph::edge_descriptor_t t) {
+            return boost::get(boost::edge_sort_id_t(), m_graph, t) == tid;
+          });
+      std::for_each(rit, tes.end(),
+                    [this](transaction_graph::edge_descriptor_t &t) {
+                      auto v = boost::get(boost::edge_check_id_t(), m_graph, t);
+                      boost::put(boost::edge_check_id_t(), m_graph, t, v - 1);
+                    });
+
+      // We may recursively mark dead nodes, yet cyccles should be rare.
+      // Thus, may delay this when we meet them again.
+      if (boost::out_degree(source, m_graph) == 0) {
+        add_dead_vertex(source);
+      }
+      if (boost::in_degree(target, m_graph) == 0) {
+        add_dead_vertex(target);
+      }
+    }
+  }
+}
+
+void path_add_vertex(const transaction_graph::vertex_descriptor_t &v) {
+  if (m_path_vs.find(v) != m_path_vs.end()) {
+    m_path_vs_has_cycle = true;
+  } else {
+    m_path_vs.insert(v);
+  }
+}
+void path_remove_vertex(const transaction_graph::vertex_descriptor_t &v) {
+  m_path_vs.erase(v);
+}
+void sort_out_edges_if_not(const transaction_graph::vertex_descriptor_t &v) {
+  if (m_sorted_vs[v])
+    return;
+
+  m_sorted_vs[v] = true;
+  std::vector<transaction_graph::edge_descriptor_t> es;
+  transaction_graph::oeiterator_t oei, oei_end;
+  for (boost::tie(oei, oei_end) = boost::out_edges(v, m_graph); oei != oei_end;
+       oei++) {
+    es.push_back(*oei);
+  }
+  std::sort(es.begin(), es.end(),
+            [this](transaction_graph::edge_descriptor_t e1,
+                   transaction_graph::edge_descriptor_t e2) {
+              auto t1 = boost::get(boost::edge_timestamp_t(), m_graph, e1);
+              auto t2 = boost::get(boost::edge_timestamp_t(), m_graph, e2);
+              return t1 < t2;
+            });
+  for (size_t i = 0; i < es.size(); ++i) {
+    boost::put(boost::edge_check_id_t(), m_graph, es[i], i);
+  }
+  // LOG(INFO) << "sorted for v: " << v << ", edges: " << es.size();
+  m_sorted_ves[v] = es;
+}
+void remove_cycles_based_on_time_sequence() {
+  std::vector<transaction_graph::vertex_descriptor_t> to_visit =
+      possible_start_nodes_of_cycles();
+
+  to_visit = ascend_sort_vertex_by_min_out_edge(to_visit);
+
+  std::vector<transaction_graph::edge_descriptor_t> to_visit_path;
+  std::vector<transaction_graph::edge_descriptor_t> cur_path;
+  while (!to_visit.empty()) {
+    transaction_graph::vertex_descriptor_t v = to_visit.back();
+    to_visit.pop_back();
+    if (is_dead_vertex(v))
+      continue;
+    auto ins = boost::in_degree(v, m_graph);
+    auto outs = boost::in_degree(v, m_graph);
+    if (!ins || !outs) {
+      add_dead_vertex(v);
+      continue;
+    }
+    sort_out_edges_if_not(v);
+
+    // LOG(INFO) << "for v: " << v;
+    auto ts_min = std::numeric_limits<int64_t>::min();
+    auto ts_in_max =
+        boost::get(boost::edge_timestamp_t(), m_graph, m_sorted_ves[v].back());
+    while (true) {
+      to_visit_path.clear();
+      cur_path.clear();
+      m_path_vs.clear();
+      auto e = larger_min_out_edge(v, ts_min);
+      if (!e.first) {
+        // LOG(INFO) << "got break";
+        break;
+      }
+      ts_min = boost::get(boost::edge_timestamp_t(), m_graph, e.second);
+      if (ts_min > ts_in_max)
+        break;
+      to_visit_path.push_back(e.second);
+      path_add_vertex(boost::source(e.second, m_graph));
+      while (!path_is_cycle() && !to_visit_path.empty()) {
+        if (!to_visit_path.empty()) {
+          auto edge = to_visit_path.back();
+          to_visit_path.pop_back();
+          if (check_and_update_dead_edge(edge)) {
+            continue;
+          }
+
+          // LOG(INFO) << "add edge: " << edge;
+          // path_add_vertex(boost::target(edge, m_graph));
+          sort_out_edges_if_not(boost::source(edge, m_graph));
+          auto new_edge = std::make_pair(true, edge);
+
+          while (new_edge.first && !path_is_cycle()) {
+            cur_path.push_back(new_edge.second);
+            // LOG(INFO) << "new edge: " << new_edge.second;
+            path_add_vertex(boost::target(new_edge.second, m_graph));
+            sort_out_edges_if_not(boost::target(new_edge.second, m_graph));
+            auto cur_ts =
+                boost::get(boost::edge_timestamp_t(), m_graph, new_edge.second);
+            new_edge = larger_min_out_edge(
+                boost::target(new_edge.second, m_graph), cur_ts);
+            // LOG(INFO) << "tnew edge: " << new_edge.second;
+          }
+
+          // LOG(INFO) << "quit";
+        } else if (!path_is_cycle()) {
+          auto edge = cur_path.back();
+          cur_path.pop_back();
+          path_remove_vertex(boost::target(edge, m_graph));
+          if (check_and_update_dead_edge(edge)) {
+            continue;
+          }
+          sort_out_edges_if_not(boost::source(edge, m_graph));
+          auto new_edge = get_next_edge_with_the_same_source(edge);
+          if (new_edge.first) {
+            to_visit_path.push_back(new_edge.second);
+          }
+        }
+      }
+      if (path_is_cycle()) {
+        // LOG(INFO) << "got cycle";
+        remove_a_cycle(cur_path);
+        m_path_vs_has_cycle = false;
+      } else {
+        break;
+      }
+    }
+  }
+}
+
+protected:
+graph_t &m_graph;
+std::vector<bool> m_sorted_vs;
+std::vector<bool> m_dead_vs;
+std::vector<bool> m_dead_es;
+std::unordered_set<transaction_graph::vertex_descriptor_t> m_path_vs;
+bool m_path_vs_has_cycle;
+std::vector<std::vector<transaction_graph::edge_descriptor_t>> m_sorted_ves;
+};
+
+void graph_algo::non_recursive_remove_cycles_based_on_time_sequence(
+    transaction_graph &graph) {
+  non_recursive_remove_cycles_based_on_time_sequence_helper nh(graph);
+  nh.remove_cycles_based_on_time_sequence();
+}
 
 } // namespace rt
 } // namespace neb

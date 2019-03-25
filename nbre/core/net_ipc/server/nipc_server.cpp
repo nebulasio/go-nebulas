@@ -157,6 +157,8 @@ void nipc_server::shutdown() {
   if (m_conn)
     m_conn->close();
   m_server->stop();
+  neb::core::command_queue::instance().send_command(
+      std::make_shared<neb::core::exit_command>());
 }
 
 void nipc_server::add_all_callbacks() {
