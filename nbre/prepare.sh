@@ -204,9 +204,9 @@ if [ ! -f $CUR_DIR/lib/include/zlib.h ]; then
 fi
 
 if [ ! -f $CUR_DIR/lib/include/zstd.h ]; then
-  # if [ `check_install zstd` -eq 0 ]; then
+  if [ `check_install zstd` -eq 0 ]; then
     build_with_make zstd
-  # fi
+  fi
 fi
 
 if [ ! -f $CUR_DIR/lib/include/bzlib.h ]; then

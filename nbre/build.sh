@@ -31,8 +31,12 @@ build_with_cmake() {
 	source $CUR_DIR/env.set.sh
 	mkdir -p $CUR_DIR/build
 	pushd $CUR_DIR/build
-	cmake ..
-	make -j$PARALLEL
+	if [ "$1" = "debug" ]; then 
+		cmake ..
+	else
+		cmake -DRelease=1 ..
+	fi
+	make -j$PARALLEL && make install
 	popd
 }
 
@@ -41,11 +45,11 @@ clean() {
 }
 
 
-if [ "$1" = "all" ]; then
+if [ "$1" = "debug" ]; then
+	build_with_cmake debug
+elif [ "$1" = "clear" ]; then
 	clean
 	build_with_cmake
-elif [ "$1" = "clean" ]; then
-	clean
 else
 	build_with_cmake
 fi

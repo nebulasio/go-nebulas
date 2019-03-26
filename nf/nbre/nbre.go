@@ -195,6 +195,11 @@ func (n *Nbre) Start() error {
 
 	cResult := C.start_nbre_ipc(p)
 	if int(cResult) != 0 {
+		logging.VLog().WithFields(logrus.Fields{
+			"data":   nbreDataDir,
+			"nbre":   nbrePath,
+			"result": int(cResult),
+		}).Error("Failed to start nbre.")
 		return ErrNbreStartFailed
 	}
 
