@@ -84,9 +84,10 @@ bool nipc_client::start() {
 
       m_heart_bear_timer = std::make_unique<util::timer_loop>(&nn.ioservice());
       m_heart_bear_timer->register_timer_and_callback(3, [this]() {
-        if (m_to_recv_heart_beat_msg > 2) {
+        if (m_to_recv_heart_beat_msg > 2 && m_handling_pkg_num == 0) {
           LOG(INFO) << "no heart beat msg, to close";
           m_conn->close();
+          return;
         }
         m_to_recv_heart_beat_msg++;
         std::shared_ptr<heart_beat_t> hb = std::make_shared<heart_beat_t>();
