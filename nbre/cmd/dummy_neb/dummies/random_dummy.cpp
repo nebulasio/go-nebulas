@@ -79,6 +79,10 @@ random_dummy::random_dummy(const std::string &name, int initial_account_num,
           m_pkgs.push_back(req);
         });
 
+    hub.to_recv_pkg<nbre_nr_sum_req>(
+        [this](std::shared_ptr<nbre_nr_sum_req> req) {
+          m_pkgs.push_back(req);
+        });
     hub.to_recv_pkg<nbre_dip_reward_req>(
         [this](std::shared_ptr<nbre_dip_reward_req> req) {
           m_pkgs.push_back(req);
@@ -327,6 +331,18 @@ void random_dummy::handle_cli_pkgs() {
           });
       ipc_nbre_nr_result_by_height(
           reinterpret_cast<void *>(req->get<p_holder>()), req->get<p_height>());
+    } else if (pkg->type_id() == nbre_nr_sum_req_pkg) {
+      nbre_nr_sum_req *req = (nbre_nr_sum_req *)pkg.get();
+      callback_handler::instance().add_nr_sum_handler(
+          req->get<p_holder>(), [this](uint64_t holder, const char *nr_sum) {
+            std::shared_ptr<nbre_nr_sum_ack> ack =
+                std::make_shared<nbre_nr_sum_ack>();
+            ack->set<p_holder>(holder);
+            ack->set<p_nr_sum>(std::string(nr_sum));
+            m_conn->send(ack);
+          });
+      ipc_nbre_nr_sum(reinterpret_cast<void *>(req->get<p_holder>()),
+                      req->get<p_height>());
     } else if (pkg->type_id() == nbre_dip_reward_req_pkg) {
       nbre_dip_reward_req *req = (nbre_dip_reward_req *)pkg.get();
       callback_handler::instance().add_dip_reward_handler(

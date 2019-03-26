@@ -339,6 +339,22 @@ void client_driver::add_handlers() {
         }
       });
 
+  m_client->add_handler<nbre_nr_sum_req>(
+      [this](std::shared_ptr<nbre_nr_sum_req> req) {
+        try {
+          auto ack = new_ack_pkg<nbre_nr_sum_ack>(req);
+          auto height = req->get<p_height>();
+          auto ret_ptr =
+              neb::rt::dip::dip_handler::instance().get_nr_sum(height);
+          LOG(INFO) << "nr sum \n" << *ret_ptr;
+          ack->set<p_nr_sum>(*ret_ptr);
+          m_ipc_conn->send(ack);
+        } catch (const std::exception &e) {
+          LOG(ERROR) << "got exception " << typeid(e).name()
+                     << " with what: " << e.what();
+        }
+      });
+
   m_client->add_handler<nbre_dip_reward_req>(
       [this](std::shared_ptr<nbre_dip_reward_req> req) {
         try {

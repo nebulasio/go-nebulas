@@ -54,6 +54,7 @@ public:
   str_sptr_t get_dip_reward(neb::block_height_t height);
 
   str_sptr_t get_nr_result(neb::block_height_t height);
+  str_sptr_t get_nr_sum(neb::block_height_t height);
 
 private:
   std::shared_ptr<dip_params_t> get_dip_params_previous(block_height_t height);
@@ -75,6 +76,7 @@ private:
 private:
   neb::fs::rocksdb_storage *m_storage;
   mutable std::mutex m_mutex;
+  thread_safe_map<block_height_t, str_sptr_t> m_nr_sum;
   thread_safe_map<block_height_t, str_sptr_t> m_nr_result;
   thread_safe_map<block_height_t, str_sptr_t> m_dip_reward;
   // dip params info list

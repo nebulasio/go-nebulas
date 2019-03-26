@@ -64,6 +64,12 @@ public:
   }
   void handle_nr_result_by_height(void *holder, const char *nr_result);
 
+  template <typename Func> void add_nr_sum_handler(uint64_t holder, Func &&f) {
+    std::unique_lock<std::mutex> _l(m_mutex);
+    m_nr_sum_handlers.insert(std::make_pair(holder, f));
+  }
+  void handle_nr_sum(void *holder, const char *nr_sum);
+
   template <typename Func>
   void add_dip_reward_handler(uint64_t holder, Func &&f) {
     std::unique_lock<std::mutex> _l(m_mutex);
@@ -108,6 +114,9 @@ protected:
       m_nr_result_by_height_handlers;
 
   std::unordered_map<uint64_t, std::function<void(uint64_t, const char *)>>
+      m_nr_sum_handlers;
+
+  std::unordered_map<uint64_t, std::function<void(uint64_t, const char *)>>
       m_dip_reward_handlers;
 };
 
@@ -127,6 +136,9 @@ void nbre_nr_result_callback(ipc_status_code isc, void *holder,
 
 void nbre_nr_result_by_height_callback(ipc_status_code isc, void *holder,
                                        const char *nr_result);
+
+void nbre_nr_sum_callback(ipc_status_code isc, void *holder,
+                          const char *nr_sum);
 
 void nbre_dip_reward_callback(ipc_status_code isc, void *holder,
                               const char *dip_reward);

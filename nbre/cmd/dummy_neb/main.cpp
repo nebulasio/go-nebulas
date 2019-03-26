@@ -81,6 +81,7 @@ void init_and_start_nbre(const address_t &auth_admin_addr,
   set_recv_nbre_nr_handle_callback(nbre_nr_handle_callback);
   set_recv_nbre_nr_result_by_handle_callback(nbre_nr_result_callback);
   set_recv_nbre_nr_result_by_height_callback(nbre_nr_result_by_height_callback);
+  set_recv_nbre_nr_sum_callback(nbre_nr_sum_callback);
   set_recv_nbre_dip_reward_callback(nbre_dip_reward_callback);
 
   uint64_t nbre_start_height = 1;

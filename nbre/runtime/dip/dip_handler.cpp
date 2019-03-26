@@ -44,6 +44,7 @@ void dip_handler::check_dip_params(block_height_t height) {
   if (!m_has_curr && m_incoming.empty()) {
     load_storage("dip_rewards", m_dip_reward);
     load_storage("nr_results", m_nr_result, 1 << 4);
+    load_storage("nr_sums", m_nr_sum, 1 << 4);
     auto dip_versions_ptr = neb::fs::ir_api::get_ir_versions("dip", m_storage);
     if (dip_versions_ptr->empty()) {
       return;
@@ -154,6 +155,11 @@ void dip_handler::start(neb::block_height_t height,
         dump_storage("nr_results", hash_height,
                      str_sptr_t{std::move(nr_str_ptr)}, m_nr_result, 1 << 4);
         LOG(INFO) << "dump nr results done";
+
+        auto nr_sum_ptr = nr::nebulas_rank::get_nr_sum_str(nr_ret);
+        dump_storage("nr_sums", hash_height, str_sptr_t{std::move(nr_sum_ptr)},
+                     m_nr_sum, 1 << 4);
+        LOG(INFO) << "dump nr sums done";
       } else {
         LOG(INFO) << std::get<1>(dip_ret);
       }
@@ -280,6 +286,19 @@ str_sptr_t dip_handler::get_nr_result(neb::block_height_t height) {
   assert(ret.first);
   auto &tmp = ret.second;
   LOG(INFO) << "mapped to height " << tmp.first;
+  return tmp.second;
+}
+
+str_sptr_t dip_handler::get_nr_sum(neb::block_height_t height) {
+  LOG(INFO) << "call func get_nr_sum height " << height;
+  auto ret = m_nr_sum.try_lower_than(height);
+  if (!ret.first) {
+    auto ret = std::string("{\"err\":\"no such nr sum\"}");
+    LOG(INFO) << ret;
+    return std::make_shared<std::string>(ret);
+  }
+  assert(ret.first);
+  auto &tmp = ret.second;
   return tmp.second;
 }
 

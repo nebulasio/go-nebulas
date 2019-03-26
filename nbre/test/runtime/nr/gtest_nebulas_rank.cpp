@@ -437,7 +437,7 @@ TEST(test_runtime_nebulas_rank, json_seri_deseri) {
   for (int32_t i = 0; i < infos_size; i++) {
     auto info_ptr =
         std::shared_ptr<neb::rt::nr::nr_info_t>(new neb::rt::nr::nr_info_t{
-            uint32_t(std::sqrt(dis(mt))), neb::floatxx_t(dis(mt)),
+            uint32_t(std::sqrt(dis(mt))), dis(mt), neb::floatxx_t(dis(mt)),
             neb::floatxx_t(dis(mt)), neb::floatxx_t(dis(mt))});
     infos.push_back(info_ptr);
   }

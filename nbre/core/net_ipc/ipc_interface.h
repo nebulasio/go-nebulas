@@ -77,6 +77,12 @@ typedef void (*nbre_nr_result_by_height_callback_t)(enum ipc_status_code isc,
 void set_recv_nbre_nr_result_by_height_callback(
     nbre_nr_result_by_height_callback_t func);
 
+// interface get nr sum
+int ipc_nbre_nr_sum(void *holder, uint64_t height);
+typedef void (*nbre_nr_sum_callback_t)(enum ipc_status_code isc, void *holder,
+                                       const char *nr_sum);
+void set_recv_nbre_nr_sum_callback(nbre_nr_sum_callback_t func);
+
 // interface get dip reward
 int ipc_nbre_dip_reward(void *holder, uint64_t height, uint64_t version);
 typedef void (*nbre_dip_reward_callback_t)(enum ipc_status_code isc,
