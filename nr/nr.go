@@ -81,33 +81,50 @@ func (n *NR) delayHeight() uint64 {
 }
 
 // GetNRListByHeight return nr list, which subtract the deplay height, ensure all node is equal.
-func (n *NR) GetNRListByHeight(height uint64) (core.Data, error) {
-	var (
-		nrData *NRData
-	)
-
+func (n *NR) GetNRListByHeight(height uint64) (nr core.Data, err error) {
 	height = height - n.delayHeight()
 	if height < 1 {
 		return nil, ErrNRNotFound
 	}
 
 	if data, ok := n.cache.Get(height); ok {
-		nrData = data.(*NRData)
+		nr = data.(*NRData)
 	} else {
-		data, err := n.neb.Nbre().Execute(nbre.CommandNRListByHeight, height)
+		data, err = n.neb.Nbre().Execute(nbre.CommandNRListByHeight, height)
 		if err != nil {
 			return nil, err
 		}
-		nrData = &NRData{}
-		if err := nrData.FromBytes([]byte(data.(string))); err != nil {
+		nrData := &NRData{}
+		if err = nrData.FromBytes([]byte(data.(string))); err != nil {
 			return nil, err
 		}
 		if len(nrData.Err) > 0 {
 			return nil, errors.New(nrData.Err)
 		}
+		nr = nrData
 		n.cache.Add(height, nrData)
 	}
-	return nrData, nil
+	return nr, nil
+}
+
+// GetNRSummary return nr summary info, which subtract the deplay height, ensure all node is equal.
+func (n *NR) GetNRSummary(height uint64) (core.Data, error) {
+	height = height - n.delayHeight()
+	if height < 1 {
+		return nil, ErrNRSummaryNotFound
+	}
+	data, err := n.neb.Nbre().Execute(nbre.CommandNRSum, height)
+	if err != nil {
+		return nil, err
+	}
+	sum := &NRSummary{}
+	if err = sum.FromBytes([]byte(data.(string))); err != nil {
+		return nil, err
+	}
+	if len(sum.Err) > 0 {
+		return nil, errors.New(sum.Err)
+	}
+	return sum, nil
 }
 
 // GetNRHandler returns the nr query handler

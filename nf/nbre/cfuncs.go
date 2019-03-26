@@ -28,6 +28,7 @@ void NbreIrVersionsFunc(int isc, void *holder, const char *ir_versions);
 void NbreNrHandleFunc(int isc, void *holder, const char *nr_handle);
 void NbreNrResultByhandleFunc(int isc, void *holder, const char *nr_result);
 void NbreNrResultByHeightFunc(int isc, void *holder, const char *nr_result);
+void NbreNrSumFunc(int isc, void *holder, const char *nr_sum);
 void NbreDipRewardFunc(int isc, void *holder, const char *dip_reward);
 
 void NbreVersionFunc_cgo(int isc, void *holder, uint32_t major, uint32_t minor,uint32_t patch) {
@@ -52,6 +53,10 @@ void NbreNrResultByhandleFunc_cgo(int isc, void *holder, const char *nr_result) 
 
 void NbreNrResultByHeightFunc_cgo(int isc, void *holder, const char *nr_result) {
 	NbreNrResultByHeightFunc(isc, holder, nr_result);
+};
+
+void NbreNrSumFunc_cgo(int isc, void *holder, const char *nr_sum) {
+	NbreNrSumFunc(isc, holder, nr_sum);
 };
 
 void NbreDipRewardFunc_cgo(int isc, void *holder, const char *dip_reward) {

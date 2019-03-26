@@ -77,7 +77,11 @@ Blockchain.prototype = {
         return this.nativeBlockchain.verifyAddress(address);
     },
     getLatestNebulasRank: function (address) {
-    return this.nativeBlockchain.getLatestNebulasRank(address);
+        return this.nativeBlockchain.getLatestNebulasRank(address);
+    },
+    getLatestNebulasRankSummary: function () {
+        var summary = this.nativeBlockchain.getLatestNebulasRankSummary();
+        return JSON.parse(summary);
     }
 };
 module.exports = new Blockchain();
