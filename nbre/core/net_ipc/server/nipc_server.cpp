@@ -107,6 +107,17 @@ bool nipc_server::start() {
                 m_request_timer->reset_conn(nullptr);
               });
 
+      m_server->get_event_handler()
+          ->listen<::ff::net::event::more::tcp_recv_stream_succ>(
+              [this](::ff::net::tcp_connection_base *, size_t) {
+                m_last_heart_beat_time = std::chrono::steady_clock::now();
+              });
+      m_server->get_event_handler()
+          ->listen<::ff::net::event::more::tcp_send_stream_succ>(
+              [this](::ff::net::tcp_connection_base *, size_t) {
+                m_last_heart_beat_time = std::chrono::steady_clock::now();
+              });
+
       // We need start the client here
       m_client_watcher =
           std::unique_ptr<ipc_client_watcher>(new ipc_client_watcher(
