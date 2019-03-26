@@ -538,6 +538,7 @@ public:
       transaction_graph &g)
       : m_graph(g.internal_graph()), m_sorted_vs(g.vertex_num(), 0),
         m_dead_vs(g.vertex_num(), 0), m_dead_es(g.edge_num(), 0),
+        m_local_dead_es(g.edge_num(), false),
         m_sorted_ves(g.vertex_num(),
                      std::vector<transaction_graph::edge_descriptor_t>()) {
     m_path_vs_has_cycle = false;
@@ -597,43 +598,29 @@ larger_min_out_edge(const transaction_graph::vertex_descriptor_t &v,
                     int64_t larger_than) {
   transaction_graph::edge_descriptor_t edge;
   transaction_graph::oeiterator_t oei, oei_end;
-  std::vector<transaction_graph::edge_descriptor_t> &es = m_sorted_ves[v];
+  std::vector<transaction_graph::edge_descriptor_t> es = m_sorted_ves[v];
+  // LOG(INFO) << v << " es size: " << es.size();
+  std::remove_if(es.begin(), es.end(),
+                 [this](const transaction_graph::edge_descriptor_t &e) {
+                   return is_local_dead_es(e);
+                 });
+
+  // LOG(INFO) << v << " es size: " << es.size();
+  // for (auto e : es) {
+  // LOG(INFO) << "  " << e
+  //<< " ts: " << boost::get(boost::edge_timestamp_t(), m_graph, e);
+  //}
   auto it = std::lower_bound(
       es.begin(), es.end(), larger_than,
       [this](transaction_graph::edge_descriptor_t e1, int64_t m2) {
         auto m1 = boost::get(boost::edge_timestamp_t(), m_graph, e1);
         return m1 < m2;
       });
-  return std::make_pair(it != es.end(), *it);
-  // LOG(INFO) << "v:" << v << ", es size: " << es.size();
-  int s = 0;
-  int e = es.size() - 1;
-  while (s < e) {
-    int mid = (s + e) / 2;
-    auto ms = boost::get(boost::edge_timestamp_t(), m_graph, es[mid]);
-    if (ms < larger_than) {
-      s = mid + 1;
-    } else if (ms > larger_than) {
-      e = mid - 1;
-    } else {
-      int ret = mid;
-      while (mid >= 0 && ms == larger_than) {
-        ret = mid;
-        mid--;
-        if (mid >= 0) {
-          ms = boost::get(boost::edge_timestamp_t(), m_graph, es[mid]);
-        }
-      }
-      return std::make_pair(true, es[ret]);
-    }
-    // LOG(INFO) << "v:" << v << ",s: " << s << ", e: " << e;
+  if (it == es.end()) {
+    return std::make_pair(false, edge);
+  } else {
+    return std::make_pair(true, *it);
   }
-  if (s > e && s < es.size()) {
-    return std::make_pair(true, es[s]);
-  }
-  // LOG(INFO) << "larger_min_out_edge: " << es[s];
-  return std::make_pair(true, es[s]);
-  // return std::make_pair(found, edge);
 }
 
 std::pair<bool, transaction_graph::edge_descriptor_t>
@@ -727,7 +714,6 @@ void remove_a_cycle(
   } else {
     for (size_t i = 0; i < edges.size(); ++i) {
       auto edge = edges[i];
-      // LOG(INFO) << "edge: " << edge;
       if (boost::source(edge, m_graph) == target) {
         found = true;
       }
@@ -748,6 +734,7 @@ void remove_a_cycle(
     wei_t w = boost::get(boost::edge_weight_t(), m_graph, *it);
     boost::put(boost::edge_weight_t(), m_graph, *it, w - min_w);
     if (w == min_w) {
+      add_dead_edge(*it);
       boost::remove_edge(*it, m_graph);
       // LOG(INFO) << "to remove " << *it;
       auto source = boost::source(*it, m_graph);
@@ -755,13 +742,9 @@ void remove_a_cycle(
       // m_sorted_vs[source] = false;
       // sort_out_edges_if_not(source);
       auto &tes = m_sorted_ves[source];
-      auto tid = boost::get(boost::edge_sort_id_t(), m_graph, *it);
-      auto rit = std::remove_if(
-          tes.begin(), tes.end(),
-          [this, tid](transaction_graph::edge_descriptor_t t) {
-            return boost::get(boost::edge_sort_id_t(), m_graph, t) == tid;
-          });
-      std::for_each(rit, tes.end(),
+      auto cid = boost::get(boost::edge_check_id_t(), m_graph, *it);
+      tes.erase(tes.begin() + cid);
+      std::for_each(tes.begin() + cid, tes.end(),
                     [this](transaction_graph::edge_descriptor_t &t) {
                       auto v = boost::get(boost::edge_check_id_t(), m_graph, t);
                       boost::put(boost::edge_check_id_t(), m_graph, t, v - 1);
@@ -814,9 +797,11 @@ void sort_out_edges_if_not(const transaction_graph::vertex_descriptor_t &v) {
   m_sorted_ves[v] = es;
 }
 void remove_cycles_based_on_time_sequence() {
+  // LOG(INFO) << "to get start nodes";
   std::vector<transaction_graph::vertex_descriptor_t> to_visit =
       possible_start_nodes_of_cycles();
 
+  // LOG(INFO) << "to sort start nodes " << to_visit.size();
   to_visit = ascend_sort_vertex_by_min_out_edge(to_visit);
 
   std::vector<transaction_graph::edge_descriptor_t> to_visit_path;
@@ -834,24 +819,34 @@ void remove_cycles_based_on_time_sequence() {
     }
     sort_out_edges_if_not(v);
 
-    // LOG(INFO) << "for v: " << v;
     auto ts_min = std::numeric_limits<int64_t>::min();
     auto ts_in_max =
         boost::get(boost::edge_timestamp_t(), m_graph, m_sorted_ves[v].back());
-    while (true) {
+    std::vector<transaction_graph::edge_descriptor_t> local_to_visit_edges =
+        m_sorted_ves[v];
+    std::reverse(local_to_visit_edges.begin(), local_to_visit_edges.end());
+    while (!local_to_visit_edges.empty()) {
       to_visit_path.clear();
       cur_path.clear();
       m_path_vs.clear();
-      auto e = larger_min_out_edge(v, ts_min);
-      if (!e.first) {
-        // LOG(INFO) << "got break";
-        break;
-      }
-      ts_min = boost::get(boost::edge_timestamp_t(), m_graph, e.second);
-      if (ts_min > ts_in_max)
-        break;
-      to_visit_path.push_back(e.second);
-      path_add_vertex(boost::source(e.second, m_graph));
+      clear_local_dead_es();
+
+      // auto e = larger_min_out_edge(v, ts_min);
+      // if (!e.first) {
+      // LOG(INFO) << "break";
+      // break;
+      //}
+      // LOG(INFO) << "got " << e.second << " for " << ts_min;
+      // ts_min = boost::get(boost::edge_timestamp_t(), m_graph, e.second);
+      // if (ts_min > ts_in_max) {
+      // LOG(INFO) << "break";
+      // break;
+      //}
+      // LOG(INFO) << "push " << e.second;
+      auto e = local_to_visit_edges.back();
+      local_to_visit_edges.pop_back();
+      to_visit_path.push_back(e);
+      path_add_vertex(boost::source(e, m_graph));
       while (!path_is_cycle() && !to_visit_path.empty()) {
         if (!to_visit_path.empty()) {
           auto edge = to_visit_path.back();
@@ -860,7 +855,6 @@ void remove_cycles_based_on_time_sequence() {
             continue;
           }
 
-          // LOG(INFO) << "add edge: " << edge;
           // path_add_vertex(boost::target(edge, m_graph));
           sort_out_edges_if_not(boost::source(edge, m_graph));
           auto new_edge = std::make_pair(true, edge);
@@ -881,7 +875,10 @@ void remove_cycles_based_on_time_sequence() {
         } else if (!path_is_cycle()) {
           auto edge = cur_path.back();
           cur_path.pop_back();
+          // LOG(INFO) << "back edge: " << edge;
           path_remove_vertex(boost::target(edge, m_graph));
+          add_local_dead_es(edge);
+
           if (check_and_update_dead_edge(edge)) {
             continue;
           }
@@ -895,12 +892,29 @@ void remove_cycles_based_on_time_sequence() {
       if (path_is_cycle()) {
         // LOG(INFO) << "got cycle";
         remove_a_cycle(cur_path);
+        if (!is_dead_edge(e)) {
+          // LOG(INFO) << "push back again: " << e << ", v: "
+          //<< boost::get(boost::edge_weight_t(), m_graph, e);
+          local_to_visit_edges.push_back(e);
+        }
         m_path_vs_has_cycle = false;
       } else {
-        break;
+        // break;
       }
     }
   }
+}
+
+inline void clear_local_dead_es() {
+  m_local_dead_es.assign(m_local_dead_es.size(), false);
+}
+inline void add_local_dead_es(const transaction_graph::edge_descriptor_t &e) {
+  auto id = boost::get(boost::edge_sort_id_t(), m_graph, e);
+  m_local_dead_es[id] = true;
+}
+inline bool is_local_dead_es(const transaction_graph::edge_descriptor_t &e) {
+  auto id = boost::get(boost::edge_sort_id_t(), m_graph, e);
+  return m_local_dead_es[id];
 }
 
 protected:
@@ -908,6 +922,7 @@ graph_t &m_graph;
 std::vector<bool> m_sorted_vs;
 std::vector<bool> m_dead_vs;
 std::vector<bool> m_dead_es;
+std::vector<bool> m_local_dead_es;
 std::unordered_set<transaction_graph::vertex_descriptor_t> m_path_vs;
 bool m_path_vs_has_cycle;
 std::vector<std::vector<transaction_graph::edge_descriptor_t>> m_sorted_ves;
