@@ -59,7 +59,9 @@ class runtime {
   thrd_id_t get_idle();
   std::tuple<uint64_t, uint64_t> current_task_counter();
 
- protected:
+  void abort_all_tasks_and_quit();
+
+protected:
   void thread_run();
   void init_for_no_ff_thread();
   static void init();
@@ -78,6 +80,8 @@ class runtime {
   std::mutex m_wakeup_mutex;
   std::condition_variable m_wakeup;
   std::mutex m_queue_mutex;
+  std::mutex m_join_mutex;
+  std::atomic_int m_scheduler_thread_running_count;
 };  // end class runtime
 
 class runtime_deletor {
@@ -115,6 +119,8 @@ void yield_and_ret_until(Func &&f) {
   }
 }
 }  // end namespace rt
+
+void abort_all_tasks_and_quit();
 
 }  // end namespace ff
 #endif

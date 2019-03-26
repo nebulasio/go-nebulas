@@ -19,10 +19,12 @@
 //
 #include "core/net_ipc/client/nipc_client.h"
 #include "common/configuration.h"
+#include "common/exception_queue.h"
 #include "core/net_ipc/nipc_pkg.h"
 
 namespace neb {
 namespace core {
+nipc_client::nipc_client() : m_handling_pkg_num(0) {}
 
 nipc_client::~nipc_client() { shutdown(); }
 
@@ -66,10 +68,15 @@ bool nipc_client::start() {
             local_cond_var.notify_one();
           });
       nn.get_event_handler()->listen<::ff::net::event::tcp_lost_connection>(
-          [this](::ff::net::tcp_connection_base *) {
+          [this, &nn](::ff::net::tcp_connection_base *) {
             LOG(INFO) << "lost connection";
             m_is_connected = false;
-            exit(-2);
+            nn.stop();
+            LOG(INFO) << "nn stopped";
+            ff::abort_all_tasks_and_quit();
+            LOG(INFO) << "ff done";
+            exception_queue::instance().push_back(
+                neb_exception::neb_std_exception, "lost connection");
           });
       nn.add_pkg_hub(hub);
       m_conn = nn.add_tcp_client(configuration::instance().nipc_listen(),
@@ -78,16 +85,23 @@ bool nipc_client::start() {
       m_heart_bear_timer = std::make_unique<util::timer_loop>(&nn.ioservice());
       m_heart_bear_timer->register_timer_and_callback(3, [this]() {
         if (m_to_recv_heart_beat_msg > 2) {
+          LOG(INFO) << "no heart beat msg, to close";
           m_conn->close();
-          command_queue::instance().send_command(
-              std::make_shared<exit_command>());
         }
         m_to_recv_heart_beat_msg++;
         std::shared_ptr<heart_beat_t> hb = std::make_shared<heart_beat_t>();
         m_conn->send(hb);
       });
-      nn.run();
 
+      while (true) {
+        if (nn.ioservice().stopped())
+          break;
+        try {
+          nn.run();
+        } catch (...) {
+          nn.ioservice().reset();
+        }
+      }
     } catch (const std::exception &e) {
       got_exception_when_start_ipc = true;
       LOG(ERROR) << "get exception when start ipc, " << typeid(e).name() << ", "

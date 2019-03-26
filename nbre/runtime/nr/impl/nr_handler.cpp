@@ -35,45 +35,45 @@ nr_handler::nr_handler() {}
 void nr_handler::run_if_default(block_height_t start_block,
                                 block_height_t end_block,
                                 const std::string &nr_handle) {
-  ff::para<> p;
-  p([this, start_block, end_block, nr_handle]() {
-    try {
-      jit_driver &jd = jit_driver::instance();
-      auto nr_ret = jd.run_ir<nr_ret_type>(
-          "nr", start_block, neb::configuration::instance().nr_func_name(),
-          start_block, end_block);
-      m_nr_result.set(nr_handle, nr_ret);
+  // ff::para<> p;
+  // p([this, start_block, end_block, nr_handle]() {
+  try {
+    jit_driver &jd = jit_driver::instance();
+    auto nr_ret = jd.run_ir<nr_ret_type>(
+        "nr", start_block, neb::configuration::instance().nr_func_name(),
+        start_block, end_block);
+    m_nr_result.set(nr_handle, nr_ret);
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute nr failed " << e.what();
     }
-  });
+    //});
 }
 
 void nr_handler::run_if_specify(block_height_t start_block,
                                 block_height_t end_block, uint64_t nr_version,
                                 const std::string &nr_handle) {
-  ff::para<> p;
-  p([this, start_block, end_block, nr_version, nr_handle]() {
-    try {
-      std::string nr_name = "nr";
-      std::vector<nbre::NBREIR> irs;
-      auto ir = neb::core::ir_warden::instance().get_ir_by_name_version(
-          nr_name, nr_version);
-      irs.push_back(*ir);
+  // ff::para<> p;
+  // p([this, start_block, end_block, nr_version, nr_handle]() {
+  try {
+    std::string nr_name = "nr";
+    std::vector<nbre::NBREIR> irs;
+    auto ir = neb::core::ir_warden::instance().get_ir_by_name_version(
+        nr_name, nr_version);
+    irs.push_back(*ir);
 
-      std::stringstream ss;
-      ss << nr_name << nr_version;
-      std::string name_version = ss.str();
+    std::stringstream ss;
+    ss << nr_name << nr_version;
+    std::string name_version = ss.str();
 
-      jit_driver &jd = jit_driver::instance();
-      auto nr_ret = jd.run<nr_ret_type>(
-          name_version, irs, neb::configuration::instance().nr_func_name(),
-          start_block, end_block);
-      m_nr_result.set(nr_handle, nr_ret);
+    jit_driver &jd = jit_driver::instance();
+    auto nr_ret = jd.run<nr_ret_type>(
+        name_version, irs, neb::configuration::instance().nr_func_name(),
+        start_block, end_block);
+    m_nr_result.set(nr_handle, nr_ret);
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute nr failed " << e.what();
     }
-  });
+    //});
 }
 
 void nr_handler::start(const std::string &nr_handle) {

@@ -42,6 +42,7 @@ public:
     m_api_requests.insert(std::make_pair(id, f));
     m_api_timeout_counter.insert(std::make_pair(id, m_timout_threshold));
     m_api_timeout_callbacks.insert(std::make_pair(id, [func, this]() {
+      LOG(INFO) << "ipc api timeout";
       func(ipc_status_timeout, nullptr);
       // issue_callback_with_error(func, ipc_status_timeout);
     }));

@@ -28,15 +28,26 @@ namespace neb {
 namespace core {
 class nipc_client {
 public:
-  nipc_client() = default;
+  nipc_client();
   ~nipc_client();
 
   //! The handler f will run in a thread pool.
   template <typename T, typename Func> void add_handler(Func &&f) {
     m_handlers.push_back([this, f](::ff::net::typed_pkg_hub &hub) {
-      hub.to_recv_pkg<T>([f](std::shared_ptr<T> pkg) {
+      hub.to_recv_pkg<T>([f, this](std::shared_ptr<T> pkg) {
+        // No big pressure for NBRE
+        m_to_recv_heart_beat_msg = 0;
+        if (m_handling_pkg_num > ff::rt::concurrency()) {
+          LOG(INFO) << "ignore request";
+          return;
+        }
+
         ff::para<> p;
-        p([pkg, f]() { f(pkg); });
+        p([pkg, f, this]() {
+          m_handling_pkg_num++;
+          f(pkg);
+          m_handling_pkg_num--;
+        });
       });
     });
   }
@@ -54,6 +65,7 @@ protected:
   ::ff::net::tcp_connection_base_ptr m_conn;
   std::atomic_bool m_is_connected;
   int32_t m_to_recv_heart_beat_msg;
+  std::atomic_int_fast64_t m_handling_pkg_num;
   // std::unique_ptr<ipc_client_t> m_client;
 };
 } // namespace core

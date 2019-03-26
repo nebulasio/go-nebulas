@@ -102,6 +102,7 @@ bool nipc_server::start() {
               [this](::ff::net::tcp_connection_base *) {
                 // We may restart the client. But we can ignore this and leave
                 // this to ipc_client_watcher
+                LOG(INFO) << "lost connection";
                 m_conn.reset();
                 m_request_timer->reset_conn(nullptr);
               });
@@ -186,6 +187,7 @@ void nipc_server::add_all_callbacks() {
   });
 
   m_pkg_hub->to_recv_pkg<heart_beat_t>([this](std::shared_ptr<heart_beat_t> p) {
+    LOG(INFO) << "got heart beat";
     m_last_heart_beat_time = std::chrono::steady_clock::now();
     m_conn->send(p);
   });
