@@ -70,13 +70,14 @@ const (
 	CryptoBase64GasBase         = 3000
 
 	//In blockChain
-	GetTxByHashGasBase          = 1000
-	GetAccountStateGasBase      = 2000
-	TransferGasBase             = 2000
-	VerifyAddressGasBase        = 100
-	GetPreBlockHashGasBase      = 2000
-	GetPreBlockSeedGasBase      = 2000
-	GetLatestNebulasRankGasBase = 20000
+	GetTxByHashGasBase                 = 1000
+	GetAccountStateGasBase             = 2000
+	TransferGasBase                    = 2000
+	VerifyAddressGasBase               = 100
+	GetPreBlockHashGasBase             = 2000
+	GetPreBlockSeedGasBase             = 2000
+	GetLatestNebulasRankGasBase        = 20000
+	GetLatestNebulasRankSummaryGasBase = 20000
 )
 
 // Block interface breaks cycle import dependency and hides unused services.

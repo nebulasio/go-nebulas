@@ -50,6 +50,7 @@ var (
 	CommandNRHandler      = "nrHandler"
 	CommandNRListByHandle = "nrListByHandle"
 	CommandNRListByHeight = "nrListByHeight"
+	CommandNRSum          = "nrSum"
 	CommandDIPList        = "dipList"
 )
 

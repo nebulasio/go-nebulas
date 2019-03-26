@@ -128,6 +128,13 @@ Blockchain.prototype = {
         }
 
         return this.nativeBlockchain.getPreBlockSeed(offset);
+    },
+    getLatestNebulasRank: function (address) {
+        return this.nativeBlockchain.getLatestNebulasRank(address);
+    },
+    getLatestNebulasRankSummary: function () {
+        var summary = this.nativeBlockchain.getLatestNebulasRankSummary();
+        return JSON.parse(summary);
     }
 };
 module.exports = new Blockchain();

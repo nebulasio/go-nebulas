@@ -29,5 +29,6 @@ int VerifyAddress(void *handler, const char *address, size_t *gasCnt);
 int GetPreBlockHash(void *handler, unsigned long long offset, size_t *counterVal, char **result, char **info);
 int GetPreBlockSeed(void *handler, unsigned long long offset, size_t *counterVal, char **result, char **info);
 int GetLatestNebulasRank(void *handler, const char *addres, size_t *counterVal, char **result, char **info);
+int GetLatestNebulasRankSummary(void *handler, size_t *gasCnt, char **result, char **info);
 
 #endif //_NEBULAS_NF_NVM_V8_LIB_FAKE_BLOCKCHAIN_H_

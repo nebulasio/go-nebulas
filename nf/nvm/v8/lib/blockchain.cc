@@ -31,13 +31,15 @@ static VerifyAddressFunc sVerifyAddress = NULL;
 static GetPreBlockHashFunc sGetPreBlockHash = NULL;
 static GetPreBlockSeedFunc sGetPreBlockSeed = NULL;
 static GetLatestNebulasRankFunc sGetLatestNR = NULL;
+static GetLatestNebulasRankSummaryFunc sGetLatestNRSum = NULL;
 
 void InitializeBlockchain(GetTxByHashFunc getTx, GetAccountStateFunc getAccount,
                           TransferFunc transfer,
                           VerifyAddressFunc verifyAddress,
                           GetPreBlockHashFunc getPreBlockHash,
                           GetPreBlockSeedFunc getPreBlockSeed,
-                          GetLatestNebulasRankFunc getLatestNR) {
+                          GetLatestNebulasRankFunc getLatestNR,
+                          GetLatestNebulasRankSummaryFunc getLatestNRSum) {
   sGetTxByHash = getTx;
   sGetAccountState = getAccount;
   sTransfer = transfer;
@@ -45,6 +47,7 @@ void InitializeBlockchain(GetTxByHashFunc getTx, GetAccountStateFunc getAccount,
   sGetPreBlockHash = getPreBlockHash;
   sGetPreBlockSeed = getPreBlockSeed;
   sGetLatestNR = getLatestNR;
+  sGetLatestNRSum = getLatestNRSum;
 }
 
 void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
@@ -89,6 +92,12 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
               FunctionTemplate::New(isolate, GetLatestNebulasRankCallback),
               static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
                                               PropertyAttribute::ReadOnly));
+
+  blockTpl->Set(String::NewFromUtf8(isolate, "getLatestNebulasRankSummary"),
+              FunctionTemplate::New(isolate, GetLatestNebulasRankSummaryCallback),
+              static_cast<PropertyAttribute>(PropertyAttribute::DontDelete |
+                                              PropertyAttribute::ReadOnly));
+
 
   Local<Object> instance = blockTpl->NewInstance(context).ToLocalChecked();
   instance->SetInternalField(0, External::New(isolate, handler));
@@ -381,6 +390,41 @@ void GetLatestNebulasRankCallback(const FunctionCallbackInfo<Value> &info) {
   char* exceptionInfo = NULL;
   err = sGetLatestNR(handler->Value(), *String::Utf8Value(address->ToString()), &cnt, &result, &exceptionInfo);
   
+  DEAL_ERROR_FROM_GOLANG(err);
+
+  if (result != NULL) {
+    free(result);
+    result = NULL;
+  }
+
+  if (exceptionInfo != NULL) {
+    free(exceptionInfo);
+    exceptionInfo = NULL;
+  }
+
+  // record storage usage.
+  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
+}
+
+// Get Latest Nebulas Rank Summary Callback
+void GetLatestNebulasRankSummaryCallback(const FunctionCallbackInfo<Value> &info) {
+  int err = NVM_SUCCESS;
+
+  Isolate *isolate = info.GetIsolate();
+  Local<Object> thisArg = info.Holder();
+  Local<External> handler = Local<External>::Cast(thisArg->GetInternalField(0));
+
+  if (info.Length() != 0) {
+    isolate->ThrowException(String::NewFromUtf8(
+        isolate, "Blockchain.getLatestNebulasRankSummary() needs not argument"));
+    return;
+  }
+
+  size_t cnt = 0;
+  char* result = NULL;
+  char* exceptionInfo = NULL;
+  err = sGetLatestNRSum(handler->Value(), &cnt, &result, &exceptionInfo);
+
   DEAL_ERROR_FROM_GOLANG(err);
 
   if (result != NULL) {

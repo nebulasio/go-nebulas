@@ -72,6 +72,13 @@ func NbreNrResultByHeightFunc(code C.int, holder unsafe.Pointer, nr_result *C.ch
 	nbreHandled(code, holder, result, nil)
 }
 
+// NbreNrSumFunc returns nbre nr summary data
+//export NbreNrSumFunc
+func NbreNrSumFunc(code C.int, holder unsafe.Pointer, nr_sum *C.char) {
+	result := C.GoString(nr_sum)
+	nbreHandled(code, holder, result, nil)
+}
+
 // NbreDipRewardFunc returns nbre dip list
 //export NbreDipRewardFunc
 func NbreDipRewardFunc(code C.int, holder unsafe.Pointer, dip_reward *C.char) {

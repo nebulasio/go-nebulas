@@ -75,3 +75,8 @@ int GetLatestNebulasRank(void *handler, const char *address, size_t *gasCnt, cha
   return NVM_SUCCESS;
 }
 
+int GetLatestNebulasRankSummary(void *handler, size_t *gasCnt, char **result, char **info) {
+  *gasCnt = 20000;
+  return NVM_SUCCESS;
+}
+

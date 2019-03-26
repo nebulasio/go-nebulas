@@ -27,6 +27,10 @@ SampleContract.prototype = {
     rank: function (addr) {
         var result = Blockchain.getLatestNebulasRank(addr);
         return result;
+    },
+    summary: function () {
+        var result = Blockchain.getLatestNebulasRankSummary();
+        return result;
     }
 };
 

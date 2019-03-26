@@ -446,18 +446,74 @@ func GetLatestNebulasRankFunc(handler unsafe.Pointer, address *C.char,
 		return C.NVM_EXCEPTION_ERR
 	}
 
-	data, err := engine.ctx.block.NR().GetNRByAddress(addr)
+	data, err := engine.ctx.block.NR().GetNRListByHeight(engine.ctx.block.Height())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"height": engine.ctx.block.Height(),
 			"addr":   addr,
 			"err":    err,
-		}).Debug("Failed to get nr value")
-		*exceptionInfo = C.CString("Failed to get nr value")
+		}).Debug("Failed to get nr list")
+		*exceptionInfo = C.CString("Failed to get nr list")
 		return C.NVM_EXCEPTION_ERR
 	}
 
-	item := data.(*nr.NRItem)
-	*result = C.CString(item.Score)
+	nrData := data.(*nr.NRData)
+	nr, err := func(list *nr.NRData, addr *core.Address) (*nr.NRItem, error) {
+		for _, nr := range nrData.Nrs {
+			if nr.Address == addr.String() {
+				return nr, nil
+			}
+		}
+		return nil, nr.ErrNRNotFound
+	}(nrData, addr)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": engine.ctx.block.Height(),
+			"addr":   addr,
+			"err":    err,
+		}).Debug("Failed to find nr value")
+		*exceptionInfo = C.CString("Failed to find nr value")
+		return C.NVM_EXCEPTION_ERR
+	}
+
+	*result = C.CString(nr.Score)
+	return C.NVM_SUCCESS
+}
+
+// GetLatestNebulasRankSummaryFunc returns nebulas rank summary info.
+//export GetLatestNebulasRankSummaryFunc
+func GetLatestNebulasRankSummaryFunc(handler unsafe.Pointer,
+	gasCnt *C.size_t, result **C.char, exceptionInfo **C.char) int {
+
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	if engine == nil || engine.ctx.block == nil {
+		logging.VLog().Error("Unexpected error: failed to get engine")
+		return C.NVM_UNEXPECTED_ERR
+	}
+
+	*result = nil
+	*exceptionInfo = nil
+	*gasCnt = C.size_t(GetLatestNebulasRankSummaryGasBase)
+
+	data, err := engine.ctx.block.NR().GetNRSummary(engine.ctx.block.Height())
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": engine.ctx.block.Height(),
+			"err":    err,
+		}).Debug("Failed to get nr summary info")
+		*exceptionInfo = C.CString("Failed to get nr summary")
+		return C.NVM_EXCEPTION_ERR
+	}
+
+	bytes, err := data.ToBytes()
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": engine.ctx.block.Height(),
+			"err":    err,
+		}).Debug("Failed to serialize nr summary info")
+		*exceptionInfo = C.CString("Failed to serialize nr summary")
+		return C.NVM_EXCEPTION_ERR
+	}
+	*result = C.CString(string(bytes))
 	return C.NVM_SUCCESS
 }
