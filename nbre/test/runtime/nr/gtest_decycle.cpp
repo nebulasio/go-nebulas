@@ -23,15 +23,50 @@
 #include <gtest/gtest.h>
 
 TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case1) {
-  neb::rt::transaction_graph tg1;
-  tg1.add_edge(neb::to_address("a"), neb::to_address("a"), 1, 1);
-  tg1.add_edge(neb::to_address("a"), neb::to_address("b"), 2, 2);
-  tg1.add_edge(neb::to_address("b"), neb::to_address("a"), 3, 3);
-  tg1.add_edge(neb::to_address("b"), neb::to_address("c"), 4, 4);
-  tg1.add_edge(neb::to_address("c"), neb::to_address("a"), 5, 5);
+  neb::rt::transaction_graph tg;
+  tg.add_edge(neb::to_address("a"), neb::to_address("a"), 1, 1);
+  tg.add_edge(neb::to_address("a"), neb::to_address("b"), 2, 2);
+  tg.add_edge(neb::to_address("b"), neb::to_address("c"), 3, 3);
+  tg.add_edge(neb::to_address("c"), neb::to_address("a"), 4, 4);
 
-  auto graph = tg1.internal_graph();
-  neb::rt::opt::graph_algo::remove_cycles_based_on_time_sequence(graph);
+  auto graph = tg.internal_graph();
+  neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
+
+  neb::rt::transaction_graph::viterator_t vi, vi_end;
+
+  for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
+    neb::rt::transaction_graph::oeiterator_t oei, oei_end;
+    for (boost::tie(oei, oei_end) = boost::out_edges(*vi, graph);
+         oei != oei_end; oei++) {
+      auto source = boost::source(*oei, graph);
+      auto target = boost::target(*oei, graph);
+      std::string source_name =
+          boost::get(boost::vertex_name_t(), graph, source);
+      std::string target_name =
+          boost::get(boost::vertex_name_t(), graph, target);
+
+      neb::wei_t val = boost::get(boost::edge_weight_t(), graph, *oei);
+      int64_t ts = boost::get(boost::edge_timestamp_t(), graph, *oei);
+      if (source_name.compare("b") == 0 && target_name.compare("c") == 0) {
+        EXPECT_TRUE(val == 1 && ts == 3);
+      } else if (source_name.compare("c") == 0 &&
+                 target_name.compare("a") == 0) {
+        EXPECT_TRUE(val == 2 && ts == 4);
+      }
+    }
+  }
+}
+
+TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case2) {
+  neb::rt::transaction_graph tg;
+  tg.add_edge(neb::to_address("a"), neb::to_address("a"), 1, 1);
+  tg.add_edge(neb::to_address("a"), neb::to_address("b"), 2, 3);
+  tg.add_edge(neb::to_address("b"), neb::to_address("a"), 3, 2);
+  tg.add_edge(neb::to_address("b"), neb::to_address("c"), 4, 1);
+  tg.add_edge(neb::to_address("c"), neb::to_address("a"), 5, 5);
+
+  auto graph = tg.internal_graph();
+  neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
 
   neb::rt::transaction_graph::viterator_t vi, vi_end;
 
@@ -49,49 +84,10 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case1) {
       neb::wei_t val = boost::get(boost::edge_weight_t(), graph, *oei);
       int64_t ts = boost::get(boost::edge_timestamp_t(), graph, *oei);
       if (source_name.compare("b") == 0 && target_name.compare("a") == 0) {
-        EXPECT_TRUE(val == 1 && ts == 3);
-      } else if (source_name.compare("b") == 0 &&
-                 target_name.compare("c") == 0) {
-        EXPECT_TRUE(val == 4 && ts == 4);
-      } else if (source_name.compare("c") == 0 &&
-                 target_name.compare("a") == 0) {
-        EXPECT_TRUE(val == 5 && ts == 5);
-      }
-    }
-  }
-}
-
-TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case2) {
-  neb::rt::transaction_graph tg2;
-  tg2.add_edge(neb::to_address("a"), neb::to_address("a"), 1, 1);
-  tg2.add_edge(neb::to_address("a"), neb::to_address("c"), 2, 3);
-  tg2.add_edge(neb::to_address("c"), neb::to_address("a"), 3, 2);
-  tg2.add_edge(neb::to_address("c"), neb::to_address("b"), 4, 4);
-  tg2.add_edge(neb::to_address("b"), neb::to_address("a"), 5, 5);
-
-  auto graph = tg2.internal_graph();
-  neb::rt::opt::graph_algo::remove_cycles_based_on_time_sequence(graph);
-
-  neb::rt::transaction_graph::viterator_t vi, vi_end;
-
-  for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
-    neb::rt::transaction_graph::oeiterator_t oei, oei_end;
-    for (boost::tie(oei, oei_end) = boost::out_edges(*vi, graph);
-         oei != oei_end; oei++) {
-      auto source = boost::source(*oei, graph);
-      auto target = boost::target(*oei, graph);
-      std::string source_name =
-          boost::get(boost::vertex_name_t(), graph, source);
-      std::string target_name =
-          boost::get(boost::vertex_name_t(), graph, target);
-
-      neb::wei_t val = boost::get(boost::edge_weight_t(), graph, *oei);
-      int64_t ts = boost::get(boost::edge_timestamp_t(), graph, *oei);
-      if (source_name.compare("c") == 0 && target_name.compare("a") == 0) {
         EXPECT_TRUE(val == 1 && ts == 2);
       } else if (source_name.compare("c") == 0 &&
                  target_name.compare("b") == 0) {
-        EXPECT_TRUE(val == 4 && ts == 4);
+        EXPECT_TRUE(val == 4 && ts == 1);
       } else if (source_name.compare("b") == 0 &&
                  target_name.compare("a") == 0) {
         EXPECT_TRUE(val == 5 && ts == 5);
@@ -101,15 +97,15 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case2) {
 }
 
 TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case3) {
-  neb::rt::transaction_graph tg3;
-  tg3.add_edge(neb::to_address("a"), neb::to_address("a"), 1, 1);
-  tg3.add_edge(neb::to_address("a"), neb::to_address("b"), 3, 2);
-  tg3.add_edge(neb::to_address("b"), neb::to_address("a"), 1, 3);
-  tg3.add_edge(neb::to_address("b"), neb::to_address("c"), 2, 4);
-  tg3.add_edge(neb::to_address("c"), neb::to_address("a"), 2, 5);
+  neb::rt::transaction_graph tg;
+  tg.add_edge(neb::to_address("a"), neb::to_address("a"), 1, 1);
+  tg.add_edge(neb::to_address("a"), neb::to_address("b"), 3, 2);
+  tg.add_edge(neb::to_address("b"), neb::to_address("a"), 1, 3);
+  tg.add_edge(neb::to_address("b"), neb::to_address("c"), 2, 4);
+  tg.add_edge(neb::to_address("c"), neb::to_address("a"), 2, 5);
 
-  auto graph = tg3.internal_graph();
-  neb::rt::opt::graph_algo::remove_cycles_based_on_time_sequence(graph);
+  auto graph = tg.internal_graph();
+  neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
 
   neb::rt::transaction_graph::viterator_t vi, vi_end;
 
@@ -121,54 +117,14 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case3) {
 }
 
 TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case4) {
-  neb::rt::transaction_graph tg4;
-  tg4.add_edge(neb::to_address("a"), neb::to_address("a"), 1, 1);
-  tg4.add_edge(neb::to_address("a"), neb::to_address("b"), 2, 2);
-  tg4.add_edge(neb::to_address("b"), neb::to_address("a"), 3, 1);
-  tg4.add_edge(neb::to_address("b"), neb::to_address("c"), 2, 3);
-  tg4.add_edge(neb::to_address("c"), neb::to_address("a"), 1, 4);
-  tg4.add_edge(neb::to_address("c"), neb::to_address("a"), 2, 4);
+  neb::rt::transaction_graph tg;
+  tg.add_edge(neb::to_address("a"), neb::to_address("b"), 2, 2);
+  tg.add_edge(neb::to_address("b"), neb::to_address("c"), 3, 1);
+  tg.add_edge(neb::to_address("c"), neb::to_address("d"), 1, 4);
+  tg.add_edge(neb::to_address("d"), neb::to_address("b"), 2, 4);
 
-  auto graph = tg4.internal_graph();
-  neb::rt::opt::graph_algo::remove_cycles_based_on_time_sequence(graph);
-
-  neb::rt::transaction_graph::viterator_t vi, vi_end;
-
-  for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
-    neb::rt::transaction_graph::oeiterator_t oei, oei_end;
-    for (boost::tie(oei, oei_end) = boost::out_edges(*vi, graph);
-         oei != oei_end; oei++) {
-      auto source = boost::source(*oei, graph);
-      auto target = boost::target(*oei, graph);
-      std::string source_name =
-          boost::get(boost::vertex_name_t(), graph, source);
-      std::string target_name =
-          boost::get(boost::vertex_name_t(), graph, target);
-
-      neb::wei_t val = boost::get(boost::edge_weight_t(), graph, *oei);
-      int64_t ts = boost::get(boost::edge_timestamp_t(), graph, *oei);
-      if (source_name.compare("b") == 0 && target_name.compare("a") == 0) {
-        EXPECT_TRUE(val == 1 && ts == 1);
-      } else if (source_name.compare("b") == 0 &&
-                 target_name.compare("c") == 0) {
-        EXPECT_TRUE(val == 2 && ts == 3);
-      } else if (source_name.compare("c") == 0 &&
-                 target_name.compare("a") == 0) {
-        EXPECT_TRUE((val == 1 && ts == 4) || (val == 2 && ts == 4));
-      }
-    }
-  }
-}
-
-TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case5) {
-  neb::rt::transaction_graph tg5;
-  tg5.add_edge(neb::to_address("a"), neb::to_address("b"), 2, 2);
-  tg5.add_edge(neb::to_address("b"), neb::to_address("c"), 3, 1);
-  tg5.add_edge(neb::to_address("c"), neb::to_address("d"), 1, 4);
-  tg5.add_edge(neb::to_address("d"), neb::to_address("b"), 2, 4);
-
-  auto graph = tg5.internal_graph();
-  neb::rt::opt::graph_algo::remove_cycles_based_on_time_sequence(graph);
+  auto graph = tg.internal_graph();
+  neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
 
   neb::rt::transaction_graph::viterator_t vi, vi_end;
   for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
@@ -188,40 +144,66 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case5) {
         EXPECT_TRUE(val == 2 && ts == 2);
       } else if (source_name.compare("b") == 0 &&
                  target_name.compare("c") == 0) {
-        EXPECT_TRUE(val == 3 && ts == 1);
-      } else if (source_name.compare("c") == 0 &&
-                 target_name.compare("d") == 0) {
-        EXPECT_TRUE(val == 1 && ts == 4);
+        EXPECT_TRUE(val == 2 && ts == 1);
       } else if (source_name.compare("d") == 0 &&
                  target_name.compare("b") == 0) {
-        EXPECT_TRUE(val == 2 && ts == 4);
+        EXPECT_TRUE(val == 1 && ts == 4);
       }
     }
   }
 }
 
-TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case6) {
-  neb::rt::transaction_graph tg6;
-  char cc = 'b';
-  int32_t n = 3;
+TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case5) {
+  neb::rt::transaction_graph tg;
+  char cc = 'z';
+  int32_t n = 100;
   for (char ch = 'a'; ch < cc; ch++) {
     for (int32_t i = 0; i < n; i++) {
-      tg6.add_edge(neb::to_address(std::string(1, ch)),
-                   neb::to_address(std::string(1, ch + 1)), ch - 'a' + 1,
-                   ch - 'a' + 1);
+      tg.add_edge(neb::to_address(std::string(1, ch)),
+                  neb::to_address(std::string(1, ch + 1)), ch - 'a' + 1,
+                  ch - 'a' + 1);
     }
   }
   for (int32_t i = 0; i < n; i++) {
-    tg6.add_edge(neb::to_address(std::string(1, cc)),
-                 neb::to_address(std::string(1, 'a')), cc - 'a' + 1,
-                 cc - 'a' + 1);
+    tg.add_edge(neb::to_address(std::string(1, cc)),
+                neb::to_address(std::string(1, 'a')), cc - 'a' + 1,
+                cc - 'a' + 1);
   }
 
-  auto graph = tg6.internal_graph();
+  auto graph = tg.internal_graph();
   LOG(INFO) << boost::num_vertices(graph);
   LOG(INFO) << boost::num_edges(graph);
-  neb::rt::opt::graph_algo::remove_cycles_based_on_time_sequence(graph);
-  return;
+  neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
+
+}
+
+TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case6) {
+  neb::rt::transaction_graph tg;
+  char cc = 'z';
+  int32_t n = 100;
+  for (char ch = 'a'; ch <= cc; ch++) {
+    for (int32_t i = 0; i < n; i++) {
+      tg.add_edge(neb::to_address(std::string(1, ch)),
+                  neb::to_address(std::string(1, ch)), ch - 'a' + 1,
+                  ch - 'a' + 1);
+    }
+  }
+
+  auto graph = tg.internal_graph();
+  neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
+  EXPECT_EQ(boost::num_vertices(graph), cc - 'a' + 1);
+  EXPECT_EQ(boost::num_edges(graph), 0);
+}
+
+TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case7) {
+  neb::rt::transaction_graph tg;
+  tg.add_edge(neb::to_address("a"), neb::to_address("b"), 1, 1);
+  tg.add_edge(neb::to_address("b"), neb::to_address("c"), 2, 1);
+  tg.add_edge(neb::to_address("c"), neb::to_address("d"), 3, 2);
+  tg.add_edge(neb::to_address("d"), neb::to_address("a"), 4, 2);
+
+  auto graph = tg.internal_graph();
+  neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
 
   neb::rt::transaction_graph::viterator_t vi, vi_end;
   for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
@@ -234,14 +216,157 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case6) {
           boost::get(boost::vertex_name_t(), graph, source);
       std::string target_name =
           boost::get(boost::vertex_name_t(), graph, target);
-      EXPECT_EQ(source_name, "b");
-      EXPECT_EQ(target_name, "a");
 
       neb::wei_t val = boost::get(boost::edge_weight_t(), graph, *oei);
       int64_t ts = boost::get(boost::edge_timestamp_t(), graph, *oei);
-      EXPECT_EQ(val, 1);
-      EXPECT_EQ(ts, 2);
+      if (source_name.compare("b") == 0 && target_name.compare("c") == 0) {
+        EXPECT_TRUE(val == 1 && ts == 1);
+      } else if (source_name.compare("c") == 0 &&
+                 target_name.compare("d") == 0) {
+        EXPECT_TRUE(val == 2 && ts == 2);
+      } else if (source_name.compare("d") == 0 &&
+                 target_name.compare("a") == 0) {
+        EXPECT_TRUE(val == 3 && ts == 2);
+      }
     }
   }
+}
+
+TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case8) {
+  neb::rt::transaction_graph tg;
+  tg.add_edge(neb::to_address("b"), neb::to_address("c"), 1, 1);
+  tg.add_edge(neb::to_address("c"), neb::to_address("d"), 2, 2);
+  tg.add_edge(neb::to_address("d"), neb::to_address("b"), 3, 3);
+  tg.add_edge(neb::to_address("a"), neb::to_address("d"), 1, 1);
+  tg.add_edge(neb::to_address("b"), neb::to_address("2"), 2, 2);
+
+  auto graph = tg.internal_graph();
+  neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
+
+  neb::rt::transaction_graph::viterator_t vi, vi_end;
+  for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
+    neb::rt::transaction_graph::oeiterator_t oei, oei_end;
+    for (boost::tie(oei, oei_end) = boost::out_edges(*vi, graph);
+         oei != oei_end; oei++) {
+      auto source = boost::source(*oei, graph);
+      auto target = boost::target(*oei, graph);
+      std::string source_name =
+          boost::get(boost::vertex_name_t(), graph, source);
+      std::string target_name =
+          boost::get(boost::vertex_name_t(), graph, target);
+
+      neb::wei_t val = boost::get(boost::edge_weight_t(), graph, *oei);
+      int64_t ts = boost::get(boost::edge_timestamp_t(), graph, *oei);
+      if (source_name.compare("c") == 0 && target_name.compare("d") == 0) {
+        EXPECT_TRUE(val == 1 && ts == 2);
+      } else if (source_name.compare("d") == 0 &&
+                 target_name.compare("b") == 0) {
+        EXPECT_TRUE(val == 2 && ts == 3);
+      } else if (source_name.compare("a") == 0 &&
+                 target_name.compare("d") == 0) {
+        EXPECT_TRUE(val == 1 && ts == 1);
+      } else if (source_name.compare("b") == 0 &&
+                 target_name.compare("a") == 0) {
+        EXPECT_TRUE(val == 2 && ts == 2);
+      }
+    }
+  }
+}
+
+TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case9) {
+  neb::rt::transaction_graph tg;
+  char cc = 'z';
+  int32_t n = 100;
+  for (char ch = 'a'; ch < cc; ch++) {
+    for (int32_t i = 0; i < n; i++) {
+      tg.add_edge(neb::to_address(std::string(1, ch)),
+                  neb::to_address(std::string(1, ch + 1)), ch - 'a' + 1,
+                  ch - 'a' + 1);
+    }
+  }
+
+  auto graph = tg.internal_graph();
+  auto before_v_nums = boost::num_vertices(graph);
+  auto before_e_nums = boost::num_edges(graph);
+  neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
+  auto after_v_nums = boost::num_vertices(graph);
+  auto after_e_nums = boost::num_edges(graph);
+  EXPECT_EQ(before_v_nums, after_v_nums);
+  EXPECT_EQ(before_e_nums, after_e_nums);
+}
+
+TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case10) {
+  neb::rt::transaction_graph tg;
+  std::queue<char> q;
+  char cc = 'z';
+  int32_t n = 2;
+  q.push('a');
+  while (!q.empty()) {
+    auto &ele = q.front();
+    q.pop();
+    if (ele < cc - n) {
+      for (auto i = 1; i <= n; i++) {
+        tg.add_edge(neb::to_address(std::string(1, ele)),
+                    neb::to_address(std::string(1, ele + i)), ele - 'a' + 1,
+                    ele - 'a' + 1);
+        q.push(ele + i);
+      }
+    }
+  }
+
+  auto graph = tg.internal_graph();
+  auto before_v_nums = boost::num_vertices(graph);
+  auto before_e_nums = boost::num_edges(graph);
+  LOG(INFO) << before_v_nums << ',' << before_e_nums;
+  neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
+  auto after_v_nums = boost::num_vertices(graph);
+  auto after_e_nums = boost::num_edges(graph);
+  EXPECT_EQ(before_v_nums, after_v_nums);
+  EXPECT_EQ(before_e_nums, after_e_nums);
+}
+
+TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case11) {
+  neb::rt::transaction_graph tg;
+  char cc = 'g';
+  int32_t n = 5;
+  int32_t tmp = cc - 'a' + 1;
+
+  for (char s = 'a'; s <= cc; s++) {
+    for (char t = 'a'; t <= cc; t++) {
+      int32_t s_ch = s - 'a' + 1;
+      int32_t t_ch = t - 'a' + 1;
+      for (int32_t i = 0; i < n; i++) {
+        tg.add_edge(neb::to_address(std::string(1, s)),
+                    neb::to_address(std::string(1, t)), s_ch + tmp * t_ch + 1,
+                    s_ch + tmp * t_ch + 1);
+      }
+    }
+  }
+
+  auto graph = tg.internal_graph();
+  neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
+}
+
+TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case12) {
+  neb::rt::transaction_graph tg;
+  char cc = 'z';
+  char ch_half = cc / 2;
+  int32_t n = 10;
+  int32_t tmp = cc - 'a' + 1;
+
+  for (char s = 'a'; s < ch_half; s++) {
+    for (char t = ch_half; t <= cc; t++) {
+      int32_t s_ch = s - 'a' + 1;
+      int32_t t_ch = t - 'a' + 1;
+      for (int32_t i = 0; i < n; i++) {
+        tg.add_edge(neb::to_address(std::string(1, s)),
+                    neb::to_address(std::string(1, t)), s_ch + tmp * t_ch + 1,
+                    s_ch + tmp * t_ch + 1);
+      }
+    }
+  }
+
+  auto graph = tg.internal_graph();
+  neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
 }
 

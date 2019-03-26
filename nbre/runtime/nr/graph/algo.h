@@ -116,55 +116,5 @@ public:
                                              const transaction_graph *sg);
 };
 
-namespace opt {
-
-class graph_algo {
-public:
-  static void remove_cycles_based_on_time_sequence(
-      transaction_graph::internal_graph_t &graph);
-
-#ifdef NDEBUG
-private:
-#else
-public:
-#endif
-  static auto find_a_cycle_from_vertex_based_on_time_sequence(
-      const transaction_graph::internal_graph_t &graph,
-      const std::unordered_map<
-          transaction_graph::vertex_descriptor_t,
-          std::vector<transaction_graph::edge_descriptor_t>> &adj,
-      const transaction_graph::vertex_descriptor_t &v,
-      const std::unordered_set<transaction_graph::vertex_descriptor_t> &dead_v,
-      const std::unordered_map<transaction_graph::vertex_descriptor_t, size_t>
-          &dead_to,
-      const std::unordered_map<transaction_graph::vertex_descriptor_t, size_t>
-          &to_dead) -> std::vector<transaction_graph::edge_descriptor_t>;
-
-  static auto find_a_cycle_based_on_time_sequence(
-      const transaction_graph::internal_graph_t &graph,
-      const std::unordered_map<
-          transaction_graph::vertex_descriptor_t,
-          std::vector<transaction_graph::edge_descriptor_t>> &adj,
-      const std::unordered_set<transaction_graph::vertex_descriptor_t> &dead_v,
-      const std::unordered_map<transaction_graph::vertex_descriptor_t, size_t>
-          &dead_to,
-      const std::unordered_map<transaction_graph::vertex_descriptor_t, size_t>
-          &to_dead) -> std::vector<transaction_graph::edge_descriptor_t>;
-
-  static void build_adj_graph(
-      const transaction_graph::internal_graph_t &graph,
-      std::unordered_map<transaction_graph::vertex_descriptor_t,
-                         std::vector<transaction_graph::edge_descriptor_t>>
-          &adj);
-
-  static void remove_a_cycle(
-      transaction_graph::internal_graph_t &graph,
-      std::unordered_map<transaction_graph::vertex_descriptor_t,
-                         std::vector<transaction_graph::edge_descriptor_t>>
-          &adj,
-      const std::vector<transaction_graph::edge_descriptor_t> &edges);
-};
-
-} // namespace opt
 } // namespace rt
 } // namespace neb
