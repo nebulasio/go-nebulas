@@ -307,12 +307,16 @@ std::vector<std::shared_ptr<nr_info_t>> nebulas_rank::get_nr_score(
   std::vector<std::shared_ptr<nr_info_t>> infos;
   for (auto it = accounts_ptr->begin(); it != accounts_ptr->end(); it++) {
     address_t addr = *it;
-    if (account_median.find(addr) != account_median.end() &&
+    if (in_out_vals.find(addr) != in_out_vals.end() &&
+        account_median.find(addr) != account_median.end() &&
         account_weight.find(addr) != account_weight.end() &&
         account_rank.find(addr) != account_rank.end()) {
+      auto in_outs = in_out_vals[addr].m_in_val + in_out_vals[addr].m_out_val;
+      auto f_in_outs = to_float<floatxx_t>(in_outs);
+
       auto info = std::shared_ptr<nr_info_t>(
-          new nr_info_t({addr, account_median[addr], account_weight[addr],
-                         account_rank[addr]}));
+          new nr_info_t({addr, f_in_outs, account_median[addr],
+                         account_weight[addr], account_rank[addr]}));
       infos.push_back(info);
     }
   }
@@ -330,11 +334,13 @@ void nebulas_rank::convert_nr_info_to_ptree(const nr_info_t &info,
                                             boost::property_tree::ptree &p) {
 
   neb::bytes addr_bytes = info.m_address;
+  floatxx_t f_in_outs = info.m_in_outs;
   floatxx_t f_median = info.m_median;
   floatxx_t f_weight = info.m_weight;
   floatxx_t f_nr_score = info.m_nr_score;
 
   p.put(std::string("address"), addr_bytes.to_base58());
+  p.put(std::string("in_outs"), neb::math::to_string(f_in_outs));
   p.put(std::string("median"), neb::math::to_string(f_median));
   p.put(std::string("weight"), neb::math::to_string(f_weight));
   p.put(std::string("score"), neb::math::to_string(f_nr_score));
@@ -412,9 +418,11 @@ nr_ret_type nebulas_rank::json_to_nr_info(const std::string &nr_result) {
     const auto &address = nr.get<base58_address_t>("address");
     info.m_address = neb::bytes::from_base58(address);
 
+    const auto &in_outs = nr.get<std::string>("in_outs");
     const auto &median = nr.get<std::string>("median");
     const auto &weight = nr.get<std::string>("weight");
     const auto &score = nr.get<std::string>("score");
+    info.m_in_outs = neb::math::from_string<floatxx_t>(in_outs);
     info.m_median = neb::math::from_string<floatxx_t>(median);
     info.m_weight = neb::math::from_string<floatxx_t>(weight);
     info.m_nr_score = neb::math::from_string<floatxx_t>(score);
@@ -423,6 +431,40 @@ nr_ret_type nebulas_rank::json_to_nr_info(const std::string &nr_result) {
   std::get<0>(nr_ret) = 1;
 
   return nr_ret;
+}
+
+str_uptr_t nebulas_rank::get_nr_sum_str(const nr_ret_type &nr_ret) {
+
+  boost::property_tree::ptree root;
+
+  const auto &meta_info_json = std::get<1>(nr_ret);
+  const auto &meta_info = neb::rt::json_to_meta_info(meta_info_json);
+  if (!meta_info.empty()) {
+    full_fill_meta_info(meta_info, root);
+  }
+
+  auto &nr_infos = std::get<2>(nr_ret);
+  floatxx_t zero = softfloat_cast<uint32_t, typename floatxx_t::value_type>(0);
+  floatxx_t sum_in_outs = zero;
+  floatxx_t sum_score = zero;
+
+  for (auto &info : nr_infos) {
+    sum_in_outs += info->m_in_outs;
+    sum_score += info->m_nr_score;
+  }
+
+  boost::property_tree::ptree pt;
+  auto str_in_outs = neb::math::to_string(from_float(sum_in_outs));
+  auto str_score = neb::math::to_string(from_float(sum_score));
+
+  pt.put(std::string("in_outs"), str_in_outs);
+  pt.put(std::string("score"), str_score);
+  root.add_child("sum", pt);
+
+  std::stringstream ss;
+  boost::property_tree::json_parser::write_json(ss, root, false);
+  auto tmp_ptr = std::make_unique<std::string>(ss.str());
+  return tmp_ptr;
 }
 
 } // namespace nr

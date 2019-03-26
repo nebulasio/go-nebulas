@@ -124,6 +124,14 @@ public:
     start_and_join();
   }
 
+  void send_nr_sum_req(uint64_t height) {
+    std::shared_ptr<nbre_nr_sum_req> req = std::make_shared<nbre_nr_sum_req>();
+    req->set<p_holder>(reinterpret_cast<uint64_t>(this));
+    req->set<p_height>(height);
+    m_package = req;
+    start_and_join();
+  }
+
   void send_dip_reward_req(uint64_t height, uint64_t version) {
     std::shared_ptr<nbre_dip_reward_req> req =
         std::make_shared<nbre_dip_reward_req>();
@@ -180,6 +188,11 @@ protected:
           conn->close();
           exit(-1);
         });
+    hub.to_recv_pkg<nbre_nr_sum_ack>([&](std::shared_ptr<nbre_nr_sum_ack> ack) {
+      std::cout << "\t " << ack->get<p_nr_sum>() << std::endl;
+      conn->close();
+      exit(-1);
+    });
     hub.to_recv_pkg<nbre_dip_reward_ack>(
         [&](std::shared_ptr<nbre_dip_reward_ack> ack) {
           std::cout << "\t" << ack->get<p_dip_reward>() << std::endl;
@@ -222,7 +235,8 @@ int main(int argc, char *argv[]) {
     ce.send_brief_req();
   } else if (vm.count("query")) {
     std::string type = vm["query"].as<std::string>();
-    if (type != "nr" && type != "nr-result" && type != "dip-reward") {
+    if (type != "nr" && type != "nr-result" && type != "nr-sum" &&
+        type != "dip-reward") {
       std::cout << "invalid type " << type << std::endl;
       exit(-1);
     }
@@ -250,6 +264,14 @@ int main(int argc, char *argv[]) {
         LOG(INFO) << "cli query nr-result by height " << height;
         cli_executor ce(rpc_listen, rpc_port);
         ce.send_nr_result_by_height_req(height);
+      }
+    }
+    if (type == "nr-sum") {
+      if (vm.count("height")) {
+        auto height = vm["height"].as<uint64_t>();
+        LOG(INFO) << "cli query nr-sum by height " << height;
+        cli_executor ce(rpc_listen, rpc_port);
+        ce.send_nr_sum_req(height);
       }
     }
     if (type == "dip-reward") {

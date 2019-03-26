@@ -69,6 +69,11 @@ define_ipc_pkg(nbre_nr_result_by_height_req, p_holder, p_height)
 define_ipc_pkg(nbre_nr_result_by_height_ack, p_holder, p_nr_result)
 define_ipc_api(nbre_nr_result_by_height_req, nbre_nr_result_by_height_ack)
 
+define_ipc_param(std::string, p_nr_sum)
+define_ipc_pkg(nbre_nr_sum_req, p_holder, p_height)
+define_ipc_pkg(nbre_nr_sum_ack, p_holder, p_nr_sum)
+define_ipc_api(nbre_nr_sum_req, nbre_nr_sum_ack)
+
 define_ipc_param(uint64_t, p_version)
 define_ipc_param(std::string, p_dip_reward)
 define_ipc_pkg(nbre_dip_reward_req, p_holder, p_height, p_version)

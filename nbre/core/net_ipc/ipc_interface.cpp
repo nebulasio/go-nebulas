@@ -269,6 +269,14 @@ void set_recv_nbre_nr_result_by_height_callback(
       func, _2, _3);
 }
 
+// interface get nr sum
+int ipc_nbre_nr_sum(void *holder, uint64_t height) {
+  return ipc_call<nbre_nr_sum_req, p_holder, p_height>::bind(holder, height);
+}
+void set_recv_nbre_nr_sum_callback(nbre_nr_sum_callback_t func) {
+  ipc_callback<nbre_nr_sum_ack, p_holder, p_nr_sum>::bind(func, _2, _3);
+}
+
 // interface get dip reward
 int ipc_nbre_dip_reward(void *holder, uint64_t height, uint64_t version) {
   return ipc_call<nbre_dip_reward_req, p_holder, p_height, p_version>::bind(
