@@ -39,6 +39,11 @@ namespace core {
 namespace internal {
 
 client_driver_base::client_driver_base() : m_exit_flag(false) {}
+client_driver_base::~client_driver_base() {
+  if (m_timer_thread) {
+    m_timer_thread->join();
+  }
+}
 
 bool client_driver_base::init() {
   ff::initialize(8);
@@ -76,6 +81,7 @@ void client_driver_base::run() {
 
 void client_driver_base::handle_exception(
     const std::shared_ptr<neb::neb_exception> &p) {
+
   switch (p->type()) {
     LOG(ERROR) << p->what();
   case neb_exception::neb_std_exception:
@@ -155,6 +161,7 @@ void client_driver_base::init_nbre() {
 } // end namespace internal
 
 client_driver::client_driver() : internal::client_driver_base() {}
+client_driver::~client_driver() {}
 
 void client_driver::add_handlers() {
 
@@ -304,7 +311,9 @@ void client_driver::add_handlers() {
             return;
           }
 
+          LOG_FLUSH(INFO, "start nr to json");
           auto str_ptr = neb::rt::nr::nebulas_rank::nr_info_to_json(nr_ret);
+          LOG_FLUSH(INFO, "end nr to json");
           LOG(INFO) << "nr result \n" << *str_ptr;
           ack->set<p_nr_result>(*str_ptr);
           m_ipc_conn->send(ack);

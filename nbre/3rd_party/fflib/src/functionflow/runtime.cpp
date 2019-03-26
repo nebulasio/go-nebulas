@@ -43,15 +43,18 @@ void schedule(task_base_ptr p) {
 void yield() { std::this_thread::yield(); }
 
 runtime::runtime()
-    : m_pTP(new threadpool()), m_oQueues(), m_bAllThreadsQuit(false){};
+    : m_pTP(new threadpool()), m_oQueues(), m_bAllThreadsQuit(false),
+      m_scheduler_thread_running_count(0){};
 
 runtime::~runtime() {
-  m_bAllThreadsQuit = true;
-  {
-    std::unique_lock<std::mutex> _l(m_wakeup_mutex);
-    m_wakeup.notify_all();
-  }
-  m_pTP->join();
+  abort_all_tasks_and_quit();
+  // std::unique_lock<std::mutex> _k(m_join_mutex);
+  // m_bAllThreadsQuit = true;
+  //{
+  // std::unique_lock<std::mutex> _l(m_wakeup_mutex);
+  // m_wakeup.notify_all();
+  //}
+  // m_pTP->join();
 }
 
 runtime_ptr runtime::instance() {
@@ -100,7 +103,11 @@ void runtime::schedule(task_base_ptr p) {
     i = get_thrd_id();
   }
   if (!m_oQueues[i]->push_back(p)) {
-    run_task(p);
+    m_scheduler_thread_running_count++;
+    if (!m_bAllThreadsQuit) {
+      run_task(p);
+    }
+    m_scheduler_thread_running_count--;
   } else if (m_sleep_counter > 1) {
     m_wakeup.notify_one();
   }
@@ -133,6 +140,23 @@ void runtime::run_task(task_base_ptr &pTask) {
   pTask->run();
   while (pTask->need_to_reschedule() && !m_oWQueues[cur_id]->push(pTask))
     pTask->run();
+}
+
+void runtime::abort_all_tasks_and_quit() {
+  std::unique_lock<std::mutex> _k(m_join_mutex);
+  if (m_bAllThreadsQuit)
+    return;
+
+  m_bAllThreadsQuit = true;
+  while (m_scheduler_thread_running_count > 0) {
+    std::this_thread::yield();
+  }
+
+  {
+    std::unique_lock<std::mutex> _l(m_wakeup_mutex);
+    m_wakeup.notify_all();
+  }
+  m_pTP->join();
 }
 void runtime::thread_run() {
   bool flag = false;
@@ -177,4 +201,8 @@ bool runtime::steal_one_task(task_base_ptr &pTask) {
   return false;
 }
 }  // end namespace rt
+void abort_all_tasks_and_quit() {
+  static rt::runtime_ptr r = rt::runtime::instance();
+  r->abort_all_tasks_and_quit();
+}
 }  // end namespace ff

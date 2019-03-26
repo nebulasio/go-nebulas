@@ -64,8 +64,7 @@ void marshaler::archive(std::string &s) {
   case deseralizer:
     std::memcpy((char *)&len, m_pReadBuf + m_iBase, sizeof(size_t));
     m_iBase += sizeof(size_t);
-    s = std::string(len, '0');
-    std::memcpy(const_cast<char *>(s.c_str()), m_pReadBuf + m_iBase, len);
+    s = std::string(m_pReadBuf + m_iBase, len);
     m_iBase += len;
     break;
   case length_retriver:

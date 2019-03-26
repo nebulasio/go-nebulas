@@ -21,6 +21,8 @@
 #include "common/common.h"
 #include "common/configuration.h"
 #include "core/net_ipc/client/client_driver.h"
+#include "fs/bc_storage_session.h"
+#include "fs/storage_holder.h"
 #include "fs/util.h"
 #include "util/controller.h"
 #include <boost/program_options.hpp>
@@ -101,5 +103,7 @@ int main(int argc, char *argv[]) {
   thrd.join();
 #endif
 
+  neb::fs::bc_storage_session::instance().release();
+  neb::fs::storage_holder::instance().release();
   return 0;
 }

@@ -563,7 +563,7 @@ public:
     for (boost::tie(vi, vi_end) = boost::vertices(m_graph); vi != vi_end;
          vi++) {
       auto ins = boost::in_degree(*vi, m_graph);
-      auto outs = boost::in_degree(*vi, m_graph);
+      auto outs = boost::out_degree(*vi, m_graph);
       if (!ins || !outs) {
         add_dead_vertex(*vi);
       } else {
@@ -827,7 +827,7 @@ void remove_cycles_based_on_time_sequence() {
     if (is_dead_vertex(v))
       continue;
     auto ins = boost::in_degree(v, m_graph);
-    auto outs = boost::in_degree(v, m_graph);
+    auto outs = boost::out_degree(v, m_graph);
     if (!ins || !outs) {
       add_dead_vertex(v);
       continue;

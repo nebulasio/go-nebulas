@@ -33,6 +33,7 @@ class client_driver_base {
 
 public:
   client_driver_base();
+  virtual ~client_driver_base();
 
   virtual bool init();
 
@@ -59,6 +60,7 @@ protected:
 class client_driver : public internal::client_driver_base {
 public:
   client_driver();
+  virtual ~client_driver();
 
 protected:
   virtual void add_handlers();
