@@ -57,6 +57,7 @@ public:
 protected:
   template <typename PkgType> void to_recv_pkg() {
     m_pkg_hub->to_recv_pkg<PkgType>([this](std::shared_ptr<PkgType> pkg) {
+      m_last_heart_beat_time = std::chrono::steady_clock::now();
       ipc_callback_holder::instance().call_callback<PkgType>(pkg);
       m_request_timer->remove_api(pkg->template get<p_holder>());
     });
