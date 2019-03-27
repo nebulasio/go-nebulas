@@ -19,7 +19,6 @@
 //
 #pragma once
 #include "common/common.h"
-#include "common/util/singleton.h"
 
 namespace neb {
 namespace core {

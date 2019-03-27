@@ -19,10 +19,11 @@
 //
 
 #pragma once
+#include "common/byte.h"
 #include "common/common.h"
-#include "common/util/byte.h"
-#include "common/util/lru_cache.h"
-#include "common/util/singleton.h"
+#include "runtime/nr/impl/nebulas_rank.h"
+#include "util/lru_cache.h"
+#include "util/singleton.h"
 
 namespace neb {
 namespace rt {
@@ -32,20 +33,17 @@ class nr_handler : public util::singleton<nr_handler> {
 public:
   nr_handler();
 
-  std::string get_nr_handler_id();
+  void start(const std::string &nr_handle);
 
-  void start(std::string nr_handler_id);
+  nr_ret_type get_nr_result(const std::string &nr_handle);
 
-  void run_if_default(block_height_t start_block, block_height_t end_block);
+  void run_if_default(block_height_t start_block, block_height_t end_block,
+                      const std::string &nr_handle);
   void run_if_specify(block_height_t start_block, block_height_t end_block,
-                      uint64_t nr_version);
-
-  std::string get_nr_result(const std::string &nr_handler_id);
+                      uint64_t nr_version, const std::string &nr_handle);
 
 private:
-  mutable std::mutex m_sync_mutex;
-  std::string m_nr_handler_id;
-  lru_cache<std::string, std::string> m_nr_result;
+  util::lru_cache<std::string, nr_ret_type> m_nr_result;
 };
 } // namespace nr
 } // namespace rt

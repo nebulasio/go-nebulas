@@ -23,6 +23,7 @@
 #include "fs/blockchain/account/account_db.h"
 #include "fs/blockchain/transaction/transaction_db.h"
 #include "runtime/nr/graph/algo.h"
+#include "runtime/util.h"
 #include <boost/property_tree/ptree.hpp>
 
 namespace neb {
@@ -31,12 +32,7 @@ namespace rt {
 namespace nr {
 
 struct nr_info_t {
-  std::string m_address;
-  uint32_t m_in_degree;
-  uint32_t m_out_degree;
-  uint32_t m_degrees;
-  floatxx_t m_in_val;
-  floatxx_t m_out_val;
+  address_t m_address;
   floatxx_t m_in_outs;
   floatxx_t m_median;
   floatxx_t m_weight;
@@ -56,23 +52,26 @@ struct rank_params_t {
 using uintxx_t = uint64_t;
 using transaction_db_ptr_t = std::unique_ptr<neb::fs::transaction_db>;
 using account_db_ptr_t = std::unique_ptr<neb::fs::account_db>;
+using nr_ret_type =
+    std::tuple<int32_t, std::string, std::vector<std::shared_ptr<nr_info_t>>>;
 
 class nebulas_rank {
 public:
-  static auto
+  static std::vector<std::shared_ptr<nr_info_t>>
   get_nr_score(const transaction_db_ptr_t &tdb_ptr,
                const account_db_ptr_t &adb_ptr, const rank_params_t &rp,
-               neb::block_height_t start_block, neb::block_height_t end_block)
-      -> std::unique_ptr<std::vector<nr_info_t>>;
+               neb::block_height_t start_block, neb::block_height_t end_block);
 
-  static std::string nr_info_to_json(
-      const std::vector<nr_info_t> &nr_infos,
-      const std::vector<std::pair<std::string, uint64_t>> &meta = {});
+  static str_uptr_t get_nr_sum_str(const nr_ret_type &nr_ret);
 
-  static auto json_to_nr_info(const std::string &nr_result)
-      -> std::unique_ptr<std::vector<nr_info_t>>;
+  static str_uptr_t nr_info_to_json(const nr_ret_type &nr_ret);
+  static nr_ret_type json_to_nr_info(const std::string &nr_result);
 
+#ifdef NDEBUG
 private:
+#else
+public:
+#endif
   static auto split_transactions_by_block_interval(
       const std::vector<neb::fs::transaction_info_t> &txs,
       int32_t block_interval = 128)
@@ -83,31 +82,29 @@ private:
 
   static auto build_transaction_graphs(
       const std::vector<std::vector<neb::fs::transaction_info_t>> &txs)
-      -> std::vector<transaction_graph_ptr_t>;
+      -> std::unique_ptr<std::vector<transaction_graph_ptr_t>>;
 
   static auto
   get_normal_accounts(const std::vector<neb::fs::transaction_info_t> &txs)
-      -> std::unique_ptr<std::unordered_set<std::string>>;
+      -> std::unique_ptr<std::unordered_set<address_t>>;
 
   static auto get_account_balance_median(
-      const std::unordered_set<std::string> &accounts,
+      const std::unordered_set<address_t> &accounts,
       const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
-      const account_db_ptr_t &db_ptr,
-      std::unordered_map<address_t, wei_t> &addr_balance)
-      -> std::unique_ptr<std::unordered_map<std::string, floatxx_t>>;
+      const account_db_ptr_t &db_ptr)
+      -> std::unique_ptr<std::unordered_map<address_t, floatxx_t>>;
 
   static auto get_account_weight(
-      const std::unordered_map<std::string, neb::rt::in_out_val_t> &in_out_vals,
+      const std::unordered_map<address_t, neb::rt::in_out_val_t> &in_out_vals,
       const account_db_ptr_t &db_ptr)
-      -> std::unique_ptr<std::unordered_map<std::string, floatxx_t>>;
+      -> std::unique_ptr<std::unordered_map<address_t, floatxx_t>>;
 
   static auto get_account_rank(
-      const std::unordered_map<std::string, floatxx_t> &account_median,
-      const std::unordered_map<std::string, floatxx_t> &account_weight,
+      const std::unordered_map<address_t, floatxx_t> &account_median,
+      const std::unordered_map<address_t, floatxx_t> &account_weight,
       const rank_params_t &rp)
-      -> std::unique_ptr<std::unordered_map<std::string, floatxx_t>>;
+      -> std::unique_ptr<std::unordered_map<address_t, floatxx_t>>;
 
-private:
   static transaction_graph_ptr_t build_graph_from_transactions(
       const std::vector<neb::fs::transaction_info_t> &trans);
 
@@ -123,9 +120,9 @@ private:
   static void convert_nr_info_to_ptree(const nr_info_t &info,
                                        boost::property_tree::ptree &pt);
 
-  static void
-  full_fill_meta_info(const std::vector<std::pair<std::string, uint64_t>> &meta,
-                      boost::property_tree::ptree &root);
+  static void full_fill_meta_info(
+      const std::vector<std::pair<std::string, std::string>> &meta,
+      boost::property_tree::ptree &root);
 
 }; // class nebulas_rank
 } // namespace nr

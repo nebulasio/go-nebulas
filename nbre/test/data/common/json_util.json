@@ -1,0 +1,37 @@
+{
+  "name": "nr",
+  "version_major": 0,
+  "version_minor": 0,
+  "version_patch": 1,
+  "depends": [
+    {
+      "name":"yyy",
+      "version_major":11,
+      "version_minor":12,
+      "version_patch":13
+    },
+    {
+      "name":"zzz",
+      "version_major":21,
+      "version_minor":22,
+      "version_patch":23
+    }
+  ],
+  "available_height": 100,
+  "root_path":"./go-nebulas/nbre/",
+  "cpp_files": [
+    "test/link_example/foo_arg.cpp"
+  ],
+  "include_header_files":[
+    "test/link_example"
+  ],
+  "link_path":[
+    "runtime/"
+  ],
+  "link_files":[
+    "bar"
+  ],
+  "flags": [
+  ]
+
+}

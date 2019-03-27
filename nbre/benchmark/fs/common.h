@@ -21,7 +21,6 @@
 #pragma once
 
 #include "fs/blockchain.h"
-#include "fs/nbre_storage.h"
 #include "fs/rocksdb_storage.h"
 #include <memory>
 #include <string>

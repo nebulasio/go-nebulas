@@ -8,5 +8,5 @@ add_test(NAME test_core
 add_test(NAME test_ir_warden
   COMMAND ir_warden)
 
-add_subdirectory(neb_ipc)
+#add_subdirectory(neb_ipc)
 

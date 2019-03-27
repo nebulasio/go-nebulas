@@ -1,0 +1,24 @@
+{
+
+  "name": "sample",
+  "version_major": 0,
+  "version_minor": 0,
+  "version_patch": 0,
+  "depends": [
+  ],
+  "available_height": 0,
+  "cpp_files": [
+    "sample.cpp"
+  ],
+  "include_header_files":[
+    "../../../lib/include"
+  ],
+  "link_path":[
+    "../../../lib"
+  ],
+  "link_files":[
+  ],
+  "flags": [
+  ]
+
+}

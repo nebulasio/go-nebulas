@@ -20,8 +20,8 @@
 
 #include "runtime/nr/impl/nr_impl.h"
 
-std::string entry_point_nr(neb::compatible_uint64_t start_block,
-                           neb::compatible_uint64_t end_block) {
+neb::rt::nr::nr_ret_type entry_point_nr(neb::compatible_uint64_t start_block,
+                                        neb::compatible_uint64_t end_block) {
   auto to_version_t = [](uint32_t major_version, uint16_t minor_version,
                          uint16_t patch_version) -> neb::rt::nr::version_t {
     return (0ULL + major_version) + ((0ULL + minor_version) << 32) +

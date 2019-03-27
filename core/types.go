@@ -299,7 +299,7 @@ type Neblet interface {
 	AccountManager() AccountManager
 	Nvm() NVM
 	Nbre() Nbre
-	Nr() Nr
+	Nr() NR
 	Dip() Dip
 	StartPprof(string) error
 }
@@ -338,9 +338,12 @@ type Nbre interface {
 	Stop()
 }
 
-type Nr interface {
-	GetNRHandler(start, end, version uint64) (string, error)
-	GetNRList(hash []byte) (Data, error)
+type NR interface {
+	GetNRByAddress(addr *Address) (Data, error)
+	GetNRListByHeight(height uint64) (Data, error)
+	GetNRSummary(height uint64) (Data, error)
+	GetNRHandle(start, end, version uint64) (string, error)
+	GetNRListByHandle(hash []byte) (Data, error)
 }
 
 type Dip interface {

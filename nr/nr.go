@@ -21,40 +21,124 @@ package nr
 import (
 	"errors"
 
+	"github.com/hashicorp/golang-lru"
+
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/nebulasio/go-nebulas/nf/nbre"
 )
 
 type NR struct {
-	conf *nebletpb.Config
-	nbre core.Nbre
+	neb Neblet
 
-	chain *core.BlockChain
+	cache *lru.Cache
 }
 
 // NewNR create nr
-func NewNR(neb Neblet) *NR {
-	nr := &NR{
-		conf:  neb.Config(),
-		nbre:  neb.Nbre(),
-		chain: neb.BlockChain(),
+func NewNR(neb Neblet) (*NR, error) {
+	cache, err := lru.New(8)
+	if err != nil {
+		return nil, err
 	}
-	return nr
+
+	nr := &NR{
+		neb:   neb,
+		cache: cache,
+	}
+	return nr, nil
 }
 
 // GetNRHandler returns the nr query handler
-func (n *NR) GetNRHandler(start, end, version uint64) (string, error) {
-	if start < n.conf.Nbre.StartHeight {
+func (n *NR) GetNRByAddress(addr *core.Address) (core.Data, error) {
+
+	height := n.neb.BlockChain().TailBlock().Height()
+	data, err := n.GetNRListByHeight(height)
+	if err != nil {
+		return nil, err
+	}
+	nrData := data.(*NRData)
+	for _, nr := range nrData.Nrs {
+		if nr.Address == addr.String() {
+			return nr, nil
+		}
+	}
+	return nil, ErrNRNotFound
+}
+
+// Since the calculation of NR takes time,
+// in order to ensure that all machines can get consistent NR value,
+// it is necessary to add a buffer height when querying the NR value,
+// and query the NR value corresponding to the block height
+func (n *NR) delayHeight() uint64 {
+	chainID := n.neb.BlockChain().ChainID()
+	// for Mainnet and Testnet, delay 1 day to query nr value.
+	if chainID == core.MainNetID {
+		return 24 * 60 * 60 / 15
+	} else if chainID == core.TestNetID {
+		return 24 * 60 * 60 / 15
+	} else {
+		return 33
+	}
+}
+
+// GetNRListByHeight return nr list, which subtract the deplay height, ensure all node is equal.
+func (n *NR) GetNRListByHeight(height uint64) (nr core.Data, err error) {
+	height = height - n.delayHeight()
+	if height < 1 {
+		return nil, ErrNRNotFound
+	}
+
+	if data, ok := n.cache.Get(height); ok {
+		nr = data.(*NRData)
+	} else {
+		data, err = n.neb.Nbre().Execute(nbre.CommandNRListByHeight, height)
+		if err != nil {
+			return nil, err
+		}
+		nrData := &NRData{}
+		if err = nrData.FromBytes([]byte(data.(string))); err != nil {
+			return nil, err
+		}
+		if len(nrData.Err) > 0 {
+			return nil, errors.New(nrData.Err)
+		}
+		nr = nrData
+		n.cache.Add(height, nrData)
+	}
+	return nr, nil
+}
+
+// GetNRSummary return nr summary info, which subtract the deplay height, ensure all node is equal.
+func (n *NR) GetNRSummary(height uint64) (core.Data, error) {
+	height = height - n.delayHeight()
+	if height < 1 {
+		return nil, ErrNRSummaryNotFound
+	}
+	data, err := n.neb.Nbre().Execute(nbre.CommandNRSum, height)
+	if err != nil {
+		return nil, err
+	}
+	sum := &NRSummary{}
+	if err = sum.FromBytes([]byte(data.(string))); err != nil {
+		return nil, err
+	}
+	if len(sum.Err) > 0 {
+		return nil, errors.New(sum.Err)
+	}
+	return sum, nil
+}
+
+// GetNRHandler returns the nr query handler
+func (n *NR) GetNRHandle(start, end, version uint64) (string, error) {
+	if start < n.neb.Config().Nbre.StartHeight {
 		return "", ErrInvalidStartHeight
 	}
 	if start >= end {
 		return "", ErrInvalidHeightInterval
 	}
-	if end <= 0 || end > n.chain.TailBlock().Height() {
+	if end <= 0 || end > n.neb.BlockChain().TailBlock().Height() {
 		return "", ErrInvalidEndHeight
 	}
-	data, err := n.nbre.Execute(nbre.CommandNRHandler, start, end, version)
+	data, err := n.neb.Nbre().Execute(nbre.CommandNRHandler, start, end, version)
 	if err != nil {
 		return "", err
 	}
@@ -62,8 +146,8 @@ func (n *NR) GetNRHandler(start, end, version uint64) (string, error) {
 }
 
 // GetNRList returns the nr list
-func (n *NR) GetNRList(hash []byte) (core.Data, error) {
-	data, err := n.nbre.Execute(nbre.CommandNRList, string(hash))
+func (n *NR) GetNRListByHandle(handle []byte) (core.Data, error) {
+	data, err := n.neb.Nbre().Execute(nbre.CommandNRListByHandle, string(handle))
 	if err != nil {
 		return nil, err
 	}

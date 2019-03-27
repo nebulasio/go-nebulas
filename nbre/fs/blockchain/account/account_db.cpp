@@ -19,21 +19,20 @@
 //
 
 #include "fs/blockchain/account/account_db.h"
-#include "fs/blockchain/nebulas_currency.h"
+#include "common/nebulas_currency.h"
 #include "fs/blockchain/trie/trie.h"
 #include "fs/util.h"
 
 namespace neb {
 namespace fs {
 
-account_db::account_db(blockchain_api *blockchain_ptr)
+account_db::account_db(blockchain_api_base *blockchain_ptr)
     : m_blockchain(blockchain_ptr) {}
 
 wei_t account_db::get_balance(const address_t &addr, block_height_t height) {
   auto corepb_account_ptr = m_blockchain->get_account_api(addr, height);
   std::string balance_str = corepb_account_ptr->balance();
-  std::string hex_str = neb::util::string_to_byte(balance_str).to_hex();
-  return to_wei(hex_str);
+  return storage_to_wei(neb::string_to_byte(balance_str));
 }
 
 address_t account_db::get_contract_deployer(const address_t &addr,
@@ -41,7 +40,7 @@ address_t account_db::get_contract_deployer(const address_t &addr,
   auto corepb_account_ptr = m_blockchain->get_account_api(addr, height);
   std::string birth_place = corepb_account_ptr->birth_place();
   auto corepb_txs_ptr = m_blockchain->get_transaction_api(birth_place, height);
-  return corepb_txs_ptr->from();
+  return to_address(corepb_txs_ptr->from());
 }
 
 void account_db::set_height_address_val_internal(
@@ -49,8 +48,8 @@ void account_db::set_height_address_val_internal(
     std::unordered_map<address_t, wei_t> &addr_balance) {
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
-    std::string from = it->m_from;
-    std::string to = it->m_to;
+    address_t from = it->m_from;
+    address_t to = it->m_to;
 
     block_height_t height = it->m_height;
     wei_t tx_value = it->m_tx_value;
@@ -76,11 +75,11 @@ void account_db::set_height_address_val_internal(
     }
 
     if (m_height_addr_val.find(height) == m_height_addr_val.end()) {
-      std::unordered_map<std::string, wei_t> addr_val = {
+      std::unordered_map<address_t, wei_t> addr_val = {
           {from, addr_balance[from]}, {to, addr_balance[to]}};
       m_height_addr_val.insert(std::make_pair(height, addr_val));
     } else {
-      std::unordered_map<std::string, wei_t> &addr_val =
+      std::unordered_map<address_t, wei_t> &addr_val =
           m_height_addr_val[height];
       if (addr_val.find(from) == addr_val.end()) {
         addr_val.insert(std::make_pair(from, addr_balance[from]));

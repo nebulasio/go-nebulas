@@ -31,6 +31,8 @@ var (
 	ErrInvalidStartHeight    = errors.New("invalid nr start height")
 	ErrInvalidEndHeight      = errors.New("invalid nr end height")
 	ErrInvalidHeightInterval = errors.New("invalid nr height interval")
+	ErrNRNotFound            = errors.New("nr not found")
+	ErrNRSummaryNotFound     = errors.New("nr summary not found")
 )
 
 type Neblet interface {
@@ -45,6 +47,19 @@ type NRItem struct {
 	Median  string `json:"median"`
 	Weight  string `json:"weight"`
 	Score   string `json:"score"`
+}
+
+// ToBytes serialize data
+func (n *NRItem) ToBytes() ([]byte, error) {
+	return json.Marshal(n)
+}
+
+// FromBytes
+func (n *NRItem) FromBytes(data []byte) error {
+	if err := json.Unmarshal(data, n); err != nil {
+		return err
+	}
+	return nil
 }
 
 // NRData nr data
@@ -63,6 +78,45 @@ func (n *NRData) ToBytes() ([]byte, error) {
 
 // FromBytes
 func (n *NRData) FromBytes(data []byte) error {
+	if err := json.Unmarshal(data, n); err != nil {
+		return err
+	}
+	return nil
+}
+
+type NRSummary struct {
+	StartHeight uint64         `json:"start_height,string"`
+	EndHeight   uint64         `json:"end_height,string"`
+	Version     uint64         `json:"version,string"`
+	Sum         *NRSummaryData `json:"sum"`
+	Err         string         `json:"err"`
+}
+
+// ToBytes serialize data
+func (n *NRSummary) ToBytes() ([]byte, error) {
+	return json.Marshal(n)
+}
+
+// FromBytes
+func (n *NRSummary) FromBytes(data []byte) error {
+	if err := json.Unmarshal(data, n); err != nil {
+		return err
+	}
+	return nil
+}
+
+type NRSummaryData struct {
+	InOuts string `json:"in_outs"`
+	Score  string `json:"score"`
+}
+
+// ToBytes serialize data
+func (n *NRSummaryData) ToBytes() ([]byte, error) {
+	return json.Marshal(n)
+}
+
+// FromBytes
+func (n *NRSummaryData) FromBytes(data []byte) error {
 	if err := json.Unmarshal(data, n); err != nil {
 		return err
 	}

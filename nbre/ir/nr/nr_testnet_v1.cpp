@@ -20,17 +20,22 @@
 
 #include "runtime/nr/impl/nr_impl.h"
 
-std::string entry_point_nr(neb::compatible_uint64_t start_block,
-                           neb::compatible_uint64_t end_block) {
-
+neb::rt::nr::nr_ret_type entry_point_nr(neb::compatible_uint64_t start_block,
+                                        neb::compatible_uint64_t end_block) {
+  neb::rt::nr::nr_ret_type ret;
+  std::get<0>(ret) = 0;
   if (start_block > end_block) {
-    return std::string("{\"err\":\"start height must less than end height\"}");
+    std::get<1>(ret) =
+        std::string("{\"err\":\"start height must less than end height\"}");
+    return ret;
   }
   uint64_t block_nums_of_a_day = 24 * 3600 / 15;
   uint64_t days = 7;
-  uint64_t max_nr_block_interval = days * block_nums_of_a_day;
-  if (start_block + max_nr_block_interval < end_block) {
-    return std::string("{\"err\":\"nr block interval out of range\"}");
+  uint64_t block_interval = days * block_nums_of_a_day;
+  if (start_block + block_interval < end_block) {
+    std::get<1>(ret) =
+        std::string("{\"err\":\"nr block interval out of range\"}");
+    return ret;
   }
 
   auto to_version_t = [](uint32_t major_version, uint16_t minor_version,
@@ -46,6 +51,7 @@ std::string entry_point_nr(neb::compatible_uint64_t start_block,
   neb::rt::nr::nr_float_t theta = 1;
   neb::rt::nr::nr_float_t mu = 1;
   neb::rt::nr::nr_float_t lambda = 2;
+
   return neb::rt::nr::entry_point_nr_impl(start_block, end_block,
                                           to_version_t(0, 0, 1), a, b, c, d,
                                           theta, mu, lambda);

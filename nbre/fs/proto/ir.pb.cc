@@ -89,6 +89,7 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nbre::NBREIR, height_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nbre::NBREIR, depends_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nbre::NBREIR, ir_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::nbre::NBREIR, ir_type_),
 };
 static const ::google::protobuf::internal::MigrationSchema schemas[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, sizeof(::nbre::NBREIRDepend)},
@@ -122,13 +123,13 @@ void AddDescriptorsImpl() {
   InitDefaults();
   static const char descriptor[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
       "\n\010ir.proto\022\004nbre\"-\n\014NBREIRDepend\022\014\n\004name"
-      "\030\001 \001(\t\022\017\n\007version\030\002 \001(\004\"h\n\006NBREIR\022\014\n\004nam"
+      "\030\001 \001(\t\022\017\n\007version\030\002 \001(\004\"y\n\006NBREIR\022\014\n\004nam"
       "e\030\001 \001(\t\022\017\n\007version\030\002 \001(\004\022\016\n\006height\030\003 \001(\004"
       "\022#\n\007depends\030\004 \003(\0132\022.nbre.NBREIRDepend\022\n\n"
-      "\002ir\030\005 \001(\014b\006proto3"
+      "\002ir\030\005 \001(\014\022\017\n\007ir_type\030\006 \001(\tb\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 177);
+      descriptor, 194);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "ir.proto", &protobuf_RegisterTypes);
 }
@@ -437,6 +438,7 @@ const int NBREIR::kVersionFieldNumber;
 const int NBREIR::kHeightFieldNumber;
 const int NBREIR::kDependsFieldNumber;
 const int NBREIR::kIrFieldNumber;
+const int NBREIR::kIrTypeFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 NBREIR::NBREIR()
@@ -459,6 +461,10 @@ NBREIR::NBREIR(const NBREIR& from)
   if (from.ir().size() > 0) {
     ir_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.ir_);
   }
+  ir_type_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (from.ir_type().size() > 0) {
+    ir_type_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.ir_type_);
+  }
   ::memcpy(&version_, &from.version_,
     static_cast<size_t>(reinterpret_cast<char*>(&height_) -
     reinterpret_cast<char*>(&version_)) + sizeof(height_));
@@ -468,6 +474,7 @@ NBREIR::NBREIR(const NBREIR& from)
 void NBREIR::SharedCtor() {
   name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ir_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  ir_type_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(&version_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&height_) -
       reinterpret_cast<char*>(&version_)) + sizeof(height_));
@@ -481,6 +488,7 @@ NBREIR::~NBREIR() {
 void NBREIR::SharedDtor() {
   name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ir_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  ir_type_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 
 void NBREIR::SetCachedSize(int size) const {
@@ -506,6 +514,7 @@ void NBREIR::Clear() {
   depends_.Clear();
   name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ir_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  ir_type_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(&version_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&height_) -
       reinterpret_cast<char*>(&version_)) + sizeof(height_));
@@ -590,6 +599,22 @@ bool NBREIR::MergePartialFromCodedStream(
         break;
       }
 
+      // string ir_type = 6;
+      case 6: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(50u /* 50 & 0xFF */)) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_ir_type()));
+          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+            this->ir_type().data(), static_cast<int>(this->ir_type().length()),
+            ::google::protobuf::internal::WireFormatLite::PARSE,
+            "nbre.NBREIR.ir_type"));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
       default: {
       handle_unusual:
         if (tag == 0) {
@@ -651,6 +676,16 @@ void NBREIR::SerializeWithCachedSizes(
       5, this->ir(), output);
   }
 
+  // string ir_type = 6;
+  if (this->ir_type().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+      this->ir_type().data(), static_cast<int>(this->ir_type().length()),
+      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+      "nbre.NBREIR.ir_type");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      6, this->ir_type(), output);
+  }
+
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), output);
@@ -701,6 +736,17 @@ void NBREIR::SerializeWithCachedSizes(
         5, this->ir(), target);
   }
 
+  // string ir_type = 6;
+  if (this->ir_type().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+      this->ir_type().data(), static_cast<int>(this->ir_type().length()),
+      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+      "nbre.NBREIR.ir_type");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        6, this->ir_type(), target);
+  }
+
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), target);
@@ -741,6 +787,13 @@ size_t NBREIR::ByteSizeLong() const {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::BytesSize(
         this->ir());
+  }
+
+  // string ir_type = 6;
+  if (this->ir_type().size() > 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::StringSize(
+        this->ir_type());
   }
 
   // uint64 version = 2;
@@ -793,6 +846,10 @@ void NBREIR::MergeFrom(const NBREIR& from) {
 
     ir_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.ir_);
   }
+  if (from.ir_type().size() > 0) {
+
+    ir_type_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.ir_type_);
+  }
   if (from.version() != 0) {
     set_version(from.version());
   }
@@ -829,6 +886,8 @@ void NBREIR::InternalSwap(NBREIR* other) {
   name_.Swap(&other->name_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
     GetArenaNoVirtual());
   ir_.Swap(&other->ir_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+    GetArenaNoVirtual());
+  ir_type_.Swap(&other->ir_type_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
     GetArenaNoVirtual());
   swap(version_, other->version_);
   swap(height_, other->height_);

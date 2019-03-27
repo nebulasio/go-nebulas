@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/nr"
+
 	"net/http"
 	_ "net/http/pprof" // Register some standard stuff
 
@@ -29,7 +31,6 @@ import (
 	"github.com/nebulasio/go-nebulas/nf/nbre"
 	"github.com/nebulasio/go-nebulas/nf/nvm"
 	"github.com/nebulasio/go-nebulas/nip/dip"
-	"github.com/nebulasio/go-nebulas/nr"
 	"github.com/nebulasio/go-nebulas/rpc"
 	"github.com/nebulasio/go-nebulas/storage"
 	nsync "github.com/nebulasio/go-nebulas/sync"
@@ -77,7 +78,7 @@ type Neblet struct {
 
 	nbre core.Nbre
 
-	nr core.Nr
+	nr core.NR
 
 	dip core.Dip
 
@@ -148,6 +149,13 @@ func (n *Neblet) Setup() {
 		}).Fatal("Failed to setup V8.")
 	}
 
+	// nr
+	if n.nr, err = nr.NewNR(n); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to setup nr.")
+	}
+
 	// dip
 	if n.dip, err = dip.NewDIP(n); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
@@ -186,9 +194,6 @@ func (n *Neblet) Setup() {
 
 	// nbre
 	n.nbre = nbre.NewNbre(n)
-
-	// nr
-	n.nr = nr.NewNR(n)
 
 	logging.CLog().Info("Setuped Neblet.")
 }
@@ -436,8 +441,8 @@ func (n *Neblet) Nbre() core.Nbre {
 	return n.nbre
 }
 
-// Nr return the nr
-func (n *Neblet) Nr() core.Nr {
+// NR return the nr
+func (n *Neblet) Nr() core.NR {
 	return n.nr
 }
 

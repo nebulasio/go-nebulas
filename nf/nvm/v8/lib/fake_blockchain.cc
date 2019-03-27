@@ -70,3 +70,13 @@ int GetPreBlockSeed(void *handler, unsigned long long offset, size_t *gasCnt, ch
   return NVM_SUCCESS;
 }
 
+int GetLatestNebulasRank(void *handler, const char *address, size_t *gasCnt, char **result, char **info) {
+  *gasCnt = 20000;
+  return NVM_SUCCESS;
+}
+
+int GetLatestNebulasRankSummary(void *handler, size_t *gasCnt, char **result, char **info) {
+  *gasCnt = 20000;
+  return NVM_SUCCESS;
+}
+

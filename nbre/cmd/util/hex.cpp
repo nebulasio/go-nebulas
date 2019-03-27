@@ -18,8 +18,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 
+#include "common/byte.h"
 #include "common/common.h"
-#include "common/util/byte.h"
 #include <boost/program_options.hpp>
 #include <iomanip>
 #include <sstream>
@@ -47,8 +47,8 @@ int main(int argc, char *argv[]) {
   }
 
   std::string addr_base58 = vm["address"].as<std::string>();
-  neb::util::bytes addr_bytes = neb::util::bytes::from_base58(addr_base58);
-  std::string addr = neb::util::byte_to_string(addr_bytes);
+  neb::bytes addr_bytes = neb::bytes::from_base58(addr_base58);
+  std::string addr = neb::byte_to_string(addr_bytes);
   LOG(INFO) << addr.size();
 
   std::stringstream ss;

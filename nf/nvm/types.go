@@ -95,6 +95,10 @@ const (
 
 	//random
 	GetTxRandomGasBase = 1000
+
+	//nr
+	GetLatestNebulasRankGasBase        = 20000
+	GetLatestNebulasRankSummaryGasBase = 20000
 )
 
 //inner nvm
@@ -117,6 +121,7 @@ type Block interface {
 	RandomSeed() string
 	RandomAvailable() bool
 	DateAvailable() bool
+	NR() core.NR
 }
 
 // Transaction interface breaks cycle import dependency and hides unused services.

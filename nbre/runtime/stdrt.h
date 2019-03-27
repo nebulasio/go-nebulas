@@ -20,7 +20,7 @@
 #pragma once
 namespace neb {
 namespace core {
-class driver;
+class net_driver;
 }
 using compatible_uint64_t = unsigned long long;
 using compatible_int64_t = long long;

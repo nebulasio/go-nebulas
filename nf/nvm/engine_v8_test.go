@@ -104,6 +104,10 @@ func (block *testBlock) Timestamp() int64 {
 	return int64(0)
 }
 
+func (block *testBlock) NR() core.NR {
+	return nil
+}
+
 func mockBlock() Block {
 	block := &testBlock{core.NebCompatibility.NvmMemoryLimitWithoutInjectHeight()}
 	return block
@@ -1271,6 +1275,83 @@ func TestMultiLibVersion(t *testing.T) {
 			result, err := engine.RunScriptSource(string(data), 0)
 			assert.Equal(t, tt.expectedErr, err)
 			assert.Equal(t, tt.expectedResult, result)
+			engine.Dispose()
+		})
+	}
+}
+
+func TestNebulasRank(t *testing.T) {
+	core.SetCompatibilityOptions(100)
+
+	tests := []struct {
+		name         string
+		contractPath string
+		function     string
+		args         string
+		expectedErr  error
+		result       string
+	}{
+		{"case1", "./test/test_nebulas_rank.js", "rank", "[\"addr\"]", core.ErrExecutionFailed, "Address is invalid"},
+		{"case2", "./test/test_nebulas_rank.js", "rank", "[\"n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE\"]", core.ErrExecutionFailed, "Failed to find nr value"},
+		{"case3", "./test/test_nebulas_rank.js", "rank", "[\"n1FkntVUMPAsESuCAAPK711omQk19JotBjM\"]", nil, "\"10.09\""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contractPath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
+			assert.Nil(t, err)
+			owner.AddBalance(newUint128FromIntWrapper(1000000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
+			ctx, err := NewContext(mockBlockForLib(2), mockTransaction(), contract, context)
+
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(900000, 10000000)
+			result, err := engine.Call(string(data), "js", tt.function, tt.args)
+			assert.Equal(t, tt.expectedErr, err)
+			assert.Equal(t, tt.result, result)
+			engine.Dispose()
+		})
+	}
+}
+
+func TestNebulasRankSummary(t *testing.T) {
+	core.SetCompatibilityOptions(100)
+
+	tests := []struct {
+		name         string
+		contractPath string
+		height       uint64
+		function     string
+		expectedErr  error
+		result       string
+	}{
+		{"case1", "./test/test_nebulas_rank.js", 100, "summary", core.ErrExecutionFailed, "Failed to get nr summary"},
+		{"case2", "./test/test_nebulas_rank.js", 1200, "summary", nil, "{\"start_height\":\"1\",\"end_height\":\"500\",\"version\":\"0\",\"sum\":{\"in_outs\":\"123123\",\"score\":\"100\"},\"err\":\"\"}"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ioutil.ReadFile(tt.contractPath)
+			assert.Nil(t, err, "filepath read error")
+
+			mem, _ := storage.NewMemoryStorage()
+			context, _ := state.NewWorldState(dpos.NewDpos(), mem)
+			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
+			assert.Nil(t, err)
+			owner.AddBalance(newUint128FromIntWrapper(1000000000))
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
+			ctx, err := NewContext(mockBlockForLib(tt.height), mockTransaction(), contract, context)
+
+			engine := NewV8Engine(ctx)
+			engine.SetExecutionLimits(900000, 10000000)
+			result, err := engine.Call(string(data), "js", tt.function, "")
+			assert.Equal(t, tt.expectedErr, err)
+			assert.Equal(t, tt.result, result)
 			engine.Dispose()
 		})
 	}

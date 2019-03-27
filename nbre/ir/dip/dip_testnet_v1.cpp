@@ -20,10 +20,15 @@
 
 #include "runtime/dip/dip_impl.h"
 
-std::string entry_point_nr(neb::compatible_uint64_t start_block,
-                           neb::compatible_uint64_t end_block);
+extern neb::rt::nr::nr_ret_type
+entry_point_nr(neb::compatible_uint64_t start_block,
+               neb::compatible_uint64_t end_block);
 
-std::string entry_point_dip(neb::compatible_uint64_t height) {
+neb::rt::dip::dip_ret_type entry_point_dip(neb::compatible_uint64_t height) {
+
+  neb::rt::dip::dip_ret_type ret;
+  std::get<0>(ret) = 0;
+
   uint64_t block_nums_of_a_day = 24 * 3600 / 15;
   uint64_t days = 7;
   neb::compatible_uint64_t dip_start_block = 1562800;
@@ -33,21 +38,23 @@ std::string entry_point_dip(neb::compatible_uint64_t height) {
   std::string coinbase_addr =
       std::string("n1EzGmFsVepKduN1U5QFyhLqpzFvM9sRSmG");
 
-  if (!height) {
-    neb::rt::dip::init_dip_params(dip_start_block, dip_block_interval,
-                                  dip_reward_addr, coinbase_addr);
-    return std::string("{\"err\":\"init dip params\"}");
-  }
-
-  if (height < dip_start_block + dip_block_interval) {
-    return std::string("{\"err\":\"invalid height\"}");
-  }
-
   auto to_version_t = [](uint32_t major_version, uint16_t minor_version,
                          uint16_t patch_version) -> neb::rt::dip::version_t {
     return (0ULL + major_version) + ((0ULL + minor_version) << 32) +
            ((0ULL + patch_version) << 48);
   };
+
+  if (!height) {
+    std::get<1>(ret) = neb::rt::dip::dip_param_list(
+        dip_start_block, dip_block_interval, dip_reward_addr, coinbase_addr,
+        to_version_t(0, 0, 1));
+    return ret;
+  }
+
+  if (height < dip_start_block + dip_block_interval) {
+    std::get<1>(ret) = std::string("{\"err\":\"invalid height\"}");
+    return ret;
+  }
 
   uint64_t interval_nums = (height - dip_start_block) / dip_block_interval;
   neb::compatible_uint64_t start_block =
@@ -55,11 +62,12 @@ std::string entry_point_dip(neb::compatible_uint64_t height) {
   neb::compatible_uint64_t end_block = start_block - 1;
   start_block -= dip_block_interval;
 
-  std::string nr_result = entry_point_nr(start_block, end_block);
+  auto nr_ret = entry_point_nr(start_block, end_block);
 
   neb::rt::dip::dip_float_t alpha = 1e-32;
   neb::rt::dip::dip_float_t beta = 1;
+
   return neb::rt::dip::entry_point_dip_impl(start_block, end_block,
                                             to_version_t(0, 0, 1), height,
-                                            nr_result, alpha, beta);
+                                            nr_ret, alpha, beta);
 }

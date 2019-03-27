@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "test/common/ipc/ipc_instance.h"
-#include "core/neb_ipc/server/ipc_configuration.h"
+#include "common/configuration.h"
 #include "fs/util.h"
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -77,13 +77,11 @@ void ipc_instances::init_ipc_instances(int argc, char *argv[]) {
     FLAGS_logtostderr = true;
     ::google::SetStderrLogging(google::GLOG_INFO);
     ::google::SetLogDestination(
-        google::GLOG_INFO,
-        core::ipc_configuration::instance().nbre_root_dir().c_str());
+        google::GLOG_INFO, configuration::instance().nbre_root_dir().c_str());
   } else {
     FLAGS_logtostderr = false;
     ::google::SetLogDestination(
-        google::GLOG_ERROR,
-        core::ipc_configuration::instance().nbre_root_dir().c_str());
+        google::GLOG_ERROR, configuration::instance().nbre_root_dir().c_str());
   }
   ::google::InitGoogleLogging(argv[0]);
   LOG(INFO) << argv[0] << " started! ";

@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
+#include "common/address.h"
 #include "common/common.h"
 #include "runtime/nr/graph/graph.h"
 
@@ -37,7 +38,10 @@ struct in_out_degree_t {
 class graph_algo {
 public:
   static void remove_cycles_based_on_time_sequence(
-      transaction_graph::internal_graph_t &graph, block_height_t height);
+      transaction_graph::internal_graph_t &graph);
+
+  static void
+  non_recursive_remove_cycles_based_on_time_sequence(transaction_graph &graph);
 
   static void merge_edges_with_same_from_and_same_to(
       transaction_graph::internal_graph_t &graph);
@@ -61,35 +65,56 @@ public:
   static auto get_degree_sum(const transaction_graph::internal_graph_t &graph)
       -> std::unique_ptr<std::unordered_map<address_t, uint32_t>>;
 
+  static bool decrease_graph_edges(
+      const transaction_graph::internal_graph_t &graph,
+      std::unordered_set<transaction_graph::vertex_descriptor_t> &dead_v,
+      std::unordered_map<transaction_graph::vertex_descriptor_t, size_t>
+          &dead_to,
+      std::unordered_map<transaction_graph::vertex_descriptor_t, size_t>
+          &to_dead);
+
+#ifdef NDEBUG
 private:
-  static void opt_dfs_find_a_cycle_from_vertex_based_on_time_sequence(
+#else
+public:
+#endif
+  static void dfs_find_a_cycle_from_vertex_based_on_time_sequence(
+      const transaction_graph::internal_graph_t &graph,
       const transaction_graph::vertex_descriptor_t &start_vertex,
       const transaction_graph::vertex_descriptor_t &v,
-      const transaction_graph::internal_graph_t &graph, bool &has_cycle,
+      const std::unordered_set<transaction_graph::vertex_descriptor_t> &dead_v,
+      bool &has_cycle,
       std::unordered_map<transaction_graph::vertex_descriptor_t, bool> &visited,
       std::vector<transaction_graph::edge_descriptor_t> &edges,
       std::vector<transaction_graph::edge_descriptor_t> &ret);
-  static void dfs_find_a_cycle_from_vertex_based_on_time_sequence(
-      const transaction_graph::vertex_descriptor_t &start_vertex,
-      const transaction_graph::vertex_descriptor_t &v,
-      const transaction_graph::internal_graph_t &graph,
-      std::set<transaction_graph::vertex_descriptor_t> &visited,
-      std::vector<transaction_graph::edge_descriptor_t> &edges, bool &has_cycle,
-      std::vector<transaction_graph::edge_descriptor_t> &ret);
 
   static auto find_a_cycle_from_vertex_based_on_time_sequence(
+      const transaction_graph::internal_graph_t &graph,
       const transaction_graph::vertex_descriptor_t &v,
-      const transaction_graph::internal_graph_t &graph, block_height_t height)
+      const std::unordered_set<transaction_graph::vertex_descriptor_t> &dead_v)
       -> std::vector<transaction_graph::edge_descriptor_t>;
 
   static auto find_a_cycle_based_on_time_sequence(
-      const transaction_graph::internal_graph_t &graph, block_height_t height)
+      const transaction_graph::internal_graph_t &graph,
+      const std::unordered_set<transaction_graph::vertex_descriptor_t> &dead_v)
       -> std::vector<transaction_graph::edge_descriptor_t>;
+
+  static void bfs_decrease_graph_edges(
+      const transaction_graph::internal_graph_t &graph,
+      const std::unordered_set<transaction_graph::vertex_descriptor_t> &dead_v,
+      std::unordered_set<transaction_graph::vertex_descriptor_t> &tmp_dead,
+      std::unordered_map<transaction_graph::vertex_descriptor_t, size_t>
+          &dead_to,
+      std::unordered_map<transaction_graph::vertex_descriptor_t, size_t>
+          &to_dead);
+
+  static void remove_a_cycle(
+      transaction_graph::internal_graph_t &graph,
+      const std::vector<transaction_graph::edge_descriptor_t> &edges);
 
   static transaction_graph *merge_two_graphs(transaction_graph *tg,
                                              const transaction_graph *sg);
-
-  static inline wei_t min(wei_t w1, wei_t w2) { return w1 < w2 ? w1 : w2; }
 };
+
 } // namespace rt
 } // namespace neb

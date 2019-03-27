@@ -151,8 +151,10 @@ type Block struct {
 	txPool       *TransactionPool
 	eventEmitter *EventEmitter
 	nvm          NVM
+	nr           NR
 	dip          Dip
-	storage      storage.Storage
+
+	storage storage.Storage
 }
 
 // ToProto converts domain Block into proto Block
@@ -256,6 +258,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		txPool:       parent.txPool,
 		eventEmitter: parent.eventEmitter,
 		nvm:          parent.nvm,
+		nr:           parent.nr,
 		dip:          parent.dip,
 		storage:      parent.storage,
 	}
@@ -425,6 +428,11 @@ func (block *Block) DateAvailable() bool {
 	return DateAvailableAtHeight(block.height)
 }
 
+// DateAvailable return nr
+func (block *Block) NR() NR {
+	return block.nr
+}
+
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
 func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error {
 	if !block.ParentHash().Equals(parentBlock.Hash()) {
@@ -448,6 +456,7 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	block.storage = parentBlock.storage
 	block.eventEmitter = parentBlock.eventEmitter
 	block.nvm = parentBlock.nvm
+	block.nr = parentBlock.nr
 	block.dip = parentBlock.dip
 
 	return nil
@@ -1148,8 +1157,19 @@ func (block *Block) FetchExecutionResultEvent(txHash byteutils.Hash) (*state.Eve
 }
 
 func (block *Block) rewardCoinbaseForMint() error {
+
+	coinbaseAddr := block.Coinbase().Bytes()
+	coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
+	if err != nil {
+		return err
+	}
+	if err = coinbaseAcc.AddBalance(BlockReward); err != nil {
+		return err
+	}
+
 	//after NbreAvailableHeight, reward give to coinbase and dip reward address.
 	if NbreAvailableHeight(block.height) {
+
 		// reward dip to dip address.
 		dipAddr := block.dip.RewardAddress().Bytes()
 		dipAcc, err := block.WorldState().GetOrCreateUserAccount(dipAddr)
@@ -1160,26 +1180,9 @@ func (block *Block) rewardCoinbaseForMint() error {
 		if err = dipAcc.AddBalance(dipValue); err != nil {
 			return err
 		}
-
-		// reward left to coinbase
-		coinbaseAddr := block.Coinbase().Bytes()
-		coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
-		if err != nil {
-			return err
-		}
-		left, err := BlockReward.Sub(dipValue)
-		if err != nil {
-			return err
-		}
-		return coinbaseAcc.AddBalance(left)
-	} else {
-		coinbaseAddr := block.Coinbase().Bytes()
-		coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
-		if err != nil {
-			return err
-		}
-		return coinbaseAcc.AddBalance(BlockReward)
 	}
+
+	return nil
 }
 
 func (block *Block) rewardCoinbaseForGas() error {
@@ -1362,6 +1365,7 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 	block.txPool = chain.txPool
 	block.eventEmitter = chain.eventEmitter
 	block.nvm = chain.nvm
+	block.nr = chain.nr
 	block.dip = chain.dip
 	block.storage = chain.storage
 	return block, nil
