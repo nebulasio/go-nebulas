@@ -47,9 +47,9 @@ const (
 
 var (
 	// BlockReward given to dip address
-	// rule: 0.4% of block reward
-	// value: 1.42694 * 10^18/1000*4 = 5.70776e+15
-	DipRewardValue, _ = core.BlockReward.Div(util.NewUint128FromUint(250))
+	// rule: 1% per year, 1,000,000. 1 block per 15 seconds
+	// value: 10^8 * 1% / (365*24*3600/15) * 10^18 ≈ 0.47565 * 10^18
+	DipRewardValue, _ = core.BlockReward.Div(util.NewUint128FromUint(475650000000000000))
 )
 
 type Neblet interface {

@@ -1119,15 +1119,17 @@ func (block *Block) FetchExecutionResultEvent(txHash byteutils.Hash) (*state.Eve
 }
 
 func (block *Block) rewardCoinbaseForMint() error {
-	//before DipRewardHeight, reward only give to coinbase
-	if block.height < DipRewardHeight {
-		coinbaseAddr := block.Coinbase().Bytes()
-		coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
-		if err != nil {
-			return err
-		}
-		return coinbaseAcc.AddBalance(BlockReward)
-	} else {
+	coinbaseAddr := block.Coinbase().Bytes()
+	coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
+	if err != nil {
+		return err
+	}
+	if err = coinbaseAcc.AddBalance(BlockReward); err != nil {
+		return err
+	}
+
+	// reward dip when mint block
+	if block.height > DipRewardHeight {
 		// reward dip to dip address.
 		dipAddr := block.dip.RewardAddress().Bytes()
 		dipAcc, err := block.WorldState().GetOrCreateUserAccount(dipAddr)
@@ -1138,19 +1140,8 @@ func (block *Block) rewardCoinbaseForMint() error {
 		if err = dipAcc.AddBalance(dipValue); err != nil {
 			return err
 		}
-
-		// reward left to coinbase
-		coinbaseAddr := block.Coinbase().Bytes()
-		coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
-		if err != nil {
-			return err
-		}
-		left, err := BlockReward.Sub(dipValue)
-		if err != nil {
-			return err
-		}
-		return coinbaseAcc.AddBalance(left)
 	}
+	return nil
 }
 
 func (block *Block) rewardCoinbaseForGas() error {
