@@ -21,4 +21,5 @@
 #pragma once
 #include "cmd/dummy_neb/dummies/dummy_base.h"
 #include "cmd/dummy_neb/dummies/random_dummy.h"
+#include "cmd/dummy_neb/dummies/stress_dummy.h"
 #include "cmd/dummy_neb/dummy_common.h"

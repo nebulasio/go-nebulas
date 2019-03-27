@@ -34,7 +34,7 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
     ("list-dummies", "show all dummy names")
     ("run-dummy", po::value<std::string>()->default_value("default_random"), "run a dummy with name (from list-dummies, default [default_random])")
     ("block-interval", po::value<uint64_t>()->default_value(3), "block interval with seconds")
-    ("without-clean-db", po::value<bool>()->default_value(false), "run a dummy without clean previous db")
+    ("without-clean-db", po::value<bool>()->default_value(true), "run a dummy without clean previous db")
     ("clean-dummy-db", po::value<std::string>(), "clean the db file of a dummy")
     ("glog-log-to-stderr", po::value<bool>()->default_value(false), "glog to stderr")
     ("use-test-blockchain", po::value<bool>()->default_value(true), "use test blockchain")
@@ -66,6 +66,10 @@ void init_dummy_driver(dummy_driver &dd, const std::string &rpc_listen,
   default_dummy->enable_dip_ir_with_ratio(1, 20);
   default_dummy->enable_call_tx_with_ratio(1, 1);
   dd.add_dummy(default_dummy);
+
+  // auto stress = std::make_shared<stress_dummy>(
+  //"stress", 20, 10000_nas, 100, 10, 10000, 1000, rpc_listen, rpc_port);
+  // dd.add_dummy(stress);
 }
 
 void init_and_start_nbre(const address_t &auth_admin_addr,
@@ -148,7 +152,7 @@ int main(int argc, char *argv[]) {
   uint16_t rpc_port = vm["rpc-port"].as<uint16_t>();
 
   init_dummy_driver(dd, rpc_listen, rpc_port);
-  if (vm.count("list_dummies")) {
+  if (vm.count("list-dummies")) {
     auto dummies = dd.get_all_dummy_names();
     std::for_each(dummies.begin(), dummies.end(), [](const std::string &s) {
       std::cout << "\t" << s << std::endl;
