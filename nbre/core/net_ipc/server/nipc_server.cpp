@@ -131,7 +131,8 @@ bool nipc_server::start() {
         auto duration = now - m_last_heart_beat_time;
         auto count =
             std::chrono::duration_cast<std::chrono::seconds>(duration).count();
-        if (count > 4) {
+        if (count > 60) {
+          LOG_FLUSH(INFO, "to kill client");
           m_client_watcher->kill_client();
         }
       });

@@ -33,9 +33,10 @@ ifeq ($(shell uname -s),Darwin)
 	LIBS+=-lv8_base -lv8_libsampler -lv8_external_snapshot
 	V8_BLOB_BIN_PATH=/usr/local/opt/v8/bin
 else
-	CC=gcc-4.8
-	CXX=g++-4.8
-	LD=g++-4.8
+# original gcc version is 4.8
+	CC=gcc
+	CXX=g++
+	LD=g++
 	DYLIB=.so
 	CFLAGS+=-I/usr/local/v8/6.2.414.40/include
 	CXXFLAGS+=-I/usr/local/v8/6.2.414.40/include

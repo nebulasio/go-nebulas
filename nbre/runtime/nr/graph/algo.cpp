@@ -689,11 +689,11 @@ std::pair<bool, transaction_graph::edge_descriptor_t>
 get_next_edge_with_the_same_source(
     const transaction_graph::edge_descriptor_t &e) {
   auto source = boost::source(e, m_graph);
-  auto check_id = boost::get(boost::edge_check_id_t(), m_graph, e);
+  size_t check_id = boost::get(boost::edge_check_id_t(), m_graph, e);
   transaction_graph::edge_descriptor_t ret;
   transaction_graph::oeiterator_t oei, oei_end;
   bool found = false;
-  if (check_id >= m_sorted_ves[source].size() - 1) {
+  if (check_id + 1 >= m_sorted_ves[source].size()) {
     return std::make_pair(found, ret);
   } else {
     return std::make_pair(true, m_sorted_ves[source][check_id + 1]);

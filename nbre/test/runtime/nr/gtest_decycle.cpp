@@ -302,21 +302,22 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case10) {
   char cc = 'z';
   int32_t n = 2;
   q.push('a');
-  int32_t c = 0;
+  char tail = 'a';
   while (!q.empty()) {
     auto &ele = q.front();
     q.pop();
-    if (ele < cc - n) {
+    char tmp_tail = tail;
+    if (tail + n < cc) {
       for (auto i = 1; i <= n; i++) {
         tg.add_edge(neb::to_address(std::string(1, ele)),
-                    neb::to_address(std::string(1, ele + i)), ele - 'a' + 1,
-                    ele - 'a' + 1);
-        c++;
-        q.push(ele + i);
+                    neb::to_address(std::string(1, tmp_tail + i)),
+                    ele - 'a' + 1, ele - 'a' + 1);
+        q.push(tmp_tail + i);
+        tail++;
       }
+      tmp_tail = tail;
     }
   }
-  LOG(INFO) << "edge num: " << c;
 
   auto &graph = tg.internal_graph();
   auto before_v_nums = boost::num_vertices(graph);
