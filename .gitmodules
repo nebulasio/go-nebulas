@@ -25,3 +25,6 @@
 [submodule "nbre/3rd_party/zstd"]
 	path = nbre/3rd_party/zstd
 	url = https://github.com/facebook/zstd.git
+[submodule "nbre/3rd_party/gperftools"]
+	path = nbre/3rd_party/gperftools
+	url = https://github.com/gperftools/gperftools.git

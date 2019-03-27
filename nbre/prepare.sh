@@ -273,4 +273,10 @@ if [ ! -d $CUR_DIR/lib/include/cryptopp/ ]; then
   make clean
 fi
 
+if [ ! -d $CUR_DIR/lib/include/gperftools/ ]; then
+  cd $CUR_DIR/3rd_party/gperftools
+  ./autogen.sh
+  build_with_configure gperftools
+fi
+
 cd $CUR_DIR
