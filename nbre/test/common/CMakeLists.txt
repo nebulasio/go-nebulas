@@ -15,7 +15,7 @@ target_link_libraries(test_timer_loop nbre_rt)
 target_link_libraries(test_math nbre_rt)
 target_link_libraries(test_conversion nbre_rt)
 
-gtest_discover_tests(test_common)
+#gtest_discover_tests(test_common)
 
 add_test(NAME test_common
   COMMAND test_common)
