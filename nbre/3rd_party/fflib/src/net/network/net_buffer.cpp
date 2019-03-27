@@ -23,6 +23,7 @@
  *************************************************/
 #include "ff/net/network/net_buffer.h"
 #include <sstream>
+
 namespace ff {
 namespace net {
 net_buffer::net_buffer(int iInitSize)
@@ -36,20 +37,21 @@ void net_buffer::write_buffer(const char *pBuf, size_t len) {
 }
 
 size_t net_buffer::read_buffer(char *pBuf, size_t len) {
-  if (filled() < len)
-    len = filled();
+  if (m_iToWriteBufIndex - m_iToReadBufIndex < len)
+    len = m_iToWriteBufIndex - m_iToReadBufIndex;
   if (len == 0)
     return 0;
-  memcpy(pBuf, &m_oBuffer[0], len);
+  memcpy(pBuf, &m_oBuffer[m_iToReadBufIndex], len);
   return len;
 }
 
 void net_buffer::erase_buffer(size_t len) {
   if (len == 0)
     return;
-  if (len >= m_iToWriteBufIndex)
-    len = m_iToWriteBufIndex;
-  m_oBuffer.erase(m_oBuffer.begin(), m_oBuffer.begin() + len);
+  if (len >= m_iToWriteBufIndex - m_iToReadBufIndex) {
+    len = m_iToWriteBufIndex - m_iToReadBufIndex;
+  }
+  // m_oBuffer.erase(m_oBuffer.begin(), m_oBuffer.begin() + len);
   m_iToReadBufIndex += len;
   if (m_iToReadBufIndex == m_iToWriteBufIndex) {
     m_iToReadBufIndex = 0;
@@ -59,7 +61,7 @@ void net_buffer::erase_buffer(size_t len) {
 
 boost::asio::const_buffer net_buffer::readable() const {
   return boost::asio::const_buffer(m_oBuffer.data() + m_iToReadBufIndex,
-                                   m_iToWriteBufIndex);
+                                   m_iToWriteBufIndex - m_iToReadBufIndex);
 }
 boost::asio::mutable_buffer net_buffer::writeable() {
   if (idle() < BUFFER_INC_STEP)
@@ -76,6 +78,19 @@ void net_buffer::append_buffer(boost::asio::const_buffer buf) {
 void net_buffer::reserve(size_t r) { m_oBuffer.reserve(r); }
 
 void net_buffer::reserve_idle(size_t r) {
+  if (m_iToReadBufIndex != 0 && idle() < r) {
+    if (m_iToReadBufIndex == m_iToWriteBufIndex) {
+      m_iToReadBufIndex = 0;
+      m_iToWriteBufIndex = 0;
+    } else {
+      std::cout << "s: " << size() << ", r:" << m_iToReadBufIndex
+                << "w:" << m_iToWriteBufIndex << std::endl;
+      std::memmove(m_oBuffer.data(), m_oBuffer.data() + m_iToReadBufIndex,
+                   m_iToWriteBufIndex - m_iToReadBufIndex);
+      m_iToReadBufIndex = 0;
+      m_iToWriteBufIndex = m_iToWriteBufIndex - m_iToReadBufIndex;
+    }
+  }
   if (idle() < r) {
     m_oBuffer.resize(filled() + r);
   }

@@ -3,6 +3,7 @@ project(fflib)
 
 add_definitions(-std=c++14)
 add_definitions(-O2)
+add_definitions(-DNDEBUG)
 #add_definitions(-g)
 #add_definitions(-DPROTO_BUF_SUPPORT)
 

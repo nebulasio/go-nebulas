@@ -24,6 +24,7 @@ THE SOFTWARE.
 #pragma once
 
 #include "ff/net/common/common.h"
+#include "ff/net/common/sync_queue.h"
 #include "ff/net/middleware/package.h"
 #include "ff/net/middleware/pkg_handler.h"
 #include "ff/net/network/asio_point.h"
@@ -93,12 +94,12 @@ protected:
 protected:
   friend class net_tcp_server;
 
-  typedef std::queue<package_ptr> pkgs_t;
+  typedef sync_queue<package_ptr> pkgs_t;
   boost::asio::ip::tcp::socket m_oSocket;
   net_buffer m_oRecvBuffer;
   net_buffer m_oSendBuffer;
   pkgs_t m_oToSendPkgs;
-  bool m_bIsSending;
+  std::atomic_bool m_bIsSending;
   std::map<uint32_t, tcp_pkg_handler *> m_oRPHCache;
 };
 

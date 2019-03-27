@@ -65,24 +65,31 @@ net_tcp_connection_base::~net_tcp_connection_base() {
 }
 
 void net_tcp_connection_base::send(const package_ptr &pkg) {
-  m_oIOService.post([this, pkg]() {
-    if (m_iPointState != state_valid) {
-      m_pEH->triger<tcp_pkg_send_failed>(this, pkg);
-      return;
-    }
-    m_oToSendPkgs.push(pkg);
-    if (!m_bIsSending) {
-      m_bIsSending = true;
-      start_send();
-    }
-  });
+  m_oToSendPkgs.push(pkg);
+  if (!m_bIsSending) {
+    m_oIOService.post([this]() { start_send(); });
+  }
+  // m_oIOService.post([this, pkg]() {
+  // if (m_iPointState != state_valid) {
+  // m_pEH->triger<tcp_pkg_send_failed>(this, pkg);
+  // return;
+  //}
+  // m_oToSendPkgs.push(pkg);
+  // if (!m_bIsSending) {
+  // m_bIsSending = true;
+  // start_send();
+  //}
+  //});
 }
 
 void net_tcp_connection_base::start_send() {
-  while (!m_oToSendPkgs.empty() && m_oSendBuffer.size() < 4096) {
-    package_ptr pPkg = m_oToSendPkgs.front();
-    m_oToSendPkgs.pop();
-    m_pPacker->pack(m_oSendBuffer, pPkg);
+  while (m_oSendBuffer.filled() < 64 * 1024) {
+    package_ptr pPkg;
+    if (m_oToSendPkgs.pop(pPkg)) {
+      m_pPacker->pack(m_oSendBuffer, pPkg);
+    } else {
+      break;
+    }
   }
   if (m_oSendBuffer.length() != 0) {
     m_pEH->triger<tcp_start_send_stream>(
@@ -94,13 +101,13 @@ void net_tcp_connection_base::start_send() {
         [this](boost::system::error_code ec, std::size_t bt) {
           handle_pkg_sent(ec, bt);
         });
-  } else {
-    m_bIsSending = false;
+    m_bIsSending = true;
   }
 }
 
 void net_tcp_connection_base::handle_pkg_sent(boost::system::error_code ec,
                                               std::size_t bytes_transferred) {
+  m_bIsSending = false;
   if (!ec) {
     m_pEH->triger<tcp_send_stream_succ>(this, bytes_transferred);
     m_oSendBuffer.erase_buffer(bytes_transferred);
@@ -117,6 +124,7 @@ void net_tcp_connection_base::handle_pkg_sent(boost::system::error_code ec,
           [this](boost::system::error_code ec, std::size_t bt) {
             handle_pkg_sent(ec, bt);
           });
+      m_bIsSending = true;
     } else {
       start_send();
     }
