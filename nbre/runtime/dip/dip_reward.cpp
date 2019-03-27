@@ -245,7 +245,7 @@ dip_reward::account_to_contract_votes(
 
   for (auto &info : nr_infos) {
     address_t addr = info->m_address;
-    floatxx_t score = info->m_nr_score * info->m_nr_score;
+    floatxx_t score = info->m_nr_score;
 
     auto it_acc = cnt.find(addr);
     if (it_acc == cnt.end()) {
@@ -306,29 +306,26 @@ floatxx_t dip_reward::participate_lambda(
 
   floatxx_t gamma_p(0);
   for (auto &nr : participate_nr) {
-    gamma_p += nr * nr;
-  }
-  floatxx_t variance(0);
-  size_t participate_size = participate_nr.size();
-  for (auto &nr : participate_nr) {
-    floatxx_t tmp = nr * nr - gamma_p / participate_size;
-    variance += tmp * tmp;
+    gamma_p += nr;
   }
 
   floatxx_t gamma_s(0);
   for (auto &info : nr_infos) {
-    gamma_s += info->m_nr_score * info->m_nr_score;
+    gamma_s += info->m_nr_score;
   }
 
-  if (variance > 0) {
-    return neb::math::min(
-        gamma_p *
-            neb::math::min(beta * gamma_p * gamma_p / variance, floatxx_t(1)) /
-            (alpha * gamma_s),
-        floatxx_t(1));
+  floatxx_t zero = softfloat_cast<uint32_t, typename floatxx_t::value_type>(0);
+  floatxx_t one = softfloat_cast<uint32_t, typename floatxx_t::value_type>(1);
+
+  if (gamma_s == zero) {
+    return zero;
+  }
+  auto x = gamma_p / gamma_s;
+  if (x == beta) {
+    return one;
   }
 
-  return neb::math::min(gamma_p / (alpha * gamma_s), floatxx_t(1));
+  return math::min(one, alpha / (beta - x));
 }
 
 void dip_reward::ignore_account_transfer_contract(
