@@ -32,24 +32,17 @@ fi
 
 PARALLEL=$LOGICAL_CPU
 
+mkdir -p $CUR_DIR/lib
 git submodule update --init
 
-check_script_run() {
-  if [ $? -ne 0 ]; then
-    echo "$1 install failed. Please check environment!"
-    exit 1
+install_system_tools() {
+  if [ "$OS" = "Darwin" ]; then
+    if ! hash brew 2>/dev/null; then
+      echo "install brew for macOS"
+      /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    fi
   fi
-}
 
-check_install() {
-  if [ "$OS" = "Linux" ]; then
-    echo `ldconfig -p | grep -c $1`
-    return
-  fi
-  echo 0
-}
-
-check_install_unzip() {
   if ! hash unzip 2>/dev/null; then
     case $OS in
       'Linux')
@@ -62,9 +55,7 @@ check_install_unzip() {
     esac
   fi
   check_script_run unzip
-}
 
-check_install_autoconf() {
   if ! hash autoreconf 2>/dev/null; then
     case $OS in
       'Linux')
@@ -77,9 +68,7 @@ check_install_autoconf() {
     esac
   fi
   check_script_run autoconf
-}
 
-check_install_libtool() {
   if ! hash libtool 2>/dev/null; then
     case $OS in
       'Linux')
@@ -92,7 +81,69 @@ check_install_libtool() {
     esac
   fi
   check_script_run libtool
+}
 
+check_script_run() {
+  if [ $? -ne 0 ]; then
+    echo "$1 install failed. Please check environment!"
+    exit 1
+  fi
+}
+
+check_install() {
+  if [ "$OS" = "Linux" ]; then
+    result=`ldconfig -p | grep -c $1`
+  else
+    result=`brew list | grep -c $1`
+  fi
+  return `test $result -ne 0`
+}
+
+build_with_cmake(){
+  check_install $1
+  if [ $? -eq 0 ]; then
+    # has been installed in system, skip make and install
+    return
+  fi
+
+  cd $CUR_DIR/3rd_party/$1
+  build="build.tmp"
+  if [ -d $build ]; then
+    rm -rf $build
+  fi
+  mkdir $build
+  cd $build
+
+  params=("$@")
+  flags=${params[@]:1}
+  flagsStr=`echo $flags`
+  cmake -DCMAKE_MODULE_PATH=$CUR_DIR/lib/lib/cmake -DCMAKE_LIBRARY_PATH=$CUR_DIR/lib/lib -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib/ -DRelease=1 ../ $flagsStr
+  make -j$PARALLEL && make install && make clean
+  cd ../ && rm -rf $build
+}
+
+build_with_configure(){
+  check_install $1
+  if [ $? -eq 0 ]; then
+    # has been installed in system, skip make and install
+    return
+  fi
+
+  cd $CUR_DIR/3rd_party/$1
+  ./configure --prefix=$CUR_DIR/lib/
+  make -j$PARALLEL && make install && make clean
+}
+
+build_with_make(){
+  check_install $1
+  if [ $? -eq 0 ]; then
+    # has been installed in system, skip make and install
+    return
+  fi
+
+  cd $CUR_DIR/3rd_party/$1
+  make -j$PARALLEL && make install PREFIX=$CUR_DIR/lib/
+  make clean
 }
 
 check_install_cmake() {
@@ -172,35 +223,6 @@ check_install_boost() {
   check_script_run boost
 }
 
-build_with_cmake(){
-  cd $CUR_DIR/3rd_party/$1
-  build="build.tmp"
-  if [ -d $build ]; then
-    rm -rf $build
-  fi
-  mkdir $build
-  cd $build
-
-  params=("$@")
-  flags=${params[@]:1}
-  flagsStr=`echo $flags`
-  cmake -DCMAKE_MODULE_PATH=$CUR_DIR/lib/lib/cmake -DCMAKE_LIBRARY_PATH=$CUR_DIR/lib/lib -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib/ -DRelease=1 ../ $flagsStr
-  make -j$PARALLEL && make install && make clean
-  cd ../ && rm -rf $build
-}
-
-build_with_configure(){
-  cd $CUR_DIR/3rd_party/$1
-  ./configure --prefix=$CUR_DIR/lib/
-  make -j$PARALLEL && make install && make clean
-}
-
-build_with_make(){
-  cd $CUR_DIR/3rd_party/$1
-  make -j$PARALLEL && make install PREFIX=$CUR_DIR/lib/
-  make clean
-}
-
 check_install_gflags() {
   if [ ! -d $CUR_DIR/3rd_party/gflags ]; then
     cd $CUR_DIR/3rd_party
@@ -258,9 +280,7 @@ check_install_zlib() {
 
 check_install_zstd() {
   if [ ! -f $CUR_DIR/lib/include/zstd.h ]; then
-    if [ `check_install zstd` -eq 0 ]; then
-      build_with_make zstd
-    fi
+    build_with_make zstd
   fi
   check_script_run zstd
 }
@@ -270,7 +290,7 @@ check_install_bzlib() {
     cd $CUR_DIR/3rd_party/bzip2-1.0.6
     cp -f ../Makefile-libbz2_$DYLIB ./
     make -j$PARALLEL -f Makefile-libbz2_$DYLIB && make -f Makefile-libbz2_$DYLIB install PREFIX=$CUR_DIR/lib/ && make -f Makefile-libbz2_$DYLIB clean
-    git checkout .
+    rm -rf Makefile-libbz2_$DYLIB
   fi
   check_script_run bzlib
 }
@@ -352,9 +372,7 @@ check_install_gperftools() {
   check_script_run gperftools
 }
 
-check_install_unzip
-check_install_autoconf
-check_install_libtool
+install_system_tools
 check_install_cmake
 check_install_llvm
 check_install_boost
@@ -362,7 +380,9 @@ check_install_gflags
 check_install_glog
 check_install_gtest
 check_install_ff
-# check_install_rocksdb
+check_install_bzlib
+check_install_zstd
+check_install_rocksdb
 check_install_protoc
 check_install_softfloat
 check_install_sha
