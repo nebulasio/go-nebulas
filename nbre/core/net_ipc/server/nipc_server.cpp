@@ -73,8 +73,7 @@ bool nipc_server::start() {
   m_is_started = false;
   m_mutex.unlock();
 
-  std::atomic_bool got_exception_when_start_ipc;
-
+  m_got_exception_when_start_nbre = false;
   m_thread = std::make_unique<std::thread>([&, this] {
     try {
       m_server = std::make_unique<::ff::net::net_nervure>();
@@ -146,21 +145,21 @@ bool nipc_server::start() {
         }
       }
     } catch (const std::exception &e) {
-      got_exception_when_start_ipc = true;
+      m_got_exception_when_start_nbre = true;
       LOG(ERROR) << "get exception when start ipc, " << typeid(e).name() << ", "
                  << e.what();
       m_start_complete_cond_var.notify_one();
     } catch (...) {
-      got_exception_when_start_ipc = true;
+      m_got_exception_when_start_nbre = true;
       LOG(ERROR) << "get unknown exception when start ipc";
       m_start_complete_cond_var.notify_one();
     }
   });
   std::unique_lock<std::mutex> _l(m_mutex);
-  if (!m_is_started && !got_exception_when_start_ipc) {
+  if (!m_is_started && !m_got_exception_when_start_nbre) {
     m_start_complete_cond_var.wait(_l);
   }
-  if (got_exception_when_start_ipc)
+  if (m_got_exception_when_start_nbre)
     return false;
 
   return true;
