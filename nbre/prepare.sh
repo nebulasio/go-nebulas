@@ -147,6 +147,11 @@ build_with_make(){
 }
 
 check_install_cmake() {
+  #check if cmake has been installed
+  if hash cmake 2>/dev/null; then
+    return
+  fi
+
   if [ ! -d $CUR_DIR/3rd_party/cmake-3.12.2 ]; then
     cd $CUR_DIR/3rd_party/
     tar -xf cmake-3.12.2.tar.gz
@@ -303,6 +308,11 @@ check_install_lz4() {
 }
 
 check_install_rocksdb() {
+  #check if rocksdb has been installed in system
+  check_install rocksdb
+  if [ $? -eq 0 ]; then
+    return
+  fi
 
   check_install_snappy
   check_install_zlib
