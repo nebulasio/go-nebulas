@@ -32,105 +32,145 @@ fi
 
 PARALLEL=$LOGICAL_CPU
 
-if [ ! -d $CUR_DIR/3rd_party/cmake-3.12.2 ]; then
-  cd $CUR_DIR/3rd_party/
-  tar -xf cmake-3.12.2.tar.gz
-fi
-
-if [ ! -f $CUR_DIR/lib/bin/cmake ]; then
-  cd $CUR_DIR/3rd_party/cmake-3.12.2/
-  ./bootstrap --prefix=$CUR_DIR/lib --parallel=$PARALLEL && make -j$PARALLEL && make install
-fi
-export PATH=$CUR_DIR/lib/bin:$PATH
-
 git submodule update --init
 
-if ! hash autoreconf 2>/dev/null; then
-  case $OS in
-    'Linux')
-      sudo apt-get install autoconf
-      ;;
-    'Darwin')
-      brew install autoconf
-      ;;
-    *) ;;
-  esac
-fi
-
-if ! hash libtool 2>/dev/null; then
-  case $OS in
-    'Linux')
-      sudo apt-get install libtool-bin
-      ;;
-    'Darwin')
-      brew install libtool
-      ;;
-    *) ;;
-  esac
-fi
-
-cd $CUR_DIR/3rd_party
-LLVM_VERSION=6.0.1
-unzip_llvm_tar(){
-  if [ ! -d $1-$LLVM_VERSION.src ]; then
-    tar -xf $1-$LLVM_VERSION.src.tar.xz
+check_script_run() {
+  if [ $? -ne 0 ]; then
+    echo "$1 install failed. Please check environment!"
+    exit 1
   fi
 }
-unzip_llvm_tar llvm
-unzip_llvm_tar cfe
-unzip_llvm_tar clang-tools-extra
-unzip_llvm_tar compiler-rt
-unzip_llvm_tar libcxx
-unzip_llvm_tar libcxxabi
-unzip_llvm_tar libunwind
-unzip_llvm_tar lld
 
-if [ ! -d $CUR_DIR/lib_llvm/include/llvm ]; then
-  ln -s $CUR_DIR/3rd_party/cfe-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/tools/clang
-  ln -s $CUR_DIR/3rd_party/lld-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/tools/lld
-  ln -s $CUR_DIR/3rd_party/clang-tools-extra-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/tools/clang/tools/extra
-  ln -s $CUR_DIR/3rd_party/compiler-rt-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/projects/compiler-rt
-  ln -s $CUR_DIR/3rd_party/libcxx-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/projects/libcxx
-  ln -s $CUR_DIR/3rd_party/libcxxabi-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/projects/libcxxabi
+check_install() {
+  if [ "$OS" = "Linux" ]; then
+    echo `ldconfig -p | grep -c $1`
+    return
+  fi
+  echo 0
+}
 
-  cd $CUR_DIR/3rd_party
-  if [ ! -f $CUR_DIR/lib_llvm/bin/clang ]; then
-    mkdir llvm-build
-    cd llvm-build
-    cmake -DCMAKE_CXX_COMPILER=g++ -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib_llvm/ ../llvm-$LLVM_VERSION.src
-    make -j$PARALLEL && make install
-    cd ..
+check_install_unzip() {
+  if ! hash unzip 2>/dev/null; then
+    case $OS in
+      'Linux')
+        sudo apt-get install -y unzip
+        ;;
+      'Darwin')
+        brew install unzip
+        ;;
+      *) ;;
+    esac
+  fi
+  check_script_run unzip
+}
+
+check_install_autoconf() {
+  if ! hash autoreconf 2>/dev/null; then
+    case $OS in
+      'Linux')
+        sudo apt-get install -y autoconf
+        ;;
+      'Darwin')
+        brew install autoconf
+        ;;
+      *) ;;
+    esac
+  fi
+  check_script_run autoconf
+}
+
+check_install_libtool() {
+  if ! hash libtool 2>/dev/null; then
+    case $OS in
+      'Linux')
+        sudo apt-get install -y libtool-bin
+        ;;
+      'Darwin')
+        brew install libtool
+        ;;
+      *) ;;
+    esac
+  fi
+  check_script_run libtool
+
+}
+
+check_install_cmake() {
+  if [ ! -d $CUR_DIR/3rd_party/cmake-3.12.2 ]; then
+    cd $CUR_DIR/3rd_party/
+    tar -xf cmake-3.12.2.tar.gz
   fi
 
-fi
+  if [ ! -f $CUR_DIR/lib/bin/cmake ]; then
+    cd $CUR_DIR/3rd_party/cmake-3.12.2/
+    ./bootstrap --prefix=$CUR_DIR/lib --parallel=$PARALLEL && make -j$PARALLEL && make install
+  fi
 
-export PATH=$CUR_DIR/lib_llvm/bin:$PATH
-export CXX=$CUR_DIR/lib_llvm/bin/clang++
-export CC=$CUR_DIR/lib_llvm/bin/clang
+  check_script_run cmake
+  export PATH=$CUR_DIR/lib/bin:$PATH
+}
 
-cd $CUR_DIR/3rd_party
-if [ ! -d "boost_1_67_0"  ]; then
-  tar -zxvf boost_1_67_0.tar.gz
-fi
-if [ ! -d $CUR_DIR/lib/include/boost ]; then
-  cd boost_1_67_0
-  ./bootstrap.sh --with-toolset=clang --prefix=$CUR_DIR/lib/
-  ./b2 clean
-  ./b2 toolset=clang --with-date_time --with-graph --with-program_options --with-filesystem --with-system --with-thread -j$PARALLEL
-  ./b2 install toolset=clang --with-date_time --with-graph --with-program_options --with-filesystem --with-system --with-thread --prefix=$CUR_DIR/lib/
-fi
+check_install_llvm() {
+  cd $CUR_DIR/3rd_party
+  LLVM_VERSION=6.0.1
+  unzip_llvm_tar(){
+    if [ ! -d $1-$LLVM_VERSION.src ]; then
+      tar -xf $1-$LLVM_VERSION.src.tar.xz
+    fi
+  }
+  unzip_llvm_tar llvm
+  unzip_llvm_tar cfe
+  unzip_llvm_tar clang-tools-extra
+  unzip_llvm_tar compiler-rt
+  unzip_llvm_tar libcxx
+  unzip_llvm_tar libcxxabi
+  unzip_llvm_tar libunwind
+  unzip_llvm_tar lld
 
-#if [ "$OS" = "Linux" ]; then
-  #export CXX=$CUR_DIR/bin/nclang
-#fi
+  if [ ! -d $CUR_DIR/lib_llvm/include/llvm ]; then
+    ln -s $CUR_DIR/3rd_party/cfe-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/tools/clang
+    ln -s $CUR_DIR/3rd_party/lld-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/tools/lld
+    ln -s $CUR_DIR/3rd_party/clang-tools-extra-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/tools/clang/tools/extra
+    ln -s $CUR_DIR/3rd_party/compiler-rt-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/projects/compiler-rt
+    ln -s $CUR_DIR/3rd_party/libcxx-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/projects/libcxx
+    ln -s $CUR_DIR/3rd_party/libcxxabi-$LLVM_VERSION.src $CUR_DIR/3rd_party/llvm-$LLVM_VERSION.src/projects/libcxxabi
 
-#if [ -f $CUR_DIR/lib/include/boost/property_tree/detail/ptree_implementation.hpp ]; then
-  #if [ ! -f $CUR_DIR/lib/include/boost/property_tree/detail/boost_ptree_rtti.patch ]; then
-    #cp $CUR_DIR/3rd_party/boost_ptree_rtti.patch $CUR_DIR/lib/include/boost/property_tree/detail/.
-    #cd $CUR_DIR/lib/include/boost/property_tree/detail/
-    #patch -t -p1 < boost_ptree_rtti.patch
-  #fi
-#fi
+    cd $CUR_DIR/3rd_party
+    if [ ! -f $CUR_DIR/lib_llvm/bin/clang ]; then
+      mkdir llvm-build
+      cd llvm-build
+      cmake -DCMAKE_CXX_COMPILER=g++ -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib_llvm/ ../llvm-$LLVM_VERSION.src
+      make -j$PARALLEL && make install
+      cd ..
+    fi
+
+  fi
+
+  if [ ! -e $CUR_DIR/lib/lib/libc++.$DYLIB ]; then
+    cp -Rf $CUR_DIR/lib_llvm/lib/libc++* $CUR_DIR/lib/lib/
+  fi
+
+  check_script_run llvm
+
+  export PATH=$CUR_DIR/lib_llvm/bin:$PATH
+  export CXX=$CUR_DIR/lib_llvm/bin/clang++
+  export CC=$CUR_DIR/lib_llvm/bin/clang
+}
+
+check_install_boost() {
+  cd $CUR_DIR/3rd_party
+  if [ ! -d "boost_1_67_0"  ]; then
+    tar -zxvf boost_1_67_0.tar.gz
+  fi
+  if [ ! -d $CUR_DIR/lib/include/boost ]; then
+    cd boost_1_67_0
+    ./bootstrap.sh --with-toolset=clang --prefix=$CUR_DIR/lib/
+    ./b2 clean
+    ./b2 toolset=clang --with-date_time --with-graph --with-program_options --with-filesystem --with-system --with-thread -j$PARALLEL
+    ./b2 install toolset=clang --with-date_time --with-graph --with-program_options --with-filesystem --with-system --with-thread --prefix=$CUR_DIR/lib/
+  fi
+  check_script_run boost
+}
 
 build_with_cmake(){
   cd $CUR_DIR/3rd_party/$1
@@ -149,14 +189,6 @@ build_with_cmake(){
   cd ../ && rm -rf $build
 }
 
-check_install() {
-  if [ "$OS" = "Linux" ]; then
-    echo `ldconfig -p | grep -c $1`
-    return
-  fi
-  echo 0
-}
-
 build_with_configure(){
   cd $CUR_DIR/3rd_party/$1
   ./configure --prefix=$CUR_DIR/lib/
@@ -169,114 +201,172 @@ build_with_make(){
   make clean
 }
 
-
-if [ ! -d $CUR_DIR/3rd_party/gflags ]; then
-  cd $CUR_DIR/3rd_party
-  git clone -b v2.2.1 https://github.com/gflags/gflags.git
-fi
-if [ ! -d $CUR_DIR/lib/include/gflags/ ]; then
-  #cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-gflags $CUR_DIR/3rd_party/gflags/CMakeLists.txt
-  build_with_cmake gflags -DGFLAGS_NAMESPACE=google -DCMAKE_CXX_FLAGS=-fPIC -DBUILD_SHARED_LIBS=true
-fi
-
-if [ ! -d $CUR_DIR/lib/include/glog/ ]; then
-  #cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-glog $CUR_DIR/3rd_party/glog/CMakeLists.txt
-  build_with_cmake glog -DGFLAGS_NAMESPACE=google -DCMAKE_CXX_FLAGS=-fPIC -DBUILD_SHARED_LIBS=true
-fi
-if [ ! -d $CUR_DIR/lib/include/gtest/ ]; then
-  #cp $CUR_DIR/3rd_party/build_option_bak/CMakeList.txt-googletest $CUR_DIR/3rd_party/googletest/CMakeLists.txt
-  build_with_cmake googletest -DGFLAGS_NAMESPACE=google -DCMAKE_CXX_FLAGS=-fPIC -DBUILD_SHARED_LIBS=true
-fi
-
-if [ ! -d $CUR_DIR/lib/include/ff/ ]; then
-  build_with_cmake fflib
-fi
-
-if [ ! -f $CUR_DIR/lib/include/snappy.h ]; then
-  #cd $CUR_DIR/3rd_party/snappy && cp ../snappy.patch ./ && git apply snappy.patch
-  # cd $CUR_DIR/3rd_party/snappy
-  # turn off unittest
-  build_with_cmake snappy -DBUILD_SHARED_LIBS=true -DSNAPPY_BUILD_TESTS=false
-fi
-
-if [ ! -f $CUR_DIR/lib/include/zlib.h ]; then
-  build_with_configure zlib
-fi
-
-if [ ! -f $CUR_DIR/lib/include/zstd.h ]; then
-  if [ `check_install zstd` -eq 0 ]; then
-    build_with_make zstd
+check_install_gflags() {
+  if [ ! -d $CUR_DIR/3rd_party/gflags ]; then
+    cd $CUR_DIR/3rd_party
+    git clone -b v2.2.1 https://github.com/gflags/gflags.git
   fi
-fi
 
-if [ ! -f $CUR_DIR/lib/include/bzlib.h ]; then
-  cd $CUR_DIR/3rd_party/bzip2-1.0.6
-  cp -f ../Makefile-libbz2_$DYLIB ./
-  make -j$PARALLEL -f Makefile-libbz2_$DYLIB && make -f Makefile-libbz2_$DYLIB install PREFIX=$CUR_DIR/lib/ && make -f Makefile-libbz2_$DYLIB clean
-#  rm -rf Makefile-libbz2_$DYLIB
-#  git checkout .
-fi
+  if [ ! -d $CUR_DIR/lib/include/gflags/ ]; then
+    #cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-gflags $CUR_DIR/3rd_party/gflags/CMakeLists.txt
+    build_with_cmake gflags -DGFLAGS_NAMESPACE=google -DCMAKE_CXX_FLAGS=-fPIC -DBUILD_SHARED_LIBS=true
+  fi
+  check_script_run gflags
+}
 
-if [ ! -f $CUR_DIR/lib/include/lz4.h ]; then
-  build_with_make lz4
-fi
+check_install_glog() {
+  if [ ! -d $CUR_DIR/lib/include/glog/ ]; then
+    #cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-glog $CUR_DIR/3rd_party/glog/CMakeLists.txt
+    build_with_cmake glog -DGFLAGS_NAMESPACE=google -DCMAKE_CXX_FLAGS=-fPIC -DBUILD_SHARED_LIBS=true
+  fi
+  check_script_run glog
+}
 
-if [ ! -d $CUR_DIR/lib/include/rocksdb ]; then
-  # cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-rocksdb $CUR_DIR/3rd_party/rocksdb/CMakeLists.txt
-  # cp $CUR_DIR/3rd_party/build_option_bak/Makefile-rocksdb $CUR_DIR/3rd_party/rocksdb/Makefile
+check_install_gtest() {
+  if [ ! -d $CUR_DIR/lib/include/gtest/ ]; then
+    #cp $CUR_DIR/3rd_party/build_option_bak/CMakeList.txt-googletest $CUR_DIR/3rd_party/googletest/CMakeLists.txt
+    build_with_cmake googletest -DGFLAGS_NAMESPACE=google -DCMAKE_CXX_FLAGS=-fPIC -DBUILD_SHARED_LIBS=true
+  fi
+  check_script_run gtest
+}
 
-  cd $CUR_DIR/3rd_party/rocksdb
-  export CXX=$CUR_DIR/lib_llvm/bin/clang++
-  ROCKSDB_DISABLE_GFLAGS=On LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
-  #ROCKSDB_DISABLE_GFLAGS=On LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include CXXFLAGS=-stdlib=libc++ LDFLAGS=-lc++ make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
-  make clean
-fi
+check_install_ff() {
+  if [ ! -d $CUR_DIR/lib/include/ff/ ]; then
+    build_with_cmake fflib
+  fi
+  check_script_run ff
+}
 
-#if [ "$OS" = "Linux" ]; then
-  #export CXX=$CUR_DIR/bin/nclang
-#fi
+check_install_snappy() {
+  if [ ! -f $CUR_DIR/lib/include/snappy.h ]; then
+    #cd $CUR_DIR/3rd_party/snappy && cp ../snappy.patch ./ && git apply snappy.patch
+    # cd $CUR_DIR/3rd_party/snappy
+    # turn off unittest
+    build_with_cmake snappy -DBUILD_SHARED_LIBS=true -DSNAPPY_BUILD_TESTS=false
+  fi
+  check_script_run snappy
+}
 
-#if [ ! -d $CUR_DIR/lib/include/grpc ]; then
-  #cd $CUR_DIR/3rd_party/grpc
-  #git submodule update --init
-  #make -j$PARALLEL && make install prefix=$CUR_DIR/lib/
-#fi
+check_install_zlib() {
+  if [ ! -f $CUR_DIR/lib/include/zlib.h ]; then
+    build_with_configure zlib
+    cd $CUR_DIR/3rd_party/zlib
+    git checkout .
+  fi
+  check_script_run zlib
+}
 
-if [ ! -f $CUR_DIR/lib/bin/protoc ]; then
-  cd $CUR_DIR/3rd_party/protobuf
-  ./autogen.sh
-  ./configure --prefix=$CUR_DIR/lib/
-  make -j$PARALLEL && make install && make clean
-fi
+check_install_zstd() {
+  if [ ! -f $CUR_DIR/lib/include/zstd.h ]; then
+    if [ `check_install zstd` -eq 0 ]; then
+      build_with_make zstd
+    fi
+  fi
+  check_script_run zstd
+}
 
-if [ ! -e $CUR_DIR/lib/lib/libc++.$DYLIB ]; then
-  cp -Rf $CUR_DIR/lib_llvm/lib/libc++* $CUR_DIR/lib/lib/
-fi
+check_install_bzlib() {
+  if [ ! -f $CUR_DIR/lib/include/bzlib.h ]; then
+    cd $CUR_DIR/3rd_party/bzip2-1.0.6
+    cp -f ../Makefile-libbz2_$DYLIB ./
+    make -j$PARALLEL -f Makefile-libbz2_$DYLIB && make -f Makefile-libbz2_$DYLIB install PREFIX=$CUR_DIR/lib/ && make -f Makefile-libbz2_$DYLIB clean
+    git checkout .
+  fi
+  check_script_run bzlib
+}
 
-if [ ! -f $CUR_DIR/lib/include/softfloat.h ]; then
-  cd $CUR_DIR/3rd_party/SoftFloat-3e/build/Linux-x86_64-GCC/
-  make -j$PARALLEL
-  cp libsoftfloat.so $CUR_DIR/lib/lib/libsoftfloat.$DYLIB
-  cp ../../source/include/softfloat.h $CUR_DIR/lib/include/
-  cp ../../source/include/softfloat_types.h $CUR_DIR/lib/include/
-  make clean
-fi
+check_install_lz4() {
+  if [ ! -f $CUR_DIR/lib/include/lz4.h ]; then
+    build_with_make lz4
+  fi
+  check_script_run lz4
+}
 
-if [ ! -f $CUR_DIR/3rd_party/cryptopp/sha3.h ]; then
-  cd $CUR_DIR/3rd_party/cryptopp
-  unzip cryptopp810.zip
-fi
-if [ ! -d $CUR_DIR/lib/include/cryptopp/ ]; then
-  cd $CUR_DIR/3rd_party/cryptopp
-  export CXX=$CUR_DIR/lib_llvm/bin/clang++
-  make dynamic -j$PARALLEL && make install PREFIX=$CUR_DIR/lib/
-  make clean
-fi
+check_install_rocksdb() {
 
-if [ ! -d $CUR_DIR/lib/include/gperftools/ ]; then
-  cd $CUR_DIR/3rd_party/gperftools
-  ./autogen.sh
-  build_with_configure gperftools
-fi
+  check_install_snappy
+  check_install_zlib
+  check_install_zstd
+  check_install_bzlib
+  check_install_lz4
+
+  if [ ! -d $CUR_DIR/lib/include/rocksdb ]; then
+    # cp $CUR_DIR/3rd_party/build_option_bak/CMakeLists.txt-rocksdb $CUR_DIR/3rd_party/rocksdb/CMakeLists.txt
+    # cp $CUR_DIR/3rd_party/build_option_bak/Makefile-rocksdb $CUR_DIR/3rd_party/rocksdb/Makefile
+
+    cd $CUR_DIR/3rd_party/rocksdb
+    #export CXX=$CUR_DIR/lib_llvm/bin/clang++
+    ROCKSDB_DISABLE_GFLAGS=On LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
+    #ROCKSDB_DISABLE_GFLAGS=On LIBRARY_PATH=$CUR_DIR/lib/lib CPATH=$CUR_DIR/lib/include CXXFLAGS=-stdlib=libc++ LDFLAGS=-lc++ make install-shared INSTALL_PATH=$CUR_DIR/lib -j$PARALLEL
+    make clean
+  fi
+  check_script_run rocksdb
+}
+
+check_install_protoc() {
+  if [ ! -f $CUR_DIR/lib/bin/protoc ]; then
+    cd $CUR_DIR/3rd_party/protobuf
+    ./autogen.sh
+    ./configure --prefix=$CUR_DIR/lib/
+    make -j$PARALLEL && make install && make clean
+  fi
+  check_script_run protoc
+}
+
+check_install_softfloat() {
+  if [ ! -f $CUR_DIR/lib/include/softfloat.h ]; then
+    cd $CUR_DIR/3rd_party/SoftFloat-3e/build/Linux-x86_64-GCC/
+    make -j$PARALLEL
+    cp libsoftfloat.so $CUR_DIR/lib/lib/libsoftfloat.$DYLIB
+    cp ../../source/include/softfloat.h $CUR_DIR/lib/include/
+    cp ../../source/include/softfloat_types.h $CUR_DIR/lib/include/
+    make clean
+  fi
+  check_script_run softfloat
+}
+
+check_install_sha() {
+  if [ ! -f $CUR_DIR/3rd_party/cryptopp/sha3.h ]; then
+    cd $CUR_DIR/3rd_party/cryptopp
+    unzip cryptopp810.zip
+  fi
+  check_script_run sha
+}
+
+check_install_crypto() {
+  if [ ! -d $CUR_DIR/lib/include/cryptopp/ ]; then
+    cd $CUR_DIR/3rd_party/cryptopp
+    export CXX=$CUR_DIR/lib_llvm/bin/clang++
+    make dynamic -j$PARALLEL && make install PREFIX=$CUR_DIR/lib/
+    make clean
+  fi
+  check_script_run cryptopp
+}
+
+check_install_gperftools() {
+  if [ ! -d $CUR_DIR/lib/include/gperftools/ ]; then
+    cd $CUR_DIR/3rd_party/gperftools
+    ./autogen.sh
+    build_with_configure gperftools
+  fi
+  check_script_run gperftools
+}
+
+check_install_unzip
+check_install_autoconf
+check_install_libtool
+check_install_cmake
+check_install_llvm
+check_install_boost
+check_install_gflags
+check_install_glog
+check_install_gtest
+check_install_ff
+# check_install_rocksdb
+check_install_protoc
+check_install_softfloat
+check_install_sha
+check_install_crypto
+check_install_gperftools
 
 cd $CUR_DIR

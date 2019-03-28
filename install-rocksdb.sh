@@ -48,7 +48,7 @@ prepare() {
     case $OS in
       'Linux')
         sudo apt-get update
-        sudo apt install git
+        sudo apt install -y git
         ;;
       'Darwin')
         brew install git
@@ -70,11 +70,11 @@ check_install() {
 install_rocksdb() {
   case $OS in
     'Linux')
-      sudo apt-get install libsnappy-dev
-      sudo apt-get install zlib1g-dev
-      sudo apt-get install libbz2-dev
-      sudo apt-get install liblz4-dev
-      sudo apt-get install libzstd-dev
+      sudo apt-get install -y libsnappy-dev
+      sudo apt-get install -y zlib1g-dev
+      sudo apt-get install -y libbz2-dev
+      sudo apt-get install -y liblz4-dev
+      sudo apt-get install -y libzstd-dev
       
       if [ ! -d $DEST ]; then
         git clone https://github.com/facebook/rocksdb.git $DEST
