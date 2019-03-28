@@ -73,7 +73,7 @@ bool nipc_server::start() {
   m_is_started = false;
   m_mutex.unlock();
 
-  std::atomic_bool got_exception_when_start_ipc;
+  std::atomic_bool got_exception_when_start_ipc(false);
 
   m_thread = std::make_unique<std::thread>([&, this] {
     try {
