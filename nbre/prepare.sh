@@ -203,6 +203,7 @@ check_install_llvm() {
   fi
 
   if [ ! -e $CUR_DIR/lib/lib/libc++.$DYLIB ]; then
+    mkdir -p $CUR_DIR/lib/lib
     cp -Rf $CUR_DIR/lib_llvm/lib/libc++* $CUR_DIR/lib/lib/
   fi
 
@@ -316,8 +317,8 @@ check_install_rocksdb() {
 
   check_install_snappy
   check_install_zlib
-  check_install_zstd
-  check_install_bzlib
+  # check_install_zstd
+  # check_install_bzlib
   check_install_lz4
 
   if [ ! -d $CUR_DIR/lib/include/rocksdb ]; then
