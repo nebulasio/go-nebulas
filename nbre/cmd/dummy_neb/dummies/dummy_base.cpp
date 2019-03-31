@@ -19,6 +19,7 @@
 //
 #include "cmd/dummy_neb/dummies/dummy_base.h"
 #include "common/configuration.h"
+#include "fs/blockchain.h"
 #include "fs/util.h"
 #include "util/command.h"
 
@@ -40,6 +41,14 @@ const std::string &dummy_base::db_path() const {
 void dummy_base::init_from_db() {
   bc_storage_session::instance().init(db_path(),
                                       neb::fs::storage_open_for_readwrite);
+  try {
+    auto block = neb::fs::blockchain::load_LIB_block();
+    m_current_height = block->height();
+    m_current_height++;
+  } catch (const std::exception &e) {
+    LOG(INFO) << "init from empty db";
+  }
+  LOG(INFO) << "init block lib height is " << m_current_height;
 }
 
 void dummy_base::clean_db() {
