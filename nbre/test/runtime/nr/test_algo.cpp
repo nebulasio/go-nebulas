@@ -41,14 +41,15 @@ int main(int argc, char *argv[]) {
   }
 
   auto start_ts = neb::util::now();
+  auto &graph = tg.internal_graph();
   if (opt == 0) {
-    auto &graph = tg.internal_graph();
     LOG(INFO) << "start to remove cycle";
     neb::rt::graph_algo::remove_cycles_based_on_time_sequence(graph);
     LOG(INFO) << "done with remove cycle";
   } else if (opt == 1) {
     LOG(INFO) << "start to remove cycle";
-    neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(tg);
+    neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(
+        graph);
     LOG(INFO) << "done with remove cycle";
   }
   auto end_ts = neb::util::now();
