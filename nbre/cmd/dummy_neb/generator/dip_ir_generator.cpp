@@ -117,7 +117,7 @@ dip_ir_generator::dip_ir_generator(generate_block *block, const address_t &addr)
   m_block_nums_of_a_day = 5;
   m_days = 1;
   m_dip_start_block = 15;
-  m_alpha = 1e-32;
+  m_alpha = 8e-3;
   m_beta = 1;
   m_reward_addr = m_dip_admin_addr.to_base58();
   m_coinbase_addr = m_dip_admin_addr.to_base58();

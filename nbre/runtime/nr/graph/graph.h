@@ -39,10 +39,8 @@ class transaction_graph {
 public:
   typedef boost::property<
       boost::edge_weight_t, wei_t,
-      boost::property<
-          boost::edge_timestamp_t, int64_t,
-          boost::property<boost::edge_sort_id_t, int64_t,
-                          boost::property<boost::edge_check_id_t, int32_t>>>>
+      boost::property<boost::edge_timestamp_t, int64_t,
+                      boost::property<boost::edge_sort_id_t, int64_t>>>
       edge_property_t;
 
   typedef boost::adjacency_list<

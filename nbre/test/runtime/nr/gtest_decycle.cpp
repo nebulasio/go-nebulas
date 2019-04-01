@@ -29,8 +29,9 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case1) {
   tg.add_edge(neb::to_address("b"), neb::to_address("c"), 3, 3);
   tg.add_edge(neb::to_address("c"), neb::to_address("a"), 4, 4);
 
-  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(tg);
   auto graph = tg.internal_graph();
+  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(
+      graph);
 
   neb::rt::transaction_graph::viterator_t vi, vi_end;
 
@@ -65,8 +66,9 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case2) {
   tg.add_edge(neb::to_address("b"), neb::to_address("c"), 4, 1);
   tg.add_edge(neb::to_address("c"), neb::to_address("a"), 5, 5);
 
-  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(tg);
   auto graph = tg.internal_graph();
+  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(
+      graph);
   tg.write_to_graphviz("case2.txt");
 
   neb::rt::transaction_graph::viterator_t vi, vi_end;
@@ -105,8 +107,9 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case3) {
   tg.add_edge(neb::to_address("b"), neb::to_address("c"), 2, 4);
   tg.add_edge(neb::to_address("c"), neb::to_address("a"), 2, 5);
 
-  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(tg);
   auto graph = tg.internal_graph();
+  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(
+      graph);
 
   neb::rt::transaction_graph::viterator_t vi, vi_end;
   tg.write_to_graphviz("case3.txt");
@@ -125,8 +128,9 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case4) {
   tg.add_edge(neb::to_address("c"), neb::to_address("d"), 1, 4);
   tg.add_edge(neb::to_address("d"), neb::to_address("b"), 2, 4);
 
-  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(tg);
   auto graph = tg.internal_graph();
+  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(
+      graph);
 
   neb::rt::transaction_graph::viterator_t vi, vi_end;
   for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
@@ -158,7 +162,7 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case4) {
 TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case5) {
   neb::rt::transaction_graph tg;
   char cc = 'z';
-  int32_t n = 100;
+  int32_t n = 1000;
   for (char ch = 'a'; ch < cc; ch++) {
     for (int32_t i = 0; i < n; i++) {
       tg.add_edge(neb::to_address(std::string(1, ch)),
@@ -175,7 +179,8 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case5) {
   auto graph = tg.internal_graph();
   LOG(INFO) << boost::num_vertices(graph);
   LOG(INFO) << boost::num_edges(graph);
-  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(tg);
+  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(
+      graph);
 }
 
 TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case6) {
@@ -190,8 +195,9 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case6) {
     }
   }
 
-  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(tg);
   auto graph = tg.internal_graph();
+  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(
+      graph);
   EXPECT_EQ(boost::num_vertices(graph), cc - 'a' + 1);
   EXPECT_EQ(boost::num_edges(graph), 0);
 }
@@ -203,8 +209,9 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case7) {
   tg.add_edge(neb::to_address("c"), neb::to_address("d"), 3, 2);
   tg.add_edge(neb::to_address("d"), neb::to_address("a"), 4, 2);
 
-  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(tg);
   auto graph = tg.internal_graph();
+  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(
+      graph);
 
   neb::rt::transaction_graph::viterator_t vi, vi_end;
   for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
@@ -239,10 +246,11 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case8) {
   tg.add_edge(neb::to_address("c"), neb::to_address("d"), 2, 2);
   tg.add_edge(neb::to_address("d"), neb::to_address("b"), 3, 3);
   tg.add_edge(neb::to_address("a"), neb::to_address("d"), 1, 1);
-  tg.add_edge(neb::to_address("b"), neb::to_address("2"), 2, 2);
+  tg.add_edge(neb::to_address("b"), neb::to_address("a"), 2, 2);
 
-  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(tg);
   auto graph = tg.internal_graph();
+  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(
+      graph);
 
   neb::rt::transaction_graph::viterator_t vi, vi_end;
   for (boost::tie(vi, vi_end) = boost::vertices(graph); vi != vi_end; vi++) {
@@ -289,7 +297,8 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case9) {
   auto &graph = tg.internal_graph();
   auto before_v_nums = boost::num_vertices(graph);
   auto before_e_nums = boost::num_edges(graph);
-  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(tg);
+  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(
+      graph);
   auto after_v_nums = boost::num_vertices(graph);
   auto after_e_nums = boost::num_edges(graph);
   EXPECT_EQ(before_v_nums, after_v_nums);
@@ -319,11 +328,12 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case10) {
     }
   }
 
-  auto &graph = tg.internal_graph();
+  auto graph = tg.internal_graph();
   auto before_v_nums = boost::num_vertices(graph);
   auto before_e_nums = boost::num_edges(graph);
   LOG(INFO) << before_v_nums << ',' << before_e_nums;
-  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(tg);
+  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(
+      graph);
   auto after_v_nums = boost::num_vertices(graph);
   auto after_e_nums = boost::num_edges(graph);
   EXPECT_EQ(before_v_nums, after_v_nums);
@@ -350,7 +360,8 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case11) {
 
   auto graph = tg.internal_graph();
   LOG(INFO) << "edge num: " << tg.edge_num();
-  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(tg);
+  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(
+      graph);
 }
 
 TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case12) {
@@ -373,6 +384,7 @@ TEST(test_decycle, non_recursive_remove_cycles_based_on_time_sequence_case12) {
   }
 
   auto graph = tg.internal_graph();
-  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(tg);
+  neb::rt::graph_algo::non_recursive_remove_cycles_based_on_time_sequence(
+      graph);
 }
 

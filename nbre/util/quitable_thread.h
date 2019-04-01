@@ -56,6 +56,7 @@ public:
     }
   }
   virtual void thread_func();
+  inline size_t size() const { return m_queue.size(); }
 
 protected:
   typedef std::shared_ptr<std::function<void()>> func_ptr;

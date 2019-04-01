@@ -69,6 +69,7 @@ public:
 
   void add_task(const std::shared_ptr<checker_task_base> &task);
   task_container_ptr_t get_tasks_with_name(const std::string &name);
+  inline size_t size() const { return m_all_tasks.size(); }
 
   void randomly_schedule_no_running_tasks();
   void randomly_schedule_all_tasks(int num = 1);

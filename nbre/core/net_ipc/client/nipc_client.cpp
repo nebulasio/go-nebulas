@@ -24,7 +24,9 @@
 
 namespace neb {
 namespace core {
-nipc_client::nipc_client() : m_handling_pkg_num(0) {}
+nipc_client::nipc_client() : m_handling_pkg_num(0) {
+  m_pkg_handler_thread = std::make_unique<util::wakeable_thread>();
+}
 
 nipc_client::~nipc_client() { shutdown(); }
 

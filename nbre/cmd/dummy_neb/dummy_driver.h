@@ -47,5 +47,4 @@ protected:
   std::unique_ptr<neb::util::timer_loop> m_block_gen_timer;
   std::unique_ptr<neb::util::timer_loop> m_checker_gen_timer;
   uint64_t m_block_interval_seconds;
-  uint64_t m_current_height;
 };

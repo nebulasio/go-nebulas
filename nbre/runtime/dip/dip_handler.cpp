@@ -139,34 +139,33 @@ void dip_handler::start(neb::block_height_t height,
     dip_version = dip_params->get<p_version>();
   }
 
-  ff::para<> p;
-  p([this, dip_name, dip_version, hash_height]() {
-    try {
-      auto dip_ret =
-          run_dip_ir(dip_name, dip_version, hash_height, hash_height);
-      if (std::get<0>(dip_ret)) {
-        auto dip_str_ptr = dip_reward::dip_info_to_json(dip_ret);
-        dump_storage("dip_rewards", hash_height,
-                     str_sptr_t{std::move(dip_str_ptr)}, m_dip_reward);
-        LOG(INFO) << "dump dip rewards done";
+  // ff::para<> p;
+  // p([this, dip_name, dip_version, hash_height]() {
+  try {
+    auto dip_ret = run_dip_ir(dip_name, dip_version, hash_height, hash_height);
+    if (std::get<0>(dip_ret)) {
+      auto dip_str_ptr = dip_reward::dip_info_to_json(dip_ret);
+      dump_storage("dip_rewards", hash_height,
+                   str_sptr_t{std::move(dip_str_ptr)}, m_dip_reward);
+      LOG(INFO) << "dump dip rewards done";
 
-        auto &nr_ret = std::get<3>(dip_ret);
-        auto nr_str_ptr = nr::nebulas_rank::nr_info_to_json(nr_ret);
-        dump_storage("nr_results", hash_height,
-                     str_sptr_t{std::move(nr_str_ptr)}, m_nr_result, 1 << 4);
-        LOG(INFO) << "dump nr results done";
+      auto &nr_ret = std::get<3>(dip_ret);
+      auto nr_str_ptr = nr::nebulas_rank::nr_info_to_json(nr_ret);
+      dump_storage("nr_results", hash_height, str_sptr_t{std::move(nr_str_ptr)},
+                   m_nr_result, 1 << 4);
+      LOG(INFO) << "dump nr results done";
 
-        auto nr_sum_ptr = nr::nebulas_rank::get_nr_sum_str(nr_ret);
-        dump_storage("nr_sums", hash_height, str_sptr_t{std::move(nr_sum_ptr)},
-                     m_nr_sum, 1 << 4);
-        LOG(INFO) << "dump nr sums done";
-      } else {
-        LOG(INFO) << std::get<1>(dip_ret);
-      }
+      auto nr_sum_ptr = nr::nebulas_rank::get_nr_sum_str(nr_ret);
+      dump_storage("nr_sums", hash_height, str_sptr_t{std::move(nr_sum_ptr)},
+                   m_nr_sum, 1 << 4);
+      LOG(INFO) << "dump nr sums done";
+    } else {
+      LOG(INFO) << std::get<1>(dip_ret);
+    }
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute dip failed " << e.what();
     }
-  });
+    //});
 }
 
 std::shared_ptr<dip_params_t>

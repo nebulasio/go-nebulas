@@ -20,6 +20,7 @@
 #pragma once
 #include "common/common.h"
 #include "core/net_ipc/nipc_common.h"
+#include "util/quitable_thread.h"
 #include "util/timer_loop.h"
 #include <ff/functionflow.h>
 #include <ff/network.h>
@@ -37,16 +38,17 @@ public:
       hub.to_recv_pkg<T>([f, this](std::shared_ptr<T> pkg) {
         // No big pressure for NBRE
         m_to_recv_heart_beat_msg = 0;
-        if (m_handling_pkg_num > ff::rt::concurrency()) {
-          LOG(INFO) << "ignore request";
+        if (m_pkg_handler_thread->size() > ff::rt::concurrency()) {
           return;
         }
 
-        ff::para<> p;
-        p([pkg, f, this]() {
-          m_handling_pkg_num++;
-          f(pkg);
-          m_handling_pkg_num--;
+        m_pkg_handler_thread->schedule([this, f, pkg]() {
+          ff::para<> p;
+          p([pkg, f, this]() {
+            m_handling_pkg_num++;
+            f(pkg);
+            m_handling_pkg_num--;
+          });
         });
       });
     });
@@ -66,6 +68,7 @@ protected:
   std::atomic_bool m_is_connected;
   int32_t m_to_recv_heart_beat_msg;
   std::atomic_int_fast64_t m_handling_pkg_num;
+  std::unique_ptr<util::wakeable_thread> m_pkg_handler_thread;
   // std::unique_ptr<ipc_client_t> m_client;
 };
 } // namespace core

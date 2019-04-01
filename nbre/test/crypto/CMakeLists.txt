@@ -4,7 +4,7 @@ add_executable(test_crypto main.cpp
 
 target_link_libraries(test_crypto nbre_rt ${gtest_lib})
 
-gtest_discover_tests(test_crypto)
+#gtest_discover_tests(test_crypto)
 
 add_test(NAME test_crypto
   COMMAND test_crypto)

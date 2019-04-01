@@ -46,7 +46,8 @@ std::vector<std::shared_ptr<dip_info_t>> dip_reward::get_dip_reward(
 
   auto it_nr_infos = nr_result;
   auto it_acc_to_contract_txs =
-      fs::transaction_db::read_transactions_with_address_type(txs, 0x57, 0x58);
+      fs::transaction_db::read_transactions_with_address_type(
+          txs, NAS_ADDRESS_ACCOUNT_MAGIC_NUM, NAS_ADDRESS_CONTRACT_MAGIC_NUM);
   ignore_account_transfer_contract(*it_acc_to_contract_txs, "binary");
   LOG(INFO) << "account to contract size " << it_acc_to_contract_txs->size();
   // dapp total votes

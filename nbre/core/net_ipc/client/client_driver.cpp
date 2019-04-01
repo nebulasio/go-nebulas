@@ -311,9 +311,7 @@ void client_driver::add_handlers() {
             return;
           }
 
-          LOG_FLUSH(INFO, "start nr to json");
           auto str_ptr = neb::rt::nr::nebulas_rank::nr_info_to_json(nr_ret);
-          LOG_FLUSH(INFO, "end nr to json");
           LOG(INFO) << "nr result \n" << *str_ptr;
           ack->set<p_nr_result>(*str_ptr);
           m_ipc_conn->send(ack);

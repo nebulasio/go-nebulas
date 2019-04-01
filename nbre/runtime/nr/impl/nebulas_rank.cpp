@@ -251,7 +251,7 @@ std::vector<std::shared_ptr<nr_info_t>> nebulas_rank::get_nr_score(
       tdb_ptr->read_transactions_from_db_with_duration(start_block, end_block);
   LOG(INFO) << "raw tx size: " << txs_ptr->size();
   auto inter_txs_ptr = fs::transaction_db::read_transactions_with_address_type(
-      *txs_ptr, 0x57, 0x57);
+      *txs_ptr, NAS_ADDRESS_ACCOUNT_MAGIC_NUM, NAS_ADDRESS_ACCOUNT_MAGIC_NUM);
   LOG(INFO) << "account to account: " << inter_txs_ptr->size();
 
   // graph operation
@@ -266,7 +266,7 @@ std::vector<std::shared_ptr<nr_info_t>> nebulas_rank::get_nr_score(
   LOG(INFO) << "we have " << tgs_ptr->size() << " subgraphs.";
   for (auto it = tgs_ptr->begin(); it != tgs_ptr->end(); it++) {
     transaction_graph *ptr = it->get();
-    graph_algo::non_recursive_remove_cycles_based_on_time_sequence(*ptr);
+    graph_algo::remove_cycles_based_on_time_sequence(ptr->internal_graph());
     graph_algo::merge_edges_with_same_from_and_same_to(ptr->internal_graph());
   }
   LOG(INFO) << "done with remove cycle.";

@@ -99,8 +99,10 @@ void ipc_client_watcher::kill_client() {
   }
 
   if (m_client) {
+    LOG(INFO) << "to terminate client";
     m_killed_already = true;
     m_client->terminate();
+    LOG(INFO) << "client is down";
   } else {
     LOG(WARNING) << "no client to kill";
   }
