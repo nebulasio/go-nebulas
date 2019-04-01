@@ -209,6 +209,7 @@ check_install_llvm() {
 
   check_script_run llvm
 
+  export LD_LIBRARY_PATH=$CUR_DIR/lib/lib:$CUR_DIR/lib_llvm/lib:$LD_LIBRARY_PATH
   export PATH=$CUR_DIR/lib_llvm/bin:$PATH
   export CXX=$CUR_DIR/lib_llvm/bin/clang++
   export CC=$CUR_DIR/lib_llvm/bin/clang
