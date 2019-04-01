@@ -22,6 +22,8 @@ type CompatibilityMainNet struct {
 
 	newNvmExeTimeoutConsumeGasHeight uint64
 
+	nvmExeTimeoutHeight []uint64
+
 	v8JSLibVersionHeightMap *V8JSLibVersionHeightMap
 
 	nvmGasLimitWithoutTimeoutHeight uint64
@@ -29,6 +31,8 @@ type CompatibilityMainNet struct {
 	transferFromContractFailureEventRecordableHeight2 uint64
 
 	wsResetRecordDependencyHeight2 uint64
+
+	nvmValueCheckUpdateHeight uint64
 
 	nbreAvailableHeight uint64
 }
@@ -46,6 +50,7 @@ func NewCompatibilityMainNet() Compatibility {
 		v8JSLibVersionControlHeight:                      467500,
 		transferFromContractFailureEventRecordableHeight: 467500,
 		newNvmExeTimeoutConsumeGasHeight:                 467500,
+		nvmExeTimeoutHeight:                              []uint64{531698, 577307, 577316, 624835},
 		v8JSLibVersionHeightMap: &V8JSLibVersionHeightMap{
 			Data: map[string]uint64{
 				"1.0.5": 467500, // v8JSLibVersionControlHeight
@@ -56,6 +61,7 @@ func NewCompatibilityMainNet() Compatibility {
 		nvmGasLimitWithoutTimeoutHeight:                   600000,
 		wsResetRecordDependencyHeight2:                    600000,
 		transferFromContractFailureEventRecordableHeight2: 600000,
+		nvmValueCheckUpdateHeight:                         840000,
 		nbreAvailableHeight:                               2000000,
 	}
 }
@@ -120,6 +126,11 @@ func (c *CompatibilityMainNet) NewNvmExeTimeoutConsumeGasHeight() uint64 {
 	return c.newNvmExeTimeoutConsumeGasHeight
 }
 
+// NvmExeTimeoutHeight ..
+func (c *CompatibilityMainNet) NvmExeTimeoutHeight() []uint64 {
+	return c.nvmExeTimeoutHeight
+}
+
 // V8JSLibVersionHeightMap ..
 func (c *CompatibilityMainNet) V8JSLibVersionHeightMap() *V8JSLibVersionHeightMap {
 	return c.v8JSLibVersionHeightMap
@@ -128,6 +139,11 @@ func (c *CompatibilityMainNet) V8JSLibVersionHeightMap() *V8JSLibVersionHeightMa
 // NvmGasLimitWithoutTimeoutHeight ..
 func (c *CompatibilityMainNet) NvmGasLimitWithoutTimeoutHeight() uint64 {
 	return c.nvmGasLimitWithoutTimeoutHeight
+}
+
+// NvmValueCheckUpdateHeight ..
+func (c *CompatibilityMainNet) NvmValueCheckUpdateHeight() uint64 {
+	return c.nvmValueCheckUpdateHeight
 }
 
 // NbreAvailableHeight ..

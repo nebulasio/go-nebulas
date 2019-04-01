@@ -20,10 +20,10 @@
 #pragma once
 
 #include "common/common.h"
-#include "common/util/singleton.h"
 #include "core/ir_warden.h"
 #include "fs/proto/ir.pb.h"
 #include "jit/jit_engine.h"
+#include "util/singleton.h"
 
 namespace neb {
 namespace internal {
@@ -91,7 +91,6 @@ public:
     context->m_time_counter = 30 * 60;
     m_mutex.unlock();
     struct using_helper {
-
       using_helper(jit_context *jc) : m_jc(jc) { jc->m_using = true; }
       ~using_helper() { m_jc->m_using = false; }
       jit_context *m_jc;
@@ -120,6 +119,9 @@ protected:
   std::unique_ptr<jit_driver::jit_context>
   make_context(const std::vector<nbre::NBREIR> &irs,
                const std::string &func_name);
+
+  bool find_mangling(llvm::Module *M, const std::string &func_name,
+                     std::string &mangling_name);
 
 protected:
   std::mutex m_mutex;

@@ -41,6 +41,8 @@ int TransferFunc_cgo(void *handler, const char *to, const char *value);
 int VerifyAddressFunc_cgo(void *handler, const char *address);
 char *GetPreBlockHashFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt);
 char *GetPreBlockSeedFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt);
+char *GetLatestNebulasRankFunc_cgo(void *handler, const char* address, size_t *gasCnt);
+char *GetLatestNebulasRankSummaryFunc_cgo(void *handler, size_t *gasCnt);
 
 char *Sha256Func_cgo(const char *data, size_t *gasCnt);
 char *Sha3256Func_cgo(const char *data, size_t *gasCnt);
@@ -79,6 +81,8 @@ const (
 
 	// ExecutionTimeout max v8 execution timeout.
 	ExecutionTimeout                 = 15 * 1000 * 1000
+	OriginExecutionTimeout           = 5 * 1000 * 1000
+	CompatibleExecutionTimeout       = 20 * 1000 * 1000
 	TimeoutGasLimitCost              = 100000000
 	MaxLimitsOfExecutionInstructions = 10000000 // TODO: set max gasLimit with execution 5s *0.8
 )
@@ -152,9 +156,13 @@ func InitV8Engine() {
 		(C.GetPreBlockHashFunc)(unsafe.Pointer(C.GetPreBlockHashFunc_cgo)),
 		(C.GetPreBlockSeedFunc)(unsafe.Pointer(C.GetPreBlockSeedFunc_cgo)),
 		(C.GetContractSourceFunc)(unsafe.Pointer(C.GetContractSourceFunc_cgo)),
-		(C.InnerContractFunc)(unsafe.Pointer(C.InnerContractFunc_cgo)))
+		(C.InnerContractFunc)(unsafe.Pointer(C.InnerContractFunc_cgo)),
+		(C.GetLatestNebulasRankFunc)(unsafe.Pointer(C.GetLatestNebulasRankFunc_cgo)),
+		(C.GetLatestNebulasRankSummaryFunc)(unsafe.Pointer(C.GetLatestNebulasRankSummaryFunc_cgo)))
+
 	// random.
 	C.InitializeRandom((C.GetTxRandomFunc)(unsafe.Pointer(C.GetTxRandomFunc_cgo)))
+
 	// Event.
 	C.InitializeEvent((C.EventTriggerFunc)(unsafe.Pointer(C.EventTriggerFunc_cgo)))
 
@@ -212,6 +220,13 @@ func NewV8Engine(ctx *Context) *V8Engine {
 	// engine.v8engine.gcs = C.uintptr_t(engine.gcsHandler)
 	if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
 		engine.SetTimeOut(ExecutionTimeout)
+	} else {
+		timeoutMark := core.NvmExeTimeoutAtHeight(ctx.block.Height())
+		if timeoutMark {
+			engine.SetTimeOut(OriginExecutionTimeout)
+		} else {
+			engine.SetTimeOut(CompatibleExecutionTimeout)
+		}
 	}
 
 	if core.EnableInnerContractAtHeight(ctx.block.Height()) {

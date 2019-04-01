@@ -20,11 +20,12 @@
 
 #pragma once
 #include "common/common.h"
-#include "common/quitable_thread.h"
-#include "common/util/singleton.h"
+#include "core/net_ipc/nipc_pkg.h"
 #include "fs/ir_manager/ir_manager.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/storage.h"
+#include "util/quitable_thread.h"
+#include "util/singleton.h"
 #include <boost/asio.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <condition_variable>
@@ -39,21 +40,23 @@ public:
 
   std::unique_ptr<nbre::NBREIR> get_ir_by_name_version(const std::string &name,
                                                        uint64_t version);
-
   std::unique_ptr<std::vector<nbre::NBREIR>>
   get_ir_by_name_height(const std::string &name, uint64_t height,
                         bool depends = true);
+
   bool is_sync_already() const;
-
   void wait_until_sync();
-
   void on_timer();
+
+  void on_receive_ir_transactions(
+      const std::shared_ptr<nbre_ir_transactions_req> &txs_ptr);
 
 private:
   std::unique_ptr<fs::ir_manager> m_ir_manager;
   bool m_is_sync_already;
   mutable std::mutex m_sync_mutex;
   std::condition_variable m_sync_cond_var;
+  util::wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> m_queue;
 };
 }
 }

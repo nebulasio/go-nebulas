@@ -29,7 +29,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
-	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -152,8 +151,10 @@ type Block struct {
 	txPool       *TransactionPool
 	eventEmitter *EventEmitter
 	nvm          NVM
+	nr           NR
 	dip          Dip
-	storage      storage.Storage
+
+	storage storage.Storage
 }
 
 // ToProto converts domain Block into proto Block
@@ -257,6 +258,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		txPool:       parent.txPool,
 		eventEmitter: parent.eventEmitter,
 		nvm:          parent.nvm,
+		nr:           parent.nr,
 		dip:          parent.dip,
 		storage:      parent.storage,
 	}
@@ -306,6 +308,18 @@ func (block *Block) HasRandomSeed() bool {
 // ChainID returns block's chainID
 func (block *Block) ChainID() uint32 {
 	return block.header.chainID
+}
+
+// Miner return block's miner, only block is sealed return value
+func (block *Block) Miner() *Address {
+	if block.Sealed() {
+		proposer := block.ConsensusRoot().Proposer
+		miner, err := AddressParseFromBytes(proposer)
+		if err == nil {
+			return miner
+		}
+	}
+	return nil
 }
 
 // Coinbase return block's coinbase
@@ -414,6 +428,11 @@ func (block *Block) DateAvailable() bool {
 	return DateAvailableAtHeight(block.height)
 }
 
+// DateAvailable return nr
+func (block *Block) NR() NR {
+	return block.nr
+}
+
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
 func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error {
 	if !block.ParentHash().Equals(parentBlock.Hash()) {
@@ -437,6 +456,7 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	block.storage = parentBlock.storage
 	block.eventEmitter = parentBlock.eventEmitter
 	block.nvm = parentBlock.nvm
+	block.nr = parentBlock.nr
 	block.dip = parentBlock.dip
 
 	return nil
@@ -1137,8 +1157,19 @@ func (block *Block) FetchExecutionResultEvent(txHash byteutils.Hash) (*state.Eve
 }
 
 func (block *Block) rewardCoinbaseForMint() error {
+
+	coinbaseAddr := block.Coinbase().Bytes()
+	coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
+	if err != nil {
+		return err
+	}
+	if err = coinbaseAcc.AddBalance(BlockReward); err != nil {
+		return err
+	}
+
 	//after NbreAvailableHeight, reward give to coinbase and dip reward address.
 	if NbreAvailableHeight(block.height) {
+
 		// reward dip to dip address.
 		dipAddr := block.dip.RewardAddress().Bytes()
 		dipAcc, err := block.WorldState().GetOrCreateUserAccount(dipAddr)
@@ -1149,26 +1180,9 @@ func (block *Block) rewardCoinbaseForMint() error {
 		if err = dipAcc.AddBalance(dipValue); err != nil {
 			return err
 		}
-
-		// reward left to coinbase
-		coinbaseAddr := block.Coinbase().Bytes()
-		coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
-		if err != nil {
-			return err
-		}
-		left, err := BlockReward.Sub(dipValue)
-		if err != nil {
-			return err
-		}
-		return coinbaseAcc.AddBalance(left)
-	} else {
-		coinbaseAddr := block.Coinbase().Bytes()
-		coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
-		if err != nil {
-			return err
-		}
-		return coinbaseAcc.AddBalance(BlockReward)
 	}
+
+	return nil
 }
 
 func (block *Block) rewardCoinbaseForGas() error {
@@ -1347,35 +1361,11 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 		return nil, err
 	}
 
-	if GenesisDynastyTrie == nil && hash.Equals(GenesisHash) {
-		miners, err := block.WorldState().Dynasty()
-		if err != nil {
-			return nil, err
-		}
-		dynastyTrie, err := trie.NewTrie(nil, chain.Storage(), false)
-		if err != nil {
-			return nil, err
-		}
-		for _, miner := range miners {
-			addr, err := AddressParseFromBytes(miner)
-			if err != nil {
-				return nil, err
-			}
-			v := addr.Bytes()
-			if _, err = dynastyTrie.Put(v, v); err != nil {
-				return nil, err
-			}
-		}
-		logging.VLog().WithFields(logrus.Fields{
-			"miners": miners,
-		}).Debug("Load genesis block from storage.")
-		GenesisDynastyTrie = dynastyTrie
-	}
-
 	block.sealed = true
 	block.txPool = chain.txPool
 	block.eventEmitter = chain.eventEmitter
 	block.nvm = chain.nvm
+	block.nr = chain.nr
 	block.dip = chain.dip
 	block.storage = chain.storage
 	return block, nil
@@ -1387,43 +1377,4 @@ func MockBlock(header *BlockHeader, height uint64) *Block {
 		header: header,
 		height: height,
 	}
-}
-
-// MockBlockEx return new block to inner nvm unit test
-func MockBlockEx(chainID uint32, coinbase *Address, parent *Block, height uint64) (*Block, error) { // ToCheck: check args. // ToCheck: check full-functional block.
-	worldState, err := parent.worldState.Clone()
-	if err != nil {
-		return nil, err
-	}
-
-	block := &Block{
-		header: &BlockHeader{
-			chainID:       chainID,
-			parentHash:    parent.Hash(),
-			coinbase:      coinbase,
-			timestamp:     time.Now().Unix(),
-			consensusRoot: &consensuspb.ConsensusRoot{},
-			random:        &corepb.Random{},
-		},
-		transactions: make(Transactions, 0),
-		dependency:   dag.NewDag(),
-
-		worldState: worldState,
-		height:     height,
-		sealed:     false,
-
-		txPool:       parent.txPool,
-		eventEmitter: parent.eventEmitter,
-		nvm:          parent.nvm,
-		storage:      parent.storage,
-	}
-
-	if err := block.Begin(); err != nil {
-		return nil, err
-	}
-	if err := block.rewardCoinbaseForMint(); err != nil {
-		return nil, err
-	}
-
-	return block, nil
 }

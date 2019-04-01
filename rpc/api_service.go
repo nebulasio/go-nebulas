@@ -82,7 +82,9 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	}
 
 	block := neb.BlockChain().TailBlock()
+	height := block.Height()
 	if req.Height > 0 {
+		height = req.Height
 		block = neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
 		if block == nil {
 			metricsAccountStateFailed.Mark(1)
@@ -96,7 +98,7 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	}
 
 	metricsAccountStateSuccess.Mark(1)
-	return &rpcpb.GetAccountStateResponse{Balance: acc.Balance().String(), Nonce: acc.Nonce(), Type: uint32(addr.Type())}, nil
+	return &rpcpb.GetAccountStateResponse{Balance: acc.Balance().String(), Nonce: acc.Nonce(), Type: uint32(addr.Type()), Height: height, Pending: neb.BlockChain().TransactionPool().GetPending(addr)}, nil
 }
 
 // Call is the RPC API handler.
@@ -696,39 +698,81 @@ func (s *APIService) VerifySignature(ctx context.Context, req *rpcpb.VerifySigna
 	return resp, nil
 }
 
-// GetNRHash return nr query hash.
-func (s *APIService) GetNRHash(ctx context.Context, req *rpcpb.GetNRHashRequest) (*rpcpb.GetNRHashResponse, error) {
+// GetNRByAddress return nr item by address.
+func (s *APIService) GetNRByAddress(ctx context.Context, req *rpcpb.GetNRByAddressRequest) (*rpcpb.NRItem, error) {
+	neb := s.server.Neblet()
+
+	addr, err := core.AddressParse(req.GetAddress())
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := neb.Nr().GetNRByAddress(addr)
+	if err != nil {
+		return nil, err
+	}
+	item := data.(*nr.NRItem)
+
+	return &rpcpb.NRItem{
+		Address: addr.String(),
+		Score:   item.Score,
+		Median:  item.Median,
+		Weight:  item.Weight,
+	}, nil
+}
+
+// GetLatestNRList return latest nr list
+func (s *APIService) GetLatestNRList(ctx context.Context, req *rpcpb.NonParamsRequest) (*rpcpb.GetNRListResponse, error) {
+	neb := s.server.Neblet()
+
+	height := neb.BlockChain().TailBlock().Height()
+	data, err := neb.Nr().GetNRListByHeight(height)
+	if err != nil {
+		return nil, err
+	}
+	return handleNRList(data)
+}
+
+// GetNRHandle return nr query handle.
+func (s *APIService) GetNRHandle(ctx context.Context, req *rpcpb.GetNRHandleRequest) (*rpcpb.GetNRHandleResponse, error) {
 	neb := s.server.Neblet()
 
 	if req.End == 0 {
 		req.End = neb.BlockChain().TailBlock().Height()
 	}
 
-	data, err := neb.Nr().GetNRHandler(req.Start, req.End, req.Version)
-
+	data, err := neb.Nr().GetNRHandle(req.Start, req.End, req.Version)
 	if err != nil {
 		return nil, err
 	}
 
-	return &rpcpb.GetNRHashResponse{Hash: data}, nil
+	return &rpcpb.GetNRHandleResponse{Handle: data}, nil
 }
 
-// GetNRList return nr data.
-func (s *APIService) GetNRList(ctx context.Context, req *rpcpb.GetNRListRequest) (*rpcpb.GetNRListResponse, error) {
+// GetNRListByHandle return nr data.
+func (s *APIService) GetNRListByHandle(ctx context.Context, req *rpcpb.GetNRListByHandleRequest) (*rpcpb.GetNRListResponse, error) {
+	if len(req.Handle) == 0 {
+		return nil, errors.New("invalid nr handle")
+	}
 	neb := s.server.Neblet()
 
-	data, err := neb.Nr().GetNRList([]byte(req.Hash))
-
+	data, err := neb.Nr().GetNRListByHandle([]byte(req.Handle))
 	if err != nil {
 		return nil, err
 	}
 
+	return handleNRList(data)
+}
+
+func handleNRList(data core.Data) (*rpcpb.GetNRListResponse, error) {
 	nrData := data.(*nr.NRData)
-	nrItems := make([]*rpcpb.NData, len(nrData.Nrs))
+	nrItems := make([]*rpcpb.NRItem, len(nrData.Nrs))
 	for idx, v := range nrData.Nrs {
-		item := &rpcpb.NData{
+		item := &rpcpb.NRItem{
 			Address: v.Address,
-			Value:   v.Score,
+			Score:   v.Score,
+			Median:  v.Median,
+			Weight:  v.Weight,
 		}
 		nrItems[idx] = item
 	}
@@ -753,16 +797,16 @@ func (s *APIService) GetDIPList(ctx context.Context, req *rpcpb.GetDIPListReques
 	}
 
 	data, err := neb.Dip().GetDipList(height, 0)
-
 	if err != nil {
 		return nil, err
 	}
 	dipData := data.(*dip.DIPData)
-	dipItems := make([]*rpcpb.NData, len(dipData.Dips))
+	dipItems := make([]*rpcpb.DIPItem, len(dipData.Dips))
 	for idx, v := range dipData.Dips {
-		item := &rpcpb.NData{
-			Address: v.Address,
-			Value:   v.Reward,
+		item := &rpcpb.DIPItem{
+			Address:  v.Address,
+			Contract: v.Contract,
+			Value:    v.Reward,
 		}
 		dipItems[idx] = item
 	}

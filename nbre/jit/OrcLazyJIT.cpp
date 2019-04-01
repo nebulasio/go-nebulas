@@ -121,7 +121,7 @@ llvm::Error llvm::OrcLazyJIT::addModule(std::shared_ptr<Module> M) {
             return Sym;
           return CXXRuntimeOverrides.searchOverrides(Name);
         },
-        [](const std::string &Name) {
+        [this](const std::string &Name) {
           if (auto Addr = RTDyldMemoryManager::getSymbolAddressInProcess(Name))
             return JITSymbol(Addr, JITSymbolFlags::Exported);
           return JITSymbol(nullptr);

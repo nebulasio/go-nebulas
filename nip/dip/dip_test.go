@@ -75,7 +75,8 @@ type mockNbre struct {
 func (m *mockNbre) Start() error {
 	return nil
 }
-func (m *mockNbre) Execute(command string, args ...interface{}) ([]byte, error) {
+
+func (m *mockNbre) Execute(command string, args ...interface{}) (interface{}, error) {
 	if command == nbre.CommandDIPList {
 		data := &DIPData{
 			StartHeight: 1,
@@ -88,13 +89,12 @@ func (m *mockNbre) Execute(command string, args ...interface{}) ([]byte, error) 
 		}
 		data.Dips[0] = item
 		bytes, _ := data.ToBytes()
-		return bytes, nil
+		return string(bytes), nil
 	} else {
 		return nil, nil
 	}
 }
-func (m *mockNbre) Shutdown() error {
-	return nil
+func (m *mockNbre) Stop() {
 }
 
 func testNeb(t *testing.T) *mockNeb {
@@ -241,7 +241,7 @@ func TestDip_CheckReward(t *testing.T) {
 				payloadBytes []byte
 			)
 			if tt.txType == core.TxPayloadDipType {
-				payload, err := core.NewDipPayload(1, 1, 1)
+				payload, err := core.NewDipPayload(1, 1, 1, "")
 				assert.Nil(t, err)
 				payloadBytes, err = payload.ToBytes()
 				assert.Nil(t, err)

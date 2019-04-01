@@ -18,8 +18,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
+#include "common/byte.h"
 #include "common/common.h"
-#include "common/util/byte.h"
 
 namespace neb {
 namespace fs {
@@ -47,8 +47,7 @@ public:
   template <typename T, typename KT>
   auto get(const KT &key) -> typename std::enable_if<
       std::is_arithmetic<T>::value && std::is_arithmetic<KT>::value, T>::type {
-    return util::byte_to_number<T>(
-        get_bytes(util::number_to_byte<util::bytes>(key)));
+    return byte_to_number<T>(get_bytes(number_to_byte<bytes>(key)));
   }
 
   template <typename T, typename KT>
@@ -56,26 +55,23 @@ public:
       typename std::enable_if<std::is_arithmetic<T>::value &&
                                   std::is_arithmetic<KT>::value,
                               void>::type {
-    put_bytes(util::number_to_byte<util::bytes>(key),
-              util::number_to_byte<util::bytes>(val));
+    put_bytes(number_to_byte<bytes>(key), number_to_byte<bytes>(val));
   }
   template <typename KT>
   auto del(const KT &key) ->
       typename std::enable_if<std::is_arithmetic<KT>::value, void>::type {
-    del_by_bytes(util::number_to_byte<util::bytes>(key));
+    del_by_bytes(number_to_byte<bytes>(key));
   }
 
-  util::bytes get(const std::string &key) {
-    return get_bytes(util::string_to_byte(key));
+  bytes get(const std::string &key) { return get_bytes(string_to_byte(key)); }
+  void put(const std::string &key, const bytes &value) {
+    return put_bytes(string_to_byte(key), value);
   }
-  void put(const std::string &key, const util::bytes &value) {
-    return put_bytes(util::string_to_byte(key), value);
-  }
-  void del(const std::string &key) { del_by_bytes(util::string_to_byte(key)); }
+  void del(const std::string &key) { del_by_bytes(string_to_byte(key)); }
 
-  virtual util::bytes get_bytes(const util::bytes &key) = 0;
-  virtual void put_bytes(const util::bytes &key, const util::bytes &val) = 0;
-  virtual void del_by_bytes(const util::bytes &key) = 0;
+  virtual bytes get_bytes(const bytes &key) = 0;
+  virtual void put_bytes(const bytes &key, const bytes &val) = 0;
+  virtual void del_by_bytes(const bytes &key) = 0;
 
   virtual void enable_batch() = 0;
   virtual void disable_batch() = 0;

@@ -1,0 +1,30 @@
+{
+
+  "name": "dip",
+  "version_major": 0,
+  "version_minor": 0,
+  "version_patch": 1,
+  "depends": [
+    {
+      "name": "nr",
+      "version_major": 0,
+      "version_minor": 0,
+      "version_patch": 1
+    }
+  ],
+  "available_height": 1562800,
+  "cpp_files": [
+    "dip_testnet_v1.cpp"
+  ],
+  "include_header_files":[
+    "../../lib/include"
+  ],
+  "link_path":[
+    "../../lib"
+  ],
+  "link_files":[
+  ],
+  "flags": [
+  ]
+
+}

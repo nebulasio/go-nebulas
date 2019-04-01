@@ -19,6 +19,7 @@
 //
 #include "common/ipc/shm_session.h"
 #include "common/common.h"
+#include "common/configuration.h"
 #include "common/exception_queue.h"
 #include "fs/util.h"
 #include <chrono>
@@ -28,13 +29,22 @@ namespace ipc {
 static std::string bookkeeper_mem_name_str = neb::fs::get_user_name() + ".nbre";
 const static char *bookkeeper_mem_name = bookkeeper_mem_name_str.c_str();
 
-void clean_shm_session_env() { clean_bookkeeper_env(bookkeeper_mem_name); }
+void clean_shm_session_env() {
+  auto bookkeeper_mem_name_str =
+      neb::configuration::instance().shm_name_identity() + std::string(".nbre");
+  auto bookkeeper_mem_name = bookkeeper_mem_name_str.c_str();
+  clean_bookkeeper_env(bookkeeper_mem_name);
+}
 namespace internal {
 size_t max_wait_fail_times = 8;
 
 shm_session_base::shm_session_base(const std::string &name)
     : quitable_thread(), m_name(name) {
   try {
+    auto bookkeeper_mem_name_str =
+        neb::configuration::instance().shm_name_identity() +
+        std::string(".nbre");
+    auto bookkeeper_mem_name = bookkeeper_mem_name_str.c_str();
     m_bookkeeper = std::unique_ptr<shm_bookkeeper>(
         new shm_bookkeeper(bookkeeper_mem_name));
       m_server_sema = m_bookkeeper->acquire_named_semaphore(server_sema_name());

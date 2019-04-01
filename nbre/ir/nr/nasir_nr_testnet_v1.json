@@ -1,0 +1,24 @@
+{
+
+  "name": "nr",
+  "version_major": 0,
+  "version_minor": 0,
+  "version_patch": 1,
+  "depends": [
+  ],
+  "available_height": 1562800,
+  "cpp_files": [
+    "nr_testnet_v1.cpp"
+  ],
+  "include_header_files":[
+    "../../lib/include"
+  ],
+  "link_path":[
+    "../../lib"
+  ],
+  "link_files":[
+  ],
+  "flags": [
+  ]
+
+}

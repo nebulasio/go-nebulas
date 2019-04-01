@@ -18,7 +18,6 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "common/ipc/shm_service_recv_handler.h"
-#include <ff/ff.h>
 
 namespace neb {
 namespace ipc {

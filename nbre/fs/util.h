@@ -29,16 +29,13 @@ std::string cur_dir();
 std::string tmp_dir();
 std::string join_path(const std::string &parent, const std::string &fp);
 std::string parent_dir(const std::string &fp);
-std::string get_user_name();
-
 bool is_absolute_path(const std::string &fp);
-
 bool exists(const std::string &p);
+std::string get_user_name();
 
 } // end namespace fs
 
 std::string now();
 
-wei_t to_wei(const std::string &hex_str);
 } // end namespace neb
 

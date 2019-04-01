@@ -8,16 +8,15 @@
     {
       "name": "nr",
       "version_major": 0,
-      "version_minor": 1,
-      "version_patch": 0
+      "version_minor": 0,
+      "version_patch": 1
     }
   ],
-  "available_height": 420,
+  "available_height": 10,
   "cpp_files": [
     "dip_release_v1.cpp"
   ],
   "include_header_files":[
-    "../../",
     "../../lib/include"
   ],
   "link_path":[

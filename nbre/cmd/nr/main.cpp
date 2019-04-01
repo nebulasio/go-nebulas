@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "common/util/version.h"
+#include "common/version.h"
 #include "runtime/nr/impl/nebulas_rank.h"
 #include "runtime/nr/impl/nr_impl.h"
 #include <boost/program_options.hpp>
@@ -60,14 +60,15 @@ int main(int argc, char *argv[]) {
 
   uint64_t start_block = vm["start_block"].as<uint64_t>();
   uint64_t end_block = vm["end_block"].as<uint64_t>();
-  auto ret = neb::rt::nr::entry_point_nr_impl(
-      start_block, end_block, neb::util::version(0, 1, 0).data(), a, b, c, d,
-      theta, mu, lambda);
-  std::cout << ret << std::endl;
-  std::cout << std::endl;
+  auto nr_ret = neb::rt::nr::entry_point_nr_impl(start_block, end_block,
+                                                 neb::version(0, 1, 0).data(),
+                                                 a, b, c, d, theta, mu, lambda);
+  // std::cout << ret << std::endl;
+  // std::cout << std::endl;
 
-  auto nr_infos = neb::rt::nr::nebulas_rank::json_to_nr_info(ret);
-  ret = neb::rt::nr::nebulas_rank::nr_info_to_json(*nr_infos);
-  std::cout << ret << std::endl;
+  if (std::get<0>(nr_ret)) {
+    auto ret = neb::rt::nr::nebulas_rank::nr_info_to_json(nr_ret);
+    std::cout << *ret << std::endl;
+  }
   return 0;
 }

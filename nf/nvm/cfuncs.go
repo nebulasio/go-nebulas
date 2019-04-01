@@ -46,6 +46,8 @@ char *InnerContractFunc(void *handler, const char *address, const char *funcName
 
 //random.
 int GetTxRandomFunc(void *handler, size_t *gasCnt, char **result, char **exceptionInfo);
+int GetLatestNebulasRankFunc(void *handler, const char *address, size_t *gasCnt, char **result, char **info);
+int GetLatestNebulasRankSummaryFunc(void *handler, size_t *gasCnt, char **result, char **info);
 
 // event.
 void EventTriggerFunc(void *handler, const char *topic, const char *data, size_t *gasCnt);
@@ -111,6 +113,14 @@ char *InnerContractFunc_cgo(void *handler, const char *address, const char *func
 int GetTxRandomFunc_cgo(void *handler, size_t *gasCnt, char **result, char **exceptionInfo) {
 	return GetTxRandomFunc(handler, gasCnt, result, exceptionInfo);
 };
+
+int GetLatestNebulasRankFunc_cgo(void *handler, const char *address, size_t *gasCnt, char **result, char **info) {
+ 	return GetLatestNebulasRankFunc(handler, address, gasCnt, result, info);
+};
+int GetLatestNebulasRankSummaryFunc_cgo(void *handler, size_t *gasCnt, char **result, char **info) {
+ 	return GetLatestNebulasRankSummaryFunc(handler, gasCnt, result, info);
+};
+
 void EventTriggerFunc_cgo(void *handler, const char *topic, const char *data, size_t *gasCnt) {
 	EventTriggerFunc(handler, topic, data, gasCnt);
 };

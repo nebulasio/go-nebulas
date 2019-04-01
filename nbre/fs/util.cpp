@@ -25,6 +25,7 @@
 
 namespace neb {
 namespace fs {
+
 std::string cur_full_path() {
   return boost::filesystem::current_path().generic_string();
 }
@@ -37,6 +38,7 @@ std::string cur_dir() {
 std::string tmp_dir() {
   return boost::filesystem::temp_directory_path().generic_string();
 }
+
 std::string join_path(const std::string &parent, const std::string &fp) {
   boost::filesystem::path cur_path(parent);
   boost::filesystem::path np = cur_path / boost::filesystem::path(fp);
@@ -47,18 +49,17 @@ std::string parent_dir(const std::string &fp) {
   boost::filesystem::path cur_path(fp);
   return cur_path.parent_path().generic_string();
 }
+
 bool is_absolute_path(const std::string &fp) {
   boost::filesystem::path cur_path(fp);
   return cur_path.is_absolute();
 }
+
 bool exists(const std::string &p) {
   return boost::filesystem::exists(boost::filesystem::path(p));
 }
-std::string get_user_name() {
-//  return std::getenv("USER");
-  //TODO(larry): Using environment variables to find the username is very unreliable. Currently use empty string.
-return std::string();
-}
+
+std::string get_user_name() { return std::string("usr"); }
 
 } // end namespace fs
 
@@ -71,11 +72,4 @@ std::string now() {
   return ret;
 }
 
-wei_t to_wei(const std::string &hex_str) {
-  std::stringstream ss;
-  ss << std::hex << hex_str;
-  neb::wei_t wei;
-  ss >> wei;
-  return wei;
-}
 } // end namespace neb

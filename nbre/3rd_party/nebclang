@@ -1,0 +1,12 @@
+#!/bin/bash
+NBRE_FLAGS="-nodefaultlibs -lc++ -lc++abi -lm -lc -lgcc_s -lgcc"
+# Catch the case when we only want to compile; this helps us avoid some warnings:
+if echo "$@" | egrep "(^-c | -c | -c$)" >/dev/null 2>&1; then
+NBRE_FLAGS=""
+fi
+CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" >/dev/null && pwd  )"
+
+# Use -stdlib=libc++ w/ clang built from source; otherwise use -I/usr/local/include/c++/v1
+$CUR_DIR/llvm-lib/bin/clang++ -stdlib=libc++ "$@" $NBRE_LFLAGS
+
+#$CUR_DIR/llvm-lib/bin/clang++  "$@" $NBRE_FLAGS

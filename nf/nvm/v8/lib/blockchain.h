@@ -34,8 +34,9 @@ void TransferCallback(const FunctionCallbackInfo<Value> &info);
 void VerifyAddressCallback(const FunctionCallbackInfo<Value> &info);
 void GetPreBlockHashCallback(const FunctionCallbackInfo<Value> &info); 
 void GetPreBlockSeedCallback(const FunctionCallbackInfo<Value> &info); 
-
 void GetContractSourceCallback(const FunctionCallbackInfo<Value> &info);
 void RunInnerContractSourceCallBack(const FunctionCallbackInfo<Value> &info);
+void GetLatestNebulasRankCallback(const FunctionCallbackInfo<Value> &info);
+void GetLatestNebulasRankSummaryCallback(const FunctionCallbackInfo<Value> &info);
 
 #endif //_NEBULAS_NF_NVM_V8_LIB_BLOCKCHAIN_H_

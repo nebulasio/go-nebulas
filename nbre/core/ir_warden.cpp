@@ -19,9 +19,7 @@
 //
 
 #include "core/ir_warden.h"
-#include "common/timer_loop.h"
 #include "core/command.h"
-#include "core/neb_ipc/server/ipc_configuration.h"
 #include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -58,7 +56,7 @@ void ir_warden::wait_until_sync() {
 }
 
 void ir_warden::on_timer() {
-  m_ir_manager->parse_irs_till_latest();
+  m_ir_manager->parse_irs(m_queue);
   std::unique_lock<std::mutex> _l(m_sync_mutex);
   if (!m_is_sync_already) {
     m_is_sync_already = true;
@@ -67,10 +65,13 @@ void ir_warden::on_timer() {
   }
 }
 
+void ir_warden::on_receive_ir_transactions(
+    const std::shared_ptr<nbre_ir_transactions_req> &txs_ptr) {
+  m_queue.push_back(txs_ptr);
+}
+
 ir_warden::ir_warden() : m_is_sync_already(false) {
-  m_ir_manager = std::make_unique<fs::ir_manager>(
-      neb::core::ipc_configuration::instance().nbre_db_dir(),
-      neb::core::ipc_configuration::instance().neb_db_dir());
+  m_ir_manager = std::make_unique<fs::ir_manager>();
 }
 }
 } // namespace neb

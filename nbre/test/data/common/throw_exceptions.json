@@ -1,0 +1,22 @@
+{
+  "nametest": "mmm",
+  "major": 1,
+  "minor": 2,
+  "patch": 3,
+  "depends": [
+    {
+  "name": "oy",
+  "version_m": 11,
+  "version_or": 12,
+  "version_p": 13
+    },
+    {
+  "name": "zzz",
+  "version_major": 21,
+  "version_minor": 22,
+  "version_patch": 23
+    }
+  ],
+  "available_height": 1599999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999,
+  "ir_file_path": "ir_file"
+}

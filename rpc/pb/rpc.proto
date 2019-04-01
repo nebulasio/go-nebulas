@@ -143,18 +143,33 @@ service ApiService {
         };
     }
 
-    // get nr hash with height interval
-    rpc GetNRHash (GetNRHashRequest) returns (GetNRHashResponse) {
-		option (google.api.http) = {
-            post: "/v1/user/getNrHash"
+    // get nr by address
+    rpc GetNRByAddress (GetNRByAddressRequest) returns (NRItem) {
+        option (google.api.http) = {
+            post: "/v1/user/nr"
+            body: "*"
+		};
+    }
+
+    // get latest nr list
+    rpc GetLatestNRList (NonParamsRequest) returns (GetNRListResponse) {
+        option (google.api.http) = {
+            get: "/v1/user/getLatestNrList"
+		};
+    }
+
+    // get nr handle with height interval
+    rpc GetNRHandle (GetNRHandleRequest) returns (GetNRHandleResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/getNrHandle"
             body: "*"
 		};
     }
 
     // get nr list by hash, which returned by `GetNRHash`
-    rpc GetNRList (GetNRListRequest) returns (GetNRListResponse) {
+    rpc GetNRListByHandle (GetNRListByHandleRequest) returns (GetNRListResponse) {
         option (google.api.http) = {
-            post: "/v1/user/getNrList"
+            post: "/v1/user/getNrListByHandle"
             body: "*"
 		};
     }
@@ -359,6 +374,12 @@ message GetAccountStateResponse {
 
     // Account type
     uint32 type = 3;
+
+    // Block height
+    uint64 height = 4;
+
+    // Current sender pending tx count
+    uint64 pending = 5;
 }
 
 // Response message of Call rpc.
@@ -700,24 +721,29 @@ message VerifySignatureResponse {
     string address = 2;
 }
 
-message GetNRHashRequest {
+message GetNRByAddressRequest {
+    // nr address
+    string address = 1;
+}
+
+message GetNRHandleRequest {
     // start block height of nr calculate interval
     uint64 start = 1;
 
     // end block height of nr calculate interval. If not specified, use 0 as tail height.
     uint64 end = 2;
 
-    // nr version 
+    // nr version
     uint64 version = 3;
 }
 
-message GetNRHashResponse {
-    string hash = 1;
+message GetNRHandleResponse {
+    string handle = 1;
 }
 
-message GetNRListRequest {
-    // nr hash
-    string hash = 1;
+message GetNRListByHandleRequest {
+    // nr handle
+    string handle = 1;
 }
 
 message GetNRListResponse {
@@ -732,7 +758,19 @@ message GetNRListResponse {
     uint64 end = 3;
 
     // nr data list
-    repeated NData data = 4;
+    repeated NRItem data = 4;
+}
+
+message NRItem {
+    // nr address
+    string address = 1;
+
+    // score of nr.
+    string score = 2;
+
+    string median = 3;
+
+    string weight = 4;
 }
 
 message GetDIPListRequest {
@@ -751,13 +789,16 @@ message GetDIPListResponse {
     uint64 end = 3;
 
     // dip data list
-    repeated NData data = 4;
+    repeated DIPItem data = 4;
 }
 
-message NData {
+message DIPItem {
     // dip address
     string address = 1;
 
+    // dip contract address
+    string contract = 2;
+
     // value of dip reward.
-    string value = 2;
+    string value = 3;
 }

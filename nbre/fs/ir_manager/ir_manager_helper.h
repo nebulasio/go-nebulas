@@ -19,6 +19,7 @@
 //
 
 #pragma once
+#include "common/address.h"
 #include "fs/blockchain.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/rocksdb_storage.h"
@@ -27,7 +28,7 @@
 namespace neb {
 namespace fs {
 
-typedef std::tuple<module_t, version_t, address_t> auth_key_t;
+typedef std::tuple<module_t, address_t> auth_key_t;
 typedef std::tuple<start_block_t, end_block_t> auth_val_t;
 
 class ir_manager_helper {
@@ -46,7 +47,7 @@ public:
 
   static void deploy_auth_table(rocksdb_storage *rs, nbre::NBREIR &nbre_ir,
                                 std::map<auth_key_t, auth_val_t> &auth_table,
-                                const neb::util::bytes &payload_bytes);
+                                const neb::bytes &payload_bytes);
   static void
   show_auth_table(const std::map<auth_key_t, auth_val_t> &auth_table);
 
@@ -55,10 +56,14 @@ public:
                                  rocksdb_storage *rs);
 
   static void deploy_ir(const std::string &name, uint64_t version,
-                        const neb::util::bytes payload_bytes,
-                        rocksdb_storage *rs);
+                        const neb::bytes &payload_bytes, rocksdb_storage *rs);
+
+  static void compile_payload_code(nbre::NBREIR *nbre_ir, bytes &payload_bytes);
 
 private:
+  static void deploy_cpp(const std::string &name, uint64_t version,
+                         const std::string &cpp_content, rocksdb_storage *rs);
+
   static void update_to_storage(const std::string &key,
                                 const boost::property_tree::ptree &val_pt,
                                 rocksdb_storage *rs);

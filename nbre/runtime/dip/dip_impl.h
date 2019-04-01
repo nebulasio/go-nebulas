@@ -20,22 +20,32 @@
 
 #pragma once
 
+#include "common/common.h"
 #include "common/math/softfloat.hpp"
-#include <string>
+#include "runtime/dip/dip_handler.h"
+#include "runtime/dip/dip_reward.h"
+#include "runtime/nr/impl/nebulas_rank.h"
+#include "runtime/stdrt.h"
 
 namespace neb {
 namespace rt {
 namespace dip {
 
 using dip_float_t = float32;
-using version_t = uint64_t;
-std::string entry_point_dip_impl(uint64_t start_block, uint64_t end_block,
-                                 version_t version, uint64_t height,
-                                 const std::string &nr_result,
-                                 dip_float_t alpha, dip_float_t beta);
+using version_t = compatible_uint64_t;
+using nr_info_t = ::neb::rt::nr::nr_info_t;
 
-void init_dip_params(uint64_t dip_start_block, uint64_t dip_block_interval,
-                     const std::string &dip_reward_addr);
+dip_ret_type entry_point_dip_impl(compatible_uint64_t start_block,
+                                  compatible_uint64_t end_block,
+                                  version_t version, compatible_uint64_t height,
+                                  const nr::nr_ret_type &nr_ret,
+                                  dip_float_t alpha, dip_float_t beta);
+
+std::string dip_param_list(compatible_uint64_t dip_start_block,
+                           compatible_uint64_t dip_block_interval,
+                           const std::string &dip_reward_addr,
+                           const std::string &coinbase_addr, version_t v);
+
 } // namespace dip
 } // namespace rt
 } // namespace neb

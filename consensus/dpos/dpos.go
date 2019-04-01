@@ -19,10 +19,7 @@
 package dpos
 
 import (
-	"errors"
 	"time"
-
-	"github.com/nebulasio/go-nebulas/common/trie"
 
 	"github.com/nebulasio/go-nebulas/rpc"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
@@ -31,42 +28,12 @@ import (
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core"
-	metrics "github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
-)
-
-// const
-const (
-	DefaultMaxUnlockDuration time.Duration = 1<<63 - 1
-)
-
-// Errors in PoW Consensus
-var (
-	ErrInvalidBlockTimestamp      = errors.New("invalid block timestamp, should be same as consensus's timestamp")
-	ErrInvalidBlockInterval       = errors.New("invalid block interval")
-	ErrMissingConfigForDpos       = errors.New("missing configuration for Dpos")
-	ErrInvalidBlockProposer       = errors.New("invalid block proposer")
-	ErrCannotMintWhenPending      = errors.New("cannot mint block now, waiting for cancel pending again")
-	ErrCannotMintWhenDisable      = errors.New("cannot mint block now, waiting for enable it again")
-	ErrWaitingBlockInLastSlot     = errors.New("cannot mint block now, waiting for last block")
-	ErrBlockMintedInNextSlot      = errors.New("cannot mint block now, there is a block minted in current slot")
-	ErrGenerateNextConsensusState = errors.New("Failed to generate next consensus state")
-	ErrDoubleBlockMinted          = errors.New("double block minted")
-	ErrAppendNewBlockFailed       = errors.New("failed to append new block to real chain")
-	ErrInvalidArgument            = errors.New("invalid argument")
-)
-
-// Metrics
-var (
-	metricsBlockPackingTime = metrics.NewGauge("neb.block.packing")
-	metricsBlockWaitingTime = metrics.NewGauge("neb.block.waiting")
-	metricsLruPoolSlotBlock = metrics.NewGauge("neb.block.lru.poolslot")
-	metricsMintBlock        = metrics.NewCounter("neb.block.mint")
 )
 
 // Dpos Delegate Proof-of-Stake
@@ -76,6 +43,8 @@ type Dpos struct {
 	chain *core.BlockChain
 	ns    net.Service
 	am    core.AccountManager
+
+	dynasty *Dynasty
 
 	coinbase               *core.Address
 	miner                  *core.Address
@@ -103,6 +72,12 @@ func (dpos *Dpos) Setup(neblet core.Neblet) error {
 	dpos.chain = neblet.BlockChain()
 	dpos.ns = neblet.NetService()
 	dpos.am = neblet.AccountManager()
+
+	dynasty, err := NewDynasty(neblet)
+	if err != nil {
+		return err
+	}
+	dpos.dynasty = dynasty
 
 	chainConfig := neblet.Config().Chain
 	if chainConfig.StartMine {
@@ -354,7 +329,7 @@ func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 		err    error
 	)
 
-	cs, err := dpos.getDynastyTrieAtTimestamp(block.Timestamp())
+	cs, err := dpos.dynasty.getDynasty(block.Timestamp())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   err,
@@ -748,51 +723,4 @@ func (dpos *Dpos) findProposer(now int64) (proposer byteutils.Hash, err error) {
 // NumberOfBlocksInDynasty number of blocks in one dynasty
 func (dpos *Dpos) NumberOfBlocksInDynasty() uint64 {
 	return uint64(DynastyIntervalInMs) / uint64(BlockIntervalInMs)
-}
-
-func (dpos *Dpos) getNextDynastyTrieOfState(ds *State) (*trie.Trie, error) {
-	var (
-		dt  *trie.Trie
-		err error
-	)
-	dt = core.GenesisDynastyTrie
-	if core.DynastyConf != nil {
-		core.InitDynastyFromConf(dpos.chain, BlockIntervalInMs/SecondInMs, DynastyIntervalInMs/SecondInMs)
-		if core.GenesisRealTimestamp > 0 && (ds.timestamp-core.GenesisRealTimestamp) >= core.InitialDynastyKeepTime {
-			dt = core.DynastyTrie
-			logging.VLog().WithFields(logrus.Fields{
-				"chainId":               core.DynastyConf.Meta.ChainId,
-				"currentStateTimestamp": ds.timestamp,
-			}).Debug("Select next dynasty by current state.")
-		}
-	}
-
-	dynastyTrie, err := dt.Clone()
-	if err != nil {
-		return nil, err
-	}
-	return dynastyTrie, nil
-}
-
-func (dpos *Dpos) getDynastyTrieAtTimestamp(ts int64) (*trie.Trie, error) {
-	var (
-		dt  *trie.Trie
-		err error
-	)
-	dt = core.GenesisDynastyTrie
-	if core.DynastyConf != nil {
-		core.InitDynastyFromConf(dpos.chain, BlockIntervalInMs/SecondInMs, DynastyIntervalInMs/SecondInMs)
-		if core.GenesisRealTimestamp > 0 && (ts-core.GenesisRealTimestamp) > core.InitialDynastyKeepTime {
-			dt = core.DynastyTrie
-			logging.VLog().WithFields(logrus.Fields{
-				"chainId":   core.DynastyConf.Meta.ChainId,
-				"timestamp": ts,
-			}).Debug("Select dynasty by timestamp.")
-		}
-	}
-	dynastyTrie, err := dt.Clone()
-	if err != nil {
-		return nil, err
-	}
-	return dynastyTrie, nil
 }

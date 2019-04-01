@@ -7,5 +7,5 @@ set(common_libs ${common_libs}
 )
 
 add_subdirectory(common)
-add_subdirectory(fs)
+#add_subdirectory(fs)
 add_subdirectory(core)

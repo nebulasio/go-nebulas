@@ -4,6 +4,7 @@ profile/
 
 # vendor dir.
 vendor
+vendor.*
 
 # ide files.
 .idea
@@ -16,13 +17,13 @@ vendor
 neb
 neb-*
 cmd/network/network
-nebulas_crashreporter
 !cmd/neb
 debug
 cmd/console/neb.js/dist/
 *.report
 *.report.xml
 *.log
+native-lib
 
 # test debug
 *.test
@@ -72,6 +73,7 @@ nbre/3rd_party/zlib
 nbre/3rd_party/zstd-1.1.3/
 nbre/3rd_party/gflags/
 nbre/3rd_party/grpc
+nbre/3rd_party/cryptopp/
 
 nbre/bin/
 nbre/build/

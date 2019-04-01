@@ -24,6 +24,8 @@
 #include <algorithm>
 #include <array>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <boost/thread/shared_lock_guard.hpp>
+#include <boost/thread/shared_mutex.hpp>
 #include <cstdint>
 #include <glog/logging.h>
 #include <iostream>
@@ -38,6 +40,11 @@
 #include <vector>
 
 namespace neb {
+
+#define LOG_FLUSH(LEVEL, MSG)                                                  \
+  LOG(LEVEL) << MSG;                                                           \
+  google::FlushLogFiles(google::LEVEL);
+
 typedef std::string hex_hash_t;
 typedef uint8_t byte_t;
 typedef uint64_t block_height_t;
@@ -45,19 +52,18 @@ extern std::string program_name;
 
 typedef std::string module_t;
 typedef uint64_t version_t;
-typedef std::string address_t;
 typedef block_height_t start_block_t;
 typedef block_height_t end_block_t;
-typedef std::tuple<module_t, version_t, address_t, block_height_t,
-                   block_height_t>
-    auth_row_t;
-typedef std::vector<auth_row_t> auth_table_t;
 
 typedef boost::multiprecision::int128_t int128_t;
 typedef boost::multiprecision::uint128_t uint128_t;
 typedef int128_t wei_t;
 
 typedef float32 floatxx_t;
+
+constexpr int32_t tx_status_fail = 0;
+constexpr int32_t tx_status_succ = 1;
+constexpr int32_t tx_status_special = 2; // only in the genesis block
 
 namespace tcolor {
 const static char *red = "\033[1;31m";
@@ -68,4 +74,9 @@ const static char *magenta = "\033[1;35m";
 const static char *cyan = "\033[1;36m";
 const static char *reset = "\033[0m";
 }
+
+namespace ir_type {
+const static std::string llvm = "llvm";
+const static std::string cpp = "cpp";
+};
 }

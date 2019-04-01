@@ -52,6 +52,9 @@ ignored=[
   name = "github.com/urfave/cli"
   version ="1.19.1"
 
+[[constraint]]
+  name = "github.com/tecbot/gorocksdb"
+  revision = "3e476152774442234f9a9f747386a48a1d82a515"
 
 [[constraint]]
   name = "github.com/libp2p/go-sockaddr"

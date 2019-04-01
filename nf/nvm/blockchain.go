@@ -27,6 +27,8 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/nebulasio/go-nebulas/nr"
+
 	"encoding/json"
 
 	"github.com/gogo/protobuf/proto"
@@ -239,6 +241,16 @@ func transfer(e *V8Engine, from *core.Address, to *core.Address, amount *util.Ui
 		}).Error("Failed to get from account state")
 		return ErrTransferGetAccount
 	}
+	// TestNet sync adjust
+	if amount == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(e.lcsHandler),
+			"address": from,
+			"err":     err,
+		}).Error("Failed to get amount failed.")
+		return ErrTransferStringToUint128
+	}
+
 	// update balance
 	if amount.Cmp(util.NewUint128()) > 0 {
 		err = fromAcc.SubBalance(amount) //TODO: add unit amount不足，超大, NaN
@@ -317,15 +329,18 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 
 	transferValueStr := C.GoString(v)
 	amount, err := util.NewUint128FromString(transferValueStr)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"handler": uint64(uintptr(handler)),
-			"address": addr.String(),
-			"err":     err,
-			"val":     transferValueStr,
-		}).Error("Failed to get amount failed.")
-		recordTransferEvent(ErrTransferStringToUint128, cAddr.String(), addr.String(), transferValueStr, height, wsState, txHash)
-		return ErrTransferStringToUint128
+	// in old world state, accountstate create before amount check
+	if core.NvmValueCheckUpdateHeight(height) {
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"handler": uint64(uintptr(handler)),
+				"address": addr.String(),
+				"err":     err,
+				"val":     transferValueStr,
+			}).Error("Failed to get amount failed.")
+			recordTransferEvent(ErrTransferStringToUint128, cAddr.String(), addr.String(), transferValueStr, height, wsState, txHash)
+			return ErrTransferStringToUint128
+		}
 	}
 	ret := TransferByAddress(handler, cAddr, addr, amount)
 
@@ -582,8 +597,16 @@ func createInnerContext(engine *V8Engine, fromAddr *core.Address, toAddr *core.A
 	if err != nil {
 		return nil, err
 	}
+
+	// test sync adaptation
+	// In Testnet, before nbre available height, inner to address is fromAddr that is a bug.
+	innerToAddr := toAddr
+	if engine.ctx.tx.ChainID() == core.TestNetID &&
+		!core.NbreAvailableHeight(engine.ctx.block.Height()) {
+		innerToAddr = fromAddr
+	}
 	parentTx := engine.ctx.tx
-	newTx, err := parentTx.NewInnerTransaction(parentTx.To(), fromAddr, value, payloadType, newPayloadHex)
+	newTx, err := parentTx.NewInnerTransaction(parentTx.To(), innerToAddr, value, payloadType, newPayloadHex)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"from":  fromAddr.String(),
@@ -632,6 +655,12 @@ func recordInnerContractEvent(err error, from string, to string, value string, w
 
 }
 
+// In earlier versions of inter-contract invocation, inconsistent logic resulted in inconsistent data on the chain, requiring adaptation.
+func earlierTestnetInnerTxCompatibility(engine *V8Engine) bool {
+	testnetUpdateHeight := uint64(845750)
+	return engine.ctx.tx.ChainID() == core.TestNetID && engine.ctx.block.Height() < testnetUpdateHeight
+}
+
 // InnerContractFunc multi run contract. output[c standard]: if err return nil else return "*"
 //export InnerContractFunc
 func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char, v *C.char, args *C.char, gasCnt *C.size_t) *C.char {
@@ -655,38 +684,117 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		return nil
 	}
 
-	payload, err := getPayloadByAddress(ws, C.GoString(address))
-	if err != nil {
-		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
-		return nil
-	}
-	deploy := payload.deploy
+	var (
+		newCtx   *Context
+		deploy   *core.DeployPayload
+		fromAddr *core.Address
+		toValue  *util.Uint128
+	)
 
 	parentTx := engine.ctx.tx
-	from := engine.ctx.contract.Address()
-	fromAddr, err := core.AddressParseFromBytes(from)
-	if err != nil {
-		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
-		return nil
-	}
-	//transfer
 	innerTxValueStr := C.GoString(v)
-	toValue, err := util.NewUint128FromString(innerTxValueStr)
-	if err != nil {
-		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
-		return nil
-	}
-	iRet := TransferByAddress(handler, fromAddr, addr, toValue)
-	if iRet != 0 {
-		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, ErrInnerTransferFailed.Error(), true)
-		return nil
+	if earlierTestnetInnerTxCompatibility(engine) {
+		contract, err := core.CheckContract(addr, ws)
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+		logging.VLog().Infof("inner contract:%v", contract.ContractMeta()) //FIXME: ver limit
+
+		payload, err := getPayloadByAddress(ws, C.GoString(address))
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+		deploy = payload.deploy
+		//run
+		payloadType := core.TxPayloadCallType
+		callpayload, err := core.NewCallPayload(C.GoString(funcName), C.GoString(args))
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+		newPayloadHex, err := callpayload.ToBytes()
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+
+		from := engine.ctx.contract.Address()
+		fromAddr, err = core.AddressParseFromBytes(from)
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+		//transfer
+		// var transferCostGas uint64
+		toValue, err = util.NewUint128FromString(innerTxValueStr)
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+		iRet := TransferByAddress(handler, fromAddr, addr, toValue)
+		if iRet != 0 {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, ErrInnerTransferFailed.Error(), true)
+			return nil
+		}
+
+		newTx, err := parentTx.NewInnerTransaction(parentTx.To(), addr, toValue, payloadType, newPayloadHex)
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), false)
+			logging.VLog().WithFields(logrus.Fields{
+				"from":  fromAddr.String(),
+				"to":    addr.String(),
+				"value": innerTxValueStr,
+				"err":   err,
+			}).Error("failed to create new tx")
+			return nil
+		}
+		// event address need to user
+		var head unsafe.Pointer
+		if engine.ctx.head == nil {
+			head = unsafe.Pointer(engine.v8engine)
+		} else {
+			head = engine.ctx.head
+		}
+		newCtx, err = NewInnerContext(engine.ctx.block, newTx, contract, engine.ctx.state, head, engine.ctx.index+1, engine.ctx.contextRand)
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+	} else {
+		payload, err := getPayloadByAddress(ws, C.GoString(address))
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+		deploy = payload.deploy
+
+		from := engine.ctx.contract.Address()
+		fromAddr, err = core.AddressParseFromBytes(from)
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+		//transfer
+		toValue, err = util.NewUint128FromString(innerTxValueStr)
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
+		iRet := TransferByAddress(handler, fromAddr, addr, toValue)
+		if iRet != 0 {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, ErrInnerTransferFailed.Error(), true)
+			return nil
+		}
+
+		newCtx, err = createInnerContext(engine, fromAddr, addr, toValue, C.GoString(funcName), C.GoString(args))
+		if err != nil {
+			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
+			return nil
+		}
 	}
 
-	newCtx, err := createInnerContext(engine, fromAddr, addr, toValue, C.GoString(funcName), C.GoString(args))
-	if err != nil {
-		setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
-		return nil
-	}
 	remainInstruction, remainMem := engine.GetNVMLeftResources()
 	if remainInstruction <= uint64(InnerContractGasBase) {
 		logging.VLog().WithFields(logrus.Fields{
@@ -731,4 +839,97 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 
 	logging.VLog().Infof("end cal val:%v,gascount:%v,gasSum:%v, engine index:%v", val, gasCout, gasSum, index)
 	return C.CString(string(val))
+}
+
+// GetLatestNebulasRankFunc returns nebulas rank value of given account address
+//export GetLatestNebulasRankFunc
+func GetLatestNebulasRankFunc(handler unsafe.Pointer, address *C.char,
+	gasCnt *C.size_t, result **C.char, exceptionInfo **C.char) int {
+
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	if engine == nil || engine.ctx.block == nil {
+		logging.VLog().Error("Unexpected error: failed to get engine")
+		return C.NVM_UNEXPECTED_ERR
+	}
+
+	*result = nil
+	*exceptionInfo = nil
+	*gasCnt = C.size_t(GetLatestNebulasRankGasBase)
+
+	addr, err := core.AddressParse(C.GoString(address))
+	if err != nil {
+		*exceptionInfo = C.CString("Address is invalid")
+		return C.NVM_EXCEPTION_ERR
+	}
+
+	data, err := engine.ctx.block.NR().GetNRListByHeight(engine.ctx.block.Height())
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": engine.ctx.block.Height(),
+			"addr":   addr,
+			"err":    err,
+		}).Debug("Failed to get nr list")
+		*exceptionInfo = C.CString("Failed to get nr list")
+		return C.NVM_EXCEPTION_ERR
+	}
+
+	nrData := data.(*nr.NRData)
+	nr, err := func(list *nr.NRData, addr *core.Address) (*nr.NRItem, error) {
+		for _, nr := range nrData.Nrs {
+			if nr.Address == addr.String() {
+				return nr, nil
+			}
+		}
+		return nil, nr.ErrNRNotFound
+	}(nrData, addr)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": engine.ctx.block.Height(),
+			"addr":   addr,
+			"err":    err,
+		}).Debug("Failed to find nr value")
+		*exceptionInfo = C.CString("Failed to find nr value")
+		return C.NVM_EXCEPTION_ERR
+	}
+
+	*result = C.CString(nr.Score)
+	return C.NVM_SUCCESS
+}
+
+// GetLatestNebulasRankSummaryFunc returns nebulas rank summary info.
+//export GetLatestNebulasRankSummaryFunc
+func GetLatestNebulasRankSummaryFunc(handler unsafe.Pointer,
+	gasCnt *C.size_t, result **C.char, exceptionInfo **C.char) int {
+
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	if engine == nil || engine.ctx.block == nil {
+		logging.VLog().Error("Unexpected error: failed to get engine")
+		return C.NVM_UNEXPECTED_ERR
+	}
+
+	*result = nil
+	*exceptionInfo = nil
+	*gasCnt = C.size_t(GetLatestNebulasRankSummaryGasBase)
+
+	data, err := engine.ctx.block.NR().GetNRSummary(engine.ctx.block.Height())
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": engine.ctx.block.Height(),
+			"err":    err,
+		}).Debug("Failed to get nr summary info")
+		*exceptionInfo = C.CString("Failed to get nr summary")
+		return C.NVM_EXCEPTION_ERR
+	}
+
+	bytes, err := data.ToBytes()
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": engine.ctx.block.Height(),
+			"err":    err,
+		}).Debug("Failed to serialize nr summary info")
+		*exceptionInfo = C.CString("Failed to serialize nr summary")
+		return C.NVM_EXCEPTION_ERR
+	}
+	*result = C.CString(string(bytes))
+	return C.NVM_SUCCESS
 }

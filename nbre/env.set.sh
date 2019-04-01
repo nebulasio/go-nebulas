@@ -18,14 +18,11 @@ case "$(uname -s)" in
 *) ;;
 esac
 
-export NBRE_DB=$CUR_DIR/test/data/write-data.db
-export BLOCKCHAIN_DB=$CUR_DIR/test/data/read-data.db
-
 USER=`whoami`
-NEBULAS_HOME=/home/$USER/go/src/github.com/nebulasio/go-nebulas
+NEBULAS_HOME=$CUR_DIR/../
 
 export NBRE_ROOT_DIR=$NEBULAS_HOME/nbre
 export NBRE_EXE_NAME=$NBRE_ROOT_DIR/nbre
 export NEB_DB_DIR=$NEBULAS_HOME/data.db
-export NBRE_DB_DIR=$NBRE_ROOT_DIR/test/data/write-data.db
+export NBRE_DB_DIR=$NBRE_ROOT_DIR/nbre.db
 export NBRE_LOG_DIR=$NBRE_ROOT_DIR/logs

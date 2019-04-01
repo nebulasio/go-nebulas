@@ -30,11 +30,15 @@ namespace math {
 namespace internal {
 
 template <typename T> T __get_pi() {
-  T i = softfloat_cast<uint32_t, typename T::value_type>(1);
-  bool odd = true;
-  T ret = softfloat_cast<uint32_t, typename T::value_type>(0);
-  T four = softfloat_cast<uint32_t, typename T::value_type>(4);
+  T zero = softfloat_cast<uint32_t, typename T::value_type>(0);
+  T one = softfloat_cast<uint32_t, typename T::value_type>(1);
   T two = softfloat_cast<uint32_t, typename T::value_type>(2);
+  T four = softfloat_cast<uint32_t, typename T::value_type>(4);
+
+  T ret = zero;
+  T i = one;
+  bool odd = true;
+
   while (true) {
     T tmp;
     auto x = four / i;
@@ -42,6 +46,32 @@ template <typename T> T __get_pi() {
       tmp = ret + x;
     } else {
       tmp = ret - x;
+    }
+    if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
+      break;
+    }
+    ret = tmp;
+    i += two;
+    odd = !odd;
+  }
+  return ret;
+}
+
+template <typename T> T __fast_get_pi() {
+  T one = softfloat_cast<uint32_t, typename T::value_type>(1);
+  T two = softfloat_cast<uint32_t, typename T::value_type>(2);
+  T four = softfloat_cast<uint32_t, typename T::value_type>(4);
+
+  T ret = one + two;
+  T i = two;
+  bool odd = true;
+  while (true) {
+    T tmp;
+    auto tail = four / (i * (i + one) * (i + two));
+    if (odd) {
+      tmp = ret + tail;
+    } else {
+      tmp = ret - tail;
     }
     if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
       break;
@@ -76,11 +106,12 @@ template <typename T> T __get_e() {
 }
 
 template <typename T> T __get_ln2() {
+  T zero = softfloat_cast<uint32_t, typename T::value_type>(0);
   T one = softfloat_cast<uint32_t, typename T::value_type>(1);
-  T ret = softfloat_cast<uint32_t, typename T::value_type>(0);
-  bool odd = true;
 
+  T ret = zero;
   T i = one;
+  bool odd = true;
 
   while (true) {
     T tmp;
@@ -98,6 +129,35 @@ template <typename T> T __get_ln2() {
     odd = !odd;
   }
   return ret;
+}
+
+template <typename T> T __fast_get_ln2() {
+  T zero = softfloat_cast<uint32_t, typename T::value_type>(0);
+  T one = softfloat_cast<uint32_t, typename T::value_type>(1);
+  T two = softfloat_cast<uint32_t, typename T::value_type>(2);
+
+  auto func = [&](T x) {
+    T ret = zero;
+    T s = two * x;
+    T i = one;
+    T x2 = x * x;
+
+    while (true) {
+      T tmp;
+
+      tmp = ret + s / i;
+      if (tmp - ret < MATH_MIN && ret - tmp < MATH_MIN) {
+        break;
+      }
+
+      ret = tmp;
+      i += two;
+      s = s * x2;
+    }
+    return ret;
+  };
+
+  return func((two - one) / (two + one));
 }
 
 } // namespace internal
@@ -119,8 +179,8 @@ public:
 
 protected:
   static void init() {
-    s_pi = internal::__get_pi<T>();
-    s_ln2 = internal::__get_ln2<T>();
+    s_pi = internal::__fast_get_pi<T>();
+    s_ln2 = internal::__fast_get_ln2<T>();
     s_e = internal::__get_e<T>();
   }
   static T s_pi;

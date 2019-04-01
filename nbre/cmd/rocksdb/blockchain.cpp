@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "common/util/version.h"
+#include "common/version.h"
 #include "fs/ir_manager/ir_manager.h"
 #include "fs/proto/block.pb.h"
 #include "fs/proto/ir.pb.h"
@@ -71,9 +71,8 @@ int main(int argc, char *argv[]) {
   neb::block_height_t height = vm["height"].as<neb::block_height_t>();
   auto f_block_hash = [&](neb::block_height_t height) {
     auto block_hash_bytes =
-        rs.get_bytes(neb::util::number_to_byte<neb::util::bytes>(height));
-    LOG(INFO) << neb::util::byte_to_number<neb::block_height_t>(
-        block_hash_bytes);
+        rs.get_bytes(neb::number_to_byte<neb::bytes>(height));
+    LOG(INFO) << neb::byte_to_number<neb::block_height_t>(block_hash_bytes);
   };
   f_block_hash(height);
 

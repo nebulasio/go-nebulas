@@ -18,26 +18,27 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "common/util/byte.h"
+#include "common/address.h"
+#include "common/byte.h"
 #include <gtest/gtest.h>
 
 TEST(test_common_util, simple) {
   int32_t v = 123;
   neb::byte_t buf[4];
-  neb::util::number_to_byte(v, buf, 4);
+  neb::number_to_byte(v, buf, 4);
 
-  int32_t ret = neb::util::byte_to_number<int32_t>(buf, 4);
+  int32_t ret = neb::byte_to_number<int32_t>(buf, 4);
 
   EXPECT_EQ(v, ret);
 }
 
 template <typename NT>
 void test_number_bytes(NT v, const std::initializer_list<neb::byte_t> &l) {
-  neb::util::bytes b = neb::util::number_to_byte<neb::util::bytes>(v);
+  neb::bytes b = neb::number_to_byte<neb::bytes>(v);
 
-  neb::util::bytes wb(l);
+  neb::bytes wb(l);
   EXPECT_EQ(b, wb);
-  EXPECT_EQ(v, neb::util::byte_to_number<NT>(wb));
+  EXPECT_EQ(v, neb::byte_to_number<NT>(wb));
 }
 TEST(test_common_util_byte, from_uint64) {
   test_number_bytes<uint64_t>(0, {0, 0, 0, 0, 0, 0, 0, 0});
@@ -84,18 +85,17 @@ TEST(test_common_util, from_int16) {
 }
 
 TEST(test_common_util_byte, to_string) {
-  neb::util::bytes bytes(
-      {72, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100});
-  std::string result = neb::util::byte_to_string(bytes);
+  neb::bytes bytes({72, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100});
+  std::string result = neb::byte_to_string(bytes);
   std::string want("Hello, world");
   EXPECT_EQ(result, want);
 
-  neb::util::bytes bs = neb::util::string_to_byte(result);
+  neb::bytes bs = neb::string_to_byte(result);
   EXPECT_EQ(bs, bytes);
 }
 
 TEST(test_common_util_byte, test_default) {
-  neb::util::fix_bytes<> fb;
+  neb::fix_bytes<> fb;
 
   std::string base58 = fb.to_base58();
 
@@ -103,26 +103,26 @@ TEST(test_common_util_byte, test_default) {
 }
 
 TEST(test_common_util_byte, fix_bytes_to_base58) {
-  neb::util::fix_bytes<6> fb({32, 119, 111, 114, 108, 100});
+  neb::fix_bytes<6> fb({32, 119, 111, 114, 108, 100});
 
   std::string result = fb.to_base58();
-  neb::util::fix_bytes<6> tb = neb::util::fix_bytes<6>::from_base58(result);
+  neb::fix_bytes<6> tb = neb::fix_bytes<6>::from_base58(result);
 
   EXPECT_EQ(fb, tb);
 }
 
 TEST(test_common_util_byte, fix_bytes_to_hex) {
-  neb::util::fix_bytes<6> fb({132, 11, 111, 104, 18, 100});
+  neb::fix_bytes<6> fb({132, 11, 111, 104, 18, 100});
 
   std::string result = fb.to_hex();
-  neb::util::fix_bytes<6> tb = neb::util::fix_bytes<6>::from_hex(result);
+  neb::fix_bytes<6> tb = neb::fix_bytes<6>::from_hex(result);
   EXPECT_EQ(fb, tb);
 
   auto tf = [](const std::string &hexstring,
                const std::initializer_list<neb::byte_t> &hexbytes) {
-    neb::util::bytes bytes(hexbytes);
+    neb::bytes bytes(hexbytes);
     EXPECT_EQ(bytes.to_hex(), hexstring);
-    EXPECT_EQ(bytes, neb::util::bytes::from_hex(hexstring));
+    EXPECT_EQ(bytes, neb::bytes::from_hex(hexstring));
   };
   tf("a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
      {167, 255, 198, 248, 191, 30,  215, 102, 81, 193, 71,
@@ -188,14 +188,16 @@ void test_constructor() {
 }
 
 TEST(test_common_util_byte, fix_byte_constructor) {
-  test_constructor<neb::util::fix_bytes<>>();
-  test_constructor<neb::util::bytes>();
+  test_constructor<neb::fix_bytes<>>();
+  test_constructor<neb::bytes>();
 }
 
 TEST(test_common_util_byte, throw_make_array) {
-  EXPECT_THROW(neb::util::fix_bytes<> bytes({53,  80, 171, 169, 116, 146, 222, 56,  175, 48,  102,
-        240, 21, 127, 197, 50,  219, 103, 145, 179, 125, 83,
-        38,  44, 231, 104, 141, 204, 93,  70,  24,  86, 100}), std::out_of_range);
+  EXPECT_THROW(neb::fix_bytes<> bytes(
+                   {53,  80, 171, 169, 116, 146, 222, 56,  175, 48,  102,
+                    240, 21, 127, 197, 50,  219, 103, 145, 179, 125, 83,
+                    38,  44, 231, 104, 141, 204, 93,  70,  24,  86,  100}),
+               std::out_of_range);
 }
 
 template<typename T>
@@ -205,19 +207,19 @@ void test_throw_invalid_input() {
 }
 
 TEST(test_common_util_byte, throw_invalid_input) {
-  test_throw_invalid_input<neb::util::fix_bytes<>>();
-  test_throw_invalid_input<neb::util::bytes>();
+  test_throw_invalid_input<neb::fix_bytes<>>();
+  test_throw_invalid_input<neb::bytes>();
 }
 
 template <size_t N>
 void test_fixed_bytes(const std::string &hexstring,
                       const std::string &base58_string) {
-  neb::util::fix_bytes<N> fb = neb::util::fix_bytes<N>::from_hex(hexstring);
+  neb::fix_bytes<N> fb = neb::fix_bytes<N>::from_hex(hexstring);
   std::string result = fb.to_base58();
 
   EXPECT_EQ(result, base58_string);
 
-  neb::util::bytes bytes = neb::util::bytes::from_hex(hexstring);
+  neb::bytes bytes = neb::bytes::from_hex(hexstring);
   result = bytes.to_base58();
 
   EXPECT_EQ(result, base58_string);
@@ -255,10 +257,14 @@ TEST(test_common_util_byte, base64_encoding_decoding) {
   std::string input(
       "TmVidWxhcyBpcyBhIG5leHQgZ2VuZXJhdGlvbiBwdWJsaWMgYmxvY2tjaGFpbiwgYWltaW5n"
       "IGZvciBhIGNvbnRpbnVvdXNseSBpbXByb3ZpbmcgZWNvc3lzdGVtLg==");
-  test_base64_encoding_decoding<neb::util::fix_bytes<94>>(input);
-  test_base64_encoding_decoding<neb::util::bytes>(input);
+  test_base64_encoding_decoding<neb::fix_bytes<94>>(input);
+  test_base64_encoding_decoding<neb::bytes>(input);
 }
 
-
-
-
+TEST(test_common, address) {
+  std::string base58_str("n1EjkdHBDpdjFfVaeJqMQW11RhYqrrjCZR7");
+  auto ret_bytes = neb::bytes::from_base58(base58_str);
+  std::string s = neb::address_to_string(ret_bytes);
+  std::string t = std::to_string(ret_bytes);
+  EXPECT_EQ(s, t);
+}

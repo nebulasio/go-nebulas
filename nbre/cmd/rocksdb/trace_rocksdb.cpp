@@ -19,7 +19,7 @@
 //
 
 #include "common/configuration.h"
-#include "common/util/version.h"
+#include "common/version.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "fs/ir_manager/ir_manager.h"
 #include "fs/proto/block.pb.h"

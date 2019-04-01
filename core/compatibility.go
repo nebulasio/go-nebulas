@@ -144,10 +144,12 @@ type Compatibility interface {
 	V8JSLibVersionControlHeight() uint64
 	TransferFromContractFailureEventRecordableHeight() uint64
 	NewNvmExeTimeoutConsumeGasHeight() uint64
+	NvmExeTimeoutHeight() []uint64
 	V8JSLibVersionHeightMap() *V8JSLibVersionHeightMap
 	NvmGasLimitWithoutTimeoutHeight() uint64
 	WsResetRecordDependencyHeight2() uint64 //reserve change log
 	TransferFromContractFailureEventRecordableHeight2() uint64
+	NvmValueCheckUpdateHeight() uint64
 	NbreAvailableHeight() uint64
 }
 
@@ -180,6 +182,7 @@ func SetCompatibilityOptions(chainID uint32) {
 		"TransferFromContractFailureHeight":         NebCompatibility.TransferFromContractFailureEventRecordableHeight(),
 		"TransferFromContractFailureHeight2":        NebCompatibility.TransferFromContractFailureEventRecordableHeight2(),
 		"NewNvmExeTimeoutConsumeGasHeight":          NebCompatibility.NewNvmExeTimeoutConsumeGasHeight(),
+		"NvmExeTimeoutHeight":                       NebCompatibility.NvmExeTimeoutHeight(),
 		"NbreAvailableHeight":                       NebCompatibility.NbreAvailableHeight(),
 	}).Info("Set compatibility options.")
 
@@ -413,6 +416,16 @@ func NvmGasLimitWithoutTimeoutAtHeight(blockHeight uint64) bool {
 	return blockHeight >= NebCompatibility.NvmGasLimitWithoutTimeoutHeight()
 }
 
+// NvmExeTimeoutAtHeight ..
+func NvmExeTimeoutAtHeight(blockHeight uint64) bool {
+	for _, height := range NebCompatibility.NvmExeTimeoutHeight() {
+		if blockHeight == height {
+			return true
+		}
+	}
+	return false
+}
+
 // GetNearestInstructionCounterVersionAtHeight ..
 func GetNearestInstructionCounterVersionAtHeight(blockHeight uint64) string {
 	m := NebCompatibility.V8JSLibVersionHeightMap()
@@ -428,6 +441,11 @@ func GetNearestInstructionCounterVersionAtHeight(blockHeight uint64) string {
 func EnableInnerContractAtHeight(blockHeight uint64) bool {
 	m := NebCompatibility.V8JSLibVersionHeightMap()
 	return blockHeight >= m.Data["1.1.0"]
+}
+
+// NvmValueCheckUpdateHeight ..
+func NvmValueCheckUpdateHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.NvmValueCheckUpdateHeight()
 }
 
 // NbreAvailableHeight ..

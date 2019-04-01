@@ -25,6 +25,8 @@ import (
 	"regexp"
 	"unsafe"
 
+	"github.com/nebulasio/go-nebulas/core"
+
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -63,7 +65,7 @@ func parseStorageKey(key string) (string, string, error) {
 // StorageGetFunc export StorageGetFunc
 //export StorageGetFunc
 func StorageGetFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) *C.char {
-	_, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
+	v8, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
 		logging.VLog().Error("Failed to get storage handler.")
 		return nil
@@ -73,6 +75,15 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) *C.ch
 
 	// calculate Gas.
 	*gasCnt = C.size_t(0)
+
+	// test sync adaptation
+	// In Testnet, the tx `cadb*` in block 324997, the return data is nil.
+	if v8.ctx.tx.ChainID() == core.TestNetID &&
+		v8.ctx.block.Height() == 324997 &&
+		k == "size" &&
+		v8.ctx.tx.Hash().String() == "cadb0c6f7f6eb7d9a4f517aed00d4590bf4b80a9a89cf07dd71ec589b03fb9ae" {
+		return nil
+	}
 
 	domainKey, itemKey, err := parseStorageKey(k)
 	if err != nil {
