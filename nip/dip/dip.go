@@ -67,7 +67,7 @@ func NewDIP(neb Neblet) (*Dip, error) {
 		quitCh:        make(chan int, 1),
 		isLooping:     false,
 		rewardAddress: addr,
-		rewardValue:   DipRewardValue,
+		rewardValue:   core.DIPReward,
 	}
 	return dip, nil
 }

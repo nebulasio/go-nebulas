@@ -24,7 +24,6 @@ import (
 
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	"github.com/nebulasio/go-nebulas/util"
 )
 
 // Error types
@@ -43,13 +42,6 @@ const (
 	DipRewardAddressPrivate = "42f0c8b5feb72301619046ca87e6cf2c605e94dae0e24c9cb3a0101dbb60337c"
 	// DipRewardAddressPassphrase
 	DipRewardAddressPassphrase = "passphrase"
-)
-
-var (
-	// BlockReward given to dip address
-	// rule: 1% per year, 1,000,000. 1 block per 15 seconds
-	// value: 10^8 * 1% / (365*24*3600/15) * 10^18 ≈ 0.47565 * 10^18
-	DipRewardValue, _ = core.BlockReward.Div(util.NewUint128FromUint(475650000000000000))
 )
 
 type Neblet interface {

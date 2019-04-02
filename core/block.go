@@ -58,6 +58,21 @@ var (
 	// rule: 3% per year, 3,000,000. 1 block per 15 seconds
 	// value: 10^8 * 3% / (365*24*3600/15) * 10^18 ≈ 1.42694 * 10^18
 	BlockReward, _ = util.NewUint128FromString("1426940000000000000")
+
+	// CoinbaseReward given to coinbase after nbre available
+	// rule: 2% per year, 2,000,000. 1 block per 15 seconds
+	// value: 10^8 * 2% / (365*24*3600/15) * 10^18 ≈ 0.95129 * 10^18
+	CoinbaseReward, _ = util.NewUint128FromString("951290000000000000")
+
+	// NebulasReward given to nebulas project address
+	// rule: 1% per year, 1,000,000. 1 block per 15 seconds
+	// value: 10^8 * 1% / (365*24*3600/15) * 10^18 ≈ 0.47565 * 10^18
+	NebulasReward, _ = util.NewUint128FromString("475650000000000000")
+
+	// DIPReward given to dip project address
+	// rule: 1% per year, 1,000,000. 1 block per 15 seconds
+	// value: 10^8 * 1% / (365*24*3600/15) * 10^18 ≈ 0.47565 * 10^18
+	DIPReward, _ = util.NewUint128FromString("475650000000000000")
 )
 
 // BlockHeader of a block
@@ -1156,28 +1171,58 @@ func (block *Block) FetchExecutionResultEvent(txHash byteutils.Hash) (*state.Eve
 	return nil, ErrNotFoundTransactionResultEvent
 }
 
+func (block *Block) nebulasProjectAddress() *Address {
+	if block.ChainID() == MainNetID {
+		addr, _ := AddressParse("")
+		return addr
+	} else if block.ChainID() == TestNetID {
+		return block.Coinbase()
+	} else {
+		return block.Coinbase()
+	}
+}
+
 func (block *Block) rewardCoinbaseForMint() error {
-
-	coinbaseAddr := block.Coinbase().Bytes()
-	coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
-	if err != nil {
-		return err
-	}
-	if err = coinbaseAcc.AddBalance(BlockReward); err != nil {
-		return err
-	}
-
-	//after NbreAvailableHeight, reward give to coinbase and dip reward address.
+	//after NbreAvailableHeight, reward give to coinbase, nebulas and dip address.
+	// the percent is: 2% coinbase, 1% nebulas,1% dip
 	if NbreAvailableHeight(block.height) {
 
-		// reward dip to dip address.
+		// coinbase reward
+		coinbaseAddr := block.Coinbase().Bytes()
+		coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
+		if err != nil {
+			return err
+		}
+		if err = coinbaseAcc.AddBalance(CoinbaseReward); err != nil {
+			return err
+		}
+
+		// nebulas reward
+		nebulasAddr := block.nebulasProjectAddress().Bytes()
+		nebulasAcc, err := block.WorldState().GetOrCreateUserAccount(nebulasAddr)
+		if err != nil {
+			return err
+		}
+		if err = nebulasAcc.AddBalance(NebulasReward); err != nil {
+			return err
+		}
+
+		// dip reward.
 		dipAddr := block.dip.RewardAddress().Bytes()
 		dipAcc, err := block.WorldState().GetOrCreateUserAccount(dipAddr)
 		if err != nil {
 			return err
 		}
-		dipValue := block.dip.RewardValue()
-		if err = dipAcc.AddBalance(dipValue); err != nil {
+		if err = dipAcc.AddBalance(DIPReward); err != nil {
+			return err
+		}
+	} else {
+		coinbaseAddr := block.Coinbase().Bytes()
+		coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
+		if err != nil {
+			return err
+		}
+		if err = coinbaseAcc.AddBalance(BlockReward); err != nil {
 			return err
 		}
 	}
