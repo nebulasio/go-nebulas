@@ -93,7 +93,6 @@ std::vector<std::shared_ptr<dip_info_t>> dip_reward::get_dip_reward(
   }
   LOG(INFO) << "reward sum " << reward_sum << ", bonus total " << bonus_total;
   // assert(reward_sum <= bonus_total);
-  LOG(INFO) << "reward sum " << reward_sum;
   back_to_coinbase(dip_infos, bonus_total - reward_sum, dip_coinbase_addr);
   LOG(INFO) << "back to coinbase";
   return dip_infos;
@@ -139,7 +138,6 @@ str_uptr_t dip_reward::dip_info_to_json(const dip_ret_type &dip_ret) {
     arr.push_back(std::make_pair(std::string(), p));
   }
 
-  LOG(INFO) << "dip info size " << dip_infos.size();
   for (auto &info_ptr : dip_infos) {
     auto &info = *info_ptr;
     boost::property_tree::ptree p;
@@ -155,13 +153,11 @@ str_uptr_t dip_reward::dip_info_to_json(const dip_ret_type &dip_ret) {
     arr.push_back(std::make_pair(std::string(), p));
   }
   root.add_child("dips", arr);
-  LOG(INFO) << "dip info to ptree done";
 
   std::stringstream ss;
   boost::property_tree::json_parser::write_json(ss, root, false);
   auto tmp_ptr = std::make_unique<std::string>(ss.str());
   boost::replace_all(*tmp_ptr, "[\"\"]", "[]");
-  LOG(INFO) << "ptree serialize done";
   return tmp_ptr;
 }
 

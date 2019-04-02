@@ -106,7 +106,7 @@ nr_ret_type nr_handler::get_nr_result(const std::string &nr_handle) {
 
   nr_ret_type nr_result;
   auto ret = m_nr_result.get(nr_handle, nr_result);
-  LOG(INFO) << "nr result ret " << ret << " with handle " << nr_handle;
+  LOG(INFO) << "nr result ret\n" << ret << "\nwith handle " << nr_handle;
   if (!ret) {
     auto err_str = std::string(
         "{\"err\":\"nr hash expired or nr result not complete yet\"}");

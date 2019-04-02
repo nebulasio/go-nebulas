@@ -42,6 +42,7 @@ void rocksdb_storage::open_database(const std::string &db_name,
     if (flag == storage_open_for_readonly) {
       rocksdb::Options options;
       options.keep_log_file_num = 1;
+      options.max_open_files = 500;
       status = rocksdb::DB::OpenForReadOnly(options, db_name, &db, false);
       m_enable_batch = true;
     } else {

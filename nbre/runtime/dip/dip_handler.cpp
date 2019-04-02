@@ -201,6 +201,7 @@ dip_handler::get_dip_reward_when_missing(neb::block_height_t hash_height,
     hash_height = dip_start_block + dip_block_interval * interval_nums;
     start(hash_height, it_ptr.get());
     auto ret = std::string("{\"err\":\"dip reward missing, wait to restart\"}");
+    LOG(INFO) << ret;
     return ret;
   }
 

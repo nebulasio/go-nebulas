@@ -554,7 +554,6 @@ public:
     while (true) {
       if (!::neb::rt::graph_algo::decrease_graph_edges(graph, dead_v, dead_to,
                                                        to_dead)) {
-        LOG(INFO) << "no more to decrease";
         break;
       }
       ret = find_a_cycle_based_on_time_sequence(graph, adj, start_nodes, dead_v,
@@ -748,7 +747,7 @@ private:
             }
           }
           edges.push_back(nxt);
-          show_path(edges);
+          // show_path(edges);
           break;
         }
       }
