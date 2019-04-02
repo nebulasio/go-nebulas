@@ -41,10 +41,6 @@
 
 namespace neb {
 
-#define LOG_FLUSH(LEVEL, MSG)                                                  \
-  LOG(LEVEL) << MSG;                                                           \
-  google::FlushLogFiles(google::LEVEL);
-
 typedef std::string hex_hash_t;
 typedef uint8_t byte_t;
 typedef uint64_t block_height_t;
