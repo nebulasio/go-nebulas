@@ -69,6 +69,7 @@ install_nbre() {
     wget $SOURCE_URL/setup/nbre/lib_nbre_$OS.tar.gz -O lib_nbre_$OS.tar.gz
     tar -zxvf lib_nbre_$OS.tar.gz
     cp -R lib_nbre_$OS/* $nbre_lib/
+    mv -f $nbre_lib/bin $CUR_DIR/nbre/
     rm -rf lib_nbre_$OS
     rm -rf lib_nbre_$OS.tar.gz
     popd
