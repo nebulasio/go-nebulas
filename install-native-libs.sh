@@ -66,7 +66,11 @@ install_nbre() {
   mkdir -p $nbre_lib
   if [ ! -d $nbre_lib/lib ]; then
     pushd $nbre_lib
-    wget $SOURCE_URL/setup/nbre/lib_nbre_$OS.tar.gz -O lib_nbre_$OS.tar.gz
+    if [ "$OS" == "Linux" ] && [ "$(lsb_release -rs)" == "18.04" ]; then
+    	wget $SOURCE_URL/setup/nbre/18.04/lib_nbre_$OS.tar.gz -O lib_nbre_$OS.tar.gz
+    else
+    	wget $SOURCE_URL/setup/nbre/lib_nbre_$OS.tar.gz -O lib_nbre_$OS.tar.gz
+    fi
     tar -zxvf lib_nbre_$OS.tar.gz
     cp -R lib_nbre_$OS/* $nbre_lib/
     mv -f $nbre_lib/bin $CUR_DIR/nbre/
