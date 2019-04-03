@@ -40,7 +40,7 @@ else
   SOURCE_URL="https://s3-us-west-1.amazonaws.com/develop-center"
 fi
 
-rm -rf $CUR_DIR/native-lib/*
+rm -rf $CUR_DIR/native-lib
 mkdir -p $CUR_DIR/native-lib
 
 install_nvm() {
@@ -91,7 +91,9 @@ export_libs() {
       export LD_LIBRARY_PATH=$CUR_DIR/native-lib:$LD_LIBRARY_PATH
       ;;
     'Darwin')
-      ln -fs $CUR_DIR/native-lib ~/lib
+      if [ ! -d ~/lib ]; then
+        ln -s $CUR_DIR/native-lib ~/lib
+      fi
       ;;
     *) ;;
   esac
