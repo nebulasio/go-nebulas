@@ -17,6 +17,8 @@
 # along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+SHELL := /bin/bash 
+
 VERSION?=1.1.0
 
 COMMIT=$(shell git rev-parse HEAD)
@@ -79,18 +81,12 @@ deploy-v8:
 	$(INSTALL) nf/nvm/native-lib/*$(DYLIB) /usr/local/lib/
 	$(LDCONFIG)
 
-deploy-nbre:
-	$(INSTALL) nf/nbre/native/*$(DYLIB) /usr/local/lib/
-	$(LDCONFIG)
-
-deploy: deploy-v8 deploy-nbre
-
 undeploy:
 	-rm -f /usr/local/lib/libnebulas*
 	-rm -f /usr/local/lib/libnbre*
 
 build:
-	cd cmd/neb; $(CGO_CFLAGS) $(CGO_LDFLAGS) go build $(LDFLAGS) -o ../../$(NEBBINARY)
+	source install-native-libs.sh; cd cmd/neb; $(CGO_CFLAGS) $(CGO_LDFLAGS) go build $(LDFLAGS) -o ../../$(NEBBINARY)
 	$(BUUILDLOG)
 
 build-linux:

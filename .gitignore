@@ -23,6 +23,7 @@ cmd/console/neb.js/dist/
 *.report
 *.report.xml
 *.log
+nf/nvm/native-lib
 native-lib
 
 # test debug

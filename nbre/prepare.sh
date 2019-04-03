@@ -146,10 +146,17 @@ build_with_make(){
   make clean
 }
 
+# V1 >= V2
+function version_ge() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" == "$1"; }
+
 check_install_cmake() {
   #check if cmake has been installed
   if hash cmake 2>/dev/null; then
-    return
+    version=$(cmake --version|grep version|awk '{print $3}')
+    #echo "check cmake installed $version"
+    if version_ge $version "3.12.2"; then
+      return
+    fi
   fi
 
   if [ ! -d $CUR_DIR/3rd_party/cmake-3.12.2 ]; then

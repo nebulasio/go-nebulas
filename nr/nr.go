@@ -83,7 +83,7 @@ func (n *NR) delayHeight() uint64 {
 // GetNRListByHeight return nr list, which subtract the deplay height, ensure all node is equal.
 func (n *NR) GetNRListByHeight(height uint64) (nr core.Data, err error) {
 	height = height - n.delayHeight()
-	if height < 1 {
+	if height < n.neb.Config().Nbre.StartHeight {
 		return nil, ErrNRNotFound
 	}
 
@@ -110,7 +110,7 @@ func (n *NR) GetNRListByHeight(height uint64) (nr core.Data, err error) {
 // GetNRSummary return nr summary info, which subtract the deplay height, ensure all node is equal.
 func (n *NR) GetNRSummary(height uint64) (core.Data, error) {
 	height = height - n.delayHeight()
-	if height < 1 {
+	if height < n.neb.Config().Nbre.StartHeight {
 		return nil, ErrNRSummaryNotFound
 	}
 	data, err := n.neb.Nbre().Execute(nbre.CommandNRSum, height)

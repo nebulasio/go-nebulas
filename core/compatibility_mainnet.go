@@ -50,7 +50,7 @@ func NewCompatibilityMainNet() Compatibility {
 		v8JSLibVersionControlHeight:                      467500,
 		transferFromContractFailureEventRecordableHeight: 467500,
 		newNvmExeTimeoutConsumeGasHeight:                 467500,
-		nvmExeTimeoutHeight:                              []uint64{531698, 577307, 577316, 624835},
+		nvmExeTimeoutHeight:                              []uint64{499301, 531698, 577307, 577316, 624835},
 		v8JSLibVersionHeightMap: &V8JSLibVersionHeightMap{
 			Data: map[string]uint64{
 				"1.0.5": 467500, // v8JSLibVersionControlHeight
@@ -62,7 +62,7 @@ func NewCompatibilityMainNet() Compatibility {
 		wsResetRecordDependencyHeight2:                    600000,
 		transferFromContractFailureEventRecordableHeight2: 600000,
 		nvmValueCheckUpdateHeight:                         840000,
-		nbreAvailableHeight:                               2000000,
+		nbreAvailableHeight:                               2200000,
 	}
 }
 
