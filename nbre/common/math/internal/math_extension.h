@@ -306,7 +306,9 @@ template <typename T> struct float_math_helper {
 template <typename T> T log2(const T &x) { return ln(x) / constants<T>::ln2(); }
 
 //! return x^y
-template <typename T> T pow(const T &x, const T &y) { return exp(y * ln(x)); }
+template <typename T> T pow(const T &x, const T &y) {
+  return exp(y * fast_ln(x));
+}
 
 template <typename T> T pow(const T &x, const int64_t &y) {
   T one = softfloat_cast<uint32_t, typename T::value_type>(1);
