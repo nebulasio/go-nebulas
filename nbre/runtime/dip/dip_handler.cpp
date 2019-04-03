@@ -270,7 +270,7 @@ str_sptr_t dip_handler::get_dip_reward(neb::block_height_t height) {
   LOG(INFO) << "dip reward exists";
   auto ret = m_dip_reward.try_get_val(hash_height);
   assert(ret.first);
-  LOG(INFO) << ret.second;
+  LOG(INFO) << *ret.second;
   return ret.second;
 }
 
@@ -285,7 +285,7 @@ str_sptr_t dip_handler::get_nr_result(neb::block_height_t height) {
   }
   assert(ret.first);
   auto &tmp = ret.second;
-  LOG(INFO) << "mapped to height " << tmp.first;
+  LOG(INFO) << *tmp.second;
   return tmp.second;
 }
 
@@ -299,6 +299,7 @@ str_sptr_t dip_handler::get_nr_sum(neb::block_height_t height) {
   }
   assert(ret.first);
   auto &tmp = ret.second;
+  LOG(INFO) << *tmp.second;
   return tmp.second;
 }
 

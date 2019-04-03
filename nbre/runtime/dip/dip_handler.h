@@ -47,6 +47,7 @@ class dip_handler : public util::singleton<dip_handler> {
 public:
   dip_handler();
 
+  void check_dip_params(block_height_t height);
   void deploy(version_t version, block_height_t available_height);
   void start(block_height_t height, const dip_params_t *dip_params = nullptr);
 
@@ -61,7 +62,6 @@ private:
   std::string get_dip_reward_when_missing(block_height_t hash_height,
                                           const dip_params_t &dip_params);
 
-  void check_dip_params(block_height_t height);
   dip_ret_type run_dip_ir(const std::string &name, version_t version,
                           block_height_t ir_height, block_height_t var_height);
 

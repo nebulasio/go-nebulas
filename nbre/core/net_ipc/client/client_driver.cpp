@@ -158,6 +158,16 @@ void client_driver_base::init_nbre() {
 
   fs::bc_storage_session::instance().init(
       configuration::instance().neb_db_dir(), fs::storage_open_for_readonly);
+
+  auto *rs = neb::fs::storage_holder::instance().nbre_db_ptr();
+  neb::block_height_t height = 1;
+  try {
+    auto tmp = rs->get(neb::configuration::instance().nbre_max_height_name());
+    height = neb::byte_to_number<neb::block_height_t>(tmp);
+  } catch (const std::exception &e) {
+  }
+  LOG(INFO) << "init dip params with height " << height;
+  neb::rt::dip::dip_handler::instance().check_dip_params(height);
 }
 } // end namespace internal
 
