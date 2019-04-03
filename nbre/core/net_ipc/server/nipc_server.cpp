@@ -27,6 +27,7 @@ namespace neb {
 namespace core {
 nipc_server::nipc_server() : m_server(nullptr), m_conn(nullptr) {}
 nipc_server::~nipc_server() {
+  LOG(INFO) << "to destroy nipc server";
   if (m_thread) {
     m_thread->join();
   }
@@ -73,7 +74,7 @@ bool nipc_server::start() {
   m_is_started = false;
   m_mutex.unlock();
 
-  m_got_exception_when_start_nbre = false;
+  m_got_exception_when_start_ipc = false;
   m_thread = std::make_unique<std::thread>([&, this] {
     try {
       m_server = std::make_unique<::ff::net::net_nervure>();
@@ -88,6 +89,7 @@ bool nipc_server::start() {
       m_server->get_event_handler()
           ->listen<::ff::net::event::more::tcp_server_accept_connection>(
               [this](::ff::net::tcp_connection_base_ptr conn) {
+                LOG(INFO) << "got connection";
                 m_conn = conn;
                 m_mutex.lock();
                 m_is_started = true;
@@ -131,43 +133,52 @@ bool nipc_server::start() {
         auto count =
             std::chrono::duration_cast<std::chrono::seconds>(duration).count();
         if (count > 60) {
+          LOG(INFO) << "lost heart beat, to kill client";
           m_client_watcher->kill_client();
         }
       });
       while (true) {
-        if (m_server->ioservice().stopped())
+        if (m_server->ioservice().stopped()) {
+          LOG(INFO) << "ioservice already stopped, wait to restart";
           break;
+        }
         try {
           m_server->run();
         } catch (...) {
+          LOG(INFO) << "to reset ioservice";
           m_server->ioservice().reset();
         }
       }
     } catch (const std::exception &e) {
-      m_got_exception_when_start_nbre = true;
+      m_got_exception_when_start_ipc = true;
       LOG(ERROR) << "get exception when start ipc, " << typeid(e).name() << ", "
                  << e.what();
       m_start_complete_cond_var.notify_one();
     } catch (...) {
-      m_got_exception_when_start_nbre = true;
+      m_got_exception_when_start_ipc = true;
       LOG(ERROR) << "get unknown exception when start ipc";
       m_start_complete_cond_var.notify_one();
     }
   });
   std::unique_lock<std::mutex> _l(m_mutex);
-  if (!m_is_started && !m_got_exception_when_start_nbre) {
+  if (!m_is_started && !m_got_exception_when_start_ipc) {
+    LOG(INFO) << "wait to start complete cond var";
     m_start_complete_cond_var.wait(_l);
   }
-  if (m_got_exception_when_start_nbre)
+  if (m_got_exception_when_start_ipc) {
+    LOG(INFO) << "got exception when server start ipc";
     return false;
+  }
 
   return true;
 }
 
 void nipc_server::shutdown() {
+  LOG(INFO) << "to shutdown nipc server";
   if (m_conn)
     m_conn->close();
   m_server->stop();
+  LOG(INFO) << "nipc server send exit command";
   neb::core::command_queue::instance().send_command(
       std::make_shared<neb::core::exit_command>());
 }

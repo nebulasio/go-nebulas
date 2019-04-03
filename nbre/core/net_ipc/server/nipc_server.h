@@ -74,7 +74,7 @@ protected:
 
   std::unique_ptr<::ff::net::typed_pkg_hub> m_pkg_hub;
   ipc_callback_holder *m_callbacks;
-  std::atomic_bool m_got_exception_when_start_nbre;
+  std::atomic_bool m_got_exception_when_start_ipc;
   std::unique_ptr<api_request_timer> m_request_timer;
   std::condition_variable m_start_complete_cond_var;
   std::mutex m_mutex;

@@ -39,6 +39,7 @@ public:
         // No big pressure for NBRE
         m_to_recv_heart_beat_msg = 0;
         if (m_pkg_handler_thread->size() > ff::rt::concurrency()) {
+          LOG(INFO) << "ignore pkg";
           return;
         }
 
@@ -66,6 +67,7 @@ protected:
   std::unique_ptr<util::timer_loop> m_heart_bear_timer;
   ::ff::net::tcp_connection_base_ptr m_conn;
   std::atomic_bool m_is_connected;
+  std::atomic_bool m_got_exception_when_start_ipc;
   int32_t m_to_recv_heart_beat_msg;
   std::atomic_int_fast64_t m_handling_pkg_num;
   std::unique_ptr<util::wakeable_thread> m_pkg_handler_thread;

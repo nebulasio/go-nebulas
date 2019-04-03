@@ -44,6 +44,7 @@ void ipc_client_watcher::thread_func() {
     if (delta >= std::chrono::seconds(0)) {
       std::this_thread::sleep_for(delta + std::chrono::seconds(1));
       if (m_exit_flag) {
+        LOG(INFO) << "recv exit flag, to exit thread func";
         return;
       }
     }
@@ -68,6 +69,7 @@ void ipc_client_watcher::thread_func() {
       m_client = std::make_unique<boost::process::child>(
           m_path, boost::process::args(v));
       if (m_client->valid()) {
+        LOG(INFO) << "child process is valid";
         m_b_client_alive = true;
         m_killed_already = false;
       }
@@ -87,6 +89,7 @@ void ipc_client_watcher::thread_func() {
 }
 
 ipc_client_watcher::~ipc_client_watcher() {
+  LOG(INFO) << "to destroy ipc client watcher";
   if (m_thread) {
     m_thread->join();
     m_thread.reset();
@@ -94,7 +97,9 @@ ipc_client_watcher::~ipc_client_watcher() {
 }
 void ipc_client_watcher::kill_client() {
   std::unique_lock<std::mutex> _l(m_mutex);
+  LOG(INFO) << "to kill client";
   if (m_killed_already) {
+    LOG(INFO) << "already killed";
     return;
   }
 

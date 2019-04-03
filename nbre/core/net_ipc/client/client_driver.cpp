@@ -40,6 +40,7 @@ namespace internal {
 
 client_driver_base::client_driver_base() : m_exit_flag(false) {}
 client_driver_base::~client_driver_base() {
+  LOG(INFO) << "to destroy client driver base";
   if (m_timer_thread) {
     m_timer_thread->join();
   }
@@ -161,13 +162,14 @@ void client_driver_base::init_nbre() {
 } // end namespace internal
 
 client_driver::client_driver() : internal::client_driver_base() {}
-client_driver::~client_driver() {}
+client_driver::~client_driver() { LOG(INFO) << "to destroy client driver"; }
 
 void client_driver::add_handlers() {
 
   LOG(INFO) << "client is " << m_client.get();
   m_client->add_handler<nbre_version_req>(
       [this](std::shared_ptr<nbre_version_req> req) {
+        LOG(INFO) << "recv nbre_version_req";
         auto ack = new_ack_pkg<nbre_version_ack>(req);
         if (ack == nullptr) {
           return;
@@ -182,7 +184,7 @@ void client_driver::add_handlers() {
 
   m_client->add_handler<nbre_init_ack>([this](
                                            std::shared_ptr<nbre_init_ack> ack) {
-    LOG(INFO) << "get init ack";
+    LOG(INFO) << "recv nbre_init_ack";
     try {
       configuration::instance().nbre_root_dir() =
           ack->get<p_nbre_root_dir>().c_str();
@@ -223,6 +225,7 @@ void client_driver::add_handlers() {
 
   m_client->add_handler<nbre_ir_list_req>(
       [this](std::shared_ptr<nbre_ir_list_req> req) {
+        LOG(INFO) << "recv nbre_ir_list_req";
         try {
           auto ack = new_ack_pkg<nbre_ir_list_ack>(req);
 
@@ -250,6 +253,7 @@ void client_driver::add_handlers() {
 
   m_client->add_handler<nbre_ir_versions_req>(
       [this](std::shared_ptr<nbre_ir_versions_req> req) {
+        LOG(INFO) << "recv nbre_ir_versions_req";
         try {
           auto ack = new_ack_pkg<nbre_ir_versions_ack>(req);
           auto ir_name = req->get<p_ir_name>();
@@ -278,6 +282,7 @@ void client_driver::add_handlers() {
 
   m_client->add_handler<nbre_nr_handle_req>(
       [this](std::shared_ptr<nbre_nr_handle_req> req) {
+        LOG(INFO) << "recv nbre_nr_handle_req";
         try {
           uint64_t start_block = req->get<p_start_block>();
           uint64_t end_block = req->get<p_end_block>();
@@ -298,8 +303,10 @@ void client_driver::add_handlers() {
                      << " with what: " << e.what();
         }
       });
+
   m_client->add_handler<nbre_nr_result_by_handle_req>(
       [this](std::shared_ptr<nbre_nr_result_by_handle_req> req) {
+        LOG(INFO) << "recv nbre_nr_result_by_handle_req";
         try {
           auto ack = new_ack_pkg<nbre_nr_result_by_handle_ack>(req);
           std::string nr_handle = req->get<p_nr_handle>();
@@ -323,6 +330,7 @@ void client_driver::add_handlers() {
 
   m_client->add_handler<nbre_nr_result_by_height_req>(
       [this](std::shared_ptr<nbre_nr_result_by_height_req> req) {
+        LOG(INFO) << "recv nbre_nr_result_by_height_req";
         try {
           auto ack = new_ack_pkg<nbre_nr_result_by_height_ack>(req);
           auto height = req->get<p_height>();
@@ -339,6 +347,7 @@ void client_driver::add_handlers() {
 
   m_client->add_handler<nbre_nr_sum_req>(
       [this](std::shared_ptr<nbre_nr_sum_req> req) {
+        LOG(INFO) << "recv nbre_nr_sum_req";
         try {
           auto ack = new_ack_pkg<nbre_nr_sum_ack>(req);
           auto height = req->get<p_height>();
@@ -355,6 +364,7 @@ void client_driver::add_handlers() {
 
   m_client->add_handler<nbre_dip_reward_req>(
       [this](std::shared_ptr<nbre_dip_reward_req> req) {
+        LOG(INFO) << "recv nbre_dip_reward_req";
         try {
           auto ack = new_ack_pkg<nbre_dip_reward_ack>(req);
           auto height = req->get<p_height>();
@@ -371,7 +381,6 @@ void client_driver::add_handlers() {
   m_client->add_handler<nbre_ir_transactions_req>(
       [this](std::shared_ptr<nbre_ir_transactions_req> req) {
         try {
-          LOG(INFO) << "nbre recv ir transactions ";
           ir_warden::instance().on_receive_ir_transactions(req);
         } catch (const std::exception &e) {
           LOG(ERROR) << "got exception " << typeid(e).name()

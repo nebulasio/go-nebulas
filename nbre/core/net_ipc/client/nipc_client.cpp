@@ -28,7 +28,10 @@ nipc_client::nipc_client() : m_handling_pkg_num(0) {
   m_pkg_handler_thread = std::make_unique<util::wakeable_thread>();
 }
 
-nipc_client::~nipc_client() { shutdown(); }
+nipc_client::~nipc_client() {
+  LOG(INFO) << "to destroy nipc client";
+  shutdown();
+}
 
 bool nipc_client::start() {
 
@@ -40,11 +43,10 @@ bool nipc_client::start() {
   bool init_done = false;
   std::mutex local_mutex;
   std::condition_variable local_cond_var;
-  std::atomic_bool got_exception_when_start_ipc;
 
   m_thread = std::unique_ptr<std::thread>(new std::thread([&, this]() {
     try {
-      got_exception_when_start_ipc = false;
+      m_got_exception_when_start_ipc = false;
 
       ::ff::net::net_nervure nn;
       ::ff::net::typed_pkg_hub hub;
@@ -97,36 +99,42 @@ bool nipc_client::start() {
       });
 
       while (true) {
-        if (nn.ioservice().stopped())
+        if (nn.ioservice().stopped()) {
+          LOG(INFO) << "ioservice already stopped, wait to restart";
           break;
+        }
         try {
           nn.run();
         } catch (...) {
+          LOG(INFO) << "to reset ioservice";
           nn.ioservice().reset();
         }
       }
     } catch (const std::exception &e) {
-      got_exception_when_start_ipc = true;
+      m_got_exception_when_start_ipc = true;
       LOG(ERROR) << "get exception when start ipc, " << typeid(e).name() << ", "
                  << e.what();
       local_cond_var.notify_one();
     } catch (...) {
-      got_exception_when_start_ipc = true;
+      m_got_exception_when_start_ipc = true;
       LOG(ERROR) << "get unknown exception when start ipc";
       local_cond_var.notify_one();
     }
   }));
   std::unique_lock<std::mutex> _l(local_mutex);
   if (!init_done) {
+    LOG(INFO) << "wait to init done cond var";
     local_cond_var.wait(_l);
   }
-  if (got_exception_when_start_ipc) {
+  if (m_got_exception_when_start_ipc) {
+    LOG(INFO) << "got exception when client start ipc";
     return false;
   }
   return true;
 }
 
 void nipc_client::shutdown() {
+  LOG(INFO) << "to shutdown nipc client";
   m_conn->close();
   if (m_thread) {
     m_thread->join();
