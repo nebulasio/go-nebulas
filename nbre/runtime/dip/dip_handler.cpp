@@ -128,11 +128,10 @@ void dip_handler::start(neb::block_height_t height,
     return;
   }
 
-  if (m_in_process.exist(hash_height)) {
+  if (!m_in_process.insert_if_not_exist(hash_height, true)) {
     LOG(INFO) << "dip reward already in processing";
     return;
   }
-  m_in_process.insert(hash_height, true);
 
   // get dip version if default
   std::string dip_name = "dip";

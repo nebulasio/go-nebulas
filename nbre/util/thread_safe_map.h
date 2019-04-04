@@ -41,6 +41,17 @@ public:
     m_map.insert(std::make_pair(k, v));
   }
 
+  bool insert_if_not_exist(const typename map_t::key_type &k,
+                           const typename map_t::mapped_type &v) {
+    w_guard_t _l(m_mutex);
+    if (m_map.find(k) != m_map.end()) {
+      m_map[k] = v;
+      return false;
+    }
+    m_map.insert(std::make_pair(k, v));
+    return true;
+  }
+
   void erase(const typename map_t::key_type &k) {
     w_guard_t _l(m_mutex);
     auto it = m_map.find(k);
