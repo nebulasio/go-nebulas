@@ -326,13 +326,8 @@ func (n *Nbre) Execute(command string, args ...interface{}) (interface{}, error)
 		deleteHandler(handler)
 
 	case <-time.After(ExecutionTimeoutSeconds * time.Second):
-		handler.err = ErrExecutionTimeout
-		// handler.done <- true
+		handler.err = ErrNebCallbackTimeout
 		deleteHandler(handler)
-		logging.VLog().WithFields(logrus.Fields{
-			"command": command,
-			"params":  args,
-		}).Debug("nbre response timeout.")
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
@@ -347,6 +342,7 @@ func (n *Nbre) Execute(command string, args ...interface{}) (interface{}, error)
 func deleteHandler(handler *handler) {
 	nbreLock.Lock()
 	defer nbreLock.Unlock()
+	handler.done = nil
 	delete(nbreHandlers, handler.id)
 }
 
@@ -395,20 +391,22 @@ func (n *Nbre) handleNbreCommand(handler *handler, command string, args ...inter
 		if handler != nil {
 			handler.result = nil
 			handler.err = ErrCommandNotFound
-			handler.done <- true
+			if handler.done != nil {
+				handler.done <- true
+			}
 		}
 	}
 }
 
 func getNbreHandler(id uint64) (*handler, error) {
-	nbreLock.RLock()
-	handler := nbreHandlers[id]
-	nbreLock.RUnlock()
+	nbreLock.Lock()
+	defer nbreLock.Unlock()
 
-	if handler == nil {
+	if handler, ok := nbreHandlers[id]; ok {
+		return handler, nil
+	} else {
 		return nil, ErrHandlerNotFound
 	}
-	return handler, nil
 }
 
 func nbreHandled(code C.int, holder unsafe.Pointer, result interface{}, handleErr error) {
@@ -443,7 +441,11 @@ func nbreHandled(code C.int, holder unsafe.Pointer, result interface{}, handleEr
 	} else {
 		handler.err = err
 	}
-	handler.done <- true
+	go func() {
+		if handler.done != nil {
+			handler.done <- true
+		}
+	}()
 }
 
 // Stop stop nbre
