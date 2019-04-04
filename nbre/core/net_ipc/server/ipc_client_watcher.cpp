@@ -54,7 +54,8 @@ void ipc_client_watcher::thread_func() {
     boost::process::ipstream stream;
     std::vector<std::string> v(
         {"--ipc-ip", configuration::instance().nipc_listen(), "--ipc-port",
-         std::to_string(configuration::instance().nipc_port())});
+         std::to_string(configuration::instance().nipc_port()), "--log-dir",
+         configuration::instance().nbre_log_dir()});
 
     LOG(INFO) << "log-to-stderr: " << neb::glog_log_to_stderr;
     if (glog_log_to_stderr) {

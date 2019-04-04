@@ -35,6 +35,7 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
   desc.add_options()("help", "show help message")
     ("use-test-blockchain", "use test blockchain")
     ("log-to-stderr", "glog to stderr")
+    ("log-dir", po::value<std::string>(), "nbre log dir")
     ("ipc-ip", po::value<std::string>(), "ipc network ip")
     ("ipc-port", po::value<std::uint16_t>(), "ipc network port");
 
@@ -61,6 +62,10 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
   }
   LOG(INFO) << "log-to-stderr: " << neb::glog_log_to_stderr;
 
+  if (!vm.count("log-dir")) {
+    std::cout << "You must specify \"log-dir\"!" << std::endl;
+    exit(1);
+  }
   if (!vm.count("ipc-ip")) {
     std::cout << "You must specify \"ipc-ip\"!" << std::endl;
     exit(1);
@@ -70,6 +75,8 @@ po::variables_map get_variables_map(int argc, char *argv[]) {
     exit(1);
   }
 
+  neb::configuration::instance().nbre_log_dir() =
+      vm["log-dir"].as<std::string>();
   neb::configuration::instance().nipc_listen() = vm["ipc-ip"].as<std::string>();
   neb::configuration::instance().nipc_port() = vm["ipc-port"].as<uint16_t>();
 
@@ -81,6 +88,11 @@ int main(int argc, char *argv[]) {
   neb::program_name = "nbre";
 
   get_variables_map(argc, argv);
+  if (neb::glog_log_to_stderr) {
+    FLAGS_log_dir = neb::configuration::instance().nbre_log_dir();
+    google::InitGoogleLogging("nbre-client");
+    LOG(INFO) << "log dir client " << FLAGS_log_dir;
+  }
   LOG(INFO) << "nbre started!";
 
 #ifdef NDEBUG

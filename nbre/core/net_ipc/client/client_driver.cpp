@@ -217,13 +217,6 @@ void client_driver::add_handlers() {
       LOG(INFO) << configuration::instance().neb_db_dir();
       // LOG(INFO) << addr_base58;
 
-      LOG(INFO) << "log-to-stderr: " << neb::glog_log_to_stderr;
-      if (glog_log_to_stderr) {
-        FLAGS_log_dir = configuration::instance().nbre_log_dir();
-        LOG(INFO) << "log dir client " << FLAGS_log_dir;
-        google::InitGoogleLogging("nbre-client");
-      }
-
       init_nbre();
       init_timer_thread();
       ir_warden::instance().wait_until_sync();
