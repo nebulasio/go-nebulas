@@ -77,12 +77,17 @@ std::string dip_param_list(compatible_uint64_t dip_start_block,
                            compatible_uint64_t dip_block_interval,
                            const std::string &dip_reward_addr,
                            const std::string &dip_coinbase_addr, version_t v) {
+
+  auto reward_addr_bytes = bytes::from_base58(dip_reward_addr);
+  auto coinbase_addr_bytes = bytes::from_base58(dip_coinbase_addr);
+
   dip_params_t param;
   param.set<start_block>(dip_start_block);
   param.set<block_interval>(dip_block_interval);
-  param.set<reward_addr>(dip_reward_addr);
-  param.set<coinbase_addr>(dip_coinbase_addr);
+  param.set<reward_addr>(address_to_string(reward_addr_bytes));
+  param.set<coinbase_addr>(address_to_string(coinbase_addr_bytes));
   param.set<p_version>(v);
+
   LOG(INFO) << "init dip params: " << dip_start_block << ','
             << dip_block_interval << ',' << dip_reward_addr << ','
             << dip_coinbase_addr << ',' << v;
