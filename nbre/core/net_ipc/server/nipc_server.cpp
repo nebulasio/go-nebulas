@@ -149,6 +149,7 @@ bool nipc_server::start() {
           m_server->ioservice().reset();
         }
       }
+      LOG(INFO) << "ioservice quit";
     } catch (const std::exception &e) {
       m_got_exception_when_start_ipc = true;
       LOG(ERROR) << "get exception when start ipc, " << typeid(e).name() << ", "
@@ -196,6 +197,7 @@ void nipc_server::add_all_callbacks() {
 
   m_pkg_hub->to_recv_pkg<nbre_init_req>([this](std::shared_ptr<nbre_init_req>) {
     std::shared_ptr<nbre_init_ack> ack = std::make_shared<nbre_init_ack>();
+    LOG(INFO) << "recv nbre_init_req";
     configuration &conf = configuration::instance();
     ack->set<p_nbre_root_dir>(conf.nbre_root_dir());
     ack->set<p_nbre_exe_name>(conf.nbre_exe_name());
@@ -205,6 +207,7 @@ void nipc_server::add_all_callbacks() {
     ack->set<p_admin_pub_addr>(std::to_string(conf.admin_pub_addr()));
     ack->set<p_nbre_start_height>(conf.nbre_start_height());
     m_conn->send(ack);
+    LOG(INFO) << "send nbre_init_ack";
   });
 
   m_pkg_hub->to_recv_pkg<heart_beat_t>([this](std::shared_ptr<heart_beat_t> p) {

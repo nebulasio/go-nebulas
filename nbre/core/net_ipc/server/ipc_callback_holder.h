@@ -70,7 +70,11 @@ template <typename T> struct issue_callback_with_error_helper {};
 template <typename... ARGS>
 struct issue_callback_with_error_helper<void (*)(ipc_status_code, ARGS...)> {
   using func_t = void (*)(ipc_status_code, ARGS...);
-  static void call(const func_t &f, ipc_status_code isc) { f(isc, ARGS()...); }
+  static void call(const func_t &f, ipc_status_code isc) {
+    LOG(INFO) << "issue callback with err";
+    f(isc, ARGS()...);
+    LOG(INFO) << "issue callback with err done";
+  }
 };
 } // namespace internal
 
