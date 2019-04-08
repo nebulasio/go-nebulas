@@ -24,8 +24,6 @@ import (
 	"sync"
 	"time"
 
-	"runtime"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
@@ -49,7 +47,8 @@ var (
 	// ParallelNum num
 	PackedParallelNum = 1
 
-	VerifyParallelNum = runtime.NumCPU() * 2
+	// verify thread parallel num
+	VerifyParallelNum = 1 //runtime.NumCPU() * 2
 
 	// VerifyExecutionTimeout 0 means unlimited
 	VerifyExecutionTimeout = 0

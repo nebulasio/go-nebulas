@@ -176,11 +176,11 @@ func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 		}).Fatal("Failed to get dynasty with current genesis and dynasty.")
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
-		"timestamp":  timestamp,
-		"curDynasty": curDynasty,
-		"dt":         dt,
-	}).Debug("dynasty info.")
+	//logging.VLog().WithFields(logrus.Fields{
+	//	"timestamp":  timestamp,
+	//	"curDynasty": curDynasty,
+	//	"dt":         dt,
+	//}).Debug("dynasty info.")
 
 	dynastyTrie, err := dt.Clone()
 	if err != nil {

@@ -346,6 +346,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 
 	if ret != ErrTransferStringToUint128 && ret != ErrTransferSubBalance && ret != SuccessTransferFunc { // Unepected to happen, should not to be on chain
 		logging.VLog().WithFields(logrus.Fields{
+			"height":      engine.ctx.block.Height(),
 			"txhash":      engine.ctx.tx.Hash().String(),
 			"fromAddress": cAddr.String(),
 			"toAddress":   addr.String(),

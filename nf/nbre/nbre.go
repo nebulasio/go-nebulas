@@ -315,6 +315,12 @@ func (n *Nbre) Execute(command string, args ...interface{}) (interface{}, error)
 	nbreLock.Unlock()
 	//})()
 
+	logging.VLog().WithFields(logrus.Fields{
+		"id":      handler.id,
+		"command": command,
+		"args":    args,
+	}).Debug("run nbre command")
+
 	go func() {
 		// handle nbre command
 		n.handleNbreCommand(handler, command, args...)
@@ -331,6 +337,7 @@ func (n *Nbre) Execute(command string, args ...interface{}) (interface{}, error)
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
+		"id":      handler.id,
 		"command": command,
 		"params":  args,
 		"result":  handler.result,
@@ -352,10 +359,6 @@ func (n *Nbre) handleNbreCommand(handler *handler, command string, args ...inter
 		handlerId = handler.id
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
-		"command": command,
-		"args":    args,
-	}).Debug("run nbre command")
 	switch command {
 	case CommandVersion:
 		height := args[0].(uint64)
