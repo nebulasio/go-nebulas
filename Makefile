@@ -19,7 +19,7 @@
 
 SHELL := /bin/bash 
 
-VERSION?=1.1.0
+VERSION?=2.0
 
 COMMIT=$(shell git rev-parse HEAD)
 BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
