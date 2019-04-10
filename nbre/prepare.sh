@@ -31,6 +31,7 @@ else
 fi
 
 PARALLEL=$LOGICAL_CPU
+NEED_CHECK_INSTALL=false
 
 mkdir -p $CUR_DIR/lib
 git submodule update --init
@@ -91,18 +92,23 @@ check_script_run() {
 }
 
 check_install() {
-  if [ "$OS" = "Linux" ]; then
-    result=`ldconfig -p | grep -c $1`
+  if $NEED_CHECK_INSTALL; then
+    if [ "$OS" = "Linux" ]; then
+      result=`ldconfig -p | grep -c $1`
+    else
+      result=`brew list | grep -c $1`
+    fi
+    return `test $result -ne 0`
   else
-    result=`brew list | grep -c $1`
+    return 1
   fi
-  return `test $result -ne 0`
 }
 
 build_with_cmake(){
   check_install $1
   if [ $? -eq 0 ]; then
     # has been installed in system, skip make and install
+    echo "$1 has installed"
     return
   fi
 

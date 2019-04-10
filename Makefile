@@ -86,7 +86,7 @@ undeploy:
 	-rm -f /usr/local/lib/libnbre*
 
 build:
-	source install-native-libs.sh; cd cmd/neb; $(CGO_CFLAGS) $(CGO_LDFLAGS) go build $(LDFLAGS) -o ../../$(NEBBINARY)
+	cd cmd/neb; $(CGO_CFLAGS) $(CGO_LDFLAGS) go build $(LDFLAGS) -o ../../$(NEBBINARY)
 	$(BUUILDLOG)
 
 build-linux:
