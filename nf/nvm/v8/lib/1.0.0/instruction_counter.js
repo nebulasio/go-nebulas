@@ -386,3 +386,4 @@ function disallowRedefineOfInstructionCounter(node, parents, strictDisallowUsage
 
 exports["parseScript"] = esprima.parseScript;
 exports["processScript"] = processScript;
+

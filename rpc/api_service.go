@@ -27,10 +27,15 @@ import (
 
 	"encoding/json"
 
+	"encoding/hex"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
+	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/nip/dip"
+	"github.com/nebulasio/go-nebulas/nr"
 	"github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -77,7 +82,9 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	}
 
 	block := neb.BlockChain().TailBlock()
+	height := block.Height()
 	if req.Height > 0 {
+		height = req.Height
 		block = neb.BlockChain().GetBlockOnCanonicalChainByHeight(req.Height)
 		if block == nil {
 			metricsAccountStateFailed.Mark(1)
@@ -91,7 +98,7 @@ func (s *APIService) GetAccountState(ctx context.Context, req *rpcpb.GetAccountS
 	}
 
 	metricsAccountStateSuccess.Mark(1)
-	return &rpcpb.GetAccountStateResponse{Balance: acc.Balance().String(), Nonce: acc.Nonce(), Type: uint32(addr.Type())}, nil
+	return &rpcpb.GetAccountStateResponse{Balance: acc.Balance().String(), Nonce: acc.Nonce(), Type: uint32(addr.Type()), Height: height, Pending: neb.BlockChain().TransactionPool().GetPending(addr)}, nil
 }
 
 // Call is the RPC API handler.
@@ -198,6 +205,17 @@ func parseTransactionPayload(reqTx *rpcpb.TransactionRequest) (payloadType strin
 					return "", nil, err
 				}
 			}
+		case core.TxPayloadProtocolType:
+			{
+				payloadType = core.TxPayloadProtocolType
+				protocolPayload, err := core.NewProtocolPayload(reqTx.Protocol)
+				if err != nil {
+					return "", nil, err
+				}
+				if payload, err = protocolPayload.ToBytes(); err != nil {
+					return "", nil, err
+				}
+			}
 		default:
 			return "", nil, core.ErrInvalidTxPayloadType
 		}
@@ -228,6 +246,15 @@ func parseTransactionPayload(reqTx *rpcpb.TransactionRequest) (payloadType strin
 				}
 			} else {
 				return "", nil, errors.New("invalid contract")
+			}
+		} else if reqTx.Protocol != nil {
+			payloadType = core.TxPayloadProtocolType
+			protocolPayload, err := core.NewProtocolPayload(reqTx.Protocol)
+			if err != nil {
+				return "", nil, err
+			}
+			if payload, err = protocolPayload.ToBytes(); err != nil {
+				return "", nil, err
 			}
 		} else {
 			payloadType = core.TxPayloadBinaryType
@@ -462,7 +489,7 @@ func (s *APIService) toTransactionResponse(tx *core.Transaction) (*rpcpb.Transac
 
 	if event != nil {
 		h := neb.BlockChain().TailBlock().Height()
-		if h >= core.RecordCallContractResultHeight {
+		if core.RecordCallContractResultAtHeight(h) {
 			txEvent2 := core.TransactionEventV2{}
 
 			err := json.Unmarshal([]byte(event.Data), &txEvent2)
@@ -636,4 +663,121 @@ func (s *APIService) GetDynasty(ctx context.Context, req *rpcpb.ByBlockHeightReq
 		result = append(result, addr.String())
 	}
 	return &rpcpb.GetDynastyResponse{Miners: result}, nil
+}
+
+//verify signature.
+func (s *APIService) VerifySignature(ctx context.Context, req *rpcpb.VerifySignatureRequest) (*rpcpb.VerifySignatureResponse, error) {
+
+	var alg keystore.Algorithm
+	if req.Alg == 0 {
+		alg = keystore.SECP256K1
+	} else {
+		alg = keystore.Algorithm(req.Alg)
+	}
+
+	msg, err := hex.DecodeString(req.Msg)
+	if err != nil {
+		return nil, err
+	}
+
+	signature, err := hex.DecodeString(req.Signature)
+	if err != nil {
+		return nil, err
+	}
+
+	signer, err := core.RecoverSignerFromSignature(alg, msg, signature)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &rpcpb.VerifySignatureResponse{
+		Result:  signer.String() == req.Address,
+		Address: signer.String(),
+	}
+
+	return resp, nil
+}
+
+// GetNRHash return nr query hash.
+func (s *APIService) GetNRHash(ctx context.Context, req *rpcpb.GetNRHashRequest) (*rpcpb.GetNRHashResponse, error) {
+	neb := s.server.Neblet()
+
+	if req.End == 0 {
+		req.End = neb.BlockChain().TailBlock().Height()
+	}
+
+	data, err := neb.Nr().GetNRHandler(req.Start, req.End, req.Version)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &rpcpb.GetNRHashResponse{Hash: data}, nil
+}
+
+// GetNRList return nr data.
+func (s *APIService) GetNRList(ctx context.Context, req *rpcpb.GetNRListRequest) (*rpcpb.GetNRListResponse, error) {
+	neb := s.server.Neblet()
+
+	data, err := neb.Nr().GetNRList([]byte(req.Hash))
+
+	if err != nil {
+		return nil, err
+	}
+
+	nrData := data.(*nr.NRData)
+	nrItems := make([]*rpcpb.NRItem, len(nrData.Nrs))
+	for idx, v := range nrData.Nrs {
+		item := &rpcpb.NRItem{
+			Address: v.Address,
+			Value:   v.Score,
+			Median:  v.Median,
+			Weight:  v.Weight,
+		}
+		nrItems[idx] = item
+	}
+
+	resp := &rpcpb.GetNRListResponse{
+		Version: nrData.Version,
+		Start:   nrData.StartHeight,
+		End:     nrData.EndHeight,
+		Data:    nrItems,
+	}
+
+	return resp, nil
+}
+
+// GetDIPList return dip list.
+func (s *APIService) GetDIPList(ctx context.Context, req *rpcpb.GetDIPListRequest) (*rpcpb.GetDIPListResponse, error) {
+	neb := s.server.Neblet()
+
+	height := req.Height
+	if height == 0 {
+		height = neb.BlockChain().TailBlock().Height()
+	}
+
+	data, err := neb.Dip().GetDipList(height, 0)
+
+	if err != nil {
+		return nil, err
+	}
+	dipData := data.(*dip.DIPData)
+	dipItems := make([]*rpcpb.DIPItem, len(dipData.Dips))
+	for idx, v := range dipData.Dips {
+		item := &rpcpb.DIPItem{
+			Address:  v.Address,
+			Contract: v.Contract,
+			Value:    v.Reward,
+		}
+		dipItems[idx] = item
+	}
+
+	resp := &rpcpb.GetDIPListResponse{
+		Version: dipData.Version,
+		Start:   dipData.StartHeight,
+		End:     dipData.EndHeight,
+		Data:    dipItems,
+	}
+
+	return resp, nil
 }

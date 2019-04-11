@@ -1,5 +1,8 @@
 # go-nebulas
 
+**[NOTE] Please make sure you're checking out master branch for production purpose. 
+The current branch is still under development.**
+
 Official Go implementation of the Nebulas protocol.
 
 [![Build Status](https://travis-ci.org/nebulasio/go-nebulas.svg?branch=master)](https://travis-ci.org/nebulasio/go-nebulas)
@@ -80,7 +83,7 @@ git checkout testnet
 3. Install dependencies packages.
     * all golang dependencies will be stored in ./vendor.
     * run `make dep` to install dependencies.
-    * If you failed to run this, please download our [vendor.tar.gz](http://ory7cn4fx.bkt.clouddn.com/vendor.tar.gz) directly.
+    * If you failed to run this, please download our [vendor.tar.gz](https://s3-us-west-1.amazonaws.com/develop-center/setup/vendor.tar.gz) directly.
 
 4. Install v8 libraries.
     * run `make deploy-v8`
@@ -176,12 +179,12 @@ From the log, we can see the binary execution starts neblet, starts network serv
 
 ## TestNet
 
-We are glad to release Nebulas Testnet here. 
+We are glad to release Nebulas Testnet here.
 You can use and join our [TestNet](https://github.com/nebulasio/wiki/blob/master/testnet.md) right now.
 
 ## MaintNet
 
-We are glad to release Nebulas Mainnet here. 
+We are glad to release Nebulas Mainnet here.
 You can use and join our [MainNet](https://github.com/nebulasio/wiki/blob/master/mainnet.md) right now.
 
 ## Explorer

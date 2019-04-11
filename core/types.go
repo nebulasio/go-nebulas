@@ -40,9 +40,11 @@ import (
 
 // Payload Types
 const (
-	TxPayloadBinaryType = "binary"
-	TxPayloadDeployType = "deploy"
-	TxPayloadCallType   = "call"
+	TxPayloadBinaryType   = "binary"
+	TxPayloadDeployType   = "deploy"
+	TxPayloadCallType     = "call"
+	TxPayloadProtocolType = "protocol"
+	TxPayloadDipType      = "dip"
 )
 
 // Const.
@@ -71,6 +73,11 @@ const (
 
 	// TxExecutionPendding pendding status when transaction in transaction pool.
 	TxExecutionPendding = 2
+)
+
+const (
+	//InnerTransactionNonce inner tx nonce
+	InnerTransactionNonce = 0
 )
 
 // Error Types
@@ -175,6 +182,9 @@ var (
 	ErrRPCConnectionFailed 		= errors.New("RPC connection failed")
 	ErrRPCStreamException		= errors.New("RPC streaming exception")
 	ErrExecutionTimeout			= errors.New("contract exection timed out")
+	// multi nvm error
+	ErrInnerExecutionFailed = errors.New("multi execution failed")
+	ErrCreateInnerTx        = errors.New("Failed to create inner transaction")
 
 	// access control
 	ErrUnsupportedKeyword    = errors.New("transaction data has unsupported keyword")
@@ -259,6 +269,7 @@ type AccountManager interface {
 
 	Update(*Address, []byte, []byte) error
 	Load([]byte, []byte) (*Address, error)
+	LoadPrivate([]byte, []byte) (*Address, error)
 	Import([]byte, []byte) (*Address, error)
 	Remove(*Address, []byte) error
 }
@@ -268,7 +279,7 @@ type NVM interface {
 	CreateEngine(block *Block, tx *Transaction, contract state.Account, ws WorldState) (SmartContractEngine, error)
 	StartNebulasVM(enginePath string, listenAddr string) (int, error)
 	StopNebulasVM(enginePid int) error
-	CheckV8ServerRunning(enginePid int) bool
+	CheckV8ServerRunning(enginePid int) error
 	GetNVMListenAddr() string
 }
 
@@ -296,6 +307,9 @@ type Neblet interface {
 	IsActiveSyncing() bool
 	AccountManager() AccountManager
 	Nvm() NVM
+	Nbre() Nbre
+	Nr() Nr
+	Dip() Dip
 	StartPprof(string) error
 }
 
@@ -316,7 +330,35 @@ type WorldState interface {
 
 	RecordGas(from string, gas *util.Uint128) error
 
-	Reset(addr byteutils.Hash) error
+	Reset(addr byteutils.Hash, isResetChangeLog bool) error
 	GetBlockHashByHeight(height uint64) ([]byte, error)
 	GetBlock(txHash byteutils.Hash) ([]byte, error)
+}
+
+type Data interface {
+	ToBytes() ([]byte, error)
+	FromBytes([]byte) error
+}
+
+// Nbre interface
+type Nbre interface {
+	Start() error
+	Execute(command string, args ...interface{}) (interface{}, error)
+	Stop()
+}
+
+type Nr interface {
+	GetNRHandler(start, end, version uint64) (string, error)
+	GetNRList(hash []byte) (Data, error)
+}
+
+type Dip interface {
+	Start()
+	Stop()
+
+	RewardAddress() *Address
+	RewardValue() *util.Uint128
+
+	GetDipList(height, version uint64) (Data, error)
+	CheckReward(tx *Transaction) error
 }

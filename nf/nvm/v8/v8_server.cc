@@ -183,7 +183,7 @@ void Initialization(){
   InitializeExecutionEnvDelegate(AttachLibVersionDelegate);
 
   InitializeStorage(StorageGet, StoragePut, StorageDel);
-  InitializeBlockchain(GetTxByHash, GetAccountState, Transfer, VerifyAddress, GetPreBlockHash, GetPreBlockSeed);
+  InitializeBlockchain(GetTxByHash, GetAccountState, Transfer, VerifyAddress, GetPreBlockHash, GetPreBlockSeed, GetContractSourceFunc, InnerContractFunc);
   InitializeEvent(EventTrigger);
   InitializeCrypto(Sha256, Sha3256, Ripemd160, RecoverAddress, Md5, Base64);
 }

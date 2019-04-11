@@ -36,3 +36,7 @@
 #define RECOVER_ADDRESS_FUNC                "RecoverAddressFunc"
 #define MD5_FUNC                            "Md5Func"
 #define BASE64_FUNC                         "Base64Func"
+
+// inner contract call
+#define GET_CONTRACT_SRC                    "GetContractSource"
+#define INNER_CONTRACT_CALL                 "InnerContractCall"

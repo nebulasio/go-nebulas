@@ -1,0 +1,31 @@
+{
+  "name": "dip",
+  "version_major": 1,
+  "version_minor": 0,
+  "version_patch": 0,
+  "depends": [
+    {
+      "name": "nr",
+      "version_major": 0,
+      "version_minor": 0,
+      "version_patch": 2
+    }
+  ],
+  "available_height": 180,
+  "root_path":"/home/chmwang/go-nebulas/nbre/",
+  "cpp_files": [
+    "test/link_example/foo_arg.cpp"
+  ],
+  "include_header_files":[
+    "test/link_example"
+  ],
+  "link_path":[
+    "runtime/"
+  ],
+  "link_files":[
+    "bar"
+  ],
+  "flags": [
+  ]
+
+}

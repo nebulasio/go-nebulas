@@ -1,6 +1,6 @@
 'use strict';
 
-var Wallet = require('../../../cmd/console/neb.js/lib/wallet.js');
+var Wallet = require('nebulas');
 var sleep = require("system-sleep");
 var HttpRequest = require("../../node-request");
 
@@ -45,6 +45,10 @@ if (env == 'local') {
 	neb.setRequest(new HttpRequest("http://35.177.214.138:8685"));
 	ChainID = 1003;
 	from = new Wallet.Account("43181d58178263837a9a6b08f06379a348a5b362bfab3631ac78d2ac771c5df3");
+} else if (env == "mariana") {
+    neb.setRequest(new HttpRequest("http://127.0.0.1:9685")); //https://testnet.nebulas.io
+    ChainID = 1111;
+    from = new Wallet.Account("830ccbac2029b880eb07aa9a19c65ce6dad41702d409771eada791d6a6a83a1e");
 } else {
 	console.log("please input correct env local testneb1 testneb2 testneb3");
 	return;

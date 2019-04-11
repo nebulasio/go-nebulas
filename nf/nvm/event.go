@@ -53,12 +53,18 @@ type TransferFromContractFailureEvent struct {
 	Error  string `json:"error"`
 }
 
+// InnerTransferContractEvent event for inner transfer in contract
+type InnerContractEvent struct {
+	From  string `json:"from"`
+	To    string `json:"to"`
+	Value string `json:"value"`
+	Err   string `json:"error"`
+}
+
 // EventTriggerFunc export EventTriggerFunc
-//export EventTriggerFunc
 func EventTriggerFunc(handler uint64, gTopic, gData string) uint64 {
-
 	var gasCnt uint64 = 0
-
+	var engine *V8Engine
 	e := getEngineByEngineHandler(handler)
 	if e == nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -68,13 +74,25 @@ func EventTriggerFunc(handler uint64, gTopic, gData string) uint64 {
 		}).Error("Event.Trigger delegate handler does not found.")
 		return gasCnt
 	}
-
+	if e.ctx.head != 0 {
+		engine = getEngineByEngineHandler(e.ctx.head)
+		if engine == nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"category": 0, // ChainEventCategory.
+				"topic":    gTopic,
+				"data":     gData,
+			}).Error("Event.Trigger delegate head handler does not found.")
+			return gasCnt
+		}
+	} else {
+		engine = e
+	}
 	// calculate Gas.
 	gasCnt = uint64(EventBaseGasCount + len(gTopic) + len(gData))
 
 	contractTopic := EventNameSpaceContract + "." + gTopic
 	event := &state.Event{Topic: contractTopic, Data: gData}
-	e.ctx.state.RecordEvent(e.ctx.tx.Hash(), event)
+	e.ctx.state.RecordEvent(engine.ctx.tx.Hash(), event)
 
 	return gasCnt
 }

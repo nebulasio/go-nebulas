@@ -32,6 +32,8 @@ message Config {
     MiscConfig misc = 101;
     // App Config.
 	AppConfig app = 102;
+    // Nbre Config.
+    NbreConfig nbre = 200;
 }
 
 message NetworkConfig {
@@ -92,7 +94,6 @@ message ChainConfig {
 
     // access control config path
     string access = 33;
-
 
     // v8 server path
     string nvm_path = 34;
@@ -186,4 +187,19 @@ message InfluxdbConfig {
     string user = 4;
     // Auth password.
     string password = 5;
+}
+
+message NbreConfig {
+    // Nbre root dir
+    string root_dir = 1;
+    // Nbre log path
+    string log_dir = 2;
+    // Nbre data path
+    string data_dir = 3;
+    // Nbre runtime path
+    string nbre_path = 4;
+    // Nbre admin address
+    string admin_address = 5;
+    // Nbre start height
+    uint64 start_height = 6;
 }

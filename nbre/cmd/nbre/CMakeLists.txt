@@ -1,0 +1,7 @@
+add_executable(nbre main.cpp)
+if(UNIX AND NOT APPLE)
+  target_link_libraries(nbre nbre_rt ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.so)
+elseif(UNIX)
+  target_link_libraries(nbre nbre_rt ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.dylib)
+endif()
+set_target_properties(nbre PROPERTIES LINK_FLAGS "-rdynamic")

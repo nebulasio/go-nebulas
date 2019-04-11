@@ -252,7 +252,7 @@ function checkCliamTokens(done) {
 function deployContract(done){
 
     // create contract
-    var source = FS.readFileSync("../nf/nvm/test/NRC20.js", "utf-8");
+    var source = FS.readFileSync("../../../nf/nvm/test/NRC20.js", "utf-8");
     var contract = {
         "source": source,
         "sourceType": "js",
@@ -1162,9 +1162,9 @@ testCase = {
         canSubmitTx: true,
         canExcuteTx: false,
         status: 0,
-        fromBalanceAfterTx: "999999979746000000",
+        fromBalanceAfterTx: "999999979734000000",
         toBalanceAfterTx: '0',
-        transferReward: '20254000000',
+        transferReward: '20266000000',
         eventErr: "Call: Error: transfer failed."
     }
 };

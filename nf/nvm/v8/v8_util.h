@@ -103,6 +103,10 @@ class NVMEngine final: public NVMService::Service{
 
     const NVMCallbackResult* Callback(void*, NVMCallbackResponse*);
 
+
+    // For inner contract call
+    const uint32_t CreateInnerContractEngine();     // return index of the newly created engine in the vector
+
   private:
     int m_concurrency_scale = 1;              // default concurrency number
 
@@ -116,14 +120,17 @@ class NVMEngine final: public NVMService::Service{
     uintptr_t m_gcs_handler = 0;                // gcs handler
     
     V8Engine* engine = nullptr;                    // default engine
+    std::unique_ptr<std::vector<V8Engine*>> m_inner_engines = nullptr;  // for inner contract call, engines of the subsequent engines
     char* m_exe_result = nullptr;                  // contract execution result
     
     // constants for defining contract source type
     const std::string TS_TYPE = "ts";
     const std::string JS_TYPE = "js";
+
     const std::string DATA_EXHG_START = "start";
     const std::string DATA_EXHG_CALL_BACK = "callback";
     const std::string DATA_EXHG_FINAL = "final";
+    const std::string INNER_CALL = "innercall";
 
     grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest> *m_stm;    // stream used to send request from server
     int m_response_indx = 0;                                            // index of the data request/response pair

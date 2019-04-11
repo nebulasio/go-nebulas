@@ -40,14 +40,17 @@ const (
 	ExecutionFailedErr  = 1
 	ExecutionTimeOutErr = 2
 
-	// ExecutionTimeoutInSeconds max v8 execution timeout.
+	// ExecutionTimeout max v8 execution timeout.
 	ExecutionTimeout                 = 15 * 1000 * 1000
+	OriginExecutionTimeout           = 5 * 1000 * 1000
+	CompatibleExecutionTimeout       = 20 * 1000 * 1000
 	TimeoutGasLimitCost              = 100000000
 	MaxLimitsOfExecutionInstructions = 10000000 // 10,000,000
 
 	NVMDataExchangeTypeStart = "start"
 	NVMDataExchangeTypeCallBack = "callback"
 	NVMDataExchangeTypeFinal = "final"
+	NVMDataInnerContractCall = "innercall"
 
 	NVM_SUCCESS = 0
 	NVM_EXCEPTION_ERR = -1
@@ -78,7 +81,10 @@ const (
 	RIPEMD_160_FUNC = "Ripemd160Func"
 	RECOVER_ADDRESS_FUNC = "RecoverAddressFunc"
 	MD5_FUNC = "Md5Func"
-	BASE64_FUNC = "Base64Func"	
+	BASE64_FUNC = "Base64Func"
+	// inner contract call
+	GET_CONTRACT_SRC = "GetContractSource"
+	INNER_CONTRACT_CALL = "InnerContractCall"
 )
 
 //engine_v8 private data
@@ -112,6 +118,9 @@ type V8Engine struct {
 	chainID 								uint32
 	startExeTime							time.Time
 	executionTimeOut						uint64
+	innerErrMsg                             string
+	innerErr                                error
+	enableInnerContract						bool
 }
 
 type sourceModuleItem struct {
@@ -134,7 +143,7 @@ func NewV8Engine(ctx *Context) *V8Engine {
 		actualCountOfExecutionInstructions:      0,
 		actualTotalMemorySize:                   0,
 		executionTimeOut:			  			 0,
-		chainID:								 1,		// default,set to be mainnet
+		chainID:								 ctx.tx.ChainID(),		// default, set to be mainnet
 	}
 
 	(func() {
@@ -150,10 +159,20 @@ func NewV8Engine(ctx *Context) *V8Engine {
 		storages[engine.gcsHandler] = engine
 	})()
 
-	if ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
-		engine.executionTimeOut = ExecutionTimeout		// set to max
+	if core.NvmGasLimitWithoutTimeoutAtHeight(ctx.block.Height()) {
+		engine.executionTimeOut = ExecutionTimeout
+	} else {
+		timeoutMark := core.NvmExeTimeoutAtHeight(ctx.block.Height())
+		if timeoutMark {
+			engine.executionTimeOut = OriginExecutionTimeout
+		} else {
+			engine.executionTimeOut = CompatibleExecutionTimeout
+		}
 	}
 
+	if core.EnableInnerContractAtHeight(ctx.block.Height()) {
+		engine.enableInnerContract = true;
+	}
 	return engine
 }
 
@@ -177,7 +196,6 @@ func (e *V8Engine) Context() *Context {
 
 // SetExecutionLimits set execution limits of V8 Engine, prevent Halting Problem.
 func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTotalMemorySize uint64) error {
-
 	logging.VLog().WithFields(logrus.Fields{
 		"limits_of_executed_instructions": limitsOfExecutionInstructions,
 		"limits_of_total_memory_size":     limitsOfTotalMemorySize,
@@ -239,24 +257,43 @@ func (e *V8Engine) DeployAndInit(config *core.NVMConfig) (string, error){
 	return e.RunScriptSource(config)
 }
 
-func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
+/*
+// GetNVMLeftResources return current NVM verb total resource
+//TODO: move this into V8 process
+func (e *V8Engine) GetNVMLeftResources() (uint64, uint64) {
+	e.CollectTracingStats()
+	instruction := uint64(0)
+	mem := uint64(0)
+	if e.limitsOfExecutionInstructions >= e.actualCountOfExecutionInstructions {
+		instruction = e.limitsOfExecutionInstructions - e.actualCountOfExecutionInstructions
+	}
+
+	if e.limitsOfTotalMemorySize >= e.actualTotalMemorySize {
+		mem = e.limitsOfTotalMemorySize - e.actualTotalMemorySize
+	}
+	return instruction, mem
+}
+*/
+
+// Prepare V8 data exchange request, if it's inner contract call, then the innercall flag is true
+func PrepareLaunchRequest(e *V8Engine, config *core.NVMConfig, innerCallFlag bool) (*NVMDataRequest, error) {
 
 	// check source type
 	sourceType := config.PayloadSourceType
 	if sourceType != core.SourceTypeJavaScript && sourceType != core.SourceTypeTypeScript {
-		return "", ErrUnsupportedSourceType
+		return nil, ErrUnsupportedSourceType
 	}
 
 	// prepare for execute.
 	block := toSerializableBlock(e.ctx.block)
 	blockJSON, err := json.Marshal(block)
 	if err != nil {
-		return "", errors.New("Failed to serialize block")
+		return nil, errors.New("Failed to serialize block")
 	}
 	tx := toSerializableTransaction(e.ctx.tx)
 	txJSON, err := json.Marshal(tx)
 	if err != nil {
-		return "", errors.New("Failed to serialize transaction")
+		return nil, errors.New("Failed to serialize transaction")
 	}
 
 	//var runnableSource string
@@ -265,16 +302,23 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 	if len(args) > 0 {
 		var argsObj []interface{}
 		if err := json.Unmarshal([]byte(args), &argsObj); err != nil {
-			return "", errors.New("Arguments error")
+			return nil, errors.New("Arguments error")
 		}
 		if argsInput, err = json.Marshal(argsObj); err != nil {
-			return "", errors.New("Arguments error")
+			return nil, errors.New("Arguments error")
 		}
 	} else {
 		argsInput = []byte("[]")
 	}
 
-	moduleID := "contract.js"			// for module recognition
+	var moduleID string
+	if innerCallFlag {
+		engineIndx := fmt.Sprintf("%v", e.ctx.index);
+		moduleID = "contract" + engineIndx + ".js"
+	}else{
+		moduleID = "contract.js"
+	}
+	
 	runnableSource := fmt.Sprintf(`Blockchain.blockParse("%s");
 		Blockchain.transactionParse("%s");
 		var __contract = require("%s");
@@ -282,6 +326,38 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 		__instance["%s"].apply(__instance, JSON.parse("%s"));`,
 			formatArgs(string(blockJSON)), formatArgs(string(txJSON)),
 			moduleID, config.FunctionName, formatArgs(string(argsInput)))
+
+	if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
+		if e.limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
+			e.limitsOfExecutionInstructions = MaxLimitsOfExecutionInstructions
+		}
+	}
+
+	configBundle := &NVMConfigBundle{ScriptSrc:config.PayloadSource, ScriptType:config.PayloadSourceType, EnableLimits: true, RunnableSrc: runnableSource, 
+		MaxLimitsOfExecutionInstruction:MaxLimitsOfExecutionInstructions, DefaultLimitsOfTotalMemSize:core.DefaultLimitsOfTotalMemorySize,
+		LimitsExeInstruction: e.limitsOfExecutionInstructions, LimitsTotalMemSize: e.limitsOfTotalMemorySize, ExecutionTimeout: e.executionTimeOut,
+		BlockJson:formatArgs(string(blockJSON)), TxJson: formatArgs(string(txJSON)), 
+		ModuleId: moduleID, ChainId: e.chainID, BlockHeight: e.ctx.block.Height()}
+
+	callbackResult := &NVMCallbackResult{Result:""}
+
+	// for call request, the metadata is nil
+	requestType := NVMDataExchangeTypeStart
+	if innerCallFlag {
+		requestType = NVMDataInnerContractCall
+	}
+	request := &NVMDataRequest{
+		RequestType: requestType, 
+		RequestIndx:nvmRequestIndex,
+		ConfigBundle: configBundle,
+		LcsHandler: e.lcsHandler, 
+		GcsHandler: e.gcsHandler,
+		CallbackResult: callbackResult}
+	
+	return request, nil
+}
+
+func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 
 	// check height settings carefully
 	/*
@@ -297,12 +373,6 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 	}
 	*/
 
-	if e.ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
-		if e.limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
-			e.limitsOfExecutionInstructions = MaxLimitsOfExecutionInstructions
-		}
-	}
-
 	// Send request
 	conn, err := grpc.Dial(e.serverListenAddr, grpc.WithInsecure())
 	if err != nil {
@@ -310,8 +380,7 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			"err": err,
 		}).Error("Failed to connect with V8 server")
 
-		//TODO: try to re-launch the process
-		
+		//TODO: try to re-launch the process		
 	}
 	defer conn.Close()
 
@@ -324,22 +393,10 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 	
 	logging.CLog().Info(">>>>>>>>>Now started call request!, the listener address is: ", e.serverListenAddr)
 
-	configBundle := &NVMConfigBundle{ScriptSrc:config.PayloadSource, ScriptType:config.PayloadSourceType, EnableLimits: true, RunnableSrc: runnableSource, 
-		MaxLimitsOfExecutionInstruction:MaxLimitsOfExecutionInstructions, DefaultLimitsOfTotalMemSize:core.DefaultLimitsOfTotalMemorySize,
-		LimitsExeInstruction: e.limitsOfExecutionInstructions, LimitsTotalMemSize: e.limitsOfTotalMemorySize, ExecutionTimeout: e.executionTimeOut,
-		BlockJson:formatArgs(string(blockJSON)), TxJson: formatArgs(string(txJSON)), 
-		ModuleId: moduleID, ChainId: e.chainID, BlockHeight: e.ctx.block.Height()}
-
-	callbackResult := &NVMCallbackResult{Result:""}
-
-	// for call request, the metadata is nil
-	request := &NVMDataRequest{
-		RequestType:NVMDataExchangeTypeStart, 
-		RequestIndx:nvmRequestIndex,
-		ConfigBundle: configBundle,
-		LcsHandler: e.lcsHandler, 
-		GcsHandler: e.gcsHandler,
-		CallbackResult: callbackResult}
+	request, err := PrepareLaunchRequest(e, config, false)
+	if err != nil {
+		return "", err
+	}
 
 	stream, err := v8Client.SmartContractCall(ctx); if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -400,12 +457,25 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 				"tx height": e.ctx.block.Height(),
 			}).Info(">>>>Got stats info")
 		
-			if e.ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
+			if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
 				if e.limitsOfExecutionInstructions == MaxLimitsOfExecutionInstructions && err == ErrInsufficientGas {
 				  err = ErrExecutionTimeout
 				  result = "\"null\""
 				}
 			}
+
+			/*
+			recordInnerContractEvent(err, fromAddr.String(), addr.String(), toValue.String(), ws, parentTx.Hash())
+			if err != nil {
+				if err == core.ErrInnerExecutionFailed {
+					logging.VLog().Errorf("check inner err, engine index:%v", index)
+				} else {
+					errLog := setHeadErrAndLog(engine, index, err, val, false)
+					logging.VLog().Errorf(errLog)
+				}
+				return engineNew, nvmConfigNew, gasCnt, err.Error()
+			}
+			*/
 
 			//set err
 			if ret == NVM_TRANSPILE_SCRIPT_ERR {
@@ -416,9 +486,9 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 
 			} else if ret == NVM_EXE_TIMEOUT_ERR {
 				err = ErrExecutionTimeout
-				if e.ctx.block.Height() >= core.NvmGasLimitWithoutTimeoutAtHeight {
+				if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
 					err = core.ErrUnexpected
-				} else if e.ctx.block.Height() >= core.NewNvmExeTimeoutConsumeGasHeight {
+				} else if core.NewNvmExeTimeoutConsumeGasAtHeight(e.ctx.block.Height()) {
 					if TimeoutGasLimitCost > e.limitsOfExecutionInstructions {
 						e.actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
 						//actualCountOfExecutionInstructions = e.limitsOfExecutionInstructions
@@ -466,112 +536,144 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			responseFuncName := callbackResponse.GetFuncName()
 			responseFuncParams := callbackResponse.GetFuncParams()
 
-			// check the callback type
-			callbackResult := &NVMCallbackResult{}
-			callbackResult.FuncName = responseFuncName
+			var newRequest *NVMDataRequest
 
-			switch responseFuncName{
-			case ATTACH_LIB_VERSION_DELEGATE_FUNC:
-				pathName := AttachLibVersionDelegateFunc(serverLcsHandler, responseFuncParams[0])
-				callbackResult.Result = pathName
-			case STORAGE_GET:
-				value, gasCnt, notNil := StorageGetFunc(serverLcsHandler, responseFuncParams[0])
-				callbackResult.Result = value
-				callbackResult.NotNull = notNil
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-			case STORAGE_PUT:
-				resCode, gasCnt := StoragePutFunc(serverLcsHandler, responseFuncParams[0], responseFuncParams[1])
-				callbackResult.Result = fmt.Sprintf("%v", resCode)
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-			case STORAGE_DEL:
-				resCode, gasCnt := StorageDelFunc(serverLcsHandler, responseFuncParams[0])
-				callbackResult.Result = fmt.Sprintf("%v", resCode)
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-			case GET_TX_BY_HASH:
-				resStr, gasCnt, notNil := GetTxByHashFunc(serverLcsHandler, responseFuncParams[0])
-				callbackResult.Result = resStr
-				callbackResult.NotNull = notNil
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-			case GET_ACCOUNT_STATE:
-				resCode, resStr, exceptionInfo, gasCnt, notNil := GetAccountStateFunc(serverLcsHandler, responseFuncParams[0])
-				callbackResult.Result = fmt.Sprintf("%v", resCode)
-				callbackResult.NotNull = notNil
-				callbackResult.Extra = append(callbackResult.Extra, resStr)
-				callbackResult.Extra = append(callbackResult.Extra, exceptionInfo)
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-			case TRANSFER:
-				resCode, gasCnt := TransferFunc(serverLcsHandler, responseFuncParams[0], responseFuncParams[1])
-				callbackResult.Result = fmt.Sprintf("%v", resCode)
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-			case VERIFY_ADDR:
-				resCode, gasCnt := VerifyAddressFunc(serverLcsHandler, responseFuncParams[0])
-				callbackResult.Result = fmt.Sprintf("%v", resCode)
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-			case GET_PRE_BLOCK_HASH:
-				offset, _ := strconv.ParseInt(responseFuncParams[0], 10, 64)
-				resCode, resStr, exceptionInfo, gasCnt, notNil := GetPreBlockHashFunc(serverLcsHandler, uint64(offset))
-				callbackResult.Result = fmt.Sprintf("%v", resCode)
-				callbackResult.NotNull = notNil
-				callbackResult.Extra = append(callbackResult.Extra, resStr)
-				callbackResult.Extra = append(callbackResult.Extra, exceptionInfo)
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-			case GET_PRE_BLOCK_SEED:
-				offset, _ := strconv.ParseInt(responseFuncParams[0], 10, 64)
-				resCode, resStr, exceptionInfo, gasCnt, notNil := GetPreBlockSeedFunc(serverLcsHandler, uint64(offset))
-				callbackResult.Result = fmt.Sprintf("%v", resCode)
-				callbackResult.NotNull = notNil
-				callbackResult.Extra = append(callbackResult.Extra, resStr)
-				callbackResult.Extra = append(callbackResult.Extra, exceptionInfo)
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-			case EVENT_TRIGGER_FUNC:
-				gasCnt := EventTriggerFunc(serverLcsHandler, responseFuncParams[0], responseFuncParams[1])
-				callbackResult.Result = fmt.Sprintf("%v", gasCnt)
-			case SHA_256_FUNC:
-				resStr, gasCnt, notNil := Sha256Func(responseFuncParams[0])
-				callbackResult.Result = resStr
-				callbackResult.NotNull = notNil
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-			case SHA_3256_FUNC:
-				resStr, gasCnt, notNil := Sha3256Func(responseFuncParams[0])
-				callbackResult.Result = resStr
-				callbackResult.NotNull = notNil
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-			case RIPEMD_160_FUNC:
-				resStr, gasCnt, notNil := Ripemd160Func(responseFuncParams[0])
-				callbackResult.Result = resStr
-				callbackResult.NotNull = notNil
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-			case RECOVER_ADDRESS_FUNC:
-				alg, _ := strconv.Atoi(responseFuncParams[0])
-				resStr, gasCnt, notNil := RecoverAddressFunc(alg, responseFuncParams[1], responseFuncParams[2])
-				callbackResult.Result = resStr
-				callbackResult.NotNull = notNil
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-			case MD5_FUNC:
-				resStr, gasCnt, notNil := Md5Func(responseFuncParams[0])
-				callbackResult.Result = resStr
-				callbackResult.NotNull = notNil
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-			case BASE64_FUNC:
-				resStr, gasCnt, notNil := Base64Func(responseFuncParams[0])
-				callbackResult.Result = resStr
-				callbackResult.NotNull = notNil
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-			default:
-				logging.CLog().WithFields(logrus.Fields{
-					"func": responseFuncName,
-					"params": responseFuncParams,
-				}).Error("Invalid callback function name")
+			if responseFuncName == INNER_CONTRACT_CALL {
+
+				resStr := "success"
+				engineNew, nvmConfigNew, gasCnt, innerCallErr := InnerContractFunc(serverLcsHandler, responseFuncParams[0], responseFuncParams[1], responseFuncParams[2], responseFuncParams[3])
+				if innerCallErr != nil {
+					resStr = "fail"
+				}
+
+				newRequest, err = PrepareLaunchRequest(engineNew, nvmConfigNew, true)
+				if err != nil {
+					resStr = "fail"
+				}
+
+				newRequest.CallbackResult.Result = resStr
+				newRequest.CallbackResult.NotNull = true
+				newRequest.CallbackResult.FuncName = responseFuncName
+				newRequest.CallbackResult.Extra = append(newRequest.CallbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+
+				//TODO, move this into v8 process
+				//logging.VLog().Infof("end cal val:%v,gascount:%v,gasSum:%v, engine index:%v", val, gasCout, gasSum, index)
+
+			} else {
+				callbackResult := &NVMCallbackResult{}
+
+				switch responseFuncName{
+				case ATTACH_LIB_VERSION_DELEGATE_FUNC:
+					pathName := AttachLibVersionDelegateFunc(serverLcsHandler, responseFuncParams[0])
+					callbackResult.Result = pathName
+				case STORAGE_GET:
+					value, gasCnt, notNil := StorageGetFunc(serverLcsHandler, responseFuncParams[0])
+					callbackResult.Result = value
+					callbackResult.NotNull = notNil
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case STORAGE_PUT:
+					resCode, gasCnt := StoragePutFunc(serverLcsHandler, responseFuncParams[0], responseFuncParams[1])
+					callbackResult.Result = fmt.Sprintf("%v", resCode)
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case STORAGE_DEL:
+					resCode, gasCnt := StorageDelFunc(serverLcsHandler, responseFuncParams[0])
+					callbackResult.Result = fmt.Sprintf("%v", resCode)
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case GET_TX_BY_HASH:
+					resStr, gasCnt, notNil := GetTxByHashFunc(serverLcsHandler, responseFuncParams[0])
+					callbackResult.Result = resStr
+					callbackResult.NotNull = notNil
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case GET_ACCOUNT_STATE:
+					resCode, resStr, exceptionInfo, gasCnt, notNil := GetAccountStateFunc(serverLcsHandler, responseFuncParams[0])
+					callbackResult.Result = fmt.Sprintf("%v", resCode)
+					callbackResult.NotNull = notNil
+					callbackResult.Extra = append(callbackResult.Extra, resStr)
+					callbackResult.Extra = append(callbackResult.Extra, exceptionInfo)
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case TRANSFER:
+					resCode, gasCnt := TransferFunc(serverLcsHandler, responseFuncParams[0], responseFuncParams[1])
+					callbackResult.Result = fmt.Sprintf("%v", resCode)
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case VERIFY_ADDR:
+					resCode, gasCnt := VerifyAddressFunc(serverLcsHandler, responseFuncParams[0])
+					callbackResult.Result = fmt.Sprintf("%v", resCode)
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case GET_PRE_BLOCK_HASH:
+					offset, _ := strconv.ParseInt(responseFuncParams[0], 10, 64)
+					resCode, resStr, exceptionInfo, gasCnt, notNil := GetPreBlockHashFunc(serverLcsHandler, uint64(offset))
+					callbackResult.Result = fmt.Sprintf("%v", resCode)
+					callbackResult.NotNull = notNil
+					callbackResult.Extra = append(callbackResult.Extra, resStr)
+					callbackResult.Extra = append(callbackResult.Extra, exceptionInfo)
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case GET_PRE_BLOCK_SEED:
+					offset, _ := strconv.ParseInt(responseFuncParams[0], 10, 64)
+					resCode, resStr, exceptionInfo, gasCnt, notNil := GetPreBlockSeedFunc(serverLcsHandler, uint64(offset))
+					callbackResult.Result = fmt.Sprintf("%v", resCode)
+					callbackResult.NotNull = notNil
+					callbackResult.Extra = append(callbackResult.Extra, resStr)
+					callbackResult.Extra = append(callbackResult.Extra, exceptionInfo)
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case EVENT_TRIGGER_FUNC:
+					gasCnt := EventTriggerFunc(serverLcsHandler, responseFuncParams[0], responseFuncParams[1])
+					callbackResult.Result = fmt.Sprintf("%v", gasCnt)
+				case SHA_256_FUNC:
+					resStr, gasCnt, notNil := Sha256Func(responseFuncParams[0])
+					callbackResult.Result = resStr
+					callbackResult.NotNull = notNil
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case SHA_3256_FUNC:
+					resStr, gasCnt, notNil := Sha3256Func(responseFuncParams[0])
+					callbackResult.Result = resStr
+					callbackResult.NotNull = notNil
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case RIPEMD_160_FUNC:
+					resStr, gasCnt, notNil := Ripemd160Func(responseFuncParams[0])
+					callbackResult.Result = resStr
+					callbackResult.NotNull = notNil
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case RECOVER_ADDRESS_FUNC:
+					alg, _ := strconv.Atoi(responseFuncParams[0])
+					resStr, gasCnt, notNil := RecoverAddressFunc(alg, responseFuncParams[1], responseFuncParams[2])
+					callbackResult.Result = resStr
+					callbackResult.NotNull = notNil
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case MD5_FUNC:
+					resStr, gasCnt, notNil := Md5Func(responseFuncParams[0])
+					callbackResult.Result = resStr
+					callbackResult.NotNull = notNil
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case BASE64_FUNC:
+					resStr, gasCnt, notNil := Base64Func(responseFuncParams[0])
+					callbackResult.Result = resStr
+					callbackResult.NotNull = notNil
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case GET_CONTRACT_SRC:
+					resStr, gasCnt, notNil := GetContractSourceFunc(serverLcsHandler, responseFuncParams[0])
+					callbackResult.Result = resStr
+					callbackResult.NotNull = notNil
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				default:
+					logging.CLog().WithFields(logrus.Fields{
+						"func": responseFuncName,
+						"params": responseFuncParams,
+					}).Error("Invalid callback function name")
+				}
+
+				// stream.Send()
+				nvmRequestIndex += 1
+				// check the callback type
+				callbackResult.FuncName = responseFuncName
+				newRequest = &NVMDataRequest{
+					RequestType:NVMDataExchangeTypeCallBack, 
+					RequestIndx:dataResponse.GetResponseIndx(),
+					LcsHandler:serverLcsHandler,
+					GcsHandler:serverGcsHandler,
+					CallbackResult:callbackResult,
+				}
+			
 			}
-
-			// stream.Send()
-			nvmRequestIndex += 1
-			newRequest := &NVMDataRequest{
-				RequestType:NVMDataExchangeTypeCallBack, 
-				RequestIndx:dataResponse.GetResponseIndx(),
-				LcsHandler:serverLcsHandler,
-				GcsHandler:serverGcsHandler,
-				CallbackResult:callbackResult}
 
 			stream.Send(newRequest)
 		}

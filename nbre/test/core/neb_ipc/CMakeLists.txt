@@ -1,0 +1,2 @@
+add_subdirectory(simple)
+add_subdirectory(client_crash_start)

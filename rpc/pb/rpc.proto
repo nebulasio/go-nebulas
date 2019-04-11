@@ -16,11 +16,12 @@
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+//The protobuf golang code is generated with protoc-gen-gogo v1.0.0
+
 syntax = "proto3";
 
 import "google/api/annotations.proto";
 import "github.com/nebulasio/go-nebulas/consensus/pb/state.proto";
-import "github.com/nebulasio/go-nebulas/core/pb/block.proto";
 import "github.com/nebulasio/go-nebulas/neblet/pb/config.proto";
 
 package rpcpb;
@@ -130,6 +131,38 @@ service ApiService {
     rpc GetDynasty (ByBlockHeightRequest) returns (GetDynastyResponse) {
 		option (google.api.http) = {
             post: "/v1/user/dynasty"
+            body: "*"
+		};
+    }
+
+    // Verify Signature.
+    rpc VerifySignature (VerifySignatureRequest) returns (VerifySignatureResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/verifySignature"
+            body: "*"
+        };
+    }
+
+    // get nr hash with height interval
+    rpc GetNRHash (GetNRHashRequest) returns (GetNRHashResponse) {
+		option (google.api.http) = {
+            post: "/v1/user/getNrHash"
+            body: "*"
+		};
+    }
+
+    // get nr list by hash, which returned by `GetNRHash`
+    rpc GetNRList (GetNRListRequest) returns (GetNRListResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/getNrList"
+            body: "*"
+		};
+    }
+
+    // get latest dip list
+    rpc GetDIPList (GetDIPListRequest) returns (GetDIPListResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/getDipList"
             body: "*"
 		};
     }
@@ -326,6 +359,12 @@ message GetAccountStateResponse {
 
     // Account type
     uint32 type = 3;
+
+    // Block height
+    uint64 height = 4;
+
+    // Current sender pending tx count
+    uint64 pending = 5;
 }
 
 // Response message of Call rpc.
@@ -376,7 +415,10 @@ message TransactionRequest {
     // binary data for transaction
     bytes binary = 10;
 
-    // transaction payload type, enum:binary, deploy, call
+    // protocol data for transaction
+    bytes protocol = 11;
+
+    // transaction payload type, enum:binary, deploy, call, protocol
     string type = 20;
 }
 
@@ -650,4 +692,93 @@ message PprofResponse {
 message GetConfigResponse {
     // Config
     nebletpb.Config config = 1;
+}
+
+message VerifySignatureRequest {
+    string msg = 1;
+    string signature = 2;
+    string address = 3;
+    uint32 alg = 4;
+}
+
+message VerifySignatureResponse {
+    bool result = 1;
+    string address = 2;
+}
+
+message GetNRHashRequest {
+    // start block height of nr calculate interval
+    uint64 start = 1;
+
+    // end block height of nr calculate interval. If not specified, use 0 as tail height.
+    uint64 end = 2;
+
+    // nr version 
+    uint64 version = 3;
+}
+
+message GetNRHashResponse {
+    string hash = 1;
+}
+
+message GetNRListRequest {
+    // nr hash
+    string hash = 1;
+}
+
+message GetNRListResponse {
+
+    // nr algorithm version
+    uint64 version = 1;
+
+    // start block height of nr calculate interval
+    uint64 start = 2;
+
+    // end block height of nr calculate interval. If not specified, use 0 as tail height.
+    uint64 end = 3;
+
+    // nr data list
+    repeated NRItem data = 4;
+}
+
+message NRItem {
+    // nr address
+    string address = 1;
+
+    // value of nr.
+    string value = 2;
+
+    string median = 3;
+
+    string weight = 4;
+}
+
+message GetDIPListRequest {
+    // height
+    uint64 height = 1;
+}
+
+message GetDIPListResponse {
+    // dip algorithm version
+    uint64 version = 1;
+
+    // start block height of dip calculate interval
+    uint64 start = 2;
+
+    // end block height of dip calculate interval.
+    uint64 end = 3;
+
+    // dip data list
+    repeated DIPItem data = 4;
+}
+
+message DIPItem {
+    // dip address
+    string address = 1;
+
+    // dip contract address
+    string contract = 2;
+
+    // value of dip reward.
+    string value = 3;
 }

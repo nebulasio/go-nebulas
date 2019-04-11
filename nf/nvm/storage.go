@@ -22,6 +22,8 @@ import (
 	"errors"
 	"regexp"
 
+	"github.com/nebulasio/go-nebulas/core"
+
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -65,9 +67,18 @@ func StorageGetFunc(handler uint64, k string) (string, uint64, bool) {
 	var gasCnt uint64 = 0
 	var emptyValue string = ""
 
-	_, storage := getEngineByStorageHandler(handler)
+	v8, storage := getEngineByStorageHandler(uint64(uintptr(handler)))
 	if storage == nil {
 		logging.VLog().Error("Failed to get storage handler.")
+		return emptyValue, gasCnt, false
+	}
+
+	// test sync adaptation
+	// In Testnet, the tx `cadb*` in block 324997, the return data is nil.
+	if v8.ctx.tx.ChainID() == core.TestNetID &&
+		v8.ctx.block.Height() == 324997 &&
+		k == "size" &&
+		v8.ctx.tx.Hash().String() == "cadb0c6f7f6eb7d9a4f517aed00d4590bf4b80a9a89cf07dd71ec589b03fb9ae" {
 		return emptyValue, gasCnt, false
 	}
 
@@ -95,7 +106,7 @@ func StorageGetFunc(handler uint64, k string) (string, uint64, bool) {
 				"handler": uint64(uintptr(handler)),
 				"key":     k,
 				"err":     err,
-			}).Error("+++++++++++++++++++++++++++ StorageGetFunc get key failed.")
+			}).Error("+++++++++++++++++++++++++++ StorageGetFunc given key not found.")
 		}
 		return emptyValue, gasCnt, false
 	}

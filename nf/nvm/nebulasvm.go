@@ -94,14 +94,14 @@ func (nvm *NebulasVM) StopNebulasVM(enginePid int) error {
 }
 
 // Check if V8 is running
-func (nvm *NebulasVM) CheckV8ServerRunning(enginePid int) bool {
+func (nvm *NebulasVM) CheckV8ServerRunning(enginePid int) error {
 	
 	proc, err := os.FindProcess(enginePid)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
 		}).Error("Failed to find nvm process")
-		return false
+		return err
 	}
 	
 	err = proc.Signal(syscall.Signal(0))
@@ -109,10 +109,10 @@ func (nvm *NebulasVM) CheckV8ServerRunning(enginePid int) bool {
 		logging.VLog().WithFields(logrus.Fields{
 			"err": err,
 		}).Error("Failed to ping nvm process")
-		return false
+		return err
 	}
 
-	return true
+	return nil
 }
 
 //==================== V8 specific =====================

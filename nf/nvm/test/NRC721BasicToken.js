@@ -83,8 +83,9 @@ StandardToken.prototype = {
         return this._name;
     },
 
-    balanceOf: function (_owner) {
-        var balance = this.ownedTokensCount.get(_owner);
+    // Returns the number of tokens owned by owner.
+    balanceOf: function (owner) {
+        var balance = this.ownedTokensCount.get(owner);
         if (balance instanceof BigNumber) {
             return balance.toString(10);
         } else {
@@ -92,44 +93,60 @@ StandardToken.prototype = {
         }
     },
 
-    ownerOf: function (_tokenId) {
-        return this.tokenOwner.get(_tokenId);
+    //Returns the address of the owner of the tokenID.
+    ownerOf: function (tokenID) {
+        return this.tokenOwner.get(tokenID);
     },
 
-    approve: function (_to, _tokenId) {
+    /**
+     * Set or reaffirm the approved address for an token.
+     * The function SHOULD throws unless transcation from is the current token owner, or an authorized operator of the current owner.
+     */
+    approve: function (to, tokenId) {
         var from = Blockchain.transaction.from;
 
-        var owner = this.ownerOf(_tokenId);
-        if (_to == owner) {
+        var owner = this.ownerOf(tokenId);
+        if (to == owner) {
             throw new Error("invalid address in approve.");
         }
-        // msg.sender == owner || isApprovedForAll(owner, msg.sender)
         if (owner == from || this.isApprovedForAll(owner, from)) {
-            this.tokenApprovals.set(_tokenId, _to);
-            this.approveEvent(true, owner, _to, _tokenId);
+            this.tokenApprovals.set(tokenId, to);
+            this._approveEvent(true, owner, to, tokenId);
         } else {
             throw new Error("permission denied in approve.");
         }
     },
 
-    getApproved: function (_tokenId) {
-        return this.tokenApprovals.get(_tokenId);
+    // Returns the approved address for a single token.
+    getApproved: function (tokenId) {
+        return this.tokenApprovals.get(tokenId);
     },
 
-    setApprovalForAll: function(_to, _approved) {
+    /**
+     * Enable or disable approval for a third party (operator) to manage all of transaction from's assets.
+     * operator Address to add to the set of authorized operators. 
+     * @param approved True if the operators is approved, false to revoke approval
+     */
+    setApprovalForAll: function(to, approved) {
         var from = Blockchain.transaction.from;
-        if (from == _to) {
+        if (from == to) {
             throw new Error("invalid address in setApprovalForAll.");
         }
         var operator = this.operatorApprovals.get(from) || new Operator();
-        operator.set(_to, _approved);
+        operator.set(to, approved);
         this.operatorApprovals.set(from, operator);
     },
 
-    isApprovedForAll: function(_owner, _operator) {
-        var operator = this.operatorApprovals.get(_owner);
+    /**
+     * @dev Tells whether an operator is approved by a given owner
+     * @param owner owner address which you want to query the approval of
+     * @param operator operator address which you want to query the approval of
+     * @return bool whether the given operator is approved by the given owner
+     */
+    isApprovedForAll: function(owner, operator) {
+        var operator = this.operatorApprovals.get(owner);
         if (operator != null) {
-            if (operator.get(_operator) === "true") {
+            if (operator.get(operator) === "true") {
                 return true;
             } else {
                 return false;
@@ -137,22 +154,39 @@ StandardToken.prototype = {
         }
     },
 
-    isApprovedOrOwner: function(_spender, _tokenId) {
-        var owner = this.ownerOf(_tokenId);
-        return _spender == owner || this.getApproved(_tokenId) == _spender || this.isApprovedForAll(owner, _spender);
+
+    /**
+     * @dev Returns whether the given spender can transfer a given token ID
+     * @param spender address of the spender to query
+     * @param tokenId uint256 ID of the token to be transferred
+     * @return bool whether the msg.sender is approved for the given token ID,
+     *  is an operator of the owner, or is the owner of the token
+     */
+    _isApprovedOrOwner: function(spender, tokenId) {
+        var owner = this.ownerOf(tokenId);
+        return spender == owner || this.getApproved(tokenId) == spender || this.isApprovedForAll(owner, spender);
     },
 
-    transferFrom: function (_from, _to, _tokenId) {
-        var from = Blockchain.transaction.from;
+    /**
+     * Transfers the ownership of an token from one address to another address. 
+     * The caller is responsible to confirm that to is capable of receiving token or else they may be permanently lost.
+     * Transfers tokenId from address from to address to, and MUST fire the Transfer event.
+     * The function SHOULD throws unless the transaction from is the current owner, an authorized operator, or the approved address for this token. 
+     * Throws if from is not the current owner. 
+     * Throws if to is the contract address. 
+     * Throws if tokenId is not a valid token.
+     */
+    transferFrom: function (from, to, tokenId) {
+        var sender = Blockchain.transaction.from;
         var contractAddress = Blockchain.transaction.to;
-        if (contractAddress == _to) {
+        if (contractAddress == to) {
             throw new Error("Forbidden to transfer money to a smart contract address");
         }
-        if (this.isApprovedOrOwner(from, _tokenId)) {
-            this.clearApproval(_from, _tokenId);
-            this.removeTokenFrom(_from, _tokenId);
-            this.addTokenTo(_to, _tokenId);
-            this.transferEvent(true, _from, _to, _tokenId);
+        if (this._isApprovedOrOwner(sender, tokenId)) {
+            this._clearApproval(from, tokenId);
+            this._removeTokenFrom(from, tokenId);
+            this._addTokenTo(to, tokenId);
+            this._transferEvent(true, from, to, tokenId);
         } else {
             throw new Error("permission denied in transferFrom.");
         }
@@ -160,60 +194,85 @@ StandardToken.prototype = {
     },
 
 
-    clearApproval: function (_owner, _tokenId) {
-        var owner = this.ownerOf(_tokenId);
-        if (_owner != owner) {
+     /**
+     * Internal function to clear current approval of a given token ID
+     * Throws if the given address is not indeed the owner of the token
+     * @param sender owner of the token
+     * @param tokenId uint256 ID of the token to be transferred
+     */
+    _clearApproval: function (sender, tokenId) {
+        var owner = this.ownerOf(tokenId);
+        if (sender != owner) {
             throw new Error("permission denied in clearApproval.");
         }
-        this.tokenApprovals.del(_tokenId);
+        this.tokenApprovals.del(tokenId);
     },
 
-    removeTokenFrom: function(_from, _tokenId) {
-        if (_from != this.ownerOf(_tokenId)) {
+    /**
+     * Internal function to remove a token ID from the list of a given address
+     * @param from address representing the previous owner of the given token ID
+     * @param tokenId uint256 ID of the token to be removed from the tokens list of the given address
+     */
+    _removeTokenFrom: function(from, tokenId) {
+        if (from != this.ownerOf(tokenId)) {
             throw new Error("permission denied in removeTokenFrom.");
         }
-        var tokenCount = this.ownedTokensCount.get(_from);
+        var tokenCount = this.ownedTokensCount.get(from);
         if (tokenCount.lt(1)) {
             throw new Error("Insufficient account balance in removeTokenFrom.");
         }
-        this.ownedTokensCount.set(_from, tokenCount.sub(1));
+        this.ownedTokensCount.set(from, tokenCount.sub(1));
     },
 
-    addTokenTo: function(_to, _tokenId) {
-        this.tokenOwner.set(_tokenId, _to);
-        var tokenCount = this.ownedTokensCount.get(_to) || new BigNumber(0);
-        this.ownedTokensCount.set(_to, tokenCount.add(1));
+    /**
+     * Internal function to add a token ID to the list of a given address
+     * @param to address representing the new owner of the given token ID
+     * @param tokenId uint256 ID of the token to be added to the tokens list of the given address
+     */
+    _addTokenTo: function(to, tokenId) {
+        this.tokenOwner.set(tokenId, to);
+        var tokenCount = this.ownedTokensCount.get(to) || new BigNumber(0);
+        this.ownedTokensCount.set(to, tokenCount.add(1));
     },
 
-    mint: function(_to, _tokenId) {
-        this.addTokenTo(_to, _tokenId);
-        this.transferEvent(true, "", _to, _tokenId);
+    /**
+     * Internal function to mint a new token
+     * @param to The address that will own the minted token
+     * @param tokenId uint256 ID of the token to be minted by the msg.sender
+     */
+    _mint: function(to, tokenId) {
+        this._addTokenTo(to, tokenId);
+        this._transferEvent(true, "", to, tokenId);
     },
 
-    burn: function(_owner, _tokenId) {
-        this.clearApproval(_owner, _tokenId);
-        this.removeTokenFrom(_owner, _tokenId);
-        this.transferEvent(true, _owner, "", _tokenId);
+    /**
+     * Internal function to burn a specific token
+     * @param tokenId uint256 ID of the token being burned by the msg.sender
+     */
+    _burn: function(owner, tokenId) {
+        this._clearApproval(owner, tokenId);
+        this._removeTokenFrom(owner, tokenId);
+        this._transferEvent(true, owner, "", tokenId);
     },
 
-    transferEvent: function (status, _from, _to, _tokenId) {
+    _transferEvent: function (status, from, to, tokenId) {
         Event.Trigger(this.name(), {
             Status: status,
             Transfer: {
-                from: _from,
-                to: _to,
-                tokenId: _tokenId
+                from: from,
+                to: to,
+                tokenId: tokenId
             }
         });
     },
 
-    approveEvent: function (status, _owner, _spender, _tokenId) {
+    _approveEvent: function (status, owner, spender, tokenId) {
         Event.Trigger(this.name(), {
             Status: status,
             Approve: {
-                owner: _owner,
-                spender: _spender,
-                tokenId: _tokenId
+                owner: owner,
+                spender: spender,
+                tokenId: tokenId
             }
         });
     }

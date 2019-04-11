@@ -103,7 +103,11 @@ V8Engine *CreateEngine() {
   e->allocator = allocator;
   e->isolate = isolate;
   e->timeout = ExecuteTimeOut;
+  e->ver = BUILD_DEFAULT_VER; //default load initial com
   return e;
+}
+void EnableInnerContract(V8Engine *e) {
+  e->ver = BUILD_INNER_VER;
 }
 
 void DeleteEngine(V8Engine *e) {
@@ -134,14 +138,12 @@ int ExecuteSourceDataDelegate(char **result, Isolate *isolate,
     PrintAndReturnException(result, context, trycatch);
     return NVM_EXCEPTION_ERR;
   }
-
   // Run the script to get the result.
   MaybeLocal<Value> ret = script.ToLocalChecked()->Run(context);
   if (ret.IsEmpty()) {
     PrintAndReturnException(result, context, trycatch);
     return NVM_EXCEPTION_ERR;
   }
-
   // set result.
   if (result != NULL) {
     Local<Object> obj = ret.ToLocalChecked().As<Object>();
@@ -338,8 +340,7 @@ void ReadMemoryStatistics(V8Engine *e) {
   stats->total_array_buffer_size = allocator->total_available_size();
   stats->peak_array_buffer_size = allocator->peak_allocated_size();
 
-  stats->total_memory_size =
-      stats->total_heap_size + stats->peak_array_buffer_size;
+  stats->total_memory_size = stats->total_heap_size + stats->peak_array_buffer_size;
 }
 
 void TerminateExecution(V8Engine *e) {
@@ -350,7 +351,9 @@ void TerminateExecution(V8Engine *e) {
   isolate->TerminateExecution();
   e->is_requested_terminate_execution = true;
 }
-
+void SetInnerContractErrFlag(V8Engine *e) {
+  e->is_inner_nvm_error_happen = true;
+}
 void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
                                void *listenerContext) {
   V8Engine *e = static_cast<V8Engine *>(listenerContext);
@@ -363,7 +366,6 @@ void EngineLimitsCheckDelegate(Isolate *isolate, size_t count,
 int IsEngineLimitsExceeded(V8Engine *e) {
   // TODO: read memory stats everytime may impact the performance.
   ReadMemoryStatistics(e);
-
   if (e->limits_of_executed_instructions > 0 &&
       e->limits_of_executed_instructions <
           e->stats.count_of_executed_instructions) {
@@ -374,7 +376,8 @@ int IsEngineLimitsExceeded(V8Engine *e) {
     // reach memory limits.
     return NVM_MEM_LIMIT_ERR;
   }
-
+  // 
+  
   return 0;
 }
 

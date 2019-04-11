@@ -107,6 +107,11 @@ type Transaction struct {
 	sign byteutils.Hash // Signature values
 }
 
+// SetTimestamp update the timestamp.
+func (tx *Transaction) SetTimestamp(timestamp int64) {
+	tx.timestamp = timestamp
+}
+
 // From return from address
 func (tx *Transaction) From() *Address {
 	return tx.from
@@ -135,6 +140,11 @@ func (tx *Transaction) Value() *util.Uint128 {
 // Nonce return tx nonce
 func (tx *Transaction) Nonce() uint64 {
 	return tx.nonce
+}
+
+// SetNonce update th nonce
+func (tx *Transaction) SetNonce(newNonce uint64) {
+	tx.nonce = newNonce
 }
 
 // Type return tx type
@@ -181,6 +191,7 @@ func (tx *Transaction) ToProto() (proto.Message, error) {
 func (tx *Transaction) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*corepb.Transaction); ok {
 		if msg != nil {
+
 			tx.hash = msg.Hash
 			from, err := AddressParseFromBytes(msg.From)
 			if err != nil {
@@ -338,9 +349,24 @@ func NewTransaction(chainID uint32, from, to *Address, value *util.Uint128, nonc
 	return tx, nil
 }
 
+// NewChildTransaction return child tx to inner nvm
+func (tx *Transaction) NewInnerTransaction(from, to *Address, value *util.Uint128, payloadType string, payload []byte) (*Transaction, error) {
+	innerTx, err := NewTransaction(tx.chainID, from, to, value, InnerTransactionNonce, payloadType, payload, tx.GasPrice(), tx.GasLimit())
+	if err != nil {
+		return nil, ErrCreateInnerTx
+	}
+	innerTx.SetHash(tx.hash)
+	return innerTx, nil
+}
+
 // Hash return the hash of transaction.
 func (tx *Transaction) Hash() byteutils.Hash {
 	return tx.hash
+}
+
+// SetHash set hash to in args
+func (tx *Transaction) SetHash(in byteutils.Hash) {
+	tx.hash = in
 }
 
 // GasPrice returns gasPrice
@@ -393,6 +419,10 @@ func (tx *Transaction) LoadPayload() (TxPayload, error) {
 		payload, err = LoadDeployPayload(tx.data.Payload)
 	case TxPayloadCallType:
 		payload, err = LoadCallPayload(tx.data.Payload)
+	case TxPayloadProtocolType:
+		payload, err = LoadProtocolPayload(tx.data.Payload)
+	case TxPayloadDipType:
+		payload, err = LoadDipPayload(tx.data.Payload)
 	default:
 		err = ErrInvalidTxPayloadType
 	}
@@ -416,13 +446,20 @@ func submitTx(tx *Transaction, block *Block, ws WorldState,
 		// if execution failed, the previous changes on world state should be reset
 		// record dependency
 
-		addr := tx.to.address
-		if block.Height() < WsResetRecordDependencyHeight {
-			addr = tx.from.address
-		}
-		if err := ws.Reset(addr); err != nil {
-			// if reset failed, the tx should be given back
-			return true, err
+		if WsResetRecordDependencyAtHeight2(block.Height()) {
+			if err := ws.Reset(nil, false); err != nil {
+				// if reset failed, the tx should be given back
+				return true, err
+			}
+		} else {
+			addr := tx.to.address
+			if !WsResetRecordDependencyAtHeight(block.Height()) {
+				addr = tx.from.address
+			}
+			if err := ws.Reset(addr, true); err != nil {
+				// if reset failed, the tx should be given back
+				return true, err
+			}
 		}
 	}
 
@@ -436,6 +473,7 @@ func submitTx(tx *Transaction, block *Block, ws WorldState,
 		metricsUnexpectedBehavior.Update(1)
 		return true, err
 	}
+
 	if err := tx.recordResultEvent(gas, exeErr, ws, block, exeResult); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"err":   err,
@@ -591,6 +629,11 @@ func (tx *Transaction) simulateExecution(block *Block) (*SimulateResult, error) 
 	}
 	tx.hash = hash
 
+	// check dip reward
+	if err := block.dip.CheckReward(tx); err != nil {
+		return nil, err
+	}
+
 	// Generate world state
 	ws := block.WorldState()
 
@@ -624,7 +667,7 @@ func (tx *Transaction) simulateExecution(block *Block) (*SimulateResult, error) 
 
 	// try run smart contract if payload is.
 	if tx.data.Type == TxPayloadCallType || tx.data.Type == TxPayloadDeployType ||
-		(tx.data.Type == TxPayloadBinaryType && tx.to.Type() == ContractAddress && block.height >= AcceptFuncAvailableHeight) {
+		(tx.data.Type == TxPayloadBinaryType && tx.to.Type() == ContractAddress && AcceptAvailableAtHeight(block.height)) {
 
 		// transfer value to smart contract.
 		toAcc, err := ws.GetOrCreateUserAccount(tx.to.address)
@@ -686,7 +729,7 @@ func (tx *Transaction) recordGas(gasCnt *util.Uint128, ws WorldState) error {
 func (tx *Transaction) recordResultEvent(gasUsed *util.Uint128, err error, ws WorldState, block *Block, exeResult string) error {
 
 	var txData []byte
-	if block.height >= RecordCallContractResultHeight {
+	if RecordCallContractResultAtHeight(block.height) {
 
 		if len(exeResult) > MaxResultLength {
 			exeResult = exeResult[:MaxResultLength]

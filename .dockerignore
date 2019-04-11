@@ -1,0 +1,79 @@
+# vendor dir.
+vendor
+vendor.*
+
+# ide files.
+.idea
+.vscode
+
+# Mac temp files.
+.DS_Store
+
+# build files
+neb
+neb-*
+cmd/network/network
+neb-crashreporter
+!cmd/neb
+debug
+cmd/console/neb.js/dist/
+*.report
+*.report.xml
+*.log
+
+# test debug
+*.test
+
+# db
+*.db
+normal.db*
+
+# c/cpp temp files.
+*.o
+
+# 3rd test suites.
+mozilla_js_tests*
+
+#keydir
+
+#node_modules
+node_modules
+
+#log
+logs/
+crash.log
+
+#pprof
+cpuprofile.log
+memprofile.log
+
+#testnet
+testnet/conf/network.key
+
+#mainnet
+mainnet/conf/network.key
+
+#nbre
+nbre/3rd_party/boost_1_67_0/
+nbre/3rd_party/bzip2-1.0.6/
+nbre/3rd_party/cfe-6.0.1.src/
+nbre/3rd_party/clang-tools-extra-6.0.1.src/
+nbre/3rd_party/cmake-3.12.2/
+nbre/3rd_party/compiler-rt-6.0.1.src/
+nbre/3rd_party/grpc.tar.gz
+nbre/3rd_party/libcxx-6.0.1.src/
+nbre/3rd_party/libcxxabi-6.0.1.src/
+nbre/3rd_party/libunwind-6.0.1.src/
+nbre/3rd_party/lld-6.0.1.src/
+nbre/3rd_party/llvm-6.0.1.src/
+nbre/3rd_party/llvm-build/
+nbre/3rd_party/snappy
+nbre/3rd_party/zlib
+nbre/3rd_party/zstd-1.1.3/
+nbre/3rd_party/gflags/
+nbre/3rd_party/grpc
+
+nbre/bin/
+nbre/build/
+nbre/lib/
+nbre/lib_llvm/

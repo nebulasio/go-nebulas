@@ -99,14 +99,12 @@ func NewManager(neblet Neblet) (*Manager, error) {
 	}
 	m.keydir = tmpKeyDir
 
-	if neblet != nil {
+	if neblet != nil && neblet.Config() != nil {
 		conf := neblet.Config().Chain
 
-		keydir := conf.Keydir
-		if filepath.IsAbs(keydir) {
-			m.keydir = keydir
-		} else {
-			dir, err := filepath.Abs(keydir)
+		if len(conf.Keydir) > 0 {
+			tmpKeyDir = conf.Keydir
+			dir, err := filepath.Abs(tmpKeyDir)
 			if err != nil {
 				return nil, err
 			}
@@ -246,9 +244,13 @@ func (m *Manager) Load(keyjson, passphrase []byte) (*core.Address, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer utils.ZeroBytes(data)
+	return m.LoadPrivate(data, passphrase)
+}
 
-	priv, err := crypto.NewPrivateKey(m.signatureAlg, data)
+// LoadPrivate load a private key to keystore, unable to write file
+func (m *Manager) LoadPrivate(privatekey, passphrase []byte) (*core.Address, error) {
+	defer utils.ZeroBytes(privatekey)
+	priv, err := crypto.NewPrivateKey(m.signatureAlg, privatekey)
 	if err != nil {
 		return nil, err
 	}

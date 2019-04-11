@@ -26,7 +26,10 @@ import (
 	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	nebnet "github.com/nebulasio/go-nebulas/net"
+	"github.com/nebulasio/go-nebulas/nf/nbre"
 	"github.com/nebulasio/go-nebulas/nf/nvm"
+	"github.com/nebulasio/go-nebulas/nip/dip"
+	"github.com/nebulasio/go-nebulas/nr"
 	"github.com/nebulasio/go-nebulas/rpc"
 	"github.com/nebulasio/go-nebulas/storage"
 	nsync "github.com/nebulasio/go-nebulas/sync"
@@ -73,6 +76,12 @@ type Neblet struct {
 	nvm core.NVM
 
 	nvmProcessID int
+
+	nbre core.Nbre
+
+	nr core.Nr
+
+	dip core.Dip
 
 	running bool
 }
@@ -140,6 +149,21 @@ func (n *Neblet) Setup() {
 	// nvm setup
 	n.nvm = nvm.NewNebulasVM()
 
+	/*
+	if err = n.nvm.CheckV8ServerRunning(pid); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to setup V8.")
+	}
+	*/
+
+	// dip
+	if n.dip, err = dip.NewDIP(n); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to setup dip.")
+	}
+
 	// core
 	n.eventEmitter = core.NewEventEmitter(40960)
 	n.consensus = dpos.NewDpos()
@@ -168,6 +192,12 @@ func (n *Neblet) Setup() {
 
 	// rpc
 	n.rpcServer = rpc.NewServer(n)
+
+	// nbre
+	n.nbre = nbre.NewNbre(n)
+
+	// nr
+	n.nr = nr.NewNR(n)
 
 	logging.CLog().Info("Setuped Neblet.")
 }
@@ -278,6 +308,16 @@ func (n *Neblet) Start() {
 	}
 	n.nvmProcessID = processID
 
+	if err := n.nbre.Start(); err != nil {
+		logging.CLog().WithFields(logrus.Fields{
+			"err": err,
+		}).Fatal("Failed to start nbre.")
+	}
+
+	if chainConf.StartMine {
+		// start dip
+		n.dip.Start()
+	}
 
 	metricsNebstartGauge.Update(1)
 
@@ -328,6 +368,16 @@ func (n *Neblet) Stop() {
 
 	if n.config.Stats.EnableMetrics {
 		metrics.Stop()
+	}
+
+	if n.dip != nil {
+		n.dip.Stop()
+		n.dip = nil
+	}
+
+	if n.nbre != nil {
+		n.nbre.Stop()
+		n.nbre = nil
 	}
 
 	n.accountManager = nil
@@ -400,6 +450,21 @@ func (n *Neblet) IsActiveSyncing() bool {
 // Nvm return nvm engine
 func (n *Neblet) Nvm() core.NVM {
 	return n.nvm
+}
+
+// Nbre return the nbre
+func (n *Neblet) Nbre() core.Nbre {
+	return n.nbre
+}
+
+// Nr return the nr
+func (n *Neblet) Nr() core.Nr {
+	return n.nr
+}
+
+// Dip return the dip
+func (n *Neblet) Dip() core.Dip {
+	return n.dip
 }
 
 // TryStartProfiling try start pprof

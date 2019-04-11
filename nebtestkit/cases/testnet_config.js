@@ -15,7 +15,7 @@ var TestNet = function (env) {
         this.ChainId = 1001;
         this.sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
         this.coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
-        this.apiEndPoint = "http://35.182.48.19:8685";
+        this.apiEndPoint = "http://13.57.120.136:8685";
 
     } else if (env === "testneb2") {
 
@@ -29,7 +29,9 @@ var TestNet = function (env) {
         this.ChainId = 1003;
         this.sourceAccount = new Wallet.Account("25a3a441a34658e7a595a0eda222fa43ac51bd223017d17b420674fb6d0a4d52");
         this.coinbase = "n1SAeQRVn33bamxN4ehWUT7JGdxipwn8b17";
-        this.apiEndPoint = "http://35.177.214.138:8685";
+    //    this.apiEndPoint = "http://35.182.205.40:8685";
+        
+        this.apiEndPoint = "http://13.57.120.136:8685";
 
     } else if (env === "testneb4") { //super node
 
@@ -48,8 +50,8 @@ var TestNet = function (env) {
     } else if (env === "local") {
 
         this.ChainId = 100;
-        this.sourceAccount = new Wallet.Account("97c264928fff01305bf7a6390056d86df30a3fbbbd6673f53e97fb1205769156");
-        this.coinbase = "n1QZMXSZtW7BUerroSms4axNfyBGyFGkrh5";
+        this.sourceAccount = new Wallet.Account("1d3fe06a53919e728315e2ccca41d4aa5b190845a79007797517e62dbc0df454");
+        this.coinbase = "n1XkoVVjswb5Gek3rRufqjKNpwrDdsnQ7Hq";
         this.apiEndPoint = "http://127.0.0.1:8685";
 
     } else {

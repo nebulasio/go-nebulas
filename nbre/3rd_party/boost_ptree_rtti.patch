@@ -1,0 +1,31 @@
+--- ./ptree_implementation_patch.hpp	2018-09-26 19:06:30.216562030 +0800
++++ ./ptree_implementation.hpp	2018-09-26 19:02:43.934866865 +0800
+@@ -667,13 +667,9 @@
+         if(boost::optional<Type> o = get_value_optional<Type>(tr)) {
+             return *o;
+         }
+-        // BOOST_PROPERTY_TREE_THROW(ptree_bad_data(
+-            // std::string("conversion of data to type \"") +
+-            // typeid(Type).name() + "\" failed", data()));
+-
+         BOOST_PROPERTY_TREE_THROW(ptree_bad_data(
+             std::string("conversion of data to type \"") +
+-            "\" failed", data()));
++            typeid(Type).name() + "\" failed", data()));
+     }
+ 
+     template<class K, class D, class C>
+@@ -827,12 +823,8 @@
+         if(optional<data_type> o = tr.put_value(value)) {
+             data() = *o;
+         } else {
+-            // BOOST_PROPERTY_TREE_THROW(ptree_bad_data(
+-                // std::string("conversion of type \"") + typeid(Type).name() +
+-                // "\" to data failed", boost::any()));
+-
+             BOOST_PROPERTY_TREE_THROW(ptree_bad_data(
+-                std::string("conversion of type \"") +
++                std::string("conversion of type \"") + typeid(Type).name() +
+                 "\" to data failed", boost::any()));
+         }
+     }

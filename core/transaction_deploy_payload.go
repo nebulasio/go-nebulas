@@ -108,11 +108,7 @@ func (payload *DeployPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
-	/* // disable useless owner.
-	owner, err := ws.GetOrCreateUserAccount(tx.from.Bytes())
-	if err != nil {
-		return util.NewUint128(), "", err
-	} */
+
 	var contract state.Account
 	v := GetMaxV8JSLibVersionAtHeight(block.Height())
 	if len(v) > 0 {
@@ -153,6 +149,7 @@ func (payload *DeployPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 		}).Error("Unexpected error when executing deploy ")
 		return util.NewUint128(), "", ErrUnexpected
 	}
+
 	if exeErr != nil && exeErr == ErrExecutionFailed && len(result) > 0 {
 		exeErr = fmt.Errorf("Deploy: %s", result)
 	}
@@ -163,5 +160,11 @@ func (payload *DeployPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 			"exeErr": exeErr,
 		}).Info(">>>>>Contract deploy result")
 	 
+	logging.VLog().WithFields(logrus.Fields{
+		"tx.hash":      tx.Hash(),
+		"instructions": instructions,
+		"limitedGas":   limitedGas,
+	}).Debug("record gas of v8")
+
 	return instructions, result, exeErr
 }

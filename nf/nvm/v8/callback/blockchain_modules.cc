@@ -167,3 +167,54 @@ int GetPreBlockSeed(void *handler, unsigned long long offset, size_t *gasCnt, ch
   return ret;
 }
 
+char *GetContractSourceFunc(void *handler, 
+    const char *address, 
+    size_t *gasCnt){
+
+  NVMCallbackResponse *res = new NVMCallbackResponse();
+  res->set_func_name(std::string(GET_CONTRACT_SRC));
+  res->add_func_params(std::string(address));
+
+  const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
+  *gasCnt = (size_t)std::stoull(callback_res->extra(0));
+  std::string resStr = callback_res->result();
+  bool not_null_flag = callback_res->not_null();
+
+  if(!not_null_flag)
+    return nullptr;
+
+  char* ret = (char*)calloc(resStr.length()+1, sizeof(char));
+  strcpy(ret, resStr.c_str());
+
+  std::cout<<"++++++ The fetched contract source is: "<<ret<<std::endl;
+
+  return ret;
+}
+
+char *InnerContractFunc(void *handler, 
+    const char *address, 
+    const char *funcName, 
+    const char *v, 
+    const char *args, 
+    size_t *gasCnt){
+
+  NVMCallbackResponse *res = new NVMCallbackResponse();
+  res->set_func_name(std::string(INNER_CONTRACT_CALL));
+  res->add_func_params(std::string(address));
+  res->add_func_params(std::string(funcName));
+  res->add_func_params(std::string(v));
+  res->add_func_params(std::string(args));
+
+  const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
+  *gasCnt = (size_t)std::stoull(callback_res->extra(0));
+  std::string resStr = callback_res->result();
+  bool not_null_flag = callback_res->not_null();
+
+  if(!not_null_flag)
+    return nullptr;
+
+  char* ret = (char*)calloc(resStr.length()+1, sizeof(char));
+  strcpy(ret, resStr.c_str());
+
+  return ret;
+}

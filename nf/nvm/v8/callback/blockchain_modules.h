@@ -29,3 +29,5 @@ int Transfer(void *handler, const char *to, const char *value, size_t *gasCnt);
 int VerifyAddress(void *handler, const char *address, size_t *gasCnt);
 int GetPreBlockHash(void *handler, unsigned long long offset, size_t *counterVal, char **result, char **info);
 int GetPreBlockSeed(void *handler, unsigned long long offset, size_t *counterVal, char **result, char **info);
+char *GetContractSourceFunc(void *handler, const char *address, size_t *counterVal);
+char *InnerContractFunc(void *handler, const char *address, const char *funcName, const char *v, const char *args, size_t *gasCnt);

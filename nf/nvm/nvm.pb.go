@@ -8,6 +8,8 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -20,7 +22,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type NVMConfigBundle struct {
 	ScriptSrc                       string   `protobuf:"bytes,1,opt,name=script_src,json=scriptSrc,proto3" json:"script_src,omitempty"`
@@ -679,6 +681,14 @@ func (x *nVMServiceSmartContractCallClient) Recv() (*NVMDataResponse, error) {
 // NVMServiceServer is the server API for NVMService service.
 type NVMServiceServer interface {
 	SmartContractCall(NVMService_SmartContractCallServer) error
+}
+
+// UnimplementedNVMServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedNVMServiceServer struct {
+}
+
+func (*UnimplementedNVMServiceServer) SmartContractCall(srv NVMService_SmartContractCallServer) error {
+	return status.Errorf(codes.Unimplemented, "method SmartContractCall not implemented")
 }
 
 func RegisterNVMServiceServer(s *grpc.Server, srv NVMServiceServer) {

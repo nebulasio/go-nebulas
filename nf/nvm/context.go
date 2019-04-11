@@ -19,6 +19,8 @@
 package nvm
 
 import (
+	"math/rand"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -50,12 +52,20 @@ type SerializableTransaction struct {
 	GasLimit  string `json:"gasLimit"`
 }
 
+// ContextRand ..
+type ContextRand struct {
+	rand *rand.Rand
+}
+
 // Context nvm engine context
 type Context struct {
-	block    Block
-	tx       Transaction
-	contract Account
-	state    WorldState
+	block       Block
+	tx          Transaction
+	contract    Account
+	state       WorldState
+	head        uint64			// for inner contract call, TODO: can be moved to V8 process
+	index       uint32			// for inner contract call
+	contextRand *ContextRand
 }
 
 // NewContext create a engine context
@@ -64,10 +74,29 @@ func NewContext(block Block, tx Transaction, contract Account, state WorldState)
 		return nil, ErrContextConstructArrEmpty
 	}
 	ctx := &Context{
-		block:    block,
-		tx:       tx,
-		contract: contract,
-		state:    state,
+		block:       block,
+		tx:          tx,
+		contract:    contract,
+		state:       state,
+		contextRand: &ContextRand{},
+	}
+	return ctx, nil
+}
+
+// NewInnerContext create a child engine context
+func NewInnerContext(block Block, tx Transaction, contract Account, state WorldState, 
+	head uint64, index uint32, ctxRand *ContextRand) (*Context, error) {
+	if block == nil || tx == nil || contract == nil || state == nil {
+		return nil, ErrContextConstructArrEmpty
+	}
+	ctx := &Context{
+		block:       block,
+		tx:          tx,
+		contract:    contract,
+		state:       state,
+		head:        head,
+		index:       index,
+		contextRand: ctxRand,
 	}
 	return ctx, nil
 }
@@ -86,7 +115,7 @@ func toSerializableBlock(block Block) *SerializableBlock {
 		Hash:      "",
 		Height:    block.Height(),
 	}
-	if block.RandomAvailable() {
+	if core.V8BlockSeedAvailableAtHeight(block.Height()) {
 		sBlock.Seed = block.RandomSeed()
 	}
 	return sBlock

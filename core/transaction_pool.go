@@ -19,9 +19,6 @@
 package core
 
 import (
-	"errors"
-	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -220,6 +217,16 @@ func (pool *TransactionPool) loop() {
 	}
 }
 
+// GetMinGasPrice return the minGasPrice
+func (pool *TransactionPool) GetMinGasPrice() *util.Uint128 {
+	return pool.minGasPrice
+}
+
+// GetMaxGasLimit return the maxGasLimit
+func (pool *TransactionPool) GetMaxGasLimit() *util.Uint128 {
+	return pool.maxGasLimit
+}
+
 // GetTransaction return transaction of given hash from transaction pool.
 func (pool *TransactionPool) GetTransaction(hash byteutils.Hash) *Transaction {
 	pool.mu.Lock()
@@ -268,26 +275,6 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 		}).Debug("Push tx to transaction pool")
 	}
 
-	//// deprecated
-	//if is super node and tx type is deploy, do unsupported keyword checking.
-	if pool.bc.superNode == true && len(pool.bc.unsupportedKeyword) > 0 && len(tx.Data()) > 0 {
-		if tx.Type() == TxPayloadDeployType {
-			data := string(tx.Data())
-			keywords := strings.Split(pool.bc.unsupportedKeyword, ",")
-			for _, keyword := range keywords {
-				keyword = strings.ToLower(keyword)
-				if strings.Contains(data, keyword) {
-					logging.VLog().WithFields(logrus.Fields{
-						"tx.hash":            tx.hash,
-						"unsupportedKeyword": keyword,
-					}).Debug("transaction data has unsupported keyword")
-					unsupportedKeywordError := fmt.Sprintf("transaction data has unsupported keyword(keyword: %s)", keyword)
-					return errors.New(unsupportedKeywordError)
-				}
-			}
-		}
-	}
-
 	// only super node need the access control
 	//if pool.bc.superNode == true {
 	if err := pool.access.CheckTransaction(tx); err != nil {
@@ -295,10 +282,17 @@ func (pool *TransactionPool) Push(tx *Transaction) error {
 			"tx.hash": tx.hash,
 			"error":   err,
 		}).Debug("Failed to check transaction in access.")
-
 		return err
 	}
-	//}
+
+	// check dip reward
+	if err := pool.bc.dip.CheckReward(tx); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"tx.hash": tx.hash,
+			"error":   err,
+		}).Debug("Failed to check transaction for dip reward.")
+		return err
+	}
 
 	// verify non-dup tx
 	if _, ok := pool.all[tx.hash.Hex()]; ok {
@@ -561,4 +555,17 @@ func (pool *TransactionPool) evictExpiredTransactions() {
 			}
 		}
 	}
+}
+
+// get pending tx count
+func (pool *TransactionPool) GetPending(addr *Address) uint64 {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	slot := addr.address.Hex()
+	bucket, ok := pool.buckets[slot]
+	if !ok {
+		return 0
+	}
+	return uint64(bucket.Len())
 }
