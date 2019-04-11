@@ -22,18 +22,18 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"sync"
 	"testing"
-	// "github.com/nebulasio/go-nebulas/account"
-	// "github.com/nebulasio/go-nebulas/account"
+
+	"github.com/nebulasio/go-nebulas/nr"
+
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/consensus/dpos"
-	// "github.com/nebulasio/go-nebulas/net"
-	// "github.com/nebulasio/go-nebulas/net"
 
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/pb"
@@ -55,8 +55,56 @@ func newUint128FromIntWrapper(a int64) *util.Uint128 {
 	return b
 }
 
+type testNR struct {
+}
+
+func (r *testNR) GetNRByAddress(addr *core.Address) (core.Data, error) {
+	if addr.String() != "n1FkntVUMPAsESuCAAPK711omQk19JotBjM" {
+		return nil, errors.New("nr not found")
+	}
+	data := &nr.NRItem{
+		Score: "10.09",
+	}
+	return data, nil
+}
+
+func (r *testNR) GetNRListByHeight(height uint64) (core.Data, error) {
+	data := &nr.NRData{
+		Nrs: []*nr.NRItem{&nr.NRItem{
+			Address: "n1FkntVUMPAsESuCAAPK711omQk19JotBjM",
+			Score:   "10.09",
+		}},
+	}
+	return data, nil
+}
+
+func (r *testNR) GetNRSummary(height uint64) (core.Data, error) {
+	if height > 1000 {
+		sum := &nr.NRSummary{
+			StartHeight: 1,
+			EndHeight:   500,
+			Sum: &nr.NRSummaryData{
+				InOuts: "123123",
+				Score:  "100",
+			},
+		}
+		return sum, nil
+	}
+	return nil, nr.ErrNRSummaryNotFound
+}
+
+func (r *testNR) GetNRHandle(start, end, version uint64) (string, error) {
+	return "", nil
+}
+
+func (r *testNR) GetNRListByHandle(handle []byte) (core.Data, error) {
+	return nil, nil
+}
+
 type testBlock struct {
 	height uint64
+
+	nr core.NR
 }
 
 // Coinbase mock
@@ -105,16 +153,16 @@ func (block *testBlock) Timestamp() int64 {
 }
 
 func (block *testBlock) NR() core.NR {
-	return nil
+	return block.nr
 }
 
 func mockBlock() Block {
-	block := &testBlock{core.NebCompatibility.NvmMemoryLimitWithoutInjectHeight()}
+	block := &testBlock{core.NebCompatibility.NvmMemoryLimitWithoutInjectHeight(), &testNR{}}
 	return block
 }
 
 func mockBlockForLib(height uint64) Block {
-	block := &testBlock{height}
+	block := &testBlock{height, &testNR{}}
 	return block
 }
 
@@ -1281,8 +1329,7 @@ func TestMultiLibVersion(t *testing.T) {
 }
 
 func TestNebulasRank(t *testing.T) {
-	core.SetCompatibilityOptions(100)
-
+	core.NebCompatibility = core.NewCompatibilityLocal()
 	tests := []struct {
 		name         string
 		contractPath string
@@ -1306,7 +1353,7 @@ func TestNebulasRank(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
-			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, &corepb.ContractMeta{Version: "1.1.0"})
 			ctx, err := NewContext(mockBlockForLib(2), mockTransaction(), contract, context)
 
 			engine := NewV8Engine(ctx)
@@ -1320,8 +1367,7 @@ func TestNebulasRank(t *testing.T) {
 }
 
 func TestNebulasRankSummary(t *testing.T) {
-	core.SetCompatibilityOptions(100)
-
+	core.NebCompatibility = core.NewCompatibilityLocal()
 	tests := []struct {
 		name         string
 		contractPath string
@@ -1336,6 +1382,7 @@ func TestNebulasRankSummary(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
 			data, err := ioutil.ReadFile(tt.contractPath)
 			assert.Nil(t, err, "filepath read error")
 
@@ -1344,7 +1391,7 @@ func TestNebulasRankSummary(t *testing.T) {
 			owner, err := context.GetOrCreateUserAccount([]byte("account1"))
 			assert.Nil(t, err)
 			owner.AddBalance(newUint128FromIntWrapper(1000000000))
-			contract, _ := context.CreateContractAccount([]byte("account2"), nil, nil)
+			contract, _ := context.CreateContractAccount([]byte("account2"), nil, &corepb.ContractMeta{Version: "1.1.0"})
 			ctx, err := NewContext(mockBlockForLib(tt.height), mockTransaction(), contract, context)
 
 			engine := NewV8Engine(ctx)

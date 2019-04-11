@@ -22,35 +22,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/nebulasio/go-nebulas/neblet/pb"
+	"github.com/nebulasio/go-nebulas/core"
+
 	"github.com/stretchr/testify/assert"
 )
-
-type mockNeb struct {
-	config *nebletpb.Config
-}
-
-func (n *mockNeb) Config() *nebletpb.Config {
-	return n.config
-}
-
-func newMockNeb() *mockNeb {
-	neb := &mockNeb{
-		&nebletpb.Config{
-			Chain: &nebletpb.ChainConfig{
-				Datadir: "data.db",
-			},
-			Nbre: &nebletpb.NbreConfig{
-				RootDir:      "nbre",
-				LogDir:       "nbre/logs",
-				DataDir:      "nbre/nbre.db",
-				NbrePath:     "nbre/nbre",
-				AdminAddress: "n1cYKNHTeVW9v1NQRWuhZZn9ETbqAYozckh",
-			},
-		},
-	}
-	return neb
-}
 
 func TestNbre_Execute(t *testing.T) {
 	tests := []struct {
@@ -72,14 +47,16 @@ func TestNbre_Execute(t *testing.T) {
 			command: CommandVersion,
 			params:  []interface{}{uint64(1)},
 			result:  nil,
-			err:     ErrExecutionTimeout,
+			err:     ErrNebCallbackTimeout,
 		},
 	}
 
 	wg := new(sync.WaitGroup)
 	wg.Add(2)
 
-	nbre := NewNbre(newMockNeb())
+	neb := core.NewMockNeb(nil, nil, nil)
+
+	nbre := NewNbre(neb)
 	nbre.Start()
 	//assert.NoError(t, err, "nbre start failed")
 

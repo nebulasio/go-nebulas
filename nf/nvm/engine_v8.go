@@ -35,14 +35,14 @@ char *StorageGetFunc_cgo(void *handler, const char *key, size_t *gasCnt);
 int StoragePutFunc_cgo(void *handler, const char *key, const char *value, size_t *gasCnt);
 int StorageDelFunc_cgo(void *handler, const char *key, size_t *gasCnt);
 
-char *GetTxByHashFunc_cgo(void *handler, const char *hash);
-char *GetAccountStateFunc_cgo(void *handler, const char *address);
-int TransferFunc_cgo(void *handler, const char *to, const char *value);
-int VerifyAddressFunc_cgo(void *handler, const char *address);
-char *GetPreBlockHashFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt);
-char *GetPreBlockSeedFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt);
-char *GetLatestNebulasRankFunc_cgo(void *handler, const char* address, size_t *gasCnt);
-char *GetLatestNebulasRankSummaryFunc_cgo(void *handler, size_t *gasCnt);
+char *GetTxByHashFunc_cgo(void *handler, const char *hash, size_t *gasCnt);
+char *GetAccountStateFunc_cgo(void *handler, const char *address, size_t *gasCnt, char **result, char **info);
+int TransferFunc_cgo(void *handler, const char *to, const char *value, size_t *gasCnt);
+int VerifyAddressFunc_cgo(void *handler, const char *address, size_t *gasCnt);
+char *GetPreBlockHashFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info);
+char *GetPreBlockSeedFunc_cgo(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info);
+char *GetLatestNebulasRankFunc_cgo(void *handler, const char *address, size_t *gasCnt, char **result, char **info);
+char *GetLatestNebulasRankSummaryFunc_cgo(void *handler, size_t *gasCnt, char **result, char **info);
 
 char *Sha256Func_cgo(const char *data, size_t *gasCnt);
 char *Sha3256Func_cgo(const char *data, size_t *gasCnt);
