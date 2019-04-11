@@ -50,8 +50,10 @@ endif
 
 NATIVELIB := native-lib
 ifeq ($(NATIVELIB),$(wildcard $(NATIVELIB)))
+    CGO_CFLAGS=CGO_CFLAGS="-I$(CURRENT_DIR)/nbre/lib/include -g -O2"
 	CGO_LDFLAGS=CGO_LDFLAGS="-L$(CURRENT_DIR)/native-lib -lrocksdb -lc++ -lgflags -lm -lz -lbz2 -lsnappy -llz4 -lzstd -g -O2"
 else
+    CGO_CFLAGS=
 	CGO_LDFLAGS=
 endif
 
@@ -75,7 +77,7 @@ dep:
 	$(DEPINSTALL) dep ensure -v
 
 build:
-	cd cmd/neb; $(CGO_LDFLAGS) go build $(LDFLAGS) -o ../../$(NEBBINARY)
+	cd cmd/neb; $(CGO_CFLAGS) $(CGO_LDFLAGS) go build $(LDFLAGS) -o ../../$(NEBBINARY)
 	$(BUUILDLOG)
 
 build-linux:
@@ -85,7 +87,7 @@ LIST := ./account/... ./cmd/... ./common/... ./consensus ./core/... ./crypto/...
 # LIST := $(ls -d */|grep -Ev "vendor|logs|nebtestkit|.db")/...
 
 test:
-	env GOCACHE=off $(CGO_LDFLAGS) go test $(LIST) 2>&1 | tee $(TEST_REPORT); go2xunit -fail -input $(TEST_REPORT) -output $(TEST_XUNIT_REPORT)
+	env GOCACHE=off $(CGO_CFLAGS) $(CGO_LDFLAGS) go test $(LIST) 2>&1 | tee $(TEST_REPORT); go2xunit -fail -input $(TEST_REPORT) -output $(TEST_XUNIT_REPORT)
 
 vet:
 	go vet $$(go list $(LIST)) 2>&1 | tee $(VET_REPORT)
