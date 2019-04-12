@@ -51,7 +51,7 @@ endif
 NATIVELIB := native-lib
 ifeq ($(NATIVELIB),$(wildcard $(NATIVELIB)))
     CGO_CFLAGS=CGO_CFLAGS="-I$(CURRENT_DIR)/nbre/lib/include -g -O2"
-	CGO_LDFLAGS=CGO_LDFLAGS="-L$(CURRENT_DIR)/native-lib -lrocksdb -lc++ -lgflags -lm -lz -lbz2 -lsnappy -llz4 -lzstd -g -O2"
+	CGO_LDFLAGS=CGO_LDFLAGS="-L$(CURRENT_DIR)/native-lib -lrocksdb -lstdc++ -lc++ -lgflags -lm -lz -lbz2 -lsnappy -llz4 -lzstd -g -O2"
 else
     CGO_CFLAGS=
 	CGO_LDFLAGS=
