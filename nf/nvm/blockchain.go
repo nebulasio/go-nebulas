@@ -331,8 +331,8 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 	}
 
 	transferValueStr := C.GoString(v)
+	recordValue := transferValueStr
 	amount, err := util.NewUint128FromString(transferValueStr)
-	// in old world state, accountstate create before amount check
 	if core.NvmValueCheckUpdateHeight(height) {
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
@@ -343,6 +343,11 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 			}).Error("Failed to get amount failed.")
 			recordTransferEvent(ErrTransferStringToUint128, cAddr.String(), addr.String(), transferValueStr, height, wsState, txHash)
 			return ErrTransferStringToUint128
+		}
+	} else {
+		// in old version, record value is empty when it cannot convert to uint128
+		if err != nil {
+			recordValue = ""
 		}
 	}
 	ret := TransferByAddress(handler, cAddr, addr, amount)
@@ -358,7 +363,7 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 		}).Error("Unexpected error")
 	}
 
-	recordTransferEvent(ret, cAddr.String(), addr.String(), transferValueStr, height, wsState, txHash)
+	recordTransferEvent(ret, cAddr.String(), addr.String(), recordValue, height, wsState, txHash)
 	return ret
 }
 
