@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright (C) 2017-2019 go-nebulas authors
 #
 # This file is part of the go-nebulas library.
@@ -14,8 +16,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
-
-#!/bin/bash
 
 # usage: source native-libs.sh
 

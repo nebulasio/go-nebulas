@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright (C) 2017 go-nebulas authors
 #
 # This file is part of the go-nebulas library.
@@ -14,8 +16,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
-
-#!/bin/bash
 
 CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" >/dev/null && pwd  )"
 #CUR_DIR="$( pwd )"
