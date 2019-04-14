@@ -1,7 +1,7 @@
 # go-nebulas
 
 
-Official Go implementation of the Nebulas protocol.
+Official Go implementation of the Nebulas protocol. The current version is 2.0, also called Nebulas Nova.
 
 [![Build Status](https://travis-ci.org/nebulasio/go-nebulas.svg?branch=master)](https://travis-ci.org/nebulasio/go-nebulas)
 
@@ -19,7 +19,7 @@ Mainnet is released, please check [here](https://github.com/nebulasio/wiki/blob/
 
 | Components | Version | Description |
 |----------|-------------|-------------|
-|[Golang](https://golang.org) | >= 1.11.2| The Go Programming Language |
+|[Golang](https://golang.org) | >= 1.11| The Go Programming Language |
 [Dep](https://github.com/golang/dep) | >= 0.3.1 | Dep is a dependency management tool for Go. |
 
 ### Build
@@ -46,20 +46,21 @@ git checkout testnet
 
 #### Install native libs.
 
-Nebulas execution need NVM and nbre two dependent libraries. We provide stable versions of both libraries. Execute the execution script to install
+Nebulas execution need NVM and NBRE two dependent libraries. We provide stable versions of both libraries. Execute the execution script to install
 
 ```bash
+cd github.com/nebulasio/go-nebulas
 source install-native-libs.sh
 ```
 ##### *Note*:
 
-Our dependency libraries are not installed in the system directory, and there are different path-loading methods used in Darwin and Linux systems.
+The dependency libraries are not installed in the system directory, and there are different path-loading methods used in Darwin and Linux systems.
 
 * *OS X*:
-    * On the user's root directory to create ` lib ` folder, system to load the library path can read this path, ensure that the root directory of the current folder does not exist. All of these operations in ` install-native-libs.sh ` already processing.(`DYLD_LIBRARY_PATH` is not possible unless System Integrity Protection (SIP) is disabled)
+    * In the user's root directory to create ` lib ` folder, system to load the library path can read this path, ensure that the root directory of the current folder does not exist. All of these operations in ` install-native-libs.sh ` already processing.(`DYLD_LIBRARY_PATH` is not possible unless System Integrity Protection (SIP) is disabled)
 
 * *Linux - Ubuntu*
-    * `ins.tall-native-libs.sh` export `LD_LIBRARY_PATH` for native libs.
+    * `install-native-libs.sh` export `LD_LIBRARY_PATH` for native libs.
     * Because the CPU instruction set may vary from machine to machine, the pre-compiled nbre may not be available. **If the library you installed with the script is not available (it does not start after compilation), compile the nbre yourself:**
     	* delete invalid libraries
     	* prepare nbre build environment(It may take a long time, compile cmake, llvm, rocksdb and etc.)
