@@ -8,7 +8,7 @@ env:
 
 before_install:
 - sudo apt-get update
-- sudo apt-get install -y libsnappy-dev zlib1g-dev libbz2-dev liblz4-dev libzstd-dev
+- sudo apt-get install -y libsnappy-dev zlib1g-dev libbz2-dev liblz4-dev
 
 install:
 - wget http://develop-center.oss-cn-zhangjiakou.aliyuncs.com/setup/vendor/vendor.tar.gz
