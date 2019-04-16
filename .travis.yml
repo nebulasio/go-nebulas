@@ -1,18 +1,15 @@
+dist: xenial
 language: go
 go:
 - 1.11.x
-os:
-- linux
-env:
-- LD_LIBRARY_PATH=$GOPATH/src/github.com/nebulasio/go-nebulas/native-lib:$LD_LIBRARY_PATH
 
 before_install:
-- sudo apt-get update
-- sudo apt-get install -y libsnappy-dev zlib1g-dev libbz2-dev liblz4-dev
+- sudo apt-get update -qq
+- sudo apt-get install -y libsnappy-dev zlib1g-dev libbz2-dev liblz4-dev -qq
 
 install:
 - wget http://develop-center.oss-cn-zhangjiakou.aliyuncs.com/setup/vendor/vendor.tar.gz
-- tar -zxvf vendor.tar.gz
+- tar -zxf vendor.tar.gz
 - go get github.com/tebeka/go2xunit
 script:
 - source install-native-libs.sh
