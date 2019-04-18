@@ -202,7 +202,8 @@ check_install_llvm() {
     if [ ! -f $CUR_DIR/lib_llvm/bin/clang ]; then
       mkdir llvm-build
       cd llvm-build
-      cmake -DCMAKE_CXX_COMPILER=g++ -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib_llvm/ ../llvm-$LLVM_VERSION.src
+      cmake -DCLANG_ENABLE_STATIC_ANALYZER=OFF -DCLANG_ENABLE_ARCMT=OFF -DLLVM_TARGETS_TO_BUILD="X86;XCore" -DLLVM_DISTRIBUTION_COMPONENTS="LLVMDemangle;LLVMBinaryFormat;LLVMAsmParser;LLVMBitReader;LLVMAnalysis;LLVMBitWriter;LLVMProfileData;LLVMTarget;LLVMTransformUtils;LLVMScalarOpts;LLVMBinaryFormat;LLVMDebugInfoCodeView;LLVMDebugInfoMSF;LLVMObject;LLVMInstCombine;LLVMExecutionEngine;LLVMRuntimeDyld;LLVMCore;clang;LLVMMC;LLVMMCJIT;LLVMSupport;LLVMInterpreter;LLVMCodeGen;LLVMIRReader;LLVMOrcJIT"  -DCMAKE_CXX_COMPILER=g++ -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$CUR_DIR/lib_llvm/ ../llvm-$LLVM_VERSION.src
+      #make  && make install
       make -j$PARALLEL && make install
       cd ..
     fi
