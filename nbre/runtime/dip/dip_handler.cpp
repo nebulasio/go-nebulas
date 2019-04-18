@@ -128,6 +128,11 @@ void dip_handler::start(neb::block_height_t height,
     return;
   }
 
+  if (!m_in_process.insert_if_not_exist(hash_height, true)) {
+    LOG(INFO) << "dip reward already in processing";
+    return;
+  }
+
   // get dip version if default
   std::string dip_name = "dip";
   uint64_t dip_version = 0;
@@ -165,6 +170,7 @@ void dip_handler::start(neb::block_height_t height,
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute dip failed " << e.what();
     }
+    m_in_process.erase(hash_height);
     //});
 }
 

@@ -30,6 +30,7 @@ import (
 const (
 	DefaultMaxUnlockDuration time.Duration = 1<<63 - 1
 	GenesisDynasty                         = 1
+	GenesisDynastySerial                   = 0
 )
 
 // Consensus Related Constants

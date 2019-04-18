@@ -172,7 +172,8 @@ func recordTransferEvent(errNo int, from string, to string, value string,
 				"to":     to,
 				"amount": value,
 				"errNo":  errNo,
-			}).Fatal("failed to marshal TransferFromContractEvent")
+			}).Error("unexpected error to handle")
+			return
 		}
 
 		status := uint8(1)
@@ -323,7 +324,9 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 				"handler": uint64(uintptr(handler)),
 				"address": addr,
 				"err":     err,
-			}).Fatal("GetAccountStateFunc get account state failed.")
+			}).Error("GetAccountStateFunc get account state failed.")
+			recordTransferEvent(ErrTransferGetAccount, cAddr.String(), addr.String(), "", height, wsState, txHash)
+			return ErrTransferGetAccount
 		}
 	}
 
@@ -346,12 +349,13 @@ func TransferFunc(handler unsafe.Pointer, to *C.char, v *C.char, gasCnt *C.size_
 
 	if ret != ErrTransferStringToUint128 && ret != ErrTransferSubBalance && ret != SuccessTransferFunc { // Unepected to happen, should not to be on chain
 		logging.VLog().WithFields(logrus.Fields{
+			"height":      engine.ctx.block.Height(),
 			"txhash":      engine.ctx.tx.Hash().String(),
 			"fromAddress": cAddr.String(),
 			"toAddress":   addr.String(),
 			"value":       transferValueStr,
 			"ret":         ret,
-		}).Fatal("Unexpected error")
+		}).Error("Unexpected error")
 	}
 
 	recordTransferEvent(ret, cAddr.String(), addr.String(), transferValueStr, height, wsState, txHash)

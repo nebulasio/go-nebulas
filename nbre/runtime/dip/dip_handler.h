@@ -78,7 +78,9 @@ private:
   mutable std::mutex m_mutex;
   thread_safe_map<block_height_t, str_sptr_t> m_nr_sum;
   thread_safe_map<block_height_t, str_sptr_t> m_nr_result;
+
   thread_safe_map<block_height_t, str_sptr_t> m_dip_reward;
+  thread_safe_map<block_height_t, bool> m_in_process;
   // dip params info list
   thread_safe_vector<std::shared_ptr<dip_params_t>> m_dip_params_list;
 

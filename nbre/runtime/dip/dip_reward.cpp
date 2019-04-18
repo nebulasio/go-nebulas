@@ -317,12 +317,11 @@ floatxx_t dip_reward::participate_lambda(
   if (gamma_s == zero) {
     return zero;
   }
-  auto x = gamma_p / gamma_s;
-  if (x == beta) {
+  if (gamma_p == beta * gamma_s) {
     return one;
   }
 
-  return math::min(one, alpha / (beta - x));
+  return math::min(one, alpha * gamma_s / (beta * gamma_s - gamma_p));
 }
 
 void dip_reward::ignore_account_transfer_contract(

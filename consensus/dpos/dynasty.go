@@ -81,7 +81,7 @@ func loadDynastyConf(genesis *corepb.Genesis, filePath string) (*corepb.Dynasty,
 		},
 		Candidate: []*corepb.DynastyCandidate{
 			{
-				Serial:  0,
+				Serial:  GenesisDynastySerial,
 				Dynasty: genesis.Consensus.Dpos.Dynasty,
 			},
 		},
@@ -158,6 +158,10 @@ func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 		curDynasty = interval/DynastyIntervalInMs + 1
 	}
 
+	tmpDynasty = 0
+	// give a default dynasty trie
+	dt = d.tries[GenesisDynastySerial]
+
 	// eg: dynasty is: 1----3-----6, if serial={1,2}  dynasty=1, serial={3,4,5}, dynasty=3
 	for k, v := range d.tries {
 		start := int64(k)
@@ -170,17 +174,18 @@ func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 
 	if dt == nil {
 		logging.CLog().WithFields(logrus.Fields{
+			"interval":   interval,
 			"timestamp":  timestamp,
 			"tmpDynasty": tmpDynasty,
 			"curDynasty": curDynasty,
 		}).Fatal("Failed to get dynasty with current genesis and dynasty.")
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
-		"timestamp":  timestamp,
-		"curDynasty": curDynasty,
-		"dt":         dt,
-	}).Debug("dynasty info.")
+	//logging.VLog().WithFields(logrus.Fields{
+	//	"timestamp":  timestamp,
+	//	"curDynasty": curDynasty,
+	//	"dt":         dt,
+	//}).Debug("dynasty info.")
 
 	dynastyTrie, err := dt.Clone()
 	if err != nil {

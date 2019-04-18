@@ -44,6 +44,7 @@ public:
     m_api_timeout_callbacks.insert(std::make_pair(id, [func, this]() {
       LOG(INFO) << "ipc api timeout";
       func(ipc_status_timeout, nullptr);
+      LOG(INFO) << "ipc api timeout done";
       // issue_callback_with_error(func, ipc_status_timeout);
     }));
     std::unique_lock<std::mutex> _k(m_conn_mutex);

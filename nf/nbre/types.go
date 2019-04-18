@@ -35,6 +35,7 @@ var (
 	ErrCommandNotFound       = errors.New("nbre command not found")
 	ErrExecutionTimeout      = errors.New("nbre execute timeout")
 	ErrHandlerNotFound       = errors.New("nbre handler not found")
+	ErrNebCallbackTimeout    = errors.New("nbre neb callback timeout")
 	ErrNbreCallbackFailed    = errors.New("nbre callback failed")
 	ErrNbreCallbackTimeout   = errors.New("nbre callback timeout")
 	ErrNbreCallbackException = errors.New("nbre callback exception")
