@@ -16,5 +16,5 @@ services:
       - .:/go/src/github.com/nebulasio/go-nebulas
     environment:
       - REGION=China
-      - config=conf/default/config.conf
+      - config=mainnet/conf/config.conf
     command: bash docker/scripts/neb.bash

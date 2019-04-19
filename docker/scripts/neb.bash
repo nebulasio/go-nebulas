@@ -29,12 +29,13 @@ setup_with_vendor() {
         echo './vendor exists.'
     else
         echo './vendor not found. Createing ./vendor...'
-        if [[ "$TZ" = "Asia/Shanghai" ]]; then
+        if [[ "$REGION" = "China" ]]; then
             echo "downloading vendor from remote..."
             wget $SOURCE_URL/setup/vendor/vendor.tar.gz
             tar -vxzf vendor.tar.gz
         else
             echo 'Run dep...'
+            go get -u github.com/golang/dep/cmd/dep
             make dep
         fi
     fi    
