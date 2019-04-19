@@ -233,7 +233,7 @@ func (ds *State) NextConsensusState(elapsedSecond int64, worldState state.WorldS
 			"timestamp": ds.timestamp,
 		}).Fatal("Type conversion failed, unexpected error.")
 	}
-	nextTimestamp := ds.timestamp + BlockIntervalInMs/SecondInMs
+	nextTimestamp := ds.timestamp + elapsedSecond
 	dynastyTrie, err := dpos.dynasty.getDynasty(nextTimestamp)
 	if err != nil {
 		return nil, err

@@ -1,9 +1,7 @@
 # go-nebulas
 
-**[NOTE] Please make sure you're checking out master branch for production purpose. 
-The current branch is still under development.**
 
-Official Go implementation of the Nebulas protocol.
+Official Go implementation of the Nebulas protocol. The current version is 2.0, also called Nebulas Nova.
 
 [![Build Status](https://travis-ci.org/nebulasio/go-nebulas.svg?branch=master)](https://travis-ci.org/nebulasio/go-nebulas)
 
@@ -21,27 +19,22 @@ Mainnet is released, please check [here](https://github.com/nebulasio/wiki/blob/
 
 | Components | Version | Description |
 |----------|-------------|-------------|
-|[Golang](https://golang.org) | >= 1.9.2| The Go Programming Language |
+|[Golang](https://golang.org) | >= 1.11| The Go Programming Language |
 [Dep](https://github.com/golang/dep) | >= 0.3.1 | Dep is a dependency management tool for Go. |
 
 ### Build
 
-1. Checkout repo.
+#### Checkout repo.
 
 ```bash
 cd $GOPATH/src
 go get -u -v github.com/nebulasio/go-nebulas
 ```
 
-The project is under active development. Its default branch is _develop_.
+The project is under active development. New users may want to checkout and use the stable mainnet release in __master__.
 
 ```bash
 cd github.com/nebulasio/go-nebulas
-```
-
-New users may want to checkout and use the stable mainnet release in __master__.
-
-```bash
 git checkout master
 ```
 
@@ -51,44 +44,47 @@ Or use the stable testnet release in __testnet__.
 git checkout testnet
 ```
 
-2. Install rocksdb.
+#### Install native libs.
 
-* **OS X**:
-    * Install via [homebrew](http://brew.sh/).
-    * run `brew install rocksdb`
+Nebulas execution need NVM and NBRE two dependent libraries. We provide stable versions of both libraries. Execute the execution script to install
 
-* **Linux - Ubuntu**
-    * Install Dependencies
-        ```bash
-        apt-get update
-        apt-get -y install build-essential libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev liblz4-dev libzstd-dev
-        ```
-    * Install rocksdb by source code:
-        ```bash
-        git clone https://github.com/facebook/rocksdb.git
-        cd rocksdb && make shared_lib && make install-shared
-        ```
-* **Linux - Centos**
-    * Install Dependencies
-        ```bash
-        yum -y install epel-release && yum -y update
-        yum -y install gflags-devel snappy-devel zlib-devel bzip2-devel gcc-c++  libstdc++-devel
-        ```
-    * Install rocksdb by source code:
-        ```bash
-        git clone https://github.com/facebook/rocksdb.git
-        cd rocksdb && make shared_lib && make install-shared
-        ```
+```bash
+cd github.com/nebulasio/go-nebulas
+source install-native-libs.sh
+```
+##### *Note*:
 
-3. Install dependencies packages.
-    * all golang dependencies will be stored in ./vendor.
-    * run `make dep` to install dependencies.
-    * If you failed to run this, please download our [vendor.tar.gz](https://s3-us-west-1.amazonaws.com/develop-center/setup/vendor.tar.gz) directly.
+The dependency libraries are not installed in the system directory, and there are different path-loading methods used in Darwin and Linux systems.
 
-4. Install v8 libraries.
-    * run `make deploy-v8`
+* *OS X*:
+    * In the user's root directory to create ` lib ` folder, system to load the library path can read this path, ensure that the root directory of the current folder does not exist. All of these operations in ` install-native-libs.sh ` already processing.(`DYLD_LIBRARY_PATH` is not possible unless System Integrity Protection (SIP) is disabled)
 
-5. Build the neb binary.
+* *Linux - Ubuntu*
+    * `install-native-libs.sh` export `LD_LIBRARY_PATH` for native libs.
+    * Because the CPU instruction set may vary from machine to machine, the pre-compiled nbre may not be available. **If the library you installed with the script is not available (it does not start after compilation), compile the nbre yourself:**
+    	* delete invalid libraries
+    	* prepare nbre build environment(It may take a long time, compile cmake, llvm, rocksdb and etc.)
+    	* build nbre
+    	* re-source the native libs
+    
+    	```bash
+    	cd nbre
+    	rm -rf lib
+    	rm -rf lib_llvm
+    	./prepare.sh
+    	./build.sh
+    	cd ..
+    	source install-native-libs.sh
+    	```  	
+
+#### Install dependencies packages.
+
+   * all golang dependencies will be stored in ./vendor.
+   * run `make dep` to install dependencies.
+   * If you failed to run this, please download our [vendor.tar.gz](http://develop-center.oss-cn-zhangjiakou.aliyuncs.com/setup/vendor/vendor.tar.gz) directly.
+
+
+#### Build the neb binary.
     * run `make build`
 
 ## Run
@@ -139,43 +135,6 @@ INFO[2018-03-30T01:39:16+08:00] Started Neblet.                               fi
 
 From the log, we can see the binary execution starts neblet, starts network service, starts RPC API server, and starts consensus state machine.
 
-## Docker
-
-### Build
-* pull from dockerhub directly
-    ```bash
-    docker pull bkbabydp/go-nebulas
-    ```
-* build locally
-    ```bash
-    docker-compose up
-    ```
-
-### Run
-* edit [your conf path] in docker-compose.yml
-```yml
-  # node:
-  #   image: bkbabydp/go-nebulas
-  #   build:
-  #     context: ./docker
-  #   ports:
-  #     - '8680'
-  #     - '8684'
-  #     - '8685'
-  #     - '8888'
-  #     - '8086'
-  #   volumes:
-  #     - .:/go/src/github.com/nebulasio/go-nebulas
-  #   environment:
-  #     - TZ=Asia/Shanghai
-  #     - NEBULAS_BRANCH=master
-  #   command: bash docker/scripts/neb.bash -c [your conf path]
-```
-* start the node
-```bash
-    cd /path/to/go-nebulas
-    docker-compose up node
-```
 
 ## TestNet
 

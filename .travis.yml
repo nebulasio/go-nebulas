@@ -1,31 +1,19 @@
+dist: xenial
 language: go
 go:
-- 1.10.x
-os:
-- linux
+- 1.11.x
+
 before_install:
-- go get github.com/golang/dep/cmd/dep
-- sudo apt-get update -qq && sudo apt-get install libsnappy-dev zlib1g-dev libbz2-dev -qq
-- wget https://launchpad.net/ubuntu/+archive/primary/+files/libgflags2_2.0-1.1ubuntu1_amd64.deb
-- sudo dpkg -i libgflags2_2.0-1.1ubuntu1_amd64.deb
-- wget https://launchpad.net/ubuntu/+archive/primary/+files/libgflags-dev_2.0-1.1ubuntu1_amd64.deb
-- sudo dpkg -i libgflags-dev_2.0-1.1ubuntu1_amd64.deb
+- sudo apt-get update -qq
+- sudo apt-get install -y libsnappy-dev zlib1g-dev libbz2-dev liblz4-dev -qq
 
 install:
-- mkdir /tmp/rocksdb && pushd /tmp/rocksdb
-- wget https://github.com/facebook/rocksdb/archive/v5.11.3.tar.gz
-- tar -xvf v5.11.3.tar.gz
-- cd rocksdb-5.11.3
-- make clean
-- make shared_lib
-- sudo cp --preserve=links ./librocksdb.* /usr/lib/
-- sudo cp -r ./include/rocksdb/ /usr/include/
-- popd
-- dep ensure
-- sudo install nf/nvm/native-lib/* /usr/local/lib
-- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo /sbin/ldconfig ; fi
+- wget http://develop-center.oss-cn-zhangjiakou.aliyuncs.com/setup/vendor/vendor.tar.gz
+- tar -zxf vendor.tar.gz
+- go get github.com/tebeka/go2xunit
 script:
-- go test ./...
+- source install-native-libs.sh
+- make build
 notifications:
   slack:
     secure: zgK31lKG7tzw7mQ40tRsGAdkD/XCU1Kbg5v5bLxUywzdaBB07u2jgv1rwFeJ+7IWSwZGIVjf0kR+Pk4iE8q/e/1sE98PApT8SeOSt+DZTtLOjn9dfIOFZPirGc4lEOMZDDWg54mGgmXuGb5KoPXDUHr+JLejrc73ZN2A8nCn324yG3NGBnPQkmYPitBDGBrs8MPYFu9DfACgtvPGgCebRyT6X1KNxMZNsyM7YqXAAR/4n9BiDCPuClbC0Qb1azdtsuBVSwLjJrqy7K0UpSqFvE8vcLRfUCgPy0dGaoier4FI33qnXpR4BHCx2Nd+/5npbObFgjhXkZBOvNQJW0Ll0IVAHzZBqCqThK09tFjfqwamDAbBmKUd51UsqWElXGBM38BTnyzMeCNZSaR8F/SgGZhtODu7hZ/lU+zIC3L4ZJfFiFFBy9LMzax6fAUPy2S8pZvMEnJbVxP7TiX4VlpIMNMVWsIaTNf2IAoxSZJC1QUrExbgKHdxvZtBFuc7FmSjW7vBz6s/c1xD8HtViLfWo3aGKy7ZYu1BpjPd//sC3Xy3+wxizsv6auN7fFpEARwqnitb1DNfBnB2FHOe8mu7YAOx3Zr4SsR9sLMoXknfOr33xsQlyj2PRwkOpDrgxG00SiP7FYzyO7lPh7jNVqecBtk9okC+tGGBAPmkbgBaOOk=

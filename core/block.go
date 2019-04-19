@@ -53,6 +53,9 @@ var (
 	// VerifyExecutionTimeout 0 means unlimited
 	VerifyExecutionTimeout = 0
 
+	// NebulasRewardAddress Nebulas Council Recycling address
+	NebulasRewardAddress, _ = AddressParse("n1Rc66BjDF4LSoQ2uC9rbiMDnKMEV8ryG7k")
+
 	// BlockReward given to coinbase
 	// rule: 3% per year, 3,000,000. 1 block per 15 seconds
 	// value: 10^8 * 3% / (365*24*3600/15) * 10^18 ≈ 1.42694 * 10^18
@@ -1172,8 +1175,7 @@ func (block *Block) FetchExecutionResultEvent(txHash byteutils.Hash) (*state.Eve
 
 func (block *Block) nebulasProjectAddress() *Address {
 	if block.ChainID() == MainNetID {
-		addr, _ := AddressParse("")
-		return addr
+		return NebulasRewardAddress
 	} else if block.ChainID() == TestNetID {
 		return block.Coinbase()
 	} else {

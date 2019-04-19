@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright (C) 2017-2019 go-nebulas authors
 #
 # This file is part of the go-nebulas library.
@@ -14,8 +16,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
-
-#!/bin/bash
 
 # usage: source native-libs.sh
 
@@ -49,7 +49,7 @@ install_nvm() {
     mkdir -p $nvm_lib
     pushd $nvm_lib
     wget $SOURCE_URL/setup/nvm/lib_nvm_$OS.tar.gz -O lib_nvm_$OS.tar.gz
-    tar -zxvf lib_nvm_$OS.tar.gz
+    tar -zxf lib_nvm_$OS.tar.gz
     cp -R lib_nvm_$OS/* $nvm_lib/
     rm -rf lib_nvm_$OS
     rm -rf lib_nvm_$OS.tar.gz
@@ -71,7 +71,7 @@ install_nbre() {
     else
     	wget $SOURCE_URL/setup/nbre/lib_nbre_$OS.tar.gz -O lib_nbre_$OS.tar.gz
     fi
-    tar -zxvf lib_nbre_$OS.tar.gz
+    tar -zxf lib_nbre_$OS.tar.gz
     cp -R lib_nbre_$OS/lib/* $nbre_lib/
     cp -R lib_nbre_$OS/bin $CUR_DIR/nbre/
     cp -R lib_nbre_$OS/lib_llvm $CUR_DIR/nbre/
