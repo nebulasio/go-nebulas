@@ -73,8 +73,8 @@ void jit_engine::init(std::vector<std::unique_ptr<Module>> ms,
     }
   }
   try {
-    m_main_sym = std::make_unique<llvm::JITSymbol>(
-        m_jit->findSymbol(std::string(m_func_name, std::allocator<char>())));
+    m_main_sym =
+        std::make_unique<llvm::JITSymbol>(m_jit->findSymbol(m_func_name));
     if (*m_main_sym) {
       return;
     } else if (auto Err = m_main_sym->takeError()) {
