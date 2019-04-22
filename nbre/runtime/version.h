@@ -19,11 +19,11 @@
 //
 #pragma once
 #include "common/common.h"
-#include "common/util/version.h"
+#include "common/version.h"
 
 namespace neb {
 namespace rt {
 
-neb::util::version get_version();
+neb::version get_version();
 }
 }

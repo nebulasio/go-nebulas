@@ -20,6 +20,7 @@ package nvm
 
 import (
 	"fmt"
+	"github.com/nebulasio/go-nebulas/nr"
 	"encoding/json"
 
 	"github.com/gogo/protobuf/proto"
@@ -170,7 +171,8 @@ func recordTransferEvent(errNo int, from string, to string, value string,
 				"to":     to,
 				"amount": value,
 				"errNo":  errNo,
-			}).Fatal("failed to marshal TransferFromContractEvent")
+			}).Error("unexpected error to handle")
+			return
 		}
 
 		status := uint8(1)
@@ -236,6 +238,16 @@ func transfer(e *V8Engine, from *core.Address, to *core.Address, amount *util.Ui
 			"err":     err,
 		}).Error("Failed to get from account state")
 		return ErrTransferGetAccount
+	}
+
+	// TestNet sync adjust
+	if amount == nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"handler": uint64(e.lcsHandler),
+			"address": from,
+			"err":     err,
+		}).Error("Failed to get amount failed.")
+		return ErrTransferStringToUint128
 	}
 
 	// update balance
@@ -312,31 +324,38 @@ func TransferFunc(handler uint64, to string, v string) (int, uint64) {
 				"handler": uint64(uintptr(handler)),
 				"address": addr,
 				"err":     err,
-			}).Fatal("TransferFunc get account state failed.")
+			}).Error("GetAccountStateFunc get account state failed.")
+			recordTransferEvent(ErrTransferGetAccount, cAddr.String(), addr.String(), "", height, wsState, txHash)
+			return ErrTransferGetAccount, gasCnt
 		}
 	}
 
-	amount, err := util.NewUint128FromString(v)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"handler": handler,
-			"address": addr.String(),
-			"err":     err,
-			"val":     v,
-		}).Error("TransferFunc get amount failed.")
-		recordTransferEvent(ErrTransferStringToUint128, cAddr.String(), addr.String(), v, height, wsState, txHash)
-		return ErrTransferStringToUint128, gasCnt
+	transferValueStr := v
+	amount, err := util.NewUint128FromString(transferValueStr)
+	// in old world state, accountstate create before amount check
+	if core.NvmValueCheckUpdateHeight(height) {
+		if err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"handler": uint64(uintptr(handler)),
+				"address": addr.String(),
+				"err":     err,
+				"val":     transferValueStr,
+			}).Error("Failed to get amount failed.")
+			recordTransferEvent(ErrTransferStringToUint128, cAddr.String(), addr.String(), transferValueStr, height, wsState, txHash)
+			return ErrTransferStringToUint128, gasCnt
+		}
 	}
 	ret := TransferByAddress(handler, cAddr, addr, amount)
 
 	if ret != ErrTransferStringToUint128 && ret != ErrTransferSubBalance && ret != SuccessTransferFunc { // Unepected to happen, should not to be on chain
 		logging.VLog().WithFields(logrus.Fields{
+			"height":      engine.ctx.block.Height(),
 			"txhash":      engine.ctx.tx.Hash().String(),
 			"fromAddress": cAddr.String(),
 			"toAddress":   addr.String(),
 			"value":       v,
 			"ret":         ret,
-		}).Fatal("Unexpected error")
+		}).Error("Unexpected error")
 	}
 
 	recordTransferEvent(ret, cAddr.String(), addr.String(), v, height, wsState, txHash)
@@ -814,4 +833,100 @@ func InnerContractFunc(handler uint64, address string, funcName string,
 	}
 
 	return engineNew, nvmConf, gasCnt, nil
+}
+
+// GetLatestNebulasRankFunc returns nebulas rank value of given account address
+// Return: result_code(int), result(string), exceptionInfo(string), gasCnt(uint64), notNil(bool)
+func GetLatestNebulasRankFunc(handler uint64, address string) (int, string, string, uint64, bool) {
+
+	var result string = ""
+	var exceptionInfo string = ""
+	var gasCnt uint64 = 0
+
+	engine, _ := getEngineByStorageHandler(handler)
+	if engine == nil || engine.ctx.block == nil {
+		logging.VLog().Error("Unexpected error: failed to get engine")
+		return NVM_UNEXPECTED_ERR, result, exceptionInfo, gasCnt, false
+	}
+
+	addr, err := core.AddressParse(address)
+	if err != nil {
+		exceptionInfo = "Address is invalid"
+		return NVM_EXCEPTION_ERR, result, exceptionInfo, gasCnt, false
+	}
+
+	gasCnt = uint64(GetLatestNebulasRankGasBase)
+
+	data, err := engine.ctx.block.NR().GetNRListByHeight(engine.ctx.block.Height())
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": engine.ctx.block.Height(),
+			"addr":   addr,
+			"err":    err,
+		}).Debug("Failed to get nr list")
+		exceptionInfo = "Failed to get nr list"
+		return NVM_EXCEPTION_ERR, result, exceptionInfo, gasCnt, false
+	}
+
+	nrData := data.(*nr.NRData)
+	nr, err := func(list *nr.NRData, addr *core.Address) (*nr.NRItem, error) {
+		for _, nr := range nrData.Nrs {
+			if nr.Address == addr.String() {
+				return nr, nil
+			}
+		}
+		return nil, nr.ErrNRNotFound
+	}(nrData, addr)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": engine.ctx.block.Height(),
+			"addr":   addr,
+			"err":    err,
+		}).Debug("Failed to find nr value")
+		exceptionInfo = "Failed to find nr value"
+		return NVM_EXCEPTION_ERR, result, exceptionInfo, gasCnt, false
+	}
+
+	result = nr.Score
+	return NVM_SUCCESS, result, exceptionInfo, gasCnt, true
+}
+
+// GetLatestNebulasRankSummaryFunc returns nebulas rank summary info.
+// return: result_code(int), result(string), exceptionInfo(string), gasCnt(uint64), notNil(bool)
+func GetLatestNebulasRankSummaryFunc(handler uint64) (int, string, string, uint64, bool){
+
+	var result string = ""
+	var exceptionInfo string = ""
+	var gasCnt uint64 = 0
+
+	engine, _ := getEngineByStorageHandler(uint64(uintptr(handler)))
+	if engine == nil || engine.ctx.block == nil {
+		logging.VLog().Error("Unexpected error: failed to get engine")
+		return NVM_UNEXPECTED_ERR, result, exceptionInfo, gasCnt, false
+	}
+
+	gasCnt = GetLatestNebulasRankSummaryGasBase
+
+	data, err := engine.ctx.block.NR().GetNRSummary(engine.ctx.block.Height())
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": engine.ctx.block.Height(),
+			"err":    err,
+		}).Debug("Failed to get nr summary info")
+		exceptionInfo = "Failed to get nr summary"
+		return NVM_EXCEPTION_ERR, result, exceptionInfo, gasCnt, false
+	}
+
+	bytes, err := data.ToBytes()
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"height": engine.ctx.block.Height(),
+			"err":    err,
+		}).Debug("Failed to serialize nr summary info")
+		exceptionInfo = "Failed to serialize nr summary"
+		return NVM_EXCEPTION_ERR, result, exceptionInfo, gasCnt, false
+	}
+
+	result = string(bytes)
+	return NVM_SUCCESS, result, exceptionInfo, gasCnt, true
 }

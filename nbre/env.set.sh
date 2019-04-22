@@ -19,7 +19,7 @@ case "$(uname -s)" in
 esac
 
 USER=`whoami`
-NEBULAS_HOME=/home/$USER/go/src/github.com/nebulasio/go-nebulas
+NEBULAS_HOME=$CUR_DIR/../
 
 export NBRE_ROOT_DIR=$NEBULAS_HOME/nbre
 export NBRE_EXE_NAME=$NBRE_ROOT_DIR/nbre

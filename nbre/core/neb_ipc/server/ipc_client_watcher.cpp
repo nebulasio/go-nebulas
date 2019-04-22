@@ -61,13 +61,16 @@ void ipc_client_watcher::thread_func() {
       m_b_client_alive = true;
     }
 
+    LOG(INFO) << "a";
     std::string line;
     while (stream && std::getline(stream, line) && !line.empty()) {
       std::cerr << line << std::endl;
     }
+    LOG(INFO) << "b";
 
     std::error_code ec;
     client.wait(ec);
+    LOG(INFO) << "c";
     if (ec) {
       LOG(ERROR) << ec.message();
     }
@@ -75,7 +78,6 @@ void ipc_client_watcher::thread_func() {
       LOG(ERROR) << "nbre abnormal quit " << client.exit_code() << ": " << line;
     }
     m_b_client_alive = false;
-
   }
 }
 

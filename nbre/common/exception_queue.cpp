@@ -19,10 +19,6 @@
 //
 #include "common/exception_queue.h"
 #include "common/configuration.h"
-#include "common/ipc/shm_base.h"
-#include "common/ipc/shm_queue.h"
-#include "common/ipc/shm_service.h"
-#include "common/ipc/shm_session.h"
 #include "common/ir_conf_reader.h"
 #include "fs/storage.h"
 
@@ -69,16 +65,6 @@ void exception_queue::catch_exception(const std::function<void()> &func) {
 
   try {
     func();
-  } catch (const neb::ipc::internal::shm_queue_failure &e) {
-    EC(neb_shm_queue_failure);
-  } catch (const neb::ipc::shm_service_failure &e) {
-    EC(neb_shm_service_failure);
-  } catch (const neb::ipc::shm_session_already_start &e) {
-    EC(neb_shm_session_already_start);
-  } catch (const neb::ipc::shm_session_timeout &e) {
-    EC(neb_shm_session_timeout);
-  } catch (const neb::ipc::shm_session_failure &e) {
-    EC(neb_shm_session_failure);
   } catch (const neb::configure_general_failure &e) {
     EC(neb_configure_general_failure);
   } catch (const neb::json_general_failure &e) {

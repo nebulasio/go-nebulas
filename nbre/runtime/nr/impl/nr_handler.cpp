@@ -24,7 +24,7 @@
 #include "fs/proto/ir.pb.h"
 #include "jit/jit_driver.h"
 #include "runtime/nr/impl/nebulas_rank.h"
-#include <ff/ff.h>
+#include <ff/functionflow.h>
 
 namespace neb {
 namespace rt {
@@ -32,101 +32,86 @@ namespace nr {
 
 nr_handler::nr_handler() {}
 
-std::string nr_handler::get_nr_handler_id() {
-  std::unique_lock<std::mutex> _l(m_sync_mutex);
-  return m_nr_handler_id;
-}
-
 void nr_handler::run_if_default(block_height_t start_block,
-                                block_height_t end_block) {
-
-  ff::para<> p;
-  p([this, start_block, end_block]() {
-    try {
-      std::unique_lock<std::mutex> _l(m_sync_mutex);
-      jit_driver &jd = jit_driver::instance();
-      auto nr_result = jd.run_ir<std::string>(
-          "nr", start_block, neb::configuration::instance().nr_func_name(),
-          start_block, end_block);
-      m_nr_result.set(m_nr_handler_id, nr_result);
-      m_nr_handler_id.clear();
+                                block_height_t end_block,
+                                const std::string &nr_handle) {
+  // ff::para<> p;
+  // p([this, start_block, end_block, nr_handle]() {
+  try {
+    jit_driver &jd = jit_driver::instance();
+    auto nr_ret = jd.run_ir<nr_ret_type>(
+        "nr", start_block, neb::configuration::instance().nr_func_name(),
+        start_block, end_block);
+    m_nr_result.set(nr_handle, nr_ret);
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute nr failed " << e.what();
-      m_nr_handler_id.clear();
     }
-  });
+    //});
 }
 
 void nr_handler::run_if_specify(block_height_t start_block,
-                                block_height_t end_block, uint64_t nr_version) {
+                                block_height_t end_block, uint64_t nr_version,
+                                const std::string &nr_handle) {
+  // ff::para<> p;
+  // p([this, start_block, end_block, nr_version, nr_handle]() {
+  try {
+    std::string nr_name = "nr";
+    std::vector<nbre::NBREIR> irs;
+    auto ir = neb::core::ir_warden::instance().get_ir_by_name_version(
+        nr_name, nr_version);
+    irs.push_back(*ir);
 
-  std::string nr_name = "nr";
-  std::vector<nbre::NBREIR> irs;
-  auto ir = neb::core::ir_warden::instance().get_ir_by_name_version(nr_name,
-                                                                    nr_version);
-  irs.push_back(*ir);
+    std::stringstream ss;
+    ss << nr_name << nr_version;
+    std::string name_version = ss.str();
 
-  std::stringstream ss;
-  ss << nr_name << nr_version;
-  std::string name_version = ss.str();
-
-  ff::para<> p;
-  p([this, &name_version, &irs, start_block, end_block]() {
-    try {
-      std::unique_lock<std::mutex> _l(m_sync_mutex);
-
-      jit_driver &jd = jit_driver::instance();
-      std::string nr_result = jd.run<std::string>(
-          name_version, irs, neb::configuration::instance().nr_func_name(),
-          start_block, end_block);
-
-      m_nr_result.set(m_nr_handler_id, nr_result);
-      m_nr_handler_id.clear();
+    jit_driver &jd = jit_driver::instance();
+    auto nr_ret = jd.run<nr_ret_type>(
+        name_version, irs, neb::configuration::instance().nr_func_name(),
+        start_block, end_block);
+    m_nr_result.set(nr_handle, nr_ret);
     } catch (const std::exception &e) {
       LOG(INFO) << "jit driver execute nr failed " << e.what();
-      m_nr_handler_id.clear();
     }
-  });
+    //});
 }
 
-void nr_handler::start(std::string nr_handler_id) {
-  std::unique_lock<std::mutex> _l(m_sync_mutex);
+void nr_handler::start(const std::string &nr_handle) {
 
-  m_nr_handler_id = nr_handler_id;
-  if (!m_nr_handler_id.empty() && m_nr_result.exists(m_nr_handler_id)) {
-    m_nr_handler_id.clear();
+  if (!nr_handle.empty() && m_nr_result.exists(nr_handle)) {
     return;
   }
 
-  neb::util::bytes nr_handler_bytes =
-      neb::util::bytes::from_hex(m_nr_handler_id);
-
+  neb::bytes nr_handle_bytes = neb::bytes::from_hex(nr_handle);
   size_t bytes = sizeof(uint64_t) / sizeof(byte_t);
-  assert(nr_handler_bytes.size() == 3 * bytes);
+  assert(nr_handle_bytes.size() == 3 * bytes);
 
-  uint64_t start_block = neb::util::byte_to_number<uint64_t>(
-      neb::util::bytes(nr_handler_bytes.value(), bytes));
-  uint64_t end_block = neb::util::byte_to_number<uint64_t>(
-      neb::util::bytes(nr_handler_bytes.value() + bytes, bytes));
-  uint64_t nr_version = neb::util::byte_to_number<uint64_t>(
-      neb::util::bytes(nr_handler_bytes.value() + 2 * bytes, bytes));
+  const auto &s = neb::bytes(nr_handle_bytes.value(), bytes);
+  const auto &e = neb::bytes(nr_handle_bytes.value() + bytes, bytes);
+  const auto &v = neb::bytes(nr_handle_bytes.value() + 2 * bytes, bytes);
+
+  uint64_t start_block = neb::byte_to_number<uint64_t>(s);
+  uint64_t end_block = neb::byte_to_number<uint64_t>(e);
+  uint64_t nr_version = neb::byte_to_number<uint64_t>(v);
 
   if (!nr_version) {
-    run_if_default(start_block, end_block);
+    run_if_default(start_block, end_block, nr_handle);
     return;
   }
 
-  run_if_specify(start_block, end_block, nr_version);
+  run_if_specify(start_block, end_block, nr_version, nr_handle);
 }
 
-std::string nr_handler::get_nr_result(const std::string &nr_handler_id) {
-  std::unique_lock<std::mutex> _l(m_sync_mutex);
+nr_ret_type nr_handler::get_nr_result(const std::string &nr_handle) {
 
-  std::string nr_result;
-  auto ret = m_nr_result.get(nr_handler_id, nr_result);
+  nr_ret_type nr_result;
+  auto ret = m_nr_result.get(nr_handle, nr_result);
+  LOG(INFO) << "nr result ret\n" << ret << "\nwith handle " << nr_handle;
   if (!ret) {
-    return std::string(
+    auto err_str = std::string(
         "{\"err\":\"nr hash expired or nr result not complete yet\"}");
+    std::get<0>(nr_result) = 0;
+    std::get<1>(nr_result) = err_str;
   }
   return nr_result;
 }

@@ -19,6 +19,7 @@
 //
 #pragma once
 
+#include "common/address.h"
 #include "common/common.h"
 #include "fs/storage.h"
 #include <rocksdb/db.h>
@@ -37,9 +38,9 @@ public:
   void open_database(const std::string &db_name, storage_open_flag flag);
   void close_database();
 
-  virtual util::bytes get_bytes(const util::bytes &key);
-  virtual void put_bytes(const util::bytes &key, const util::bytes &val);
-  virtual void del_by_bytes(const util::bytes &key);
+  virtual bytes get_bytes(const bytes &key);
+  virtual void put_bytes(const bytes &key, const bytes &val);
+  virtual void del_by_bytes(const bytes &key);
 
   virtual void enable_batch();
   virtual void disable_batch();

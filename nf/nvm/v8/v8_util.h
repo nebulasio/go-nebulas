@@ -105,7 +105,7 @@ class NVMEngine final: public NVMService::Service{
 
 
     // For inner contract call
-    const uint32_t CreateInnerContractEngine();     // return index of the newly created engine in the vector
+    uint32_t CreateInnerContractEngine(std::string scriptType, std::string innerContractSrc);     // return index of the newly created engine in the vector
 
   private:
     int m_concurrency_scale = 1;              // default concurrency number

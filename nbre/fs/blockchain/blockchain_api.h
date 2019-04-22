@@ -19,6 +19,7 @@
 //
 
 #pragma once
+#include "common/address.h"
 #include "fs/blockchain.h"
 
 namespace neb {
@@ -26,17 +27,18 @@ namespace fs {
 
 struct transaction_info_t {
   block_height_t m_height;
-  int32_t m_status;
-  std::string m_from;
-  std::string m_to;
+  int32_t m_status; // 0: fail, 1: succ, 2: special
+  address_t m_from;
+  address_t m_to;
+  std::string m_tx_type; // "binary", "call", "deploy", "protocol"
   wei_t m_tx_value;
-  int64_t m_timestamp;
+  int64_t m_timestamp; // no use
   wei_t m_gas_used;
   wei_t m_gas_price;
 };
 
 struct account_info_t {
-  std::string m_address;
+  address_t m_address;
   wei_t m_balance;
 };
 
@@ -45,27 +47,37 @@ struct event_info_t {
   wei_t m_gas_used;
 };
 
-class blockchain_api {
+class blockchain_api_base {
 public:
-  blockchain_api(blockchain *blockchain_ptr);
+  virtual ~blockchain_api_base();
+  virtual std::unique_ptr<std::vector<transaction_info_t>>
+  get_block_transactions_api(block_height_t height) = 0;
 
-  std::unique_ptr<std::vector<transaction_info_t>>
+  virtual std::unique_ptr<corepb::Account>
+  get_account_api(const address_t &addr, block_height_t height) = 0;
+  virtual std::unique_ptr<corepb::Transaction>
+  get_transaction_api(const std::string &tx_hash, block_height_t height) = 0;
+};
+
+class blockchain_api : public blockchain_api_base {
+public:
+  blockchain_api();
+  virtual ~blockchain_api();
+
+  virtual std::unique_ptr<std::vector<transaction_info_t>>
   get_block_transactions_api(block_height_t height);
 
-  std::unique_ptr<corepb::Account> get_account_api(const address_t &addr,
-                                                   block_height_t height);
-  std::unique_ptr<corepb::Transaction>
+  virtual std::unique_ptr<corepb::Account>
+  get_account_api(const address_t &addr, block_height_t height);
+  virtual std::unique_ptr<corepb::Transaction>
   get_transaction_api(const std::string &tx_hash, block_height_t height);
 
 private:
   std::unique_ptr<event_info_t>
-  get_transaction_result_api(const neb::util::bytes &events_root,
-                             const neb::util::bytes &tx_hash);
-
+  get_transaction_result_api(const neb::bytes &events_root,
+                             const neb::bytes &tx_hash);
   std::unique_ptr<event_info_t> json_parse_event(const std::string &json);
-
-private:
-  blockchain *m_blockchain;
 };
+
 } // namespace fs
 } // namespace neb

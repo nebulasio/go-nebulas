@@ -51,17 +51,31 @@ func NbreIrVersionsFunc(code C.int, holder unsafe.Pointer, ir_versions *C.char) 
 	nbreHandled(code, holder, result, nil)
 }
 
-// NbreNrHandlerFunc returns nbre nr handler
-//export NbreNrHandlerFunc
-func NbreNrHandlerFunc(code C.int, holder unsafe.Pointer, nr_handler *C.char) {
-	result := C.GoString(nr_handler)
+// NbreNrHandleFunc returns nbre nr handle
+//export NbreNrHandleFunc
+func NbreNrHandleFunc(code C.int, holder unsafe.Pointer, nr_handle *C.char) {
+	result := C.GoString(nr_handle)
 	nbreHandled(code, holder, result, nil)
 }
 
-// NbreNrResultFunc returns nbre nr list
-//export NbreNrResultFunc
-func NbreNrResultFunc(code C.int, holder unsafe.Pointer, nr_result *C.char) {
+// NbreNrResultByhandleFunc returns nbre nr list
+//export NbreNrResultByhandleFunc
+func NbreNrResultByhandleFunc(code C.int, holder unsafe.Pointer, nr_result *C.char) {
 	result := C.GoString(nr_result)
+	nbreHandled(code, holder, result, nil)
+}
+
+// NbreNrResultByHeightFunc returns nbre nr list
+//export NbreNrResultByHeightFunc
+func NbreNrResultByHeightFunc(code C.int, holder unsafe.Pointer, nr_result *C.char) {
+	result := C.GoString(nr_result)
+	nbreHandled(code, holder, result, nil)
+}
+
+// NbreNrSumFunc returns nbre nr summary data
+//export NbreNrSumFunc
+func NbreNrSumFunc(code C.int, holder unsafe.Pointer, nr_sum *C.char) {
+	result := C.GoString(nr_sum)
 	nbreHandled(code, holder, result, nil)
 }
 

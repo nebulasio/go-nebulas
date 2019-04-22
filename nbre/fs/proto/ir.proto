@@ -31,4 +31,5 @@ message NBREIR{
   uint64 height = 3; //available height
   repeated NBREIRDepend depends = 4;
   bytes ir = 5;
+  string ir_type = 6;
 }

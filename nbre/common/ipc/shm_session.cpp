@@ -19,6 +19,7 @@
 //
 #include "common/ipc/shm_session.h"
 #include "common/common.h"
+#include "common/configuration.h"
 #include "common/exception_queue.h"
 #include "fs/util.h"
 #include <chrono>
@@ -30,8 +31,7 @@ const static char *bookkeeper_mem_name = bookkeeper_mem_name_str.c_str();
 
 void clean_shm_session_env() {
   auto bookkeeper_mem_name_str =
-      neb::shm_configuration::instance().shm_name_identity() +
-      std::string(".nbre");
+      neb::configuration::instance().shm_name_identity() + std::string(".nbre");
   auto bookkeeper_mem_name = bookkeeper_mem_name_str.c_str();
   clean_bookkeeper_env(bookkeeper_mem_name);
 }
@@ -42,7 +42,7 @@ shm_session_base::shm_session_base(const std::string &name)
     : quitable_thread(), m_name(name) {
   try {
     auto bookkeeper_mem_name_str =
-        neb::shm_configuration::instance().shm_name_identity() +
+        neb::configuration::instance().shm_name_identity() +
         std::string(".nbre");
     auto bookkeeper_mem_name = bookkeeper_mem_name_str.c_str();
     m_bookkeeper = std::unique_ptr<shm_bookkeeper>(

@@ -95,6 +95,10 @@ typedef char *(*GetContractSourceFunc)(void *handler, const char *address, size_
 
 typedef char *(*InnerContractFunc)(void *handler, const char *address, const char *funcName, const char * v, const char *args, size_t *gasCnt);
 
+typedef int (*GetLatestNebulasRankFunc)(void *handler, const char *address, size_t *counterVal, char **result, char **info);
+
+typedef int (*GetLatestNebulasRankSummaryFunc)(void *handler, size_t *counterVal, char **result, char **info);
+
 
 EXPORT void InitializeBlockchain(GetTxByHashFunc getTx,
                                  GetAccountStateFunc getAccount,
@@ -103,7 +107,9 @@ EXPORT void InitializeBlockchain(GetTxByHashFunc getTx,
                                  GetPreBlockHashFunc getPreBlockHash,
                                  GetPreBlockSeedFunc getPreBlockSeed,
                                  GetContractSourceFunc contractSource,
-                                 InnerContractFunc rMultContract);
+                                 InnerContractFunc rMultContract,
+                                 GetLatestNebulasRankFunc getLatestNR,
+                                 GetLatestNebulasRankSummaryFunc getLatestNRSum);
 
 // crypto
 typedef char *(*Sha256Func)(const char *data, size_t *counterVal);

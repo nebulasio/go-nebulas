@@ -91,6 +91,10 @@ func (block *testBlock2) Timestamp() int64 {
 	return int64(0)
 }
 
+func (block *testBlock2) NR() core.NR {
+	return nil
+}
+
 func mockBlock2() Block {
 	block := &testBlock2{}
 	return block

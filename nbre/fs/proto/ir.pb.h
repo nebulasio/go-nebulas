@@ -308,6 +308,20 @@ class NBREIR : public ::google::protobuf::Message /* @@protoc_insertion_point(cl
   ::std::string* release_ir();
   void set_allocated_ir(::std::string* ir);
 
+  // string ir_type = 6;
+  void clear_ir_type();
+  static const int kIrTypeFieldNumber = 6;
+  const ::std::string& ir_type() const;
+  void set_ir_type(const ::std::string& value);
+  #if LANG_CXX11
+  void set_ir_type(::std::string&& value);
+  #endif
+  void set_ir_type(const char* value);
+  void set_ir_type(const char* value, size_t size);
+  ::std::string* mutable_ir_type();
+  ::std::string* release_ir_type();
+  void set_allocated_ir_type(::std::string* ir_type);
+
   // uint64 version = 2;
   void clear_version();
   static const int kVersionFieldNumber = 2;
@@ -327,6 +341,7 @@ class NBREIR : public ::google::protobuf::Message /* @@protoc_insertion_point(cl
   ::google::protobuf::RepeatedPtrField< ::nbre::NBREIRDepend > depends_;
   ::google::protobuf::internal::ArenaStringPtr name_;
   ::google::protobuf::internal::ArenaStringPtr ir_;
+  ::google::protobuf::internal::ArenaStringPtr ir_type_;
   ::google::protobuf::uint64 version_;
   ::google::protobuf::uint64 height_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
@@ -576,6 +591,59 @@ inline void NBREIR::set_allocated_ir(::std::string* ir) {
   }
   ir_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ir);
   // @@protoc_insertion_point(field_set_allocated:nbre.NBREIR.ir)
+}
+
+// string ir_type = 6;
+inline void NBREIR::clear_ir_type() {
+  ir_type_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& NBREIR::ir_type() const {
+  // @@protoc_insertion_point(field_get:nbre.NBREIR.ir_type)
+  return ir_type_.GetNoArena();
+}
+inline void NBREIR::set_ir_type(const ::std::string& value) {
+  
+  ir_type_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:nbre.NBREIR.ir_type)
+}
+#if LANG_CXX11
+inline void NBREIR::set_ir_type(::std::string&& value) {
+  
+  ir_type_.SetNoArena(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:nbre.NBREIR.ir_type)
+}
+#endif
+inline void NBREIR::set_ir_type(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  
+  ir_type_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:nbre.NBREIR.ir_type)
+}
+inline void NBREIR::set_ir_type(const char* value, size_t size) {
+  
+  ir_type_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:nbre.NBREIR.ir_type)
+}
+inline ::std::string* NBREIR::mutable_ir_type() {
+  
+  // @@protoc_insertion_point(field_mutable:nbre.NBREIR.ir_type)
+  return ir_type_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* NBREIR::release_ir_type() {
+  // @@protoc_insertion_point(field_release:nbre.NBREIR.ir_type)
+  
+  return ir_type_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void NBREIR::set_allocated_ir_type(::std::string* ir_type) {
+  if (ir_type != NULL) {
+    
+  } else {
+    
+  }
+  ir_type_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ir_type);
+  // @@protoc_insertion_point(field_set_allocated:nbre.NBREIR.ir_type)
 }
 
 #ifdef __GNUC__

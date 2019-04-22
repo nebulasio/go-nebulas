@@ -34,11 +34,23 @@ namespace po = boost::program_options;
 
 #define KTS(v) #v
 #define STR(v) KTS(v)
-configuration::configuration() {}
+configuration::configuration() {
+#ifdef NDEBUG
+  // supervisor start failed with getenv
+#else
+  m_nbre_root_dir = std::getenv("NBRE_ROOT_DIR");
+  m_nbre_exe_name = std::getenv("NBRE_EXE_NAME");
+  m_neb_db_dir = std::getenv("NEB_DB_DIR");
+  m_nbre_db_dir = std::getenv("NBRE_DB_DIR");
+  m_nbre_log_dir = std::getenv("NBRE_LOG_DIR");
+#endif
+}
 #undef STR
 #undef KTS
 
 configuration::~configuration() = default;
 
+bool use_test_blockchain = false;
+bool glog_log_to_stderr = true;
 } // namespace neb
 

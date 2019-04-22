@@ -354,7 +354,7 @@ func (n *MockNeb) Dip() Dip {
 	return n.dip
 }
 
-func (n *MockNeb) Nr() Nr {
+func (n *MockNeb) Nr() NR {
 	return nil
 }
 

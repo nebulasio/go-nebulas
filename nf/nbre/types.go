@@ -21,6 +21,8 @@ package nbre
 import (
 	"errors"
 
+	"github.com/nebulasio/go-nebulas/core"
+
 	"encoding/json"
 
 	"github.com/nebulasio/go-nebulas/neblet/pb"
@@ -33,6 +35,7 @@ var (
 	ErrCommandNotFound       = errors.New("nbre command not found")
 	ErrExecutionTimeout      = errors.New("nbre execute timeout")
 	ErrHandlerNotFound       = errors.New("nbre handler not found")
+	ErrNebCallbackTimeout    = errors.New("nbre neb callback timeout")
 	ErrNbreCallbackFailed    = errors.New("nbre callback failed")
 	ErrNbreCallbackTimeout   = errors.New("nbre callback timeout")
 	ErrNbreCallbackException = errors.New("nbre callback exception")
@@ -42,16 +45,19 @@ var (
 
 // Command types
 var (
-	CommandVersion    = "version"
-	CommandIRList     = "irList"
-	CommandIRVersions = "irVersions"
-	CommandNRHandler  = "nrHandler"
-	CommandNRList     = "nrList"
-	CommandDIPList    = "dipList"
+	CommandVersion        = "version"
+	CommandIRList         = "irList"
+	CommandIRVersions     = "irVersions"
+	CommandNRHandler      = "nrHandler"
+	CommandNRListByHandle = "nrListByHandle"
+	CommandNRListByHeight = "nrListByHeight"
+	CommandNRSum          = "nrSum"
+	CommandDIPList        = "dipList"
 )
 
 type Neblet interface {
 	Config() *nebletpb.Config
+	BlockChain() *core.BlockChain
 }
 
 type Version struct {

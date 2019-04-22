@@ -19,13 +19,50 @@
 //
 
 #include "common/math/softfloat.hpp"
+#include <glog/logging.h>
+#include <sstream>
 
-void softfloat_raiseFlags(uint_fast8_t) {
-  uint_fast8_t ff = 0xff;
-  softfloat_exceptionFlags &= ff;
-  if (softfloat_exceptionFlags == softfloat_flag_overflow ||
-      softfloat_exceptionFlags == softfloat_flag_infinite ||
-      softfloat_exceptionFlags == softfloat_flag_invalid) {
-    throw std::runtime_error("softfloat exception");
+/*----------------------------------------------------------------------------
+| Software floating-point exception flags.
+| extern THREAD_LOCAL uint_fast8_t softfloat_exceptionFlags;
+| enum {
+|     softfloat_flag_inexact   =  1,
+|     softfloat_flag_underflow =  2,
+|     softfloat_flag_overflow  =  4,
+|     softfloat_flag_infinite  =  8,
+|     softfloat_flag_invalid   = 16
+| };
+*----------------------------------------------------------------------------*/
+
+void softfloat_raiseFlags(uint_fast8_t exception_flag) {
+  std::stringstream ss;
+  ss << "raise flag: " << static_cast<int>(exception_flag)
+     << ", softfloat exception: ";
+  uint_fast8_t flag = 0x10;
+  while (flag) {
+    switch (flag & exception_flag) {
+    case softfloat_flag_inexact:
+      ss << "inexact ";
+      break;
+    case softfloat_flag_underflow:
+      ss << "underflow ";
+      break;
+    case softfloat_flag_overflow:
+      ss << "overflow ";
+      break;
+    case softfloat_flag_infinite:
+      ss << "infinite ";
+      break;
+    case softfloat_flag_invalid:
+      ss << "invalid ";
+      break;
+    default:
+      break;
+    }
+    flag >>= 1;
   }
+  LOG(INFO) << ss.str();
+
+  // ignore softfloat exception
+  // throw std::runtime_error("softfloat exception");
 }

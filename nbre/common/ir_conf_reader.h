@@ -20,7 +20,7 @@
 #pragma once
 #include "common/common.h"
 #include "common/ir_ref.h"
-#include "common/util/version.h"
+#include "common/version.h"
 
 namespace boost{
 namespace property_tree{

@@ -16,4 +16,4 @@ WORKDIR ${NEBULAS_SRC}
 RUN go get -u github.com/golang/dep/cmd/dep
 # RUN go get -u golang.org/x/tools/cmd/goimports
 
-ENV LD_LIBRARY_PATH=${NEBULAS_SRC}/native/nvm:${NEBULAS_SRC}/native/nbre:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH=${NEBULAS_SRC}/native-lib:${LD_LIBRARY_PATH}

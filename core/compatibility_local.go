@@ -32,6 +32,8 @@ type CompatibilityLocal struct {
 
 	transferFromContractFailureEventRecordableHeight2 uint64
 
+	nvmValueCheckUpdateHeight uint64
+
 	nbreAvailableHeight uint64
 }
 
@@ -60,6 +62,7 @@ func NewCompatibilityLocal() Compatibility {
 			DescKeys: []string{"1.1.0", "1.0.5"},
 		},
 		nvmGasLimitWithoutTimeoutHeight: 2,
+		nvmValueCheckUpdateHeight:       2,
 		nbreAvailableHeight:             2,
 	}
 }
@@ -137,6 +140,11 @@ func (c *CompatibilityLocal) V8JSLibVersionHeightMap() *V8JSLibVersionHeightMap 
 // NvmGasLimitWithoutTimeoutHeight ..
 func (c *CompatibilityLocal) NvmGasLimitWithoutTimeoutHeight() uint64 {
 	return c.nvmGasLimitWithoutTimeoutHeight
+}
+
+// NvmValueCheckUpdateHeight ..
+func (c *CompatibilityLocal) NvmValueCheckUpdateHeight() uint64 {
+	return c.nvmValueCheckUpdateHeight
 }
 
 // NbreAvailableHeight ..

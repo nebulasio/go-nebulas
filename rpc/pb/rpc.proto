@@ -143,18 +143,33 @@ service ApiService {
         };
     }
 
-    // get nr hash with height interval
-    rpc GetNRHash (GetNRHashRequest) returns (GetNRHashResponse) {
-		option (google.api.http) = {
-            post: "/v1/user/getNrHash"
+    // get nr by address
+    rpc GetNRByAddress (GetNRByAddressRequest) returns (NRItem) {
+        option (google.api.http) = {
+            post: "/v1/user/nr"
+            body: "*"
+		};
+    }
+
+    // get latest nr list
+    rpc GetLatestNRList (NonParamsRequest) returns (GetNRListResponse) {
+        option (google.api.http) = {
+            get: "/v1/user/getLatestNrList"
+		};
+    }
+
+    // get nr handle with height interval
+    rpc GetNRHandle (GetNRHandleRequest) returns (GetNRHandleResponse) {
+        option (google.api.http) = {
+            post: "/v1/user/getNrHandle"
             body: "*"
 		};
     }
 
     // get nr list by hash, which returned by `GetNRHash`
-    rpc GetNRList (GetNRListRequest) returns (GetNRListResponse) {
+    rpc GetNRListByHandle (GetNRListByHandleRequest) returns (GetNRListResponse) {
         option (google.api.http) = {
-            post: "/v1/user/getNrList"
+            post: "/v1/user/getNrListByHandle"
             body: "*"
 		};
     }
@@ -706,24 +721,29 @@ message VerifySignatureResponse {
     string address = 2;
 }
 
-message GetNRHashRequest {
+message GetNRByAddressRequest {
+    // nr address
+    string address = 1;
+}
+
+message GetNRHandleRequest {
     // start block height of nr calculate interval
     uint64 start = 1;
 
     // end block height of nr calculate interval. If not specified, use 0 as tail height.
     uint64 end = 2;
 
-    // nr version 
+    // nr version
     uint64 version = 3;
 }
 
-message GetNRHashResponse {
-    string hash = 1;
+message GetNRHandleResponse {
+    string handle = 1;
 }
 
-message GetNRListRequest {
-    // nr hash
-    string hash = 1;
+message GetNRListByHandleRequest {
+    // nr handle
+    string handle = 1;
 }
 
 message GetNRListResponse {
@@ -745,8 +765,8 @@ message NRItem {
     // nr address
     string address = 1;
 
-    // value of nr.
-    string value = 2;
+    // score of nr.
+    string score = 2;
 
     string median = 3;
 

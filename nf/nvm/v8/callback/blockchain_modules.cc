@@ -167,7 +167,7 @@ int GetPreBlockSeed(void *handler, unsigned long long offset, size_t *gasCnt, ch
   return ret;
 }
 
-char *GetContractSourceFunc(void *handler, 
+char *GetContractSource(void *handler, 
     const char *address, 
     size_t *gasCnt){
 
@@ -191,11 +191,11 @@ char *GetContractSourceFunc(void *handler,
   return ret;
 }
 
-char *InnerContractFunc(void *handler, 
-    const char *address, 
-    const char *funcName, 
-    const char *v, 
-    const char *args, 
+char *InnerContract(void *handler, 
+    const char *address,
+    const char *funcName,
+    const char *v,
+    const char *args,
     size_t *gasCnt){
 
   NVMCallbackResponse *res = new NVMCallbackResponse();
@@ -215,6 +215,27 @@ char *InnerContractFunc(void *handler,
 
   char* ret = (char*)calloc(resStr.length()+1, sizeof(char));
   strcpy(ret, resStr.c_str());
+
+  return ret;
+}
+
+int GetLatestNebulasRank(void *handler, 
+    const char *addres, 
+    size_t *counterVal, 
+    char **result, 
+    char **info){
+  
+  int ret = 0;
+
+  return ret;
+}
+
+int GetLatestNebulasRankSummary(void *handler, 
+    size_t *gasCnt, 
+    char **result, 
+    char **info){
+
+  int ret = 0;
 
   return ret;
 }

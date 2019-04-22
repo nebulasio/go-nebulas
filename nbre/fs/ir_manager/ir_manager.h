@@ -19,41 +19,50 @@
 //
 
 #pragma once
+#include "common/address.h"
 #include "common/common.h"
+#include "core/net_ipc/nipc_pkg.h"
 #include "fs/ir_manager/ir_manager_helper.h"
+#include "util/wakeable_queue.h"
 
 namespace neb {
 namespace fs {
 
 class ir_manager {
 public:
-  ir_manager(const std::string &path, const std::string &bc_path);
+  ir_manager();
   ~ir_manager();
   ir_manager(const ir_manager &im) = delete;
   ir_manager &operator=(const ir_manager &im) = delete;
 
   std::unique_ptr<nbre::NBREIR> read_ir(const std::string &name,
-                                        uint64_t version);
+                                        version_t version);
   std::unique_ptr<std::vector<nbre::NBREIR>>
   read_irs(const std::string &name, block_height_t height, bool depends);
 
-  void parse_irs_till_latest();
+  void parse_irs(
+      util::wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> &q_txs);
 
 private:
-  void read_ir_depends(const std::string &name, uint64_t version,
+  void read_ir_depends(const std::string &name, version_t version,
                        block_height_t height, bool depends,
-                       std::unordered_set<std::string> &ir_set,
                        std::vector<nbre::NBREIR> &irs);
 
-  void parse_irs();
-  void parse_irs_by_height(block_height_t height);
+  void parse_next_block(block_height_t height,
+                        const std::vector<std::string> &txs_seri);
+  void parse_when_missing_block(block_height_t start_block,
+                                block_height_t end_height);
 
-  void deploy_if_dip(const std::string &name, uint64_t version,
+  void parse_irs_by_height(block_height_t height,
+                           const std::vector<corepb::Transaction> &txs);
+  void parse_with_height(block_height_t height,
+                         const std::vector<corepb::Transaction> &txs);
+
+  void deploy_if_dip(const std::string &name, version_t version,
                      block_height_t available_height);
 
 private:
-  std::unique_ptr<rocksdb_storage> m_storage;
-  std::unique_ptr<blockchain> m_blockchain;
+  rocksdb_storage *m_storage;
   std::map<auth_key_t, auth_val_t> m_auth_table;
 };
 } // namespace fs

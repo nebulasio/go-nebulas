@@ -17,7 +17,9 @@
 # along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION?=1.1.0
+SHELL := /bin/bash 
+
+VERSION?=2.0
 
 COMMIT=$(shell git rev-parse HEAD)
 BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
@@ -46,12 +48,12 @@ else
 	BUUILDLOG=-rm -f $(BINARY); ln -s $(BINARY)-$(COMMIT) $(BINARY)
 endif
 
-NBRELIB := nbre/lib/lib
-ifeq ($(NBRELIB),$(wildcard $(NBRELIB)))
-	CGO_CFLAGS=CGO_CFLAGS="-I$(CURRENT_DIR)/nbre/lib/include -g -O2"
-	CGO_LDFLAGS=CGO_LDFLAGS="-L$(CURRENT_DIR)/nbre/lib/lib -lrocksdb -lc++ -lgflags -lm -lz -lbz2 -lsnappy -llz4 -lzstd -g -O2"
+NATIVELIB := native-lib
+ifeq ($(NATIVELIB),$(wildcard $(NATIVELIB)))
+    CGO_CFLAGS=CGO_CFLAGS="-I$(CURRENT_DIR)/nbre/lib/include -g -O2"
+	CGO_LDFLAGS=CGO_LDFLAGS="-L$(CURRENT_DIR)/native-lib -lrocksdb -lc++ -lgflags -lm -lz -lbz2 -lsnappy -llz4 -lzstd -g -O2"
 else
-	CGO_CFLAGS=
+    CGO_CFLAGS=
 	CGO_LDFLAGS=
 endif
 
@@ -61,7 +63,6 @@ else
 	DEPINSTALL=
 endif
 
-# $(warning  $(CGO_CFLAGS))
 # $(warning  $(CGO_LDFLAGS))
 
 # Setup the -ldflags option for go build here, interpolate the variable values
@@ -74,20 +75,6 @@ all: clean vet fmt lint build test
 
 dep:
 	$(DEPINSTALL) dep ensure -v
-
-deploy-v8:
-	$(INSTALL) nf/nvm/native-lib/*$(DYLIB) /usr/local/lib/
-	$(LDCONFIG)
-
-deploy-nbre:
-	$(INSTALL) nf/nbre/native/*$(DYLIB) /usr/local/lib/
-	$(LDCONFIG)
-
-deploy: deploy-v8 deploy-nbre
-
-undeploy:
-	-rm -f /usr/local/lib/libnebulas*
-	-rm -f /usr/local/lib/libnbre*
 
 build:
 	cd cmd/neb; $(CGO_CFLAGS) $(CGO_LDFLAGS) go build $(LDFLAGS) -o ../../$(NEBBINARY)

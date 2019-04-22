@@ -27,7 +27,7 @@ namespace fs {
 
 class transaction_db {
 public:
-  transaction_db(blockchain_api *blockchain_ptr);
+  transaction_db(blockchain_api_base *blockchain_ptr);
 
   std::unique_ptr<std::vector<transaction_info_t>>
   read_transactions_from_db_with_duration(block_height_t start_block,
@@ -39,7 +39,7 @@ public:
       byte_t to_type);
 
 private:
-  blockchain_api *m_blockchain;
+  blockchain_api_base *m_blockchain;
 };
 } // namespace fs
 } // namespace neb

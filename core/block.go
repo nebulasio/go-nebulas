@@ -24,12 +24,9 @@ import (
 	"sync"
 	"time"
 
-	"runtime"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/dag"
 	"github.com/nebulasio/go-nebulas/common/dag/pb"
-	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/consensus/pb"
 	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -50,15 +47,34 @@ var (
 	// ParallelNum num
 	PackedParallelNum = 1
 
-	VerifyParallelNum = runtime.NumCPU() * 2
+	// verify thread parallel num
+	VerifyParallelNum = 1 //runtime.NumCPU() * 2
 
 	// VerifyExecutionTimeout 0 means unlimited
 	VerifyExecutionTimeout = 0
+
+	// NebulasRewardAddress Nebulas Council Recycling address
+	NebulasRewardAddress, _ = AddressParse("n1Rc66BjDF4LSoQ2uC9rbiMDnKMEV8ryG7k")
 
 	// BlockReward given to coinbase
 	// rule: 3% per year, 3,000,000. 1 block per 15 seconds
 	// value: 10^8 * 3% / (365*24*3600/15) * 10^18 ≈ 1.42694 * 10^18
 	BlockReward, _ = util.NewUint128FromString("1426940000000000000")
+
+	// CoinbaseReward given to coinbase after nbre available
+	// rule: 2% per year, 2,000,000. 1 block per 15 seconds
+	// value: 10^8 * 2% / (365*24*3600/15) * 10^18 ≈ 0.95129 * 10^18
+	CoinbaseReward, _ = util.NewUint128FromString("951290000000000000")
+
+	// NebulasReward given to nebulas project address
+	// rule: 1% per year, 1,000,000. 1 block per 15 seconds
+	// value: 10^8 * 1% / (365*24*3600/15) * 10^18 ≈ 0.47565 * 10^18
+	NebulasReward, _ = util.NewUint128FromString("475650000000000000")
+
+	// DIPReward given to dip project address
+	// rule: 1% per year, 1,000,000. 1 block per 15 seconds
+	// value: 10^8 * 1% / (365*24*3600/15) * 10^18 ≈ 0.47565 * 10^18
+	DIPReward, _ = util.NewUint128FromString("475650000000000000")
 )
 
 // BlockHeader of a block
@@ -152,8 +168,10 @@ type Block struct {
 	txPool       *TransactionPool
 	eventEmitter *EventEmitter
 	nvm          NVM
+	nr           NR
 	dip          Dip
-	storage      storage.Storage
+
+	storage storage.Storage
 }
 
 // ToProto converts domain Block into proto Block
@@ -257,6 +275,7 @@ func NewBlock(chainID uint32, coinbase *Address, parent *Block) (*Block, error) 
 		txPool:       parent.txPool,
 		eventEmitter: parent.eventEmitter,
 		nvm:          parent.nvm,
+		nr:           parent.nr,
 		dip:          parent.dip,
 		storage:      parent.storage,
 	}
@@ -426,6 +445,11 @@ func (block *Block) DateAvailable() bool {
 	return DateAvailableAtHeight(block.height)
 }
 
+// DateAvailable return nr
+func (block *Block) NR() NR {
+	return block.nr
+}
+
 // LinkParentBlock link parent block, return true if hash is the same; false otherwise.
 func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error {
 	if !block.ParentHash().Equals(parentBlock.Hash()) {
@@ -449,6 +473,7 @@ func (block *Block) LinkParentBlock(chain *BlockChain, parentBlock *Block) error
 	block.storage = parentBlock.storage
 	block.eventEmitter = parentBlock.eventEmitter
 	block.nvm = parentBlock.nvm
+	block.nr = parentBlock.nr
 	block.dip = parentBlock.dip
 
 	return nil
@@ -1148,39 +1173,62 @@ func (block *Block) FetchExecutionResultEvent(txHash byteutils.Hash) (*state.Eve
 	return nil, ErrNotFoundTransactionResultEvent
 }
 
-func (block *Block) rewardCoinbaseForMint() error {
-	//after NbreAvailableHeight, reward give to coinbase and dip reward address.
-	if NbreAvailableHeight(block.height) {
-		// reward dip to dip address.
-		dipAddr := block.dip.RewardAddress().Bytes()
-		dipAcc, err := block.WorldState().GetOrCreateUserAccount(dipAddr)
-		if err != nil {
-			return err
-		}
-		dipValue := block.dip.RewardValue()
-		if err = dipAcc.AddBalance(dipValue); err != nil {
-			return err
-		}
+func (block *Block) nebulasProjectAddress() *Address {
+	if block.ChainID() == MainNetID {
+		return NebulasRewardAddress
+	} else if block.ChainID() == TestNetID {
+		return block.Coinbase()
+	} else {
+		return block.Coinbase()
+	}
+}
 
-		// reward left to coinbase
+func (block *Block) rewardCoinbaseForMint() error {
+	//after NbreAvailableHeight, reward give to coinbase, nebulas and dip address.
+	// the percent is: 2% coinbase, 1% nebulas,1% dip
+	if NbreAvailableHeight(block.height) {
+
+		// coinbase reward
 		coinbaseAddr := block.Coinbase().Bytes()
 		coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
 		if err != nil {
 			return err
 		}
-		left, err := BlockReward.Sub(dipValue)
+		if err = coinbaseAcc.AddBalance(CoinbaseReward); err != nil {
+			return err
+		}
+
+		// nebulas reward
+		nebulasAddr := block.nebulasProjectAddress().Bytes()
+		nebulasAcc, err := block.WorldState().GetOrCreateUserAccount(nebulasAddr)
 		if err != nil {
 			return err
 		}
-		return coinbaseAcc.AddBalance(left)
+		if err = nebulasAcc.AddBalance(NebulasReward); err != nil {
+			return err
+		}
+
+		// dip reward.
+		dipAddr := block.dip.RewardAddress().Bytes()
+		dipAcc, err := block.WorldState().GetOrCreateUserAccount(dipAddr)
+		if err != nil {
+			return err
+		}
+		if err = dipAcc.AddBalance(DIPReward); err != nil {
+			return err
+		}
 	} else {
 		coinbaseAddr := block.Coinbase().Bytes()
 		coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
 		if err != nil {
 			return err
 		}
-		return coinbaseAcc.AddBalance(BlockReward)
+		if err = coinbaseAcc.AddBalance(BlockReward); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func (block *Block) rewardCoinbaseForGas() error {
@@ -1359,35 +1407,11 @@ func LoadBlockFromStorage(hash byteutils.Hash, chain *BlockChain) (*Block, error
 		return nil, err
 	}
 
-	if GenesisDynastyTrie == nil && hash.Equals(GenesisHash) {
-		miners, err := block.WorldState().Dynasty()
-		if err != nil {
-			return nil, err
-		}
-		dynastyTrie, err := trie.NewTrie(nil, chain.Storage(), false)
-		if err != nil {
-			return nil, err
-		}
-		for _, miner := range miners {
-			addr, err := AddressParseFromBytes(miner)
-			if err != nil {
-				return nil, err
-			}
-			v := addr.Bytes()
-			if _, err = dynastyTrie.Put(v, v); err != nil {
-				return nil, err
-			}
-		}
-		logging.VLog().WithFields(logrus.Fields{
-			"miners": miners,
-		}).Debug("Load genesis block from storage.")
-		GenesisDynastyTrie = dynastyTrie
-	}
-
 	block.sealed = true
 	block.txPool = chain.txPool
 	block.eventEmitter = chain.eventEmitter
 	block.nvm = chain.nvm
+	block.nr = chain.nr
 	block.dip = chain.dip
 	block.storage = chain.storage
 	return block, nil

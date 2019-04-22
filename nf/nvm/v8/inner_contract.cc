@@ -18,7 +18,7 @@
 
 #include "v8_util.h"
 
-const uint32_t NVMEngine::CreateInnerContractEngine(std::string scriptType, std::string innerContractSrc){
+uint32_t NVMEngine::CreateInnerContractEngine(std::string scriptType, std::string innerContractSrc){
 
     if(this->m_inner_engines == nullptr)
         this->m_inner_engines = std::unique_ptr<std::vector<V8Engine*>>(new std::vector<V8Engine*>());
@@ -70,6 +70,4 @@ const void NVMEngine::StartInnerContractCall(){
 	}
 
     logging.VLog().Debugf("begin create New V8,intance:%v, mem:%v", remainInstruction, remainMem)
-
-
 }

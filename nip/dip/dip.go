@@ -56,7 +56,6 @@ func NewDIP(neb Neblet) (*Dip, error) {
 	if err != nil {
 		return nil, err
 	}
-	//TODO(larry): The current award rewardAddress is constant and visible to all.
 	addr, err := neb.AccountManager().LoadPrivate(priv, []byte(DipRewardAddressPassphrase))
 	if err != nil {
 		return nil, err
@@ -68,7 +67,7 @@ func NewDIP(neb Neblet) (*Dip, error) {
 		quitCh:        make(chan int, 1),
 		isLooping:     false,
 		rewardAddress: addr,
-		rewardValue:   DipRewardValue,
+		rewardValue:   core.DIPReward,
 	}
 	return dip, nil
 }
@@ -253,34 +252,21 @@ func (d *Dip) GetDipList(height, version uint64) (core.Data, error) {
 		if len(data.Err) > 0 {
 			return nil, errors.New(data.Err)
 		}
-		key := append(byteutils.FromUint64(data.StartHeight), byteutils.FromUint64(data.EndHeight)...)
-		d.cache.Add(byteutils.Hex(key), data)
+		d.cache.Add(height, data)
 	}
 	return data, nil
 }
 
 func (d *Dip) checkCache(height uint64) (*DIPData, bool) {
-	keys := d.cache.Keys()
-	for _, v := range keys {
-		bytes, err := byteutils.FromHex(v.(string))
-		if err != nil {
-			logging.VLog().WithFields(logrus.Fields{
-				"err": err,
-			}).Fatal("Failed to parse dip cache.")
-		}
-		start := byteutils.Uint64(bytes[:8])
-		end := byteutils.Uint64(bytes[8:])
-		if height > end && height <= end+end-start+1 {
-			data, _ := d.cache.Get(v)
-			dipData := data.(*DIPData)
-			logging.VLog().WithFields(logrus.Fields{
-				"height":   height,
-				"start":    dipData.StartHeight,
-				"end":      dipData.EndHeight,
-				"dataSize": len(dipData.Dips),
-			}).Debug("Success to find dip list in cache.")
-			return dipData, true
-		}
+	if data, ok := d.cache.Get(height); ok {
+		dipData := data.(*DIPData)
+		logging.VLog().WithFields(logrus.Fields{
+			"height":   height,
+			"start":    dipData.StartHeight,
+			"end":      dipData.EndHeight,
+			"dataSize": len(dipData.Dips),
+		}).Debug("Success to find dip list in cache.")
+		return dipData, true
 	}
 	return nil, false
 }
@@ -302,7 +288,7 @@ func (d *Dip) CheckReward(tx *core.Transaction) error {
 		}
 
 		dipPayload := payload.(*core.DipPayload)
-		height := dipPayload.EndHeight + dipPayload.EndHeight - dipPayload.StartHeight
+		height := dipPayload.EndHeight + 1
 		data, err := d.GetDipList(height, dipPayload.Version)
 		if err != nil {
 			return err

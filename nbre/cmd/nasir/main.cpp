@@ -18,16 +18,17 @@
 // <http://www.gnu.org/licenses/>.
 //
 
+#include "common/byte.h"
 #include "common/ir_conf_reader.h"
-#include "common/util/byte.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/util.h"
+#include "util/command.h"
+#include <algorithm>
 #include <boost/format.hpp>
-#include <boost/program_options.hpp>
 #include <boost/process.hpp>
+#include <boost/program_options.hpp>
 #include <fstream>
 #include <iostream>
-#include <algorithm>
 
 namespace po = boost::program_options;
 namespace bp = boost::process;
@@ -77,7 +78,7 @@ void make_ir_bitcode(neb::ir_conf_reader &reader, std::string &ir_bc_file, bool 
   std::string current_path = neb::fs::cur_dir();
   std::string command_string(
       neb::fs::join_path(current_path, "lib_llvm/bin/clang") +
-      " -O2 -emit-llvm -stdlib=libc++ -nodefaultlibs -fno-exceptions ");
+      " -O2 -emit-llvm ");
 
   clang_flags flags;
 
@@ -107,7 +108,7 @@ void make_ir_bitcode(neb::ir_conf_reader &reader, std::string &ir_bc_file, bool 
   std::cout << command_string << std::endl;
   LOG(INFO) << command_string;
 
-  result = execute_command(command_string);
+  result = neb::util::command_executor::execute_command(command_string);
   if (result != 0) {
     LOG(INFO) << "error: executed by boost::process::system.";
     LOG(INFO) << "result code = " << result;
@@ -169,7 +170,7 @@ void make_ir_payload(std::ifstream &ifs,
     throw std::invalid_argument("IR file too large!");
   }
 
-  neb::util::bytes buf(size);
+  neb::bytes buf(size);
 
   ifs.seekg(0, ifs.beg);
   ifs.read((char *)buf.value(), buf.size());
@@ -187,7 +188,8 @@ void make_ir_payload(std::ifstream &ifs,
     d->set_name(reader.depends()[i].name());
     d->set_version(reader.depends()[i].version().data());
   }
-  ir_info.set_ir(neb::util::byte_to_string(buf));
+  ir_info.set_ir(neb::byte_to_string(buf));
+  ir_info.set_ir_type(neb::ir_type::cpp);
 
   auto bytes_long = ir_info.ByteSizeLong();
   if (bytes_long > 128 * 1024) {
@@ -200,7 +202,7 @@ void make_ir_payload(std::ifstream &ifs,
   if (!ofs.is_open()) {
     throw std::invalid_argument("can't open output file");
   }
-  neb::util::bytes out_bytes(bytes_long);
+  neb::bytes out_bytes(bytes_long);
   ir_info.SerializeToArray((void *)out_bytes.value(), out_bytes.size());
 
   std::string out_base64 = out_bytes.to_base64();
@@ -231,7 +233,19 @@ int main(int argc, char *argv[]) {
     if (mode == "payload") {
       LOG(INFO) << "mode paylaod";
       make_ir_bitcode(reader, ir_bc_file, true);
-      make_ir_payload(ifs, reader, ir_bc_file, vm["output"].as<std::string>());
+      if (!neb::fs::exists(ir_bc_file)) {
+        std::cout << "cann't compile the file " << std::endl;
+        exit(-1);
+      }
+      if (reader.cpp_files().size() > 1) {
+        std::cout
+            << "\t**Too many cpp files, we only support 1 cpp file for now."
+            << std::endl;
+        return -1;
+      }
+      std::string cpp_fp = reader.cpp_files()[0];
+      cpp_fp = neb::fs::join_path(root_dir, cpp_fp);
+      make_ir_payload(ifs, reader, cpp_fp, vm["output"].as<std::string>());
       execute_command("rm -f " + ir_bc_file);
     } else if (mode == "bitcode") {
       ir_bc_file = vm["output"].as<std::string>();
@@ -244,6 +258,5 @@ int main(int argc, char *argv[]) {
     ifs.close();
     std::cout << e.what() << std::endl;
   }
-
   return 0;
 }

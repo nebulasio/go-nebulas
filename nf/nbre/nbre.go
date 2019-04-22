@@ -22,19 +22,23 @@ package nbre
 #cgo LDFLAGS: -L${SRCDIR}/native -lnbre_rt
 
 #include <stdlib.h>
-#include <native/ipc_interface.h>
+#include <native/nipc_interface.h>
 
 void NbreVersionFunc_cgo(int isc, void *holder, uint32_t major, uint32_t minor,uint32_t patch);
 void NbreIrListFunc_cgo(int isc, void *holder, const char *ir_name_list);
 void NbreIrVersionsFunc_cgo(int isc, void *holder, const char *ir_versions);
-void NbreNrHandlerFunc_cgo(int isc, void *holder, const char *nr_handler);
-void NbreNrResultFunc_cgo(int isc, void *holder, const char *nr_result);
+void NbreNrHandleFunc_cgo(int isc, void *holder, const char *nr_handle);
+void NbreNrResultByhandleFunc_cgo(int isc, void *holder, const char *nr_result);
+void NbreNrResultByHeightFunc_cgo(int isc, void *holder, const char *nr_result);
+void NbreNrSumFunc_cgo(int isc, void *holder, const char *nr_sum);
 void NbreDipRewardFunc_cgo(int isc, void *holder, const char *dip_reward);
 */
 import "C"
 import (
 	"sync"
 	"time"
+
+	"github.com/gogo/protobuf/proto"
 
 	"unsafe"
 
@@ -77,6 +81,10 @@ type handler struct {
 // Nbre type of Nbre
 type Nbre struct {
 	neb Neblet
+
+	libHeight uint64
+
+	quitCh chan int
 }
 
 // NewNbre create new Nbre
@@ -85,7 +93,9 @@ func NewNbre(neb Neblet) core.Nbre {
 		InitializeNbre()
 	})
 	return &Nbre{
-		neb: neb,
+		neb:       neb,
+		libHeight: 2, //lib start from 2
+		quitCh:    make(chan int, 1),
 	}
 }
 
@@ -102,6 +112,11 @@ func (n *Nbre) Start() error {
 	if n.neb.Config().Nbre == nil {
 		return ErrConfigNotFound
 	}
+
+	if n.neb.BlockChain().LIB() != nil {
+		n.libHeight = n.neb.BlockChain().LIB().Height()
+	}
+
 	var (
 		rootDir     = defaultRootDir
 		logDir      = defaultLogDir
@@ -164,6 +179,9 @@ func (n *Nbre) Start() error {
 	cAdminAddr := C.CString(n.neb.Config().Nbre.AdminAddress)
 	defer C.free(unsafe.Pointer(cAdminAddr))
 
+	cIpcListen := C.CString(n.neb.Config().Nbre.IpcListen)
+	defer C.free(unsafe.Pointer(cIpcListen))
+
 	p := C.nbre_params_t{
 		m_nbre_root_dir:     cRootDir,
 		m_nbre_exe_name:     cNbrePath,
@@ -172,6 +190,18 @@ func (n *Nbre) Start() error {
 		m_nbre_log_dir:      cLogDir,
 		m_admin_pub_addr:    cAdminAddr,
 		m_nbre_start_height: C.uint64_t(n.neb.Config().Nbre.StartHeight),
+		m_nipc_listen:       cIpcListen,
+		m_nipc_port:         C.uint16_t(n.neb.Config().Nbre.IpcPort),
+	}
+
+	cResult := C.start_nbre_ipc(p)
+	if int(cResult) != 0 {
+		logging.VLog().WithFields(logrus.Fields{
+			"data":   nbreDataDir,
+			"nbre":   nbrePath,
+			"result": int(cResult),
+		}).Error("Failed to start nbre.")
+		return ErrNbreStartFailed
 	}
 
 	logging.CLog().WithFields(logrus.Fields{
@@ -180,11 +210,81 @@ func (n *Nbre) Start() error {
 		"admin": n.neb.Config().Nbre.AdminAddress,
 	}).Info("Started nbre.")
 
-	cResult := C.start_nbre_ipc(p)
-	if int(cResult) != 0 {
-		return ErrNbreStartFailed
-	}
+	go n.loop()
 	return nil
+}
+
+func (n *Nbre) loop() {
+
+	logging.CLog().Info("started nbre loop.")
+
+	timerChan := time.NewTicker(time.Second * 15).C
+	for {
+		select {
+		case <-n.quitCh:
+			logging.CLog().Info("Stopped nbre ir loop.")
+			return
+		case <-timerChan:
+			n.checkIRUpdate()
+		}
+	}
+}
+
+// checkIRUpdate check lib block for ir transactions packaged.
+// If ir transactions are missed, nbre looks for database completion
+func (n *Nbre) checkIRUpdate() {
+	lib := n.neb.BlockChain().LIB()
+	if lib == nil || lib.Height() < n.neb.Config().Nbre.StartHeight {
+		return
+	}
+
+	for lib.Height() >= n.libHeight {
+		block := n.neb.BlockChain().GetBlockOnCanonicalChainByHeight(n.libHeight)
+		txs := []*core.Transaction{}
+		for _, tx := range block.Transactions() {
+			if tx.Type() == core.TxPayloadProtocolType {
+				txs = append(txs, tx)
+			}
+		}
+
+		handle := unsafe.Pointer(uintptr(block.Height()))
+		//prepare for tx send
+		C.ipc_nbre_ir_transactions_create(handle, C.uint64_t(block.Height()))
+
+		if len(txs) > 0 {
+			//append tx data
+			for _, tx := range txs {
+				pbTx, err := tx.ToProto()
+				if err != nil {
+					logging.VLog().WithFields(logrus.Fields{
+						"tx":  tx,
+						"err": err,
+					}).Error("Failed to convert the ir tx to proto data.")
+					return
+				}
+				bytes, err := proto.Marshal(pbTx)
+				if err != nil {
+					logging.VLog().WithFields(logrus.Fields{
+						"tx":  tx,
+						"err": err,
+					}).Error("Failed to marshal the ir tx.")
+					return
+				}
+				cBytes := (*C.char)(unsafe.Pointer(&bytes[0]))
+				C.ipc_nbre_ir_transactions_append(handle, C.uint64_t(block.Height()), cBytes, C.int32_t(len(bytes)))
+			}
+		}
+
+		// commit tx send
+		C.ipc_nbre_ir_transactions_send(handle, C.uint64_t(block.Height()))
+
+		logging.VLog().WithFields(logrus.Fields{
+			"height":   block.Height(),
+			"ir count": len(txs),
+		}).Debug("Update ir block.")
+
+		n.libHeight++
+	}
 }
 
 // InitializeNbre initialize nbre
@@ -192,8 +292,10 @@ func InitializeNbre() {
 	C.set_recv_nbre_version_callback((C.nbre_version_callback_t)(unsafe.Pointer(C.NbreVersionFunc_cgo)))
 	C.set_recv_nbre_ir_list_callback((C.nbre_ir_list_callback_t)(unsafe.Pointer(C.NbreIrListFunc_cgo)))
 	C.set_recv_nbre_ir_versions_callback((C.nbre_ir_versions_callback_t)(unsafe.Pointer(C.NbreIrVersionsFunc_cgo)))
-	C.set_recv_nbre_nr_handler_callback((C.nbre_nr_handler_callback_t)(unsafe.Pointer(C.NbreNrHandlerFunc_cgo)))
-	C.set_recv_nbre_nr_result_callback((C.nbre_nr_result_callback_t)(unsafe.Pointer(C.NbreNrResultFunc_cgo)))
+	C.set_recv_nbre_nr_handle_callback((C.nbre_nr_handle_callback_t)(unsafe.Pointer(C.NbreNrHandleFunc_cgo)))
+	C.set_recv_nbre_nr_result_by_handle_callback((C.nbre_nr_result_by_handle_callback_t)(unsafe.Pointer(C.NbreNrResultByhandleFunc_cgo)))
+	C.set_recv_nbre_nr_result_by_height_callback((C.nbre_nr_result_by_height_callback_t)(unsafe.Pointer(C.NbreNrResultByHeightFunc_cgo)))
+	C.set_recv_nbre_nr_sum_callback((C.nbre_nr_sum_callback_t)(unsafe.Pointer(C.NbreNrSumFunc_cgo)))
 	C.set_recv_nbre_dip_reward_callback((C.nbre_dip_reward_callback_t)(unsafe.Pointer(C.NbreDipRewardFunc_cgo)))
 }
 
@@ -213,6 +315,12 @@ func (n *Nbre) Execute(command string, args ...interface{}) (interface{}, error)
 	nbreLock.Unlock()
 	//})()
 
+	logging.VLog().WithFields(logrus.Fields{
+		"id":      handler.id,
+		"command": command,
+		"args":    args,
+	}).Debug("run nbre command")
+
 	go func() {
 		// handle nbre command
 		n.handleNbreCommand(handler, command, args...)
@@ -224,16 +332,12 @@ func (n *Nbre) Execute(command string, args ...interface{}) (interface{}, error)
 		deleteHandler(handler)
 
 	case <-time.After(ExecutionTimeoutSeconds * time.Second):
-		handler.err = ErrExecutionTimeout
-		// handler.done <- true
+		handler.err = ErrNebCallbackTimeout
 		deleteHandler(handler)
-		logging.VLog().WithFields(logrus.Fields{
-			"command": command,
-			"params":  args,
-		}).Debug("nbre response timeout.")
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
+		"id":      handler.id,
 		"command": command,
 		"params":  args,
 		"result":  handler.result,
@@ -245,16 +349,16 @@ func (n *Nbre) Execute(command string, args ...interface{}) (interface{}, error)
 func deleteHandler(handler *handler) {
 	nbreLock.Lock()
 	defer nbreLock.Unlock()
+	handler.done = nil
 	delete(nbreHandlers, handler.id)
 }
 
 func (n *Nbre) handleNbreCommand(handler *handler, command string, args ...interface{}) {
-	handlerId := handler.id
+	handlerId := uint64(0)
+	if handler != nil {
+		handlerId = handler.id
+	}
 
-	logging.VLog().WithFields(logrus.Fields{
-		"command": command,
-		"args":    args,
-	}).Debug("run nbre command")
 	switch command {
 	case CommandVersion:
 		height := args[0].(uint64)
@@ -270,32 +374,42 @@ func (n *Nbre) handleNbreCommand(handler *handler, command string, args ...inter
 		start := args[0].(uint64)
 		end := args[1].(uint64)
 		version := args[2].(uint64)
-		C.ipc_nbre_nr_handler(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(start), C.uint64_t(end), C.uint64_t(version))
-	case CommandNRList:
-		holder := args[0].(string)
-		cHolder := C.CString(holder)
-		defer C.free(unsafe.Pointer(cHolder))
-		C.ipc_nbre_nr_result(unsafe.Pointer(uintptr(handlerId)), cHolder)
+		C.ipc_nbre_nr_handle(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(start), C.uint64_t(end), C.uint64_t(version))
+	case CommandNRListByHandle:
+		handle := args[0].(string)
+		cHandle := C.CString(handle)
+		defer C.free(unsafe.Pointer(cHandle))
+		C.ipc_nbre_nr_result_by_handle(unsafe.Pointer(uintptr(handlerId)), cHandle)
+	case CommandNRListByHeight:
+		height := args[0].(uint64)
+		C.ipc_nbre_nr_result_by_height(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height))
+	case CommandNRSum:
+		height := args[0].(uint64)
+		C.ipc_nbre_nr_sum(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height))
 	case CommandDIPList:
 		height := args[0].(uint64)
 		version := args[1].(uint64)
 		C.ipc_nbre_dip_reward(unsafe.Pointer(uintptr(handlerId)), C.uint64_t(height), C.uint64_t(version))
 	default:
-		handler.result = nil
-		handler.err = ErrCommandNotFound
-		handler.done <- true
+		if handler != nil {
+			handler.result = nil
+			handler.err = ErrCommandNotFound
+			if handler.done != nil {
+				handler.done <- true
+			}
+		}
 	}
 }
 
 func getNbreHandler(id uint64) (*handler, error) {
-	nbreLock.RLock()
-	handler := nbreHandlers[id]
-	nbreLock.RUnlock()
+	nbreLock.Lock()
+	defer nbreLock.Unlock()
 
-	if handler == nil {
+	if handler, ok := nbreHandlers[id]; ok {
+		return handler, nil
+	} else {
 		return nil, ErrHandlerNotFound
 	}
-	return handler, nil
 }
 
 func nbreHandled(code C.int, holder unsafe.Pointer, result interface{}, handleErr error) {
@@ -330,12 +444,20 @@ func nbreHandled(code C.int, holder unsafe.Pointer, result interface{}, handleEr
 	} else {
 		handler.err = err
 	}
-	handler.done <- true
+	go func() {
+		if handler.done != nil {
+			handler.done <- true
+		}
+	}()
 }
 
 // Stop stop nbre
 func (n *Nbre) Stop() {
 	logging.CLog().Info("Stopping Nbre.")
+
+	// stop ir check loop
+	n.quitCh <- 1
+
 	select {
 	case <-n.shutdown():
 		return
