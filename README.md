@@ -85,7 +85,7 @@ The dependency libraries are not installed in the system directory, and there ar
 
 
 #### Build the neb binary.
-    * run `make build`
+run `make build`
 
 ## Run
 
