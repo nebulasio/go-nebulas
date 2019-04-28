@@ -22,10 +22,10 @@
 #include <iostream>
 
 /********* height compatibility settings for testnet **********/
-uint32_t CurrChainID = 1;
-
 const uint32_t MainNetID = 1;
 const uint32_t TestNetID = 1001;
+
+extern uint32_t CurrChainID;
 
 // NvmMemoryLimitWithoutInjectHeight memory of nvm contract without inject code
 const uint64_t TestNetNvmMemoryLimitWithoutInjectHeight = 281800;
@@ -35,6 +35,9 @@ const uint64_t MainNetNvmMemoryLimitWithoutInjectHeight = 306800;
 const uint64_t TestNetNvmGasLimitWithoutTimeoutAtHeight = 600000;
 const uint64_t MainNetNvmGasLimitWithoutTimeoutAtHeight = 624763;
 
+//InnerContractCallAvailableAtHeight
+const uint64_t TestNetInnerContractCallAvailableAtHeight = 600600;
+const uint64_t MainNetInnerContractCallAvailableAtHeight = 2188985;
 
 inline uint64_t GetNVMMemoryLimitWithoutInjectHeight(){
     if(CurrChainID == MainNetID){
@@ -46,7 +49,7 @@ inline uint64_t GetNVMMemoryLimitWithoutInjectHeight(){
     }
 }
 
-inline uint64_t GetNVMGasLimitWithoutTimeoutAtHeight(){
+inline uint64_t GetNVMGasLimitWithoutTimeoutHeight(){
     if(CurrChainID == MainNetID){
         return MainNetNvmGasLimitWithoutTimeoutAtHeight;
     }else if(CurrChainID == TestNetID){
@@ -54,4 +57,14 @@ inline uint64_t GetNVMGasLimitWithoutTimeoutAtHeight(){
     }else{
         return 0;
     } 
+}
+
+inline uint64_t InnerContractCallAvailableHeight(){
+    if(CurrChainID == MainNetID){
+        return MainNetInnerContractCallAvailableAtHeight;
+    }else if(CurrChainID == TestNetID){
+        return TestNetInnerContractCallAvailableAtHeight;
+    }else{
+        return 0;
+    }
 }

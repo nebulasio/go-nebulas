@@ -19,7 +19,7 @@
 #pragma once
 
 #include <stddef.h>
-#include "../v8_util.h"
+#include "../nvm_engine.h"
 #include "callback_util.h"
 
 void EventTrigger(void *handler, const char *topic, const char *data, size_t *cnt);

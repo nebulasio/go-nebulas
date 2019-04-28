@@ -32,6 +32,8 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/nebulasio/go-nebulas/util/byteutils"
+	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -50,7 +52,8 @@ const (
 	NVMDataExchangeTypeStart = "start"
 	NVMDataExchangeTypeCallBack = "callback"
 	NVMDataExchangeTypeFinal = "final"
-	NVMDataInnerContractCall = "innercall"
+	NVMDataExchangeTypeContractSrc = "contractsrc"
+	NVMDataExchangeTypeInnerContractCall = "innercall"
 
 	NVM_SUCCESS = 0
 	NVM_EXCEPTION_ERR = -1
@@ -333,7 +336,8 @@ func PrepareLaunchRequest(e *V8Engine, config *core.NVMConfig, innerCallFlag boo
 		}
 	}
 
-	configBundle := &NVMConfigBundle{ScriptSrc:config.PayloadSource, ScriptType:config.PayloadSourceType, EnableLimits: true, RunnableSrc: runnableSource, 
+	sourceHash := byteutils.Hex(hash.Sha3256([]byte(config.PayloadSource)))
+	configBundle := &NVMConfigBundle{ScriptSrc:config.PayloadSource, ScriptType:config.PayloadSourceType, ScriptHash: sourceHash, EnableLimits: true, RunnableSrc: runnableSource, 
 		MaxLimitsOfExecutionInstruction:MaxLimitsOfExecutionInstructions, DefaultLimitsOfTotalMemSize:core.DefaultLimitsOfTotalMemorySize,
 		LimitsExeInstruction: e.limitsOfExecutionInstructions, LimitsTotalMemSize: e.limitsOfTotalMemorySize, ExecutionTimeout: e.executionTimeOut,
 		BlockJson:formatArgs(string(blockJSON)), TxJson: formatArgs(string(txJSON)), 
@@ -344,7 +348,7 @@ func PrepareLaunchRequest(e *V8Engine, config *core.NVMConfig, innerCallFlag boo
 	// for call request, the metadata is nil
 	requestType := NVMDataExchangeTypeStart
 	if innerCallFlag {
-		requestType = NVMDataInnerContractCall
+		requestType = NVMDataExchangeTypeInnerContractCall
 	}
 	request := &NVMDataRequest{
 		RequestType: requestType, 
@@ -539,9 +543,9 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			var newRequest *NVMDataRequest
 
 			if responseFuncName == INNER_CONTRACT_CALL {
-
 				resStr := "success"
-				engineNew, nvmConfigNew, gasCnt, innerCallErr := InnerContractFunc(serverLcsHandler, responseFuncParams[0], responseFuncParams[1], responseFuncParams[2], responseFuncParams[3])
+				engineNew, nvmConfigNew, gasCnt, innerCallErr := InnerContractFunc(serverLcsHandler, 
+											responseFuncParams[0], responseFuncParams[1], responseFuncParams[2], responseFuncParams[3])
 				if innerCallErr != nil {
 					resStr = "fail"
 				}
@@ -551,13 +555,34 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 					resStr = "fail"
 				}
 
+				nvmRequestIndex += 1
 				newRequest.CallbackResult.Result = resStr
+				newRequest.LcsHandler = engineNew.lcsHandler
+				newRequest.GcsHandler = engineNew.gcsHandler
 				newRequest.CallbackResult.NotNull = true
 				newRequest.CallbackResult.FuncName = responseFuncName
 				newRequest.CallbackResult.Extra = append(newRequest.CallbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
 				//TODO, move this into v8 process
 				//logging.VLog().Infof("end cal val:%v,gascount:%v,gasSum:%v, engine index:%v", val, gasCout, gasSum, index)
+
+			} else if responseFuncName == GET_CONTRACT_SRC {
+				// start to get source code
+				contractSrc, gasCnt, notNil := GetContractSourceFunc(serverLcsHandler, responseFuncParams[0])
+				callbackResult := &NVMCallbackResult{}
+				callbackResult.Result = contractSrc
+				callbackResult.NotNull = notNil
+				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+
+				nvmRequestIndex += 1
+				// check the callback type
+				callbackResult.FuncName = responseFuncName
+				newRequest = &NVMDataRequest{
+					RequestType:NVMDataExchangeTypeContractSrc, 
+					RequestIndx:dataResponse.GetResponseIndx(),
+					LcsHandler:serverLcsHandler,
+					GcsHandler:serverGcsHandler,
+					CallbackResult:callbackResult,
+				}
 
 			} else {
 				callbackResult := &NVMCallbackResult{}

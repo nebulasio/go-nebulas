@@ -20,7 +20,7 @@
 #pragma once
 
 #include <stddef.h>
-#include "../v8_util.h"
+#include "../nvm_engine.h"
 #include "callback_util.h"
 
 char *GetTxByHash(void *handler, const char *hash, size_t *gasCnt);

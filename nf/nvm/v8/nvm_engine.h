@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2017-2019 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -35,6 +35,7 @@
 
 #include <thread>
 #include <vector>
+#include <stack>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,8 +57,6 @@
 #include "lib/typescript.h"
 #include "lib/logger.h"
 #include "lib/nvm_error.h"
-#include "sha256.h"
-//#include "lru_cache.h"
 
 #include <assert.h>
 #include <string.h>
@@ -66,6 +65,8 @@
 #include <thread>
 #include <sys/time.h>
 #include <unistd.h>
+
+#define FG_DEBUG true
 
 // constants
 static const uint32_t NVM_CURRENCY_LEVEL = 1;
@@ -91,21 +92,30 @@ class NVMEngine final: public NVMService::Service{
       srcModuleCache = std::unique_ptr<std::map<std::string, CacheSrcItem>>(new std::map<std::string, CacheSrcItem>());
     }
 
-    int GetRunnableSourceCode(const std::string&, std::string&);
+    int GetRunnableSourceCode(V8Engine*, const std::string&, const std::string&, const std::string&);
 
     void ReadExeStats(NVMStatsBundle *);
 
-    int StartScriptExecution(std::string&, const std::string&, const std::string&, const std::string&, const NVMConfigBundle&);
+    int StartScriptExecution(V8Engine*, const std::string&, const std::string&, const std::string&, const std::string&,
+            const std::string&, const NVMConfigBundle&, char*);
 
-    grpc::Status SmartContractCall(grpc::ServerContext*, grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest>*) override;
+    NVMCallbackResult* Callback(void*, NVMCallbackResponse*);
+
+    uintptr_t GetCurrentEngineLcsHandler(); // By default, it returns this->engine's lcshandler, or returns the lcshandler of the latest engine pushed in the inner engine stack
+
+    uintptr_t GetCurrentEngineGcsHandler();
+
+    const std::string ConfigBundleToString(NVMConfigBundle&);
 
     void LocalTest();       // for testing purpose
 
-    const NVMCallbackResult* Callback(void*, NVMCallbackResponse*);
+
+    // grpc call interface
+    grpc::Status SmartContractCall(grpc::ServerContext*, grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest>*) override;
 
 
     // For inner contract call
-    uint32_t CreateInnerContractEngine(std::string scriptType, std::string innerContractSrc);     // return index of the newly created engine in the vector
+    V8Engine* CreateInnerContractEngine(const std::string&, const std::string&,  const std::string&, const std::string&, std::string&);     // return index of the newly created engine in the vector
 
   private:
     int m_concurrency_scale = 1;              // default concurrency number
@@ -114,13 +124,15 @@ class NVMEngine final: public NVMService::Service{
     int m_allow_usage = 1;                    // default allow usage
     std::string m_module_id = "contract.js";  // default module ID to be used
     std::string m_traceable_src;              // source code after injection
-    std::string m_runnable_src;               // runnable source code
-    uint64_t m_traceale_src_line_offset = 0;   // set to be 0 by default
-    uintptr_t m_lcs_handler = 0;                // lcs handler
-    uintptr_t m_gcs_handler = 0;                // gcs handler
+    //std::string m_runnable_src;               // runnable source code
+    uint64_t m_traceale_src_line_offset = 0;    // set to be 0 by default
+    //uintptr_t m_lcs_handler = 0;                // lcs handler
+    //uintptr_t m_gcs_handler = 0;                // gcs handler
     
     V8Engine* engine = nullptr;                    // default engine
-    std::unique_ptr<std::vector<V8Engine*>> m_inner_engines = nullptr;  // for inner contract call, engines of the subsequent engines
+    NVMConfigBundle* config_bundle = nullptr;       // initial configuration bundle
+    //std::unique_ptr<std::vector<V8Engine*>> m_inner_engines = nullptr;  // for inner contract call, engines of the subsequent engines
+    std::unique_ptr<std::stack<V8Engine*>> m_inner_engines = nullptr;   // stack for keeping engines created because of inner contract calls
     char* m_exe_result = nullptr;                  // contract execution result
     
     // constants for defining contract source type
@@ -130,7 +142,8 @@ class NVMEngine final: public NVMService::Service{
     const std::string DATA_EXHG_START = "start";
     const std::string DATA_EXHG_CALL_BACK = "callback";
     const std::string DATA_EXHG_FINAL = "final";
-    const std::string INNER_CALL = "innercall";
+    const std::string DATA_EXHG_CONTRACT_SRC = "contractsrc";
+    const std::string DATA_EXHG_INNER_CALL = "innercall";
 
     grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest> *m_stm;    // stream used to send request from server
     int m_response_indx = 0;                                            // index of the data request/response pair

@@ -33,25 +33,24 @@
 
 #include <iostream>
 
-using namespace std;
-
 typedef struct {
-  string source;
+  std::string source;
   int lineOffset;
 } SourceInfo;
 
 static std::mutex m;
-static std::unordered_map<string, SourceInfo> modules;
+static std::unordered_map<std::string, SourceInfo> modules;
 
+
+// Basically, this function is used to get rid of "." and ".." in the file path
 void reformatModuleId(char *dst, const char *src) {
-  string s = src;
-  string delimiter = "/";
-
-  vector<string> paths;
+  std::string s(src);
+  std::string delimiter("/");
+  std::vector<std::string> paths;
 
   size_t pos = 0;
   while ((pos = s.find(delimiter)) != std::string::npos) {
-    string p = s.substr(0, pos);
+    std::string p = s.substr(0, pos);
     s.erase(0, pos + delimiter.length());
 
     if (p.length() == 0 || p.compare(".") == 0) {
@@ -91,7 +90,7 @@ char *RequireDelegate(void *handler, const char *filepath,
   *lineOffset = 0;
 
   m.lock();
-  auto it = modules.find(string(id));
+  auto it = modules.find(std::string(id));
   if (it != modules.end()) {
     SourceInfo &srcInfo = it->second;
     ret = (char *)calloc(srcInfo.source.length() + 1, sizeof(char));
@@ -132,14 +131,15 @@ void AddModule(void *handler, const char *filename, const char *source, int line
   }
 
   char id[128];
-  sprintf(id, "%zu:%s", (uintptr_t)handler, filepath);
+  sprintf(id, "%zu:%s", (uintptr_t)handler, filepath);      // 0xsdfsdfsdfdsfsdf:lib/blockchain.js
 
-  if(modules.find(std::string(id)) == modules.end()){
+  std::string sid(id);
+  if(modules.find(sid) == modules.end()){
     m.lock();
     SourceInfo srcInfo;
     srcInfo.lineOffset = lineOffset;
     srcInfo.source = source;
-    modules[string(id)] = srcInfo;
+    modules[sid] = srcInfo;
     m.unlock();
     
     LogDebugf("AddModule: %s -> %s %d", filename, filepath, lineOffset);

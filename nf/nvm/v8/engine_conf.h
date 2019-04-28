@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2017-2019 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -15,8 +15,13 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
-//
+
 #pragma once
+
+/*
+    The configuration is same as defined in the golang source files, however to save the unncessary grpc call, we copied the configurations here. 
+    Also ultimately, the NVM configurations should be put here instead of the golang side.
+*/
 
 // Basic configuration and settings of the V8 engine
 const int ExecutionFailedErr  = 1;
@@ -30,5 +35,5 @@ const uint64 TimeoutGasLimitCost              = 100000000;
 
 
 // DefaultLimitsOfTotalMemorySize default limits of total memory size
-const uint64 MaxLimitsOfExecutionInstructions = 10000000; // 10,000,000
-const uint64 DefaultLimitsOfTotalMemorySize = 40 * 1000 * 1000;
+const uint64 MaxLimitsOfExecutionInstructions   = 10000000; // 10,000,000
+const uint64 DefaultLimitsOfTotalMemorySize     = 40 * 1000 * 1000;

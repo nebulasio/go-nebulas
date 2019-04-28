@@ -19,7 +19,6 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
 #ifndef GRPC_nvm_2eproto__INCLUDED
 #define GRPC_nvm_2eproto__INCLUDED
 

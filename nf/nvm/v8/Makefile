@@ -28,6 +28,9 @@ ifeq ($(shell uname -s),Darwin)
 	CC=clang
 	CXX=clang++
 	LD=clang++
+	#CC=gcc
+	#CXX=g++
+	#LD=g++
 	DYLIB=.dylib
 	CFLAGS+=-I./include
 	CXXFLAGS+=-I./include
@@ -61,7 +64,7 @@ all: v8_server
 %.cpp.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $<.o
 
-v8_server: v8_server.cc.o sha256.cc.o pb/nvm.grpc.pb.o pb/nvm.pb.o inner_contract.cc.o engine.cc.o allocator.cc.o lib/random.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/tracing.cc.o lib/file.cc.o lib/util.cc.o lib/typescript.cc.o lib/crypto.cc.o lib/event.cc.o callback/event_trigger.cc.o callback/crypto_modules.cc.o callback/memory_storage.cc.o callback/memory_modules.cc.o callback/blockchain_modules.cc.o
+v8_server: v8_server.cc.o pb/nvm.grpc.pb.o pb/nvm.pb.o nvm_engine.cc.o engine.cc.o allocator.cc.o lib/random.cc.o lib/global.cc.o lib/execution_env.cc.o lib/storage_object.cc.o lib/log_callback.cc.o lib/require_callback.cc.o lib/instruction_counter.cc.o lib/blockchain.cc.o lib/tracing.cc.o lib/file.cc.o lib/util.cc.o lib/typescript.cc.o lib/crypto.cc.o lib/event.cc.o callback/event_trigger.cc.o callback/crypto_modules.cc.o callback/memory_storage.cc.o callback/memory_modules.cc.o callback/blockchain_modules.cc.o
 	$(LD) $^ -o $@ $(LIBS_PATH) $(LDFLAGS) $(LIBS)
 
 

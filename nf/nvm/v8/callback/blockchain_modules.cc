@@ -177,15 +177,14 @@ char *GetContractSource(void *handler,
 
   const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
-  std::string resStr = callback_res->result();
+  std::string srcStr = callback_res->result();
   bool not_null_flag = callback_res->not_null();
 
   if(!not_null_flag)
     return nullptr;
 
-  char* ret = (char*)calloc(resStr.length()+1, sizeof(char));
-  strcpy(ret, resStr.c_str());
-
+  char* ret = (char*)calloc(srcStr.length()+1, sizeof(char));
+  strcpy(ret, srcStr.c_str());
   std::cout<<"++++++ The fetched contract source is: "<<ret<<std::endl;
 
   return ret;
@@ -215,6 +214,12 @@ char *InnerContract(void *handler,
 
   char* ret = (char*)calloc(resStr.length()+1, sizeof(char));
   strcpy(ret, resStr.c_str());
+
+  // After this, start to create engine and run new contract
+  if(resStr.compare("success") == 0){
+    // Call handler defined in inner_contract.cc
+    
+  }
 
   return ret;
 }

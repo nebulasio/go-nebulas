@@ -96,7 +96,6 @@ void NewBlockchainInstance(Isolate *isolate, Local<Context> context,
   }
   
   if (BUILD_BLOCKCHAIN_RUN_CONTRACT == (build_flag & BUILD_BLOCKCHAIN_RUN_CONTRACT)) {
-    // printf("load runContractSource\n");
     std::cout<<">>>>Load runContractSource"<<std::endl;
     blockTpl->Set(String::NewFromUtf8(isolate, "runContractSource"),
                 FunctionTemplate::New(isolate, RunInnerContractSourceCallBack),
@@ -413,7 +412,9 @@ void GetContractSourceCallback(const FunctionCallbackInfo<Value> &info) {
   char *value = sGetContractSource(handler->Value(), *String::Utf8Value(address->ToString()), &cnt);
 
   if (value == NULL) {
-    info.GetReturnValue().SetNull();  //TODO: throw err
+    info.GetReturnValue().SetNull();  //TODO: check the throwed exception
+    isolate->ThrowException(
+        String::NewFromUtf8(isolate, "Target contract source could not be loaded."));
   } else {
     info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
     free(value);
@@ -481,7 +482,6 @@ void RunInnerContractSourceCallBack(const FunctionCallbackInfo<Value> &info) {
     // info.GetReturnValue().Set(rObj);
 
     info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
-
     free(value);
   }
 

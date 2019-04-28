@@ -25,14 +25,17 @@
 #define EXPORT
 #endif
 
+/*
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
+*/
 
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
+#include <string>
 #include "lib/nvm_error.h"
 
 enum LogLevel {
@@ -44,17 +47,17 @@ enum LogLevel {
 
 enum OptType {
   INSTRUCTION     = 1,
-  INSTRUCTIONTS  = 2,
+  INSTRUCTIONTS   = 2,
   RUNSCRIPT       = 3,
 };
 
-#define BUILD_FUNC_MASK         0x00
-#define BUILD_ALL             0xFFFFFFFFFFFFFFFF
-#define BUILD_MATH            0x0000000000000001
-#define BUILD_MATH_RANDOM       0x0000000000000002
-#define BUILD_BLOCKCHAIN        0x0000000000000004
+#define BUILD_FUNC_MASK                     0x00
+#define BUILD_ALL                           0xFFFFFFFFFFFFFFFF
+#define BUILD_MATH                          0x0000000000000001
+#define BUILD_MATH_RANDOM                   0x0000000000000002
+#define BUILD_BLOCKCHAIN                    0x0000000000000004
 #define BUILD_BLOCKCHAIN_GET_RUN_SOURCE     0x0000000000000008
-#define BUILD_BLOCKCHAIN_RUN_CONTRACT  0x0000000000000010
+#define BUILD_BLOCKCHAIN_RUN_CONTRACT       0x0000000000000010
 #define BUILD_DEFAULT_VER (BUILD_MATH | BUILD_BLOCKCHAIN)
 #define BUILD_INNER_VER  (BUILD_MATH | BUILD_MATH_RANDOM | BUILD_BLOCKCHAIN | BUILD_BLOCKCHAIN_GET_RUN_SOURCE | BUILD_BLOCKCHAIN_RUN_CONTRACT)
 
@@ -64,19 +67,14 @@ EXPORT const char *GetLogLevelText(int level);
 EXPORT void InitializeLogger(LoggerFunc f);
 
 // event.
-typedef void (*EventTriggerFunc)(void *handler, const char *topic,
-                                 const char *data, size_t *cnt);
+typedef void (*EventTriggerFunc)(void *handler, const char *topic, const char *data, size_t *cnt);
 EXPORT void InitializeEvent(EventTriggerFunc trigger);
                                   
 // storage
-typedef char *(*StorageGetFunc)(void *handler, const char *key,
-                                size_t *counterVal);
-typedef int (*StoragePutFunc)(void *handler, const char *key, const char *value,
-                              size_t *counterVal);
-typedef int (*StorageDelFunc)(void *handler, const char *key,
-                              size_t *counterVal);
-EXPORT void InitializeStorage(StorageGetFunc get, StoragePutFunc put,
-                              StorageDelFunc del);
+typedef char *(*StorageGetFunc)(void *handler, const char *key, size_t *counterVal);
+typedef int (*StoragePutFunc)(void *handler, const char *key, const char *value, size_t *counterVal);
+typedef int (*StorageDelFunc)(void *handler, const char *key, size_t *counterVal);
+EXPORT void InitializeStorage(StorageGetFunc get, StoragePutFunc put, StorageDelFunc del);
 
 // blockchain
 typedef char *(*GetTxByHashFunc)(void *handler, const char *hash, size_t *counterVal);
@@ -175,14 +173,18 @@ typedef struct V8Engine {
   bool is_inner_nvm_error_happen;
   int testing;
   int timeout;
+  uintptr_t lcs;
+  uintptr_t gcs;
   uint64_t ver;
   V8EngineStats stats;
+  std::string traceable_src;            // corresponding contract traceable src code
+  uint64_t traceable_line_offset;       // corresponding contract src line offset
 } V8Engine;
 
 typedef struct v8ThreadContextInput {
-  uintptr_t lcs;  
-  uintptr_t gcs;
-  enum OptType opt;  
+  //uintptr_t lcs;  
+  //uintptr_t gcs;
+  enum OptType opt;
   int line_offset;
   int allow_usage;
   const char *source;
@@ -244,6 +246,9 @@ void SetInnerContractErrFlag(V8Engine *e);
 
 bool CreateScriptThread(v8ThreadContext *pc);
 void SetRunScriptArgs(v8ThreadContext *pc, V8Engine *e, int opt, const char *source, int line_offset, int allow_usage);
+
+/*
 #ifdef __cplusplus
 }
 #endif // __cplusplus
+*/

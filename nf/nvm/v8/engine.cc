@@ -27,10 +27,7 @@
 #include "lib/tracing.h"
 #include "lib/typescript.h"
 #include "v8_data_inc.h"
-
 #include <libplatform/libplatform.h>
-
-
 #include <assert.h>
 #include <string.h>
 #include <thread>
@@ -106,6 +103,7 @@ V8Engine *CreateEngine() {
   e->ver = BUILD_DEFAULT_VER; //default load initial com
   return e;
 }
+
 void EnableInnerContract(V8Engine *e) {
   e->ver = BUILD_INNER_VER;
 }
@@ -380,5 +378,3 @@ int IsEngineLimitsExceeded(V8Engine *e) {
   
   return 0;
 }
-
-//loopExecute迁移文件
