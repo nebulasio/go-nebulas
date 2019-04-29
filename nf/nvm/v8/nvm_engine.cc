@@ -22,7 +22,7 @@
 uint32_t CurrChainID = 1;   // default value
 
 uintptr_t NVMEngine::GetCurrentEngineLcsHandler(){
-  if(this->m_inner_engines->size() > 0){
+  if(this->m_inner_engines != nullptr && this->m_inner_engines->size() > 0){
     V8Engine* curr_engine = this->m_inner_engines->top();
     return curr_engine->lcs;
 
@@ -35,7 +35,7 @@ uintptr_t NVMEngine::GetCurrentEngineLcsHandler(){
 }
 
 uintptr_t NVMEngine::GetCurrentEngineGcsHandler(){
-  if(this->m_inner_engines->size() > 0){
+  if(this->m_inner_engines != nullptr && this->m_inner_engines->size() > 0){
     V8Engine* curr_engine = this->m_inner_engines->top();
     return curr_engine->gcs;
 
@@ -47,7 +47,11 @@ uintptr_t NVMEngine::GetCurrentEngineGcsHandler(){
   }
 }
 
-int NVMEngine::GetRunnableSourceCode(V8Engine* engine, const std::string& sourceType, const std::string& scriptHash, const std::string& originalSource){
+int NVMEngine::GetRunnableSourceCode(
+  V8Engine* engine, 
+  const std::string& sourceType, 
+  const std::string& scriptHash, 
+  const std::string& originalSource){
 
   const char* jsSource;
   uint64_t originalSourceLineOffset = 0;
@@ -62,20 +66,24 @@ int NVMEngine::GetRunnableSourceCode(V8Engine* engine, const std::string& source
     jsSource = originalSource.c_str();
   }
 
-  auto searchRecord = srcModuleCache->find(scriptHash);
-  if(searchRecord != srcModuleCache->end()){
-    CacheSrcItem cachedSourceItem = searchRecord->second;
+  std::cout<<">>>>Hey, checking modules, with script hash: "<<scriptHash<<std::endl;
+  if(this->srcModuleCache == nullptr)
+    std::cout<<"<<<<<<<<<src module cache is null"<<std::endl;
+  std::cout<<", srcmodulecache side: "<<this->srcModuleCache->size()<<std::endl;
+  if(this->srcModuleCache->find(scriptHash)){
+    CacheSrcItem cachedSourceItem = this->srcModuleCache->get(scriptHash);
     engine->traceable_src = cachedSourceItem.traceableSource;
     engine->traceable_line_offset = cachedSourceItem.traceableSourceLineOffset;
     return 0;
 
   }else{
+    std::cout<<">>>>Before injecting tracing instruction"<<std::endl;
     char* traceableSource = InjectTracingInstructionsThread(engine, jsSource, &m_src_offset, this->m_allow_usage);
     if(traceableSource != nullptr){
       engine->traceable_src = std::string(traceableSource);
       engine->traceable_line_offset = 0;
       CacheSrcItem newItem = {originalSource, originalSourceLineOffset, traceableSource, engine->traceable_line_offset};
-      srcModuleCache->insert({scriptHash, newItem});
+      this->srcModuleCache->set(scriptHash, newItem);
       return 0;
     }
 
@@ -86,7 +94,6 @@ int NVMEngine::GetRunnableSourceCode(V8Engine* engine, const std::string& source
  
   return NVM_INJECT_TRACING_INSTRUCTION_ERR;
 }
-
 
 
 int NVMEngine::StartScriptExecution(
@@ -106,7 +113,11 @@ int NVMEngine::StartScriptExecution(
       return runnableSourceResult;
     }
 
+    std::cout<<">>>>After getting runnable source code"<<std::endl;
+
     AddModule(engine, moduleID.c_str(), engine->traceable_src.c_str(), engine->traceable_line_offset);
+
+    std::cout<<">>>>After adding module"<<std::endl;
 
     // check limitations
     if(this->config_bundle->block_height() >= GetNVMMemoryLimitWithoutInjectHeight()) {
@@ -120,12 +131,17 @@ int NVMEngine::StartScriptExecution(
     v8ThreadContext ctx;
     memset(&ctx, 0x00, sizeof(ctx));
     SetRunScriptArgs(&ctx, engine, RUNSCRIPT, runnableSrc.c_str(), engine->traceable_line_offset, 1);
+
+    std::cout<<">>>>After setting runscript args"<<std::endl;
+
     //ctx.input.lcs = lcsHandler;
     //ctx.input.gcs = gcsHandler;
     bool btn = CreateScriptThread(&ctx);      // start exe thread
     if (btn == false) {
       return NVM_UNEXPECTED_ERR;
     }
+
+    std::cout<<">>>>After creating script thread"<<std::endl;
 
     if(ctx.output.result != nullptr && ctx.output.result != NULL){
       size_t strLength = strlen(ctx.output.result) + 1;
@@ -180,6 +196,8 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
       //bool enableLimits = configBundle.enable_limits();
       std::string blockJson = configBundle.block_json();
       std::string txJson = configBundle.tx_json();
+
+      std::cout<<">>>>The configBundle is: "<<scriptHash<<", module id: "<<moduleID<<std::endl;
       
       LogInfof(">>>>Script source is: %s", scriptSrc.c_str());
       LogInfof(">>>>Script type is: %s", scriptType.c_str());
@@ -195,16 +213,23 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
       //this->m_lcs_handler = (uintptr_t)lcsHandler;
       //this->m_gcs_handler = (uintptr_t)gcsHandler;
 
+      std::cout<<">>>>Now receiving request from golang side"<<std::endl;
+
       // create engine and inject tracing instructions
       this->engine = CreateEngine();
       this->engine->limits_of_executed_instructions = configBundle.limits_exe_instruction();
       this->engine->limits_of_total_memory_size = configBundle.limits_total_mem_size();
-      this->engine->lcs = lcsHandler;
-      this->engine->gcs = gcsHandler;
+      this->engine->lcs = (uintptr_t)lcsHandler;
+      this->engine->gcs = (uintptr_t)gcsHandler;
+
+      std::cout<<">>>>After creating engine, the original lcs is: "<<lcsHandler<<std::endl;
+      std::cout<<">>>>After creating engine, the lcs handler is: "<<this->engine->lcs<<std::endl;
 
       char* exeResult = nullptr;
       int ret = this->StartScriptExecution(this->engine, scriptSrc, scriptType, scriptHash, runnableSrc, moduleID, configBundle, exeResult);
       this->m_exe_result = exeResult;
+
+      std::cout<<">>>>After starting script execution"<<std::endl;
 
       NVMDataResponse *response = new NVMDataResponse();
       NVMFinalResponse *finalResponse = new NVMFinalResponse();
@@ -250,16 +275,25 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
 }
 
 NVMCallbackResult* NVMEngine::Callback(void* handler, NVMCallbackResponse* callback_response){
+    std::cout<<"<<<<<< Callback"<<std::endl;
+
     if(this->m_stm != nullptr){
+
+        std::cout<<"<<<<<< m_stm is NOT null"<<std::endl;
+
         bool getResultFlag = false;
         NVMDataResponse *response = new NVMDataResponse();
         response->set_response_type(DATA_EXHG_CALL_BACK);
         response->set_response_indx(++this->m_response_indx);
         //response->set_lcs_handler(google::protobuf::uint64((uintptr_t)handler));
+        std::cout<<"<><><><> Before setting handlers"<<std::endl;
         response->set_lcs_handler((google::protobuf::uint64)this->GetCurrentEngineLcsHandler());
         response->set_gcs_handler((google::protobuf::uint64)this->GetCurrentEngineGcsHandler()); // gcs handler is not used by now
+        std::cout<<"<><><><><> After setting handlers"<<std::endl;
         response->set_allocated_callback_response(callback_response);
         this->m_stm->Write(*response);
+
+        std::cout<<">>>>>After sending request: "<<callback_response->func_name()<<std::endl;
 
         // wait for the result and return
         NVMDataRequest *request = new NVMDataRequest();        
@@ -267,6 +301,9 @@ NVMCallbackResult* NVMEngine::Callback(void* handler, NVMCallbackResponse* callb
         std::string requestType;
         while(this->m_stm->Read(request)){
           requestType = request->request_type();
+
+          std::cout<<">>>>>Received callback result for "<<callback_response->func_name()<<std::endl;
+
           if(requestType.compare(DATA_EXHG_CALL_BACK) == 0 || requestType.compare(DATA_EXHG_INNER_CALL) == 0){
             callback_result = (NVMCallbackResult*)&(request->callback_result());
             getResultFlag = true;
@@ -327,8 +364,6 @@ NVMCallbackResult* NVMEngine::Callback(void* handler, NVMCallbackResponse* callb
     return nullptr;
 }
 
-
-
 void NVMEngine::LocalTest(){
   // compose testing data
   std::string moduleID ("contract.js");
@@ -352,6 +387,7 @@ void NVMEngine::LocalTest(){
     runnableSrcFP.close();
   }
 
+  this->engine = CreateEngine();
   NVMConfigBundle* configBundle = new NVMConfigBundle();
   configBundle->set_limits_exe_instruction(400000000);
   configBundle->set_limits_total_mem_size(40000000);

@@ -68,16 +68,11 @@ void Initialization(){
   InitializeExecutionEnvDelegate(AttachLibVersionDelegate);
 
   InitializeStorage(StorageGet, StoragePut, StorageDel);
-  InitializeBlockchain(GetTxByHash, GetAccountState, Transfer, VerifyAddress, 
+  InitializeBlockchain(GetTxByHash, GetAccountState, Transfer, VerifyAddress,
           GetPreBlockHash, GetPreBlockSeed, GetContractSource, InnerContract, GetLatestNebulasRank, GetLatestNebulasRankSummary);
   InitializeEvent(EventTrigger);
   InitializeCrypto(Sha256, Sha3256, Ripemd160, RecoverAddress, Md5, Base64);
 }
-
-void InitializeDataStructure(){
-  srcModuleCache = std::unique_ptr<std::map<std::string, CacheSrcItem>>(new std::map<std::string, CacheSrcItem>());
-}
-
 
 //===================== v8 engine thread interfaces =======================
 
@@ -95,6 +90,9 @@ char *InjectTracingInstructionsThread(V8Engine *e, const char *source,
   v8ThreadContext ctx;
   memset(&ctx, 0x00, sizeof(ctx));
   SetRunScriptArgs(&ctx, e, INSTRUCTION, source, *source_line_offset, allow_usage);
+  
+  std::cout<<">>>>Creating script thread!!!!"<<std::endl;
+
 	bool btn = CreateScriptThread(&ctx);
   if (btn == false) {
     LogErrorf("Failed to create script thread");
@@ -217,9 +215,14 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
 
 
 const NVMCallbackResult* DataExchangeCallback(void* handler, NVMCallbackResponse* response){
+
+    std::cout<<"Now is executing callback: "<<response->func_name()<<std::endl;
+
     if(gNVMEngine != nullptr){
+        std::cout<<">>>>nvmengine is not null!"<<std::endl;
         return gNVMEngine->Callback(handler, response);
     }else{
+        std::cout<<">>>>>>> Failed to exchange data"<<std::endl;
         LogErrorf("Failed to exchange data");
     }
     return nullptr;
@@ -237,6 +240,7 @@ void RunServer(const char* addr_str){
 
   if(gNVMEngine == nullptr){
     gNVMEngine = new NVMEngine(NVM_CURRENCY_LEVEL);
+    std::cout<<"%%%%%%%%%%%% nvm engine is initialized!!!!!!!!!!!"<<std::endl;
   }
 
   grpc::ServerBuilder builder;

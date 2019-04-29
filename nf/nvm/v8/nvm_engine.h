@@ -53,6 +53,7 @@
 #include "engine.h"
 #include "engine_int.h"
 #include "engine_conf.h"
+#include "lru_map.h"
 #include "lib/tracing.h"
 #include "lib/typescript.h"
 #include "lib/logger.h"
@@ -78,18 +79,16 @@ typedef struct{
   uint64_t traceableSourceLineOffset;
 }CacheSrcItem;
 
-static std::unique_ptr<std::map<std::string, CacheSrcItem>> srcModuleCache;
-
 class NVMEngine final: public NVMService::Service{
 
   public:
-
     explicit NVMEngine(const int concurrency){
       //TODO: specify how many threads we should start and do Initialization
 
       m_concurrency_scale = concurrency;
       m_src_offset = 0;
-      srcModuleCache = std::unique_ptr<std::map<std::string, CacheSrcItem>>(new std::map<std::string, CacheSrcItem>());
+      std::cout<<"---- Start initialization"<<std::endl;
+      srcModuleCache = std::unique_ptr<LRU_MAP<std::string, CacheSrcItem>>(new LRU_MAP<std::string, CacheSrcItem>());
     }
 
     int GetRunnableSourceCode(V8Engine*, const std::string&, const std::string&, const std::string&);
@@ -148,6 +147,7 @@ class NVMEngine final: public NVMService::Service{
     grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest> *m_stm;    // stream used to send request from server
     int m_response_indx = 0;                                            // index of the data request/response pair
 
+    std::unique_ptr<LRU_MAP<std::string, CacheSrcItem>> srcModuleCache;
 };
 
 const NVMCallbackResult* DataExchangeCallback(void*, NVMCallbackResponse*);
