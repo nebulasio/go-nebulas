@@ -746,7 +746,7 @@ func (bc *BlockChain) GasPrice() *util.Uint128 {
 		}
 	} else {
 		// if no transactions have been submitted, use the default gasPrice
-		gasPrice = TransactionGasPrice
+		gasPrice = bc.txPool.GetMinGasPrice()
 	}
 
 	return gasPrice
