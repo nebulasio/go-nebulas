@@ -158,7 +158,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		util.Uint128Zero(), 1,
 		TxPayloadBinaryType,
 		[]byte(declaration),
-		TransactionGasPrice,
+		GenesisGasPrice,
 		MinGasCountPerTransaction,
 	)
 	if err != nil {

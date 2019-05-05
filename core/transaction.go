@@ -54,6 +54,9 @@ var (
 	// TransactionGasPrice default gasPrice : 2*10**10
 	TransactionGasPrice, _ = util.NewUint128FromString("20000000000")
 
+	// GenesisGasPrice default gasPrice : 1*10**6
+	GenesisGasPrice, _ = util.NewUint128FromInt(1000000)
+
 	// MinGasCountPerTransaction default gas for normal transaction
 	MinGasCountPerTransaction, _ = util.NewUint128FromInt(20000)
 
