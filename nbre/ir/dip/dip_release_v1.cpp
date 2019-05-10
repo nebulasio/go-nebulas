@@ -28,14 +28,14 @@ neb::rt::dip::dip_ret_type entry_point_dip(neb::compatible_uint64_t height) {
   neb::rt::dip::dip_ret_type ret;
   std::get<0>(ret) = 0;
 
-  uint64_t block_nums_of_a_day = 5;
-  uint64_t days = 1;
-  neb::compatible_uint64_t dip_start_block = 15;
+  uint64_t block_nums_of_a_day = 24 * 3600 / 15;
+  uint64_t days = 7;
+  neb::compatible_uint64_t dip_start_block = 2307000;
   neb::compatible_uint64_t dip_block_interval = days * block_nums_of_a_day;
   std::string dip_reward_addr =
       std::string("n1c6y4ctkMeZk624QWBTXuywmNpCWmJZiBq");
   std::string coinbase_addr =
-      std::string("n1HrPpwwH5gTA2d7QCkVjMw14YbN1NNNXHc");
+      std::string("n1TNr9GJmBDKZFEsk1GCEbuhuMKbF5SfTkY");
 
   auto to_version_t = [](uint32_t major_version, uint16_t minor_version,
                          uint16_t patch_version) -> neb::rt::dip::version_t {
@@ -46,7 +46,7 @@ neb::rt::dip::dip_ret_type entry_point_dip(neb::compatible_uint64_t height) {
   if (!height) {
     std::get<1>(ret) = neb::rt::dip::dip_param_list(
         dip_start_block, dip_block_interval, dip_reward_addr, coinbase_addr,
-        to_version_t(0, 0, 1));
+        to_version_t(1, 0, 0));
     std::cout << "dip param list returned" << std::endl;
     return ret;
   }
@@ -67,6 +67,6 @@ neb::rt::dip::dip_ret_type entry_point_dip(neb::compatible_uint64_t height) {
   neb::rt::dip::dip_float_t alpha = 8e-3;
   neb::rt::dip::dip_float_t beta = 1;
   return neb::rt::dip::entry_point_dip_impl(start_block, end_block,
-                                            to_version_t(0, 0, 1), height,
+                                            to_version_t(1, 0, 0), height,
                                             nr_ret, alpha, beta);
 }

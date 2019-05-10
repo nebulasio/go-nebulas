@@ -36,7 +36,7 @@ neb::rt::nr::nr_ret_type entry_point_nr(neb::compatible_uint64_t start_block,
   neb::rt::nr::nr_float_t mu = 1;
   neb::rt::nr::nr_float_t lambda = 2;
   return neb::rt::nr::entry_point_nr_impl(start_block, end_block,
-                                          to_version_t(0, 0, 1), a, b, c, d,
+                                          to_version_t(1, 0, 0), a, b, c, d,
                                           theta, mu, lambda);
 }
 

@@ -1,18 +1,18 @@
 {
 
   "name": "dip",
-  "version_major": 0,
+  "version_major": 1,
   "version_minor": 0,
-  "version_patch": 1,
+  "version_patch": 0,
   "depends": [
     {
       "name": "nr",
-      "version_major": 0,
+      "version_major": 1,
       "version_minor": 0,
-      "version_patch": 1
+      "version_patch": 0
     }
   ],
-  "available_height": 10,
+  "available_height": 2307000,
   "cpp_files": [
     "dip_release_v1.cpp"
   ],
