@@ -1,0 +1,24 @@
+{
+
+  "name": "nr",
+  "version_major": 2,
+  "version_minor": 0,
+  "version_patch": 0,
+  "depends": [
+  ],
+  "available_height": 2307000,
+  "cpp_files": [
+    "nr_release_v2.cpp"
+  ],
+  "include_header_files":[
+    "../../lib/include"
+  ],
+  "link_path":[
+    "../../lib"
+  ],
+  "link_files":[
+  ],
+  "flags": [
+  ]
+
+}
