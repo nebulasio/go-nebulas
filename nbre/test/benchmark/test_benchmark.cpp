@@ -21,7 +21,9 @@
 #include "common/version.h"
 #include "runtime/nr/impl/nr_impl.h"
 #include "test/benchmark/account_db_v2.h"
+#include "test/benchmark/blockchain_api_v2.h"
 #include "test/benchmark/nebulas_rank_v2.h"
+#include "test/benchmark/transaction_db_v2.h"
 #include <boost/program_options.hpp>
 
 namespace po = boost::program_options;
@@ -35,11 +37,13 @@ entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
 
   std::unique_ptr<neb::fs::blockchain_api_base> pba =
       std::unique_ptr<neb::fs::blockchain_api_base>(
-          new neb::fs::blockchain_api());
+          new neb::fs::blockchain_api_v2());
   neb::rt::nr::transaction_db_ptr_t tdb_ptr =
       std::make_unique<neb::fs::transaction_db>(pba.get());
   neb::rt::nr::account_db_ptr_t adb_ptr =
       std::make_unique<neb::fs::account_db>(pba.get());
+
+  auto tdb_ptr_v2 = std::make_unique<neb::fs::transaction_db_v2>(tdb_ptr.get());
   auto adb_ptr_v2 = std::make_unique<neb::fs::account_db_v2>(adb_ptr.get());
 
   LOG(INFO) << "start block: " << start_block << " , end block: " << end_block;
@@ -55,17 +59,17 @@ entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
   std::get<0>(ret) = 1;
   std::get<1>(ret) = neb::rt::meta_info_to_json(meta_info);
 
-  neb::rt::nr::nebulas_rank::get_nr_score(tdb_ptr, adb_ptr, rp, start_block,
-                                          end_block);
-  neb::rt::nr::nebulas_rank_v2::get_nr_score(tdb_ptr, adb_ptr_v2, rp,
+  // neb::rt::nr::nebulas_rank::get_nr_score(tdb_ptr, adb_ptr, rp, start_block,
+  // end_block);
+  neb::rt::nr::nebulas_rank_v2::get_nr_score(tdb_ptr_v2, adb_ptr_v2, rp,
                                              start_block, end_block);
 
-  neb::address_t addr = neb::bytes::from_base58(address);
-  for (auto h = start_block; h < end_block; h++) {
-    auto b1 = adb_ptr->get_account_balance_internal(addr, h);
-    auto b2 = adb_ptr_v2->get_account_balance_internal(addr, h);
-    std::cout << h << ',' << b1 << ',' << b2 << std::endl;
-  }
+  // neb::address_t addr = neb::bytes::from_base58(address);
+  // for (auto h = start_block; h < end_block; h++) {
+  // auto b1 = adb_ptr->get_account_balance_internal(addr, h);
+  // auto b2 = adb_ptr_v2->get_account_balance_internal(addr, h);
+  // std::cout << h << ',' << b1 << ',' << b2 << std::endl;
+  //}
   return ret;
 }
 
@@ -120,8 +124,8 @@ int main(int argc, char *argv[]) {
   neb::fs::bc_storage_session::instance().init(neb_path,
                                                neb::fs::storage_open_default);
 
-  auto nr_ret = entry_point_nr_impl(start_block, end_block, address, 0, a, b, c,
-                                    d, theta, mu, lambda);
+  // auto nr_ret = entry_point_nr_impl(start_block, end_block, address, 0, a, b,
+  // c, d, theta, mu, lambda);
 
   neb::fs::bc_storage_session::instance().release();
   return 0;

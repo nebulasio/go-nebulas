@@ -21,6 +21,7 @@
 #pragma once
 #include "runtime/nr/impl/nebulas_rank.h"
 #include "test/benchmark/account_db_v2.h"
+#include "test/benchmark/transaction_db_v2.h"
 
 #define BLOCK_INTERVAL_MAGIC_NUM 128
 
@@ -28,12 +29,13 @@ namespace neb {
 namespace rt {
 namespace nr {
 
+using transaction_db_v2_ptr_t = std::unique_ptr<neb::fs::transaction_db_v2>;
 using account_db_v2_ptr_t = std::unique_ptr<neb::fs::account_db_v2>;
 
 class nebulas_rank_v2 {
 public:
   static std::vector<std::shared_ptr<nr_info_t>>
-  get_nr_score(const transaction_db_ptr_t &tdb_ptr,
+  get_nr_score(const transaction_db_v2_ptr_t &tdb_ptr,
                const account_db_v2_ptr_t &adb_ptr, const rank_params_t &rp,
                neb::block_height_t start_block, neb::block_height_t end_block);
 

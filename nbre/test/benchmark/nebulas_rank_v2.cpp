@@ -238,7 +238,7 @@ nebulas_rank_v2::get_account_rank(
 }
 
 std::vector<std::shared_ptr<nr_info_t>> nebulas_rank_v2::get_nr_score(
-    const transaction_db_ptr_t &tdb_ptr, const account_db_v2_ptr_t &adb_ptr,
+    const transaction_db_v2_ptr_t &tdb_ptr, const account_db_v2_ptr_t &adb_ptr,
     const rank_params_t &rp, neb::block_height_t start_block,
     neb::block_height_t end_block) {
 
@@ -251,9 +251,12 @@ std::vector<std::shared_ptr<nr_info_t>> nebulas_rank_v2::get_nr_score(
   auto inter_txs_ptr = fs::transaction_db::read_transactions_with_address_type(
       *txs_ptr, NAS_ADDRESS_ACCOUNT_MAGIC_NUM, NAS_ADDRESS_ACCOUNT_MAGIC_NUM);
   LOG(INFO) << "account to account: " << inter_txs_ptr->size();
+  auto succ_inter_txs_ptr =
+      tdb_ptr->read_transactions_with_succ(*inter_txs_ptr);
+  LOG(INFO) << "succ account to account: " << succ_inter_txs_ptr->size();
 
   // graph operation
-  auto txs_v_ptr = split_transactions_by_block_interval(*inter_txs_ptr);
+  auto txs_v_ptr = split_transactions_by_block_interval(*succ_inter_txs_ptr);
   LOG(INFO) << "split by block interval: " << txs_v_ptr->size();
 
   filter_empty_transactions_this_interval(*txs_v_ptr);
