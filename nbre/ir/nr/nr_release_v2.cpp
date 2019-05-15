@@ -43,6 +43,11 @@ public:
   static neb::floatxx_t get_normalized_value(neb::floatxx_t value);
 
 private:
+  void init_height_address_val_internal(
+      neb::block_height_t start_block,
+      const std::unordered_map<neb::address_t, neb::wei_t> &addr_balance);
+
+private:
   std::unordered_map<neb::address_t, std::vector<neb::block_height_t>>
       m_addr_height_list;
   std::unordered_map<neb::block_height_t,
@@ -68,6 +73,12 @@ account_db_v2::get_contract_deployer(const neb::address_t &addr,
 void account_db_v2::set_height_address_val_internal(
     const std::vector<neb::fs::transaction_info_t> &txs,
     std::unordered_map<neb::address_t, neb::wei_t> &addr_balance) {
+
+  if (txs.empty()) {
+    return;
+  }
+  auto start_block = txs.front().m_height;
+  init_height_address_val_internal(start_block, addr_balance);
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
     address_t from = it->m_from;
@@ -143,8 +154,9 @@ account_db_v2::get_account_balance_internal(const neb::address_t &address,
                                             neb::block_height_t height) {
   auto addr_it = m_addr_height_list.find(address);
   if (addr_it == m_addr_height_list.end()) {
-    return 0;
+    return get_balance(address, height);
   }
+
   auto height_it =
       std::lower_bound(addr_it->second.begin(), addr_it->second.end(), height);
 
@@ -157,10 +169,7 @@ account_db_v2::get_account_balance_internal(const neb::address_t &address,
     if (*height_it == height) {
       return m_height_addr_val[*height_it][address];
     } else {
-      if (height <= 1) {
-        return 0;
-      }
-      return get_balance(address, height - 1);
+      return get_balance(address, height);
     }
   }
 
@@ -351,13 +360,16 @@ nebulas_rank_v2::get_account_balance_median(
   auto ret = std::make_unique<std::unordered_map<address_t, floatxx_t>>();
   std::unordered_map<address_t, std::vector<wei_t>> addr_balance_v;
 
+  block_height_t max_height = 0;
   for (auto it = txs.begin(); it != txs.end(); it++) {
-    block_height_t max_height = get_max_height_this_block_interval(*it);
+    block_height_t height = get_max_height_this_block_interval(*it);
+    height = std::max(height, max_height);
     for (auto ite = accounts.begin(); ite != accounts.end(); ite++) {
       address_t addr = *ite;
-      wei_t balance = db_ptr->get_account_balance_internal(addr, max_height);
+      wei_t balance = db_ptr->get_account_balance_internal(addr, height);
       addr_balance_v[addr].push_back(balance);
     }
+    max_height = std::max(max_height, height);
   }
 
   floatxx_t zero = softfloat_cast<uint32_t, typename floatxx_t::value_type>(0);
