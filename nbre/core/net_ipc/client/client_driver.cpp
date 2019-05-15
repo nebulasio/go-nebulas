@@ -333,13 +333,13 @@ void client_driver::add_handlers() {
 
   m_client->add_handler<nbre_nr_result_by_height_req>(
       [this](std::shared_ptr<nbre_nr_result_by_height_req> req) {
-        LOG(INFO) << "recv nbre_nr_result_by_height_req";
+        // LOG(INFO) << "recv nbre_nr_result_by_height_req";
         try {
           auto ack = new_ack_pkg<nbre_nr_result_by_height_ack>(req);
           auto height = req->get<p_height>();
           auto ret_ptr =
               neb::rt::dip::dip_handler::instance().get_nr_result(height);
-          LOG(INFO) << "nr result \n" << *ret_ptr;
+          // LOG(INFO) << "nr result \n" << *ret_ptr;
           ack->set<p_nr_result>(*ret_ptr);
           m_ipc_conn->send(ack);
         } catch (const std::exception &e) {

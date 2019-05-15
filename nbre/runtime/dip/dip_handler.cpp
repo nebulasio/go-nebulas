@@ -111,7 +111,7 @@ void dip_handler::start(neb::block_height_t height,
   }
 
   if (height < dip_start_block + dip_block_interval) {
-    LOG(INFO) << "wait to sync";
+    LOG(INFO) << "wait to sync:" << dip_start_block;
     return;
   }
 
@@ -281,12 +281,12 @@ str_sptr_t dip_handler::get_dip_reward(neb::block_height_t height) {
 }
 
 str_sptr_t dip_handler::get_nr_result(neb::block_height_t height) {
-  LOG(INFO) << "call func get_nr_result height " << height;
+  // LOG(INFO) << "call func get_nr_result height " << height;
   auto ret = m_nr_result.try_lower_than(height);
-  LOG(INFO) << "try lower than returned status " << ret.first;
+  // LOG(INFO) << "try lower than returned status " << ret.first;
   if (!ret.first) {
     auto ret = std::string("{\"err\":\"no such nr result\"}");
-    LOG(INFO) << ret;
+    // LOG(INFO) << ret;
     return std::make_shared<std::string>(ret);
   }
   assert(ret.first);
@@ -371,7 +371,7 @@ void dip_handler::load_storage(
     size_t storage_max_size) {
   std::unique_lock<std::mutex> _l(m_mutex);
 
-  LOG(INFO) << "call func load_storage";
+  // LOG(INFO) << "call func load_storage";
   neb::bytes val_bytes;
   try {
     val_bytes = m_storage->get(key);

@@ -37,11 +37,11 @@ public:
   template <typename T, typename Func> void add_handler(Func &&f) {
     m_handlers.push_back([this, f](::ff::net::typed_pkg_hub &hub) {
       hub.to_recv_pkg<T>([f, this](std::shared_ptr<T> pkg) {
-        LOG(INFO) << "recv pkg " << pkg_type_id_to_name(T().type_id());
+        // LOG(INFO) << "recv pkg " << pkg_type_id_to_name(T().type_id());
         // No big pressure for NBRE
         m_to_recv_heart_beat_msg = 0;
         if (m_pkg_handler_thread->size() > ff::rt::concurrency()) {
-          LOG(INFO) << "ignore pkg";
+          // LOG(INFO) << "ignore pkg";
           return;
         }
 
