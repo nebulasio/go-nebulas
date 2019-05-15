@@ -19,7 +19,10 @@
 //
 
 #include "common/int128_conversion.h"
+#include "common/nebulas_currency.h"
+#include "fs/blockchain/trie/trie.h"
 #include "runtime/nr/impl/nr_impl.h"
+#include <boost/property_tree/json_parser.hpp>
 
 namespace neb {
 namespace fs {
@@ -33,7 +36,7 @@ public:
   neb::address_t get_contract_deployer(const neb::address_t &addr,
                                        neb::block_height_t height);
 
-  void set_height_address_val_internal(
+  void update_height_address_val_internal(
       const std::vector<neb::fs::transaction_info_t> &txs,
       std::unordered_map<neb::address_t, neb::wei_t> &addr_balance);
 
@@ -70,7 +73,26 @@ account_db_v2::get_contract_deployer(const neb::address_t &addr,
   return m_adb_ptr->get_contract_deployer(addr, height);
 }
 
-void account_db_v2::set_height_address_val_internal(
+void account_db_v2::init_height_address_val_internal(
+    neb::block_height_t start_block,
+    const std::unordered_map<neb::address_t, neb::wei_t> &addr_balance) {
+
+  for (auto &ele : addr_balance) {
+    std::vector<neb::block_height_t> v{start_block};
+    m_addr_height_list.insert(std::make_pair(ele.first, v));
+
+    auto iter = m_height_addr_val.find(start_block);
+    if (iter == m_height_addr_val.end()) {
+      std::unordered_map<address_t, wei_t> addr_val = {{ele.first, ele.second}};
+      m_height_addr_val.insert(std::make_pair(start_block, addr_val));
+    } else {
+      auto &addr_val = iter->second;
+      addr_val.insert(std::make_pair(ele.first, ele.second));
+    }
+  }
+}
+
+void account_db_v2::update_height_address_val_internal(
     const std::vector<neb::fs::transaction_info_t> &txs,
     std::unordered_map<neb::address_t, neb::wei_t> &addr_balance) {
 
@@ -152,6 +174,7 @@ void account_db_v2::set_height_address_val_internal(
 neb::wei_t
 account_db_v2::get_account_balance_internal(const neb::address_t &address,
                                             neb::block_height_t height) {
+
   auto addr_it = m_addr_height_list.find(address);
   if (addr_it == m_addr_height_list.end()) {
     return get_balance(address, height);
@@ -185,26 +208,183 @@ neb::floatxx_t account_db_v2::get_normalized_value(neb::floatxx_t value) {
   return value / neb::floatxx_t(ratio);
 }
 
+class transaction_db_v2 {
+public:
+  transaction_db_v2(transaction_db *tdb_ptr);
+
+  std::unique_ptr<std::vector<transaction_info_t>>
+  read_transactions_from_db_with_duration(block_height_t start_block,
+                                          block_height_t end_block);
+
+  static std::unique_ptr<std::vector<transaction_info_t>>
+  read_transactions_with_succ(const std::vector<transaction_info_t> &txs);
+
+  static std::unique_ptr<std::vector<transaction_info_t>>
+  read_transactions_with_address_type(
+      const std::vector<transaction_info_t> &txs, byte_t from_type,
+      byte_t to_type);
+
+protected:
+  transaction_db *m_tdb_ptr;
+};
+
+transaction_db_v2::transaction_db_v2(transaction_db *tdb_ptr)
+    : m_tdb_ptr(tdb_ptr) {}
+
+std::unique_ptr<std::vector<transaction_info_t>>
+transaction_db_v2::read_transactions_from_db_with_duration(
+    block_height_t start_block, block_height_t end_block) {
+  return m_tdb_ptr->read_transactions_from_db_with_duration(start_block,
+                                                            end_block);
+}
+
+std::unique_ptr<std::vector<transaction_info_t>>
+transaction_db_v2::read_transactions_with_succ(
+    const std::vector<transaction_info_t> &txs) {
+  auto ptr = std::make_unique<std::vector<transaction_info_t>>();
+  for (auto &tx : txs) {
+    if (tx.m_status) {
+      ptr->push_back(tx);
+    }
+  }
+  return ptr;
+}
+
+std::unique_ptr<std::vector<transaction_info_t>>
+transaction_db_v2::read_transactions_with_address_type(
+    const std::vector<transaction_info_t> &txs, byte_t from_type,
+    byte_t to_type) {
+  return transaction_db::read_transactions_with_address_type(txs, from_type,
+                                                             to_type);
+}
+
+class blockchain_api_v2 : public blockchain_api {
+public:
+  blockchain_api_v2();
+  virtual ~blockchain_api_v2();
+
+  virtual std::unique_ptr<std::vector<transaction_info_t>>
+  get_block_transactions_api(block_height_t height);
+
+protected:
+  virtual std::unique_ptr<event_info_t>
+  get_transaction_result_api(const neb::bytes &events_root,
+                             const neb::bytes &tx_hash);
+  std::unique_ptr<event_info_t> json_parse_event(const std::string &json);
+};
+
+blockchain_api_v2::blockchain_api_v2() : blockchain_api() {}
+blockchain_api_v2::~blockchain_api_v2() {}
+
+std::unique_ptr<std::vector<transaction_info_t>>
+blockchain_api_v2::get_block_transactions_api(block_height_t height) {
+
+  auto ret = std::make_unique<std::vector<transaction_info_t>>();
+  // special for  block height 1
+  if (height <= 1) {
+    return ret;
+  }
+
+  auto block = blockchain::load_block_with_height(height);
+  int64_t timestamp = block->header().timestamp();
+
+  std::string events_root_str = block->header().events_root();
+  neb::bytes events_root_bytes = neb::string_to_byte(events_root_str);
+
+  for (auto &tx : block->transactions()) {
+    transaction_info_t info;
+
+    info.m_height = height;
+    info.m_timestamp = timestamp;
+
+    info.m_from = to_address(tx.from());
+    info.m_to = to_address(tx.to());
+    info.m_tx_value = storage_to_wei(neb::string_to_byte(tx.value()));
+    info.m_gas_price = storage_to_wei(neb::string_to_byte(tx.gas_price()));
+    info.m_tx_type = tx.data().type();
+
+    // get topic chain.transactionResult
+    std::string tx_hash_str = tx.hash();
+    neb::bytes tx_hash_bytes = neb::string_to_byte(tx_hash_str);
+    auto txs_result_ptr =
+        get_transaction_result_api(events_root_bytes, tx_hash_bytes);
+
+    info.m_status = txs_result_ptr->m_status;
+    info.m_gas_used = txs_result_ptr->m_gas_used;
+
+    ret->push_back(info);
+  }
+  return ret;
+}
+
+std::unique_ptr<event_info_t>
+blockchain_api_v2::get_transaction_result_api(const neb::bytes &events_root,
+                                              const neb::bytes &tx_hash) {
+  trie t;
+  neb::bytes txs_result;
+
+  for (int64_t id = 1;; id++) {
+    neb::bytes id_bytes = neb::number_to_byte<neb::bytes>(id);
+    neb::bytes events_tx_hash = tx_hash;
+    events_tx_hash.append_bytes(id_bytes.value(), id_bytes.size());
+
+    neb::bytes trie_node_bytes;
+    bool ret = t.get_trie_node(events_root, events_tx_hash, trie_node_bytes);
+    if (!ret) {
+      break;
+    }
+    txs_result = trie_node_bytes;
+  }
+  assert(!txs_result.empty());
+
+  std::string json_str = neb::byte_to_string(txs_result);
+
+  return json_parse_event(json_str);
+}
+
+std::unique_ptr<event_info_t>
+blockchain_api_v2::json_parse_event(const std::string &json) {
+  boost::property_tree::ptree pt;
+  std::stringstream ss(json);
+  boost::property_tree::read_json(ss, pt);
+
+  std::string topic = pt.get<std::string>("Topic");
+  assert(topic.compare("chain.transactionResult") == 0);
+
+  std::string data_json = pt.get<std::string>("Data");
+  ss = std::stringstream(data_json);
+  boost::property_tree::read_json(ss, pt);
+
+  int32_t status = pt.get<int32_t>("status");
+  wei_t gas_used = boost::lexical_cast<wei_t>(pt.get<std::string>("gas_used"));
+
+  auto ret = std::make_unique<event_info_t>(event_info_t{status, gas_used});
+  return ret;
+}
+
 } // namespace fs
 } // namespace neb
+
+#define BLOCK_INTERVAL_MAGIC_NUM 128
 
 namespace neb {
 namespace rt {
 namespace nr {
 
+using transaction_db_v2_ptr_t = std::unique_ptr<neb::fs::transaction_db_v2>;
 using account_db_v2_ptr_t = std::unique_ptr<neb::fs::account_db_v2>;
 
 class nebulas_rank_v2 {
 public:
   static std::vector<std::shared_ptr<nr_info_t>>
-  get_nr_score(const transaction_db_ptr_t &tdb_ptr,
+  get_nr_score(const transaction_db_v2_ptr_t &tdb_ptr,
                const account_db_v2_ptr_t &adb_ptr, const rank_params_t &rp,
                neb::block_height_t start_block, neb::block_height_t end_block);
 
 private:
   static auto split_transactions_by_block_interval(
       const std::vector<neb::fs::transaction_info_t> &txs,
-      int32_t block_interval = 128)
+      int32_t block_interval = BLOCK_INTERVAL_MAGIC_NUM)
       -> std::unique_ptr<std::vector<std::vector<neb::fs::transaction_info_t>>>;
 
   static void filter_empty_transactions_this_interval(
@@ -462,7 +642,7 @@ nebulas_rank_v2::get_account_rank(
 }
 
 std::vector<std::shared_ptr<nr_info_t>> nebulas_rank_v2::get_nr_score(
-    const transaction_db_ptr_t &tdb_ptr, const account_db_v2_ptr_t &adb_ptr,
+    const transaction_db_v2_ptr_t &tdb_ptr, const account_db_v2_ptr_t &adb_ptr,
     const rank_params_t &rp, neb::block_height_t start_block,
     neb::block_height_t end_block) {
 
@@ -475,9 +655,12 @@ std::vector<std::shared_ptr<nr_info_t>> nebulas_rank_v2::get_nr_score(
   auto inter_txs_ptr = fs::transaction_db::read_transactions_with_address_type(
       *txs_ptr, NAS_ADDRESS_ACCOUNT_MAGIC_NUM, NAS_ADDRESS_ACCOUNT_MAGIC_NUM);
   LOG(INFO) << "account to account: " << inter_txs_ptr->size();
+  auto succ_inter_txs_ptr =
+      tdb_ptr->read_transactions_with_succ(*inter_txs_ptr);
+  LOG(INFO) << "succ account to account: " << succ_inter_txs_ptr->size();
 
   // graph operation
-  auto txs_v_ptr = split_transactions_by_block_interval(*inter_txs_ptr);
+  auto txs_v_ptr = split_transactions_by_block_interval(*succ_inter_txs_ptr);
   LOG(INFO) << "split by block interval: " << txs_v_ptr->size();
 
   filter_empty_transactions_this_interval(*txs_v_ptr);
@@ -513,7 +696,7 @@ std::vector<std::shared_ptr<nr_info_t>> nebulas_rank_v2::get_nr_score(
     addr_balance.insert(std::make_pair(acc, balance));
   }
   LOG(INFO) << "done with get balance";
-  adb_ptr->set_height_address_val_internal(*txs_ptr, addr_balance);
+  adb_ptr->update_height_address_val_internal(*txs_ptr, addr_balance);
   LOG(INFO) << "done with set height address";
 
   auto account_median_ptr =
@@ -565,11 +748,13 @@ neb::rt::nr::nr_ret_type entry_point_nr_impl_v2(
 
   std::unique_ptr<neb::fs::blockchain_api_base> pba =
       std::unique_ptr<neb::fs::blockchain_api_base>(
-          new neb::fs::blockchain_api());
+          new neb::fs::blockchain_api_v2());
   neb::rt::nr::transaction_db_ptr_t tdb_ptr =
       std::make_unique<neb::fs::transaction_db>(pba.get());
   neb::rt::nr::account_db_ptr_t adb_ptr =
       std::make_unique<neb::fs::account_db>(pba.get());
+
+  auto tdb_ptr_v2 = std::make_unique<neb::fs::transaction_db_v2>(tdb_ptr.get());
   auto adb_ptr_v2 = std::make_unique<neb::fs::account_db_v2>(adb_ptr.get());
 
   LOG(INFO) << "start block: " << start_block << " , end block: " << end_block;
@@ -585,7 +770,8 @@ neb::rt::nr::nr_ret_type entry_point_nr_impl_v2(
   std::get<0>(ret) = 1;
   std::get<1>(ret) = neb::rt::meta_info_to_json(meta_info);
   std::get<2>(ret) = neb::rt::nr::nebulas_rank_v2::get_nr_score(
-      tdb_ptr, adb_ptr_v2, rp, start_block, end_block);
+      tdb_ptr_v2, adb_ptr_v2, rp, start_block, end_block);
+
   return ret;
 }
 

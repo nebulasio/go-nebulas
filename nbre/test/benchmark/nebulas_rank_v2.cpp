@@ -142,7 +142,7 @@ nebulas_rank_v2::get_account_balance_median(
     height = std::max(height, max_height);
     for (auto ite = accounts.begin(); ite != accounts.end(); ite++) {
       address_t addr = *ite;
-      wei_t balance = db_ptr->get_account_balance_internal(addr, max_height);
+      wei_t balance = db_ptr->get_account_balance_internal(addr, height);
       addr_balance_v[addr].push_back(balance);
     }
     max_height = std::max(max_height, height);

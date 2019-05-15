@@ -61,8 +61,23 @@ entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
 
   // neb::rt::nr::nebulas_rank::get_nr_score(tdb_ptr, adb_ptr, rp, start_block,
   // end_block);
-  neb::rt::nr::nebulas_rank_v2::get_nr_score(tdb_ptr_v2, adb_ptr_v2, rp,
-                                             start_block, end_block);
+  std::get<2>(ret) = neb::rt::nr::nebulas_rank_v2::get_nr_score(
+      tdb_ptr_v2, adb_ptr_v2, rp, start_block, end_block);
+
+  std::unordered_set<neb::address_t> diff_set;
+  for (auto h = start_block; h < end_block; h++) {
+    for (auto &ele : std::get<2>(ret)) {
+      auto addr = ele->m_address;
+      auto b1 = adb_ptr_v2->get_balance(addr, h);
+      auto b2 = adb_ptr_v2->get_account_balance_internal(addr, h);
+      std::cout << h << ',' << addr.to_base58() << ',' << b1 << ',' << b2
+                << std::endl;
+      if (b1 != b2) {
+        diff_set.insert(addr);
+      }
+    }
+  }
+  LOG(INFO) << "diff set size " << diff_set.size();
 
   // neb::address_t addr = neb::bytes::from_base58(address);
   // for (auto h = start_block; h < end_block; h++) {
@@ -124,8 +139,8 @@ int main(int argc, char *argv[]) {
   neb::fs::bc_storage_session::instance().init(neb_path,
                                                neb::fs::storage_open_default);
 
-  // auto nr_ret = entry_point_nr_impl(start_block, end_block, address, 0, a, b,
-  // c, d, theta, mu, lambda);
+  auto nr_ret = entry_point_nr_impl(start_block, end_block, address, 0, a, b, c,
+                                    d, theta, mu, lambda);
 
   neb::fs::bc_storage_session::instance().release();
   return 0;
