@@ -111,7 +111,7 @@ void dip_handler::start(neb::block_height_t height,
   }
 
   if (height < dip_start_block + dip_block_interval) {
-    LOG(INFO) << "wait to sync:" << dip_start_block;
+    LOG(INFO) << "wait to sync:" << dip_start_block << ",height:" << height;
     return;
   }
 
