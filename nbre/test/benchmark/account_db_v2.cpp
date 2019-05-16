@@ -57,13 +57,10 @@ void account_db_v2::init_height_address_val_internal(
 }
 
 void account_db_v2::update_height_address_val_internal(
+    neb::block_height_t start_block,
     const std::vector<neb::fs::transaction_info_t> &txs,
     std::unordered_map<neb::address_t, neb::wei_t> &addr_balance) {
 
-  if (txs.empty()) {
-    return;
-  }
-  auto start_block = txs.front().m_height;
   init_height_address_val_internal(start_block, addr_balance);
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
@@ -81,16 +78,18 @@ void account_db_v2::update_height_address_val_internal(
       addr_balance.insert(std::make_pair(to, 0));
     }
 
-    int32_t status = it->m_status;
-    if (status) {
-      addr_balance[from] -= value;
-      addr_balance[to] += value;
-    }
+    if (height != start_block) {
+      int32_t status = it->m_status;
+      if (status) {
+        addr_balance[from] -= value;
+        addr_balance[to] += value;
+      }
 
-    wei_t gas_used = it->m_gas_used;
-    if (gas_used != 0) {
-      wei_t gas_val = gas_used * it->m_gas_price;
-      addr_balance[from] -= gas_val;
+      wei_t gas_used = it->m_gas_used;
+      if (gas_used != 0) {
+        wei_t gas_val = gas_used * it->m_gas_price;
+        addr_balance[from] -= gas_val;
+      }
     }
 
     if (m_height_addr_val.find(height) == m_height_addr_val.end()) {

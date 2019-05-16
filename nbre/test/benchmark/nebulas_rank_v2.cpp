@@ -292,7 +292,8 @@ std::vector<std::shared_ptr<nr_info_t>> nebulas_rank_v2::get_nr_score(
     addr_balance.insert(std::make_pair(acc, balance));
   }
   LOG(INFO) << "done with get balance";
-  adb_ptr->update_height_address_val_internal(*txs_ptr, addr_balance);
+  adb_ptr->update_height_address_val_internal(start_block, *txs_ptr,
+                                              addr_balance);
   LOG(INFO) << "done with set height address";
 
   auto account_median_ptr =

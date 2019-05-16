@@ -60,60 +60,82 @@ blockchain_api_v2::get_block_transactions_api(block_height_t height) {
     // get topic chain.transactionResult
     std::string tx_hash_str = tx.hash();
     neb::bytes tx_hash_bytes = neb::string_to_byte(tx_hash_str);
-    auto txs_result_ptr =
-        get_transaction_result_api(events_root_bytes, tx_hash_bytes);
-
-    info.m_status = txs_result_ptr->m_status;
-    info.m_gas_used = txs_result_ptr->m_gas_used;
+    get_transfer_event(events_root_bytes, tx_hash_bytes, *ret, info);
 
     ret->push_back(info);
   }
   return ret;
 }
 
-std::unique_ptr<event_info_t>
-blockchain_api_v2::get_transaction_result_api(const neb::bytes &events_root,
-                                              const neb::bytes &tx_hash) {
-  trie t;
-  neb::bytes txs_result;
+void blockchain_api_v2::get_transfer_event(
+    const neb::bytes &events_root, const neb::bytes &tx_hash,
+    std::vector<transaction_info_t> &infos, transaction_info_t &info) {
 
   for (int64_t id = 1;; id++) {
     neb::bytes id_bytes = neb::number_to_byte<neb::bytes>(id);
     neb::bytes events_tx_hash = tx_hash;
     events_tx_hash.append_bytes(id_bytes.value(), id_bytes.size());
 
+    trie t;
     neb::bytes trie_node_bytes;
     bool ret = t.get_trie_node(events_root, events_tx_hash, trie_node_bytes);
     if (!ret) {
       break;
     }
-    txs_result = trie_node_bytes;
+
+    std::string json_str = neb::byte_to_string(trie_node_bytes);
+    json_parse_event(json_str, infos, info);
   }
-  assert(!txs_result.empty());
-
-  std::string json_str = neb::byte_to_string(txs_result);
-
-  return json_parse_event(json_str);
 }
 
-std::unique_ptr<event_info_t>
-blockchain_api_v2::json_parse_event(const std::string &json) {
+void blockchain_api_v2::json_parse_event(const std::string &json,
+                                         std::vector<transaction_info_t> &infos,
+                                         transaction_info_t &info) {
   boost::property_tree::ptree pt;
   std::stringstream ss(json);
   boost::property_tree::read_json(ss, pt);
 
   std::string topic = pt.get<std::string>("Topic");
-  assert(topic.compare("chain.transactionResult") == 0);
 
-  std::string data_json = pt.get<std::string>("Data");
-  ss = std::stringstream(data_json);
-  boost::property_tree::read_json(ss, pt);
+  if (topic.compare("chain.transactionResult") == 0) {
+    std::string data_json = pt.get<std::string>("Data");
+    ss = std::stringstream(data_json);
+    boost::property_tree::read_json(ss, pt);
 
-  int32_t status = pt.get<int32_t>("status");
-  wei_t gas_used = boost::lexical_cast<wei_t>(pt.get<std::string>("gas_used"));
+    int32_t status = pt.get<int32_t>("status");
+    wei_t gas_used =
+        boost::lexical_cast<wei_t>(pt.get<std::string>("gas_used"));
+    info.m_status = status;
+    info.m_gas_used = gas_used;
+  }
 
-  auto ret = std::make_unique<event_info_t>(event_info_t{status, gas_used});
-  return ret;
+  if (topic.compare("chain.transferFromContract") == 0) {
+    std::string data_json = pt.get<std::string>("Data");
+    ss = std::stringstream(data_json);
+    boost::property_tree::read_json(ss, pt);
+
+    boost::property_tree::ptree::const_assoc_iterator it = pt.find("error");
+    if (it != pt.not_found()) {
+      return;
+    }
+
+    std::string from = pt.get<std::string>("from");
+    std::string to = pt.get<std::string>("to");
+    std::string amount = pt.get<std::string>("amount");
+
+    transaction_info_t event;
+    event.m_height = info.m_height;
+    event.m_timestamp = info.m_timestamp;
+    event.m_from = neb::base58_to_address(from);
+    event.m_to = neb::base58_to_address(to);
+    event.m_tx_value = boost::lexical_cast<wei_t>(amount);
+    event.m_gas_price = info.m_gas_price;
+    event.m_tx_type = std::string("event");
+    event.m_status = 1;
+    event.m_gas_used = 0;
+
+    infos.push_back(event);
+  }
 }
 
 } // namespace fs

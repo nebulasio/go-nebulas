@@ -34,6 +34,7 @@ public:
                                        neb::block_height_t height);
 
   void update_height_address_val_internal(
+      neb::block_height_t start_block,
       const std::vector<neb::fs::transaction_info_t> &txs,
       std::unordered_map<neb::address_t, neb::wei_t> &addr_balance);
 

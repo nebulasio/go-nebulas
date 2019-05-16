@@ -45,13 +45,5 @@ transaction_db_v2::read_transactions_with_succ(
   return ptr;
 }
 
-std::unique_ptr<std::vector<transaction_info_t>>
-transaction_db_v2::read_transactions_with_address_type(
-    const std::vector<transaction_info_t> &txs, byte_t from_type,
-    byte_t to_type) {
-  return transaction_db::read_transactions_with_address_type(txs, from_type,
-                                                             to_type);
-}
-
 } // namespace fs
 } // namespace neb

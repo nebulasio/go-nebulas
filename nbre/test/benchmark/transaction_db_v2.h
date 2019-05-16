@@ -35,11 +35,6 @@ public:
   static std::unique_ptr<std::vector<transaction_info_t>>
   read_transactions_with_succ(const std::vector<transaction_info_t> &txs);
 
-  static std::unique_ptr<std::vector<transaction_info_t>>
-  read_transactions_with_address_type(
-      const std::vector<transaction_info_t> &txs, byte_t from_type,
-      byte_t to_type);
-
 protected:
   transaction_db *m_tdb_ptr;
 };

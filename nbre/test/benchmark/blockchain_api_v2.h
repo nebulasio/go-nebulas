@@ -33,10 +33,13 @@ public:
   get_block_transactions_api(block_height_t height);
 
 protected:
-  virtual std::unique_ptr<event_info_t>
-  get_transaction_result_api(const neb::bytes &events_root,
-                             const neb::bytes &tx_hash);
-  std::unique_ptr<event_info_t> json_parse_event(const std::string &json);
+  virtual void get_transfer_event(const neb::bytes &events_root,
+                                  const neb::bytes &tx_hash,
+                                  std::vector<transaction_info_t> &infos,
+                                  transaction_info_t &info);
+  virtual void json_parse_event(const std::string &json,
+                                std::vector<transaction_info_t> &infos,
+                                transaction_info_t &info);
 };
 
 } // namespace fs
