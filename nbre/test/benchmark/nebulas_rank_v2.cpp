@@ -129,6 +129,7 @@ nebulas_rank_v2::get_normal_accounts(
 
 std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
 nebulas_rank_v2::get_account_balance_median(
+    neb::block_height_t start_block,
     const std::unordered_set<address_t> &accounts,
     const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
     const account_db_v2_ptr_t &db_ptr) {
@@ -136,7 +137,7 @@ nebulas_rank_v2::get_account_balance_median(
   auto ret = std::make_unique<std::unordered_map<address_t, floatxx_t>>();
   std::unordered_map<address_t, std::vector<wei_t>> addr_balance_v;
 
-  block_height_t max_height = 0;
+  block_height_t max_height = start_block;
   for (auto it = txs.begin(); it != txs.end(); it++) {
     block_height_t height = get_max_height_this_block_interval(*it);
     height = std::max(height, max_height);
@@ -296,8 +297,8 @@ std::vector<std::shared_ptr<nr_info_t>> nebulas_rank_v2::get_nr_score(
                                               addr_balance);
   LOG(INFO) << "done with set height address";
 
-  auto account_median_ptr =
-      get_account_balance_median(*accounts_ptr, *txs_v_ptr, adb_ptr);
+  auto account_median_ptr = get_account_balance_median(
+      start_block, *accounts_ptr, *txs_v_ptr, adb_ptr);
   LOG(INFO) << "done with get account balance median";
   auto account_weight_ptr = get_account_weight(in_out_vals, adb_ptr);
   LOG(INFO) << "done with get account weight";

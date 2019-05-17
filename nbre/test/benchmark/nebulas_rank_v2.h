@@ -57,6 +57,7 @@ private:
       -> std::unique_ptr<std::unordered_set<address_t>>;
 
   static auto get_account_balance_median(
+      neb::block_height_t start_block,
       const std::unordered_set<address_t> &accounts,
       const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
       const account_db_v2_ptr_t &db_ptr)

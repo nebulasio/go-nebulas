@@ -60,16 +60,23 @@ blockchain_api_v2::get_block_transactions_api(block_height_t height) {
     // get topic chain.transactionResult
     std::string tx_hash_str = tx.hash();
     neb::bytes tx_hash_bytes = neb::string_to_byte(tx_hash_str);
-    get_transfer_event(events_root_bytes, tx_hash_bytes, *ret, info);
+    std::vector<transaction_info_t> events;
+    get_transfer_event(events_root_bytes, tx_hash_bytes, events, info);
 
     ret->push_back(info);
+    if (info.m_status) {
+      for (auto &e : events) {
+        e.m_status = info.m_status;
+        ret->push_back(e);
+      }
+    }
   }
   return ret;
 }
 
 void blockchain_api_v2::get_transfer_event(
     const neb::bytes &events_root, const neb::bytes &tx_hash,
-    std::vector<transaction_info_t> &infos, transaction_info_t &info) {
+    std::vector<transaction_info_t> &events, transaction_info_t &info) {
 
   for (int64_t id = 1;; id++) {
     neb::bytes id_bytes = neb::number_to_byte<neb::bytes>(id);
@@ -84,13 +91,14 @@ void blockchain_api_v2::get_transfer_event(
     }
 
     std::string json_str = neb::byte_to_string(trie_node_bytes);
-    json_parse_event(json_str, infos, info);
+    json_parse_event(json_str, events, info);
   }
 }
 
-void blockchain_api_v2::json_parse_event(const std::string &json,
-                                         std::vector<transaction_info_t> &infos,
-                                         transaction_info_t &info) {
+void blockchain_api_v2::json_parse_event(
+    const std::string &json, std::vector<transaction_info_t> &events,
+    transaction_info_t &info) {
+
   boost::property_tree::ptree pt;
   std::stringstream ss(json);
   boost::property_tree::read_json(ss, pt);
@@ -134,7 +142,7 @@ void blockchain_api_v2::json_parse_event(const std::string &json,
     event.m_status = 1;
     event.m_gas_used = 0;
 
-    infos.push_back(event);
+    events.push_back(event);
   }
 }
 
