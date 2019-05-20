@@ -134,11 +134,13 @@ EXPORT void InitializeCrypto(Sha256Func sha256,
 EXPORT char *GetV8Version();
 
 // require callback.
-typedef char *(*RequireDelegateFunc)(void *handler, const char *filename,
-                                 size_t *lineOffset);
-typedef char *(*AttachLibVersionDelegateFunc)(void *handler, const char *libname);
+typedef std::string (*RequireDelegateFunc)(void *handler, const char *filename, size_t *lineOffset);
 
-EXPORT void InitializeRequireDelegate(RequireDelegateFunc delegate, AttachLibVersionDelegateFunc libDelegate);
+typedef std::string (*AttachLibVersionDelegateFunc)(void *handler, const char *libname);
+
+typedef std::string (*FetchNativeJSLibContentDelegateFunc)(void *handler, const char* filepath);
+
+EXPORT void InitializeRequireDelegate(RequireDelegateFunc delegate, AttachLibVersionDelegateFunc libDelegate, FetchNativeJSLibContentDelegateFunc fDelegate);
 
 EXPORT void InitializeExecutionEnvDelegate(AttachLibVersionDelegateFunc libDelegate);
 
@@ -182,7 +184,7 @@ typedef struct V8Engine {
 } V8Engine;
 
 typedef struct v8ThreadContextInput {
-  //uintptr_t lcs;  
+  //uintptr_t lcs;
   //uintptr_t gcs;
   enum OptType opt;
   int line_offset;

@@ -29,7 +29,7 @@ import (
 	"encoding/json"
 	"golang.org/x/net/context"
 
-	lru "github.com/hashicorp/golang-lru"
+	//lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -52,7 +52,6 @@ const (
 	NVMDataExchangeTypeStart = "start"
 	NVMDataExchangeTypeCallBack = "callback"
 	NVMDataExchangeTypeFinal = "final"
-	NVMDataExchangeTypeContractSrc = "contractsrc"
 	NVMDataExchangeTypeInnerContractCall = "innercall"
 
 	NVM_SUCCESS = 0
@@ -98,16 +97,18 @@ var (
 	storagesLock         = sync.RWMutex{}
 //	engines              = make(map[*C.V8Engine]*V8Engine, 1024)
 //	enginesLock          = sync.RWMutex{}
-	sourceModuleCache, _ = lru.New(40960)
+//	sourceModuleCache, _ = lru.New(40960)
 	inject               = 0
 	hit                  = 0
 	nvmRequestIndex uint32	 = 1
+
+	StartSCTime = time.Now()
 )
 
 // V8Engine v8 engine.
 type V8Engine struct {
 	ctx                                     *Context
-	modules                                 Modules
+	//modules                                 Modules
 	//v8engine                                *C.V8Engine
 	strictDisallowUsageOfInstructionCounter int
 	enableLimits                            bool
@@ -133,12 +134,16 @@ type sourceModuleItem struct {
 	traceableSourceLineOffset int
 }
 
+func ResetRuntimeStatus(){
+	storagesIdx = 0
+}
+
 // NewV8Engine return new V8Engine instance.
 func NewV8Engine(ctx *Context) *V8Engine {
 
 	engine := &V8Engine{
 		ctx:      ctx,
-		modules:  NewModules(),
+		//modules:  NewModules(),
 		strictDisallowUsageOfInstructionCounter: 1, 	// enable by default.
 		enableLimits:                            true,
 		limitsOfExecutionInstructions:           0,
@@ -189,6 +194,10 @@ func (e *V8Engine) Dispose() {
 	storagesLock.Lock()
 	delete(storages, e.lcsHandler)
 	delete(storages, e.gcsHandler)
+	logging.CLog().WithFields(logrus.Fields{
+			"lcsHandler": e.lcsHandler,
+			"gcsHandler": e.gcsHandler,
+		}).Error("------ Storages are deleted")
 	storagesLock.Unlock()
 }
 
@@ -322,6 +331,21 @@ func PrepareLaunchRequest(e *V8Engine, config *core.NVMConfig, innerCallFlag boo
 		moduleID = "contract.js"
 	}
 	
+	var metaVersion string = "";
+	if e.ctx.contract.ContractMeta() != nil {
+		metaVersion = e.ctx.contract.ContractMeta().Version
+		if len(metaVersion) == 0 {
+			logging.VLog().WithFields(logrus.Fields{
+				"height":  e.ctx.block.Height(),
+			}).Error("contract deploy lib version is empty.")
+			metaVersion = ""
+		}
+	}
+
+	logging.CLog().WithFields(logrus.Fields{
+		"metaversion": metaVersion,
+	}).Error(">>>>> Meta VERSION!!!!!")
+
 	runnableSource := fmt.Sprintf(`Blockchain.blockParse("%s");
 		Blockchain.transactionParse("%s");
 		var __contract = require("%s");
@@ -330,6 +354,10 @@ func PrepareLaunchRequest(e *V8Engine, config *core.NVMConfig, innerCallFlag boo
 			formatArgs(string(blockJSON)), formatArgs(string(txJSON)),
 			moduleID, config.FunctionName, formatArgs(string(argsInput)))
 
+	logging.CLog().WithFields(logrus.Fields{
+		"runnable": runnableSource,
+	}).Info("------->>>>>> Runnable Source")
+
 	if core.NvmGasLimitWithoutTimeoutAtHeight(e.ctx.block.Height()) {
 		if e.limitsOfExecutionInstructions > MaxLimitsOfExecutionInstructions {
 			e.limitsOfExecutionInstructions = MaxLimitsOfExecutionInstructions
@@ -337,11 +365,23 @@ func PrepareLaunchRequest(e *V8Engine, config *core.NVMConfig, innerCallFlag boo
 	}
 
 	sourceHash := byteutils.Hex(hash.Sha3256([]byte(config.PayloadSource)))
-	configBundle := &NVMConfigBundle{ScriptSrc:config.PayloadSource, ScriptType:config.PayloadSourceType, ScriptHash: sourceHash, EnableLimits: true, RunnableSrc: runnableSource, 
-		MaxLimitsOfExecutionInstruction:MaxLimitsOfExecutionInstructions, DefaultLimitsOfTotalMemSize:core.DefaultLimitsOfTotalMemorySize,
-		LimitsExeInstruction: e.limitsOfExecutionInstructions, LimitsTotalMemSize: e.limitsOfTotalMemorySize, ExecutionTimeout: e.executionTimeOut,
-		BlockJson:formatArgs(string(blockJSON)), TxJson: formatArgs(string(txJSON)), 
-		ModuleId: moduleID, ChainId: e.chainID, BlockHeight: e.ctx.block.Height()}
+	configBundle := &NVMConfigBundle{
+		ScriptSrc:config.PayloadSource, 
+		ScriptType:config.PayloadSourceType, 
+		ScriptHash: sourceHash, 
+		EnableLimits: true, 
+		RunnableSrc: runnableSource, 
+		MaxLimitsOfExecutionInstruction:MaxLimitsOfExecutionInstructions, 
+		DefaultLimitsOfTotalMemSize:core.DefaultLimitsOfTotalMemorySize,
+		LimitsExeInstruction: e.limitsOfExecutionInstructions, 
+		LimitsTotalMemSize: e.limitsOfTotalMemorySize, 
+		ExecutionTimeout: e.executionTimeOut,
+		BlockJson:formatArgs(string(blockJSON)), 
+		TxJson: formatArgs(string(txJSON)), 
+		ModuleId: moduleID, 
+		ChainId: e.chainID, 
+		BlockHeight: e.ctx.block.Height(), 
+		MetaVersion: metaVersion}
 
 	callbackResult := &NVMCallbackResult{Result:""}
 
@@ -397,6 +437,11 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 	
 	logging.CLog().Info(">>>>>>>>>Now started call request!, the listener address is: ", e.serverListenAddr)
 
+
+	// For debugging
+	StartSCTime = time.Now()
+
+
 	request, err := PrepareLaunchRequest(e, config, false)
 	if err != nil {
 		return "", err
@@ -409,6 +454,8 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 		}).Error("Failed to get streaming object")
 		return "", ErrRPCConnection
 	}
+
+	logging.CLog().Info(">>>>>>>>>Before sending request to V8 process")
 
 	err = stream.Send(request); if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -430,6 +477,9 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			return "", ErrRPCConnection
 		}
 
+		// check the result here
+		logging.CLog().Error(">>>>GOLANG received response from C++!!!!")
+
 		if(dataResponse.GetResponseType() == NVMDataExchangeTypeFinal && dataResponse.GetFinalResponse() != nil){
 
 			stream.CloseSend()
@@ -438,6 +488,11 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			result := finalResponse.Msg
 			stats := finalResponse.StatsBundle
 			notNil := finalResponse.NotNull
+
+			elapsed := time.Since(StartSCTime)
+			logging.CLog().WithFields(logrus.Fields{
+				"Elapsed Time": elapsed.Nanoseconds()/1000,
+			}).Error("%%%%%%%%%% SC Exe time!!!!!!!!")
 
 			// check the result here
 			logging.CLog().WithFields(
@@ -543,12 +598,26 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 			var newRequest *NVMDataRequest
 
 			if responseFuncName == INNER_CONTRACT_CALL {
+				logging.CLog().WithFields(logrus.Fields{
+					"responseFuncName": responseFuncName,
+					"serverLcsHandler": serverLcsHandler,
+					"param0": responseFuncParams[0],
+					"param1": responseFuncParams[1],
+					"param2": responseFuncParams[2],
+					"param3": responseFuncParams[3],
+				}).Error(">>>>>>>INNER CONTRACT CALL callback on Golang side!")
+
 				resStr := "success"
 				engineNew, nvmConfigNew, gasCnt, innerCallErr := InnerContractFunc(serverLcsHandler, 
 											responseFuncParams[0], responseFuncParams[1], responseFuncParams[2], responseFuncParams[3])
 				if innerCallErr != nil {
 					resStr = "fail"
+					logging.CLog().Error(">>>>>>>Error after creating inner contract ENGINE!")
 				}
+
+				logging.CLog().WithFields(logrus.Fields{
+					"responseFuncName": responseFuncName,
+				}).Error(">>>>>>>After creating NEW INNER call engine!")
 
 				newRequest, err = PrepareLaunchRequest(engineNew, nvmConfigNew, true)
 				if err != nil {
@@ -562,27 +631,9 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 				newRequest.CallbackResult.NotNull = true
 				newRequest.CallbackResult.FuncName = responseFuncName
 				newRequest.CallbackResult.Extra = append(newRequest.CallbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+
 				//TODO, move this into v8 process
 				//logging.VLog().Infof("end cal val:%v,gascount:%v,gasSum:%v, engine index:%v", val, gasCout, gasSum, index)
-
-			} else if responseFuncName == GET_CONTRACT_SRC {
-				// start to get source code
-				contractSrc, gasCnt, notNil := GetContractSourceFunc(serverLcsHandler, responseFuncParams[0])
-				callbackResult := &NVMCallbackResult{}
-				callbackResult.Result = contractSrc
-				callbackResult.NotNull = notNil
-				callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
-				nvmRequestIndex += 1
-				// check the callback type
-				callbackResult.FuncName = responseFuncName
-				newRequest = &NVMDataRequest{
-					RequestType:NVMDataExchangeTypeContractSrc, 
-					RequestIndx:dataResponse.GetResponseIndx(),
-					LcsHandler:serverLcsHandler,
-					GcsHandler:serverGcsHandler,
-					CallbackResult:callbackResult,
-				}
 
 			} else {
 				callbackResult := &NVMCallbackResult{}
@@ -590,6 +641,13 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 				switch responseFuncName{
 				case ATTACH_LIB_VERSION_DELEGATE_FUNC:
 					pathName := AttachLibVersionDelegateFunc(serverLcsHandler, responseFuncParams[0])
+
+					logging.CLog().WithFields(logrus.Fields{
+						"param": responseFuncParams[0],
+						"serverLcsHandler": serverLcsHandler,
+						"pathName": pathName,
+					}).Error(">>>>AttachLibVersionDelegate!!")
+
 					callbackResult.Result = pathName
 				case STORAGE_GET:
 					value, gasCnt, notNil := StorageGetFunc(serverLcsHandler, responseFuncParams[0])

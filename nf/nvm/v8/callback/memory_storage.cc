@@ -48,7 +48,7 @@ char* StorageGet(void* handler, const char *key, size_t *cnt){
   res->set_func_name(std::string(STORAGE_GET));
   res->add_func_params(std::string(key));
 
-  const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
   *cnt = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -66,7 +66,7 @@ int StoragePut(void* handler, const char* key, const char *value, size_t *cnt){
   res->add_func_params(std::string(key));
   res->add_func_params(std::string(value));
 
-  const NVMCallbackResult* callback_res = DataExchangeCallback(handler, res);
+  const NVMCallbackResult* callback_res = SNVM::DataExchangeCallback(handler, res);
   *cnt = (size_t)std::stoull(callback_res->extra(0));
   int resCode = std::stoi(callback_res->result());
 
@@ -78,7 +78,7 @@ int StorageDel(void* handler, const char* key, size_t *cnt){
   res->set_func_name(std::string(STORAGE_DEL));
   res->add_func_params(std::string(key));
 
-  const NVMCallbackResult* callback_res = DataExchangeCallback(handler, res);
+  const NVMCallbackResult* callback_res = SNVM::DataExchangeCallback(handler, res);
   *cnt = (size_t)std::stoull(callback_res->extra(0));
   int resCode = std::stoi(callback_res->result());
 

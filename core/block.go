@@ -1046,7 +1046,8 @@ func (block *Block) execute() error {
 		}
 	}
 
-	dispatcher := dag.NewDispatcher(block.dependency, parallelNum, int64(VerifyExecutionTimeout), context, func(node *dag.Node, context interface{}) error { // TODO: if system occurs, the block won't be retried any more
+	dispatcher := dag.NewDispatcher(block.dependency, parallelNum, int64(VerifyExecutionTimeout), context, func(node *dag.Node, context interface{}) error { 
+		// TODO: if system occurs, the block won't be retried any more
 		ctx := context.(*verifyCtx)
 		block := ctx.block
 		mergeCh := ctx.mergeCh

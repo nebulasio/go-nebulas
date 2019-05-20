@@ -19,28 +19,18 @@
 
 #include "memory_modules.h"
 #include "../lib/logger.h"
+#include "../lib/file.h"
 
 #include <atomic>
-#include <mutex>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <iostream>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <iostream>
-
-typedef struct {
-  std::string source;
-  int lineOffset;
-} SourceInfo;
-
-static std::mutex m;
-static std::unordered_map<std::string, SourceInfo> modules;
-
 
 // Basically, this function is used to get rid of "." and ".." in the file path
 void reformatModuleId(char *dst, const char *src) {
@@ -77,50 +67,47 @@ void reformatModuleId(char *dst, const char *src) {
   strcpy(dst, ss.str().c_str());
 }
 
-char *RequireDelegate(void *handler, const char *filepath,
-                          size_t *lineOffset) {
-  
-  LogInfof(">>>>> RequireDelegateFunc: %s -> %s", "", filepath);
-  std::cout<<"[ ----- CALLBACK ------ ] RequireDelegateFunc: "<<filepath<<std::endl;
-
-  char id[128];
-  sprintf(id, "%zu:%s", (uintptr_t)handler, filepath);
-
-  char *ret = NULL;
+std::string RequireDelegate(void *handler, const char *filepath, size_t *lineOffset){
+  char sid[128];
+  sprintf(sid, "%zu:%s", (uintptr_t)handler, filepath);
   *lineOffset = 0;
-
-  m.lock();
-  auto it = modules.find(std::string(id));
-  if (it != modules.end()) {
-    SourceInfo &srcInfo = it->second;
-    ret = (char *)calloc(srcInfo.source.length() + 1, sizeof(char));
-    strncpy(ret, srcInfo.source.c_str(), srcInfo.source.length());
-    *lineOffset = srcInfo.lineOffset;
-  }
-  m.unlock();
-
-  return ret;
+  std::cout<<">>>> sid is: "<<sid<<std::endl;
+  std::string res = SNVM::FetchContractSrcFromModules(sid, lineOffset);
+  return res;
 }
 
-char *AttachLibVersionDelegate(void *handler, const char *libname) {
+std::string FetchNativeJSLibContentDelegate(void* handler, const char* file_path){
+  std::string res = SNVM::FetchNativeJSLibContentFromCache(file_path);
+  return res;
+}
 
+std::string AttachLibVersionDelegate(void *handler, const char *lib_name) {
+
+  /*
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(ATTACH_LIB_VERSION_DELEGATE_FUNC));
-  res->add_func_params(std::string(libname));
+  res->add_func_params(std::string(lib_name));
 
-  const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
+  std::cout<<">>>>>>>>>>><<<<< libname is: "<<lib_name<<std::endl;
+
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
   const std::string func_name = callback_res->func_name();
   if(func_name.compare(ATTACH_LIB_VERSION_DELEGATE_FUNC) != 0){
     return nullptr;
   }
-  std::string resString = callback_res->result();
-  char* path = (char*)calloc(resString.length(), sizeof(char));
-  strcpy(path, resString.c_str());
+  std::string resStr = callback_res->result();
+  //char* path = (char*)calloc(resString.length(), sizeof(char));
+  //strcpy(path, resString.c_str());
+  std::cout<<">>>>>>>------ lib path with version from CALLBACK : "<<resStr.c_str()<<std::endl;
+  */
+  
+  std::string resStr = SNVM::AttachNativeJSLibVersion(lib_name);
+  std::cout<<"$$$$$$$$ >>>>> attachlib callback: "<<resStr<<std::endl;
 
-  return path;
+  return resStr;
 }
 
-void AddModule(void *handler, const char *filename, const char *source, int lineOffset) {
+void AddModule(void *handler, const char *filename, const char *source, size_t lineOffset) {
   char filepath[128];
   if (strncmp(filename, "/", 1) != 0 && strncmp(filename, "./", 2) != 0 &&
       strncmp(filename, "../", 3) != 0) {
@@ -130,23 +117,13 @@ void AddModule(void *handler, const char *filename, const char *source, int line
     reformatModuleId(filepath, filename);
   }
 
-  char id[128];
-  sprintf(id, "%zu:%s", (uintptr_t)handler, filepath);      // 0xsdfsdfsdfdsfsdf:lib/blockchain.js
+  char sid[128];
+  sprintf(sid, "%zu:%s", (uintptr_t)handler, filepath);      // 0xsdfsdfsdfdsfsdf:lib/blockchain.js
 
-  std::string sid(id);
-  if(modules.find(sid) == modules.end()){
-    m.lock();
-    SourceInfo srcInfo;
-    srcInfo.lineOffset = lineOffset;
-    srcInfo.source = source;
-    modules[sid] = srcInfo;
-    m.unlock();
-    
-    LogDebugf("AddModule: %s -> %s %d", filename, filepath, lineOffset);
-    std::cout<<"[ ---- Addmodule ---- ] AddModule: "<<filename<<" --> "<<filepath<<" "<<lineOffset<<std::endl;
-  }
+  SNVM::AddContractSrcToModules(sid, source, lineOffset);
 }
 
+/*
 char *GetModuleSource(void *handler, const char *filename) {
   char filepath[128];
   if (strncmp(filename, "/", 1) != 0 && strncmp(filename, "./", 2) != 0 &&
@@ -160,3 +137,4 @@ char *GetModuleSource(void *handler, const char *filename) {
   size_t size = 0;
   return RequireDelegate(handler, filepath, &size);
 }
+*/

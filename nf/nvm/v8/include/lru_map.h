@@ -62,6 +62,13 @@ class LRU_MAP{
       return m_mp->size();
     }
 
+    void clear(){
+      if(m_vec != nullptr)
+        m_vec->clear();
+      if(m_mp != nullptr)
+        m_mp->clear();
+    }
+
   private:
     std::unique_ptr<vc_t> m_vec;
     std::unique_ptr<mp_t> m_mp;

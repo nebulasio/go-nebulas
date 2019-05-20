@@ -42,15 +42,66 @@ static char source_require_format[] =
 
 static RequireDelegateFunc sRequireDelegate = NULL;
 static AttachLibVersionDelegateFunc attachLibVersionDelegate = NULL;
+static FetchNativeJSLibContentDelegateFunc fetchNativeJSLibContentDelegate = NULL;
 
-static int readSource(Local<Context> context, const char *filename, char **data,
-                      size_t *lineOffset) {
+inline bool checkLibWhite(char* filename){
+  bool res = false;
+  if(strncmp(filename, "lib/contract", 12) == 0 || strncmp(filename, "contract", 8) == 0)
+    res = true;
+  return res;
+}
+
+// native_lib_flag indicates if loading native js lib source code
+static int readSource(Local<Context> context, const char *filename, char **data, size_t *lineOffset, bool native_lib_flag) {
   if (strstr(filename, "\"") != NULL) {
     return -1;
   }
 
   *lineOffset = 0;
-  char *content = NULL;
+  //const char *content;
+  std::string content;
+
+  if(native_lib_flag){
+     std::cout<<"^^^^^^^^^^^^^^ Before read source content with native lib flag is true"<<std::endl;
+
+    if(fetchNativeJSLibContentDelegate != NULL){
+      V8Engine *e = GetV8EngineInstance(context);
+      content = fetchNativeJSLibContentDelegate(e, filename);
+    }
+
+  }else{
+    std::cout<<"^^^^^^^^^^^^^^ Before read source content"<<std::endl;
+
+    // try sRequireDelegate.
+    if (sRequireDelegate != NULL) {
+      V8Engine *e = GetV8EngineInstance(context);
+      content = sRequireDelegate(e, filename, lineOffset);
+    }
+  }
+
+  if(content.length()>0){
+    asprintf(data, source_require_format, content.c_str());
+    *lineOffset += -2;
+    return 0;
+  }
+
+  return -1;
+}
+
+/*
+static int readSource(Local<Context> context, 
+                      const char *filename, 
+                      char **data,
+                      size_t *lineOffset,
+                      bool native_lib_flag) {
+  if (strstr(filename, "\"") != NULL) {
+    return -1;
+  }
+
+  *lineOffset = 0;
+
+  //char *content = NULL;
+  std::string content;
 
   // try sRequireDelegate.
   if (sRequireDelegate != NULL) {
@@ -58,34 +109,38 @@ static int readSource(Local<Context> context, const char *filename, char **data,
     content = sRequireDelegate(e, filename, lineOffset);
   }
 
-  if (content == NULL) {
+  if (content.length()==0) {
     size_t file_size = 0;
-    content = readFile(filename, &file_size);
-    if (content == NULL) {
+    char* content_str = readFile(filename, &file_size);
+    if (content_str == NULL) {
       return 1;
     }
+    content = std::string(content_str);
   }
 
-  asprintf(data, source_require_format, content);
+  asprintf(data, source_require_format, content.c_str());
   *lineOffset += -2;
-  free(content);
+  //free(content);
 
   return 0;
 }
+*/
 
-static void attachVersion(char *out, int maxoutlen, Local<Context> context, const char *libname) {
+void attachVersion(char *out, int maxoutlen, Local<Context> context, const char *libname) {
 
-  char *verlib = NULL;
+  //const char *verlib;
+  //char* verlib = nullptr;
+  std::string verlib;
+  
   if (attachLibVersionDelegate != NULL) {
     V8Engine *e = GetV8EngineInstance(context);
     verlib = attachLibVersionDelegate(e, libname);
   }
 
-  std::cout<<" ------ version lib is: "<<verlib<<std::endl;
-
-  if (verlib != NULL) {
-    strncat(out, verlib, maxoutlen - strlen(out) - 1);
-    free(verlib);
+  if (verlib.length()>0) {
+    std::cout<<"$$$$$$$ >>>>> verlib is not NULL: "<<verlib.c_str()<<std::endl;
+    strncat(out, verlib.c_str(), maxoutlen - strlen(out) - 1);
+    //free(verlib);
   }
 }
 
@@ -120,10 +175,17 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
         String::NewFromUtf8(isolate, "require path length more")));
     return;
   }
+
+  std::cout<<"############## Required filename is: "<<*filename<<std::endl;
+
   char *abPath = NULL;
-  if (strcmp(*filename, LIB_WHITE)) { // if needed, check array instead.
+  //if (strcmp(*filename, LIB_WHITE)) { // check if it's library js files, if so, read them from local path with version attached.
+  bool is_native_lib_flag = false;
+  if (!checkLibWhite(*filename)){
+    is_native_lib_flag = true;
     char versionlizedPath[MAX_VERSIONED_PATH_LEN] = {0};
     attachVersion(versionlizedPath, MAX_VERSIONED_PATH_LEN, context, *filename);
+    std::cout<<"$$$$$---- Attached versionlized path: "<<versionlizedPath<<std::endl;
     abPath = realpath(versionlizedPath, NULL);
     if (abPath == NULL) {
       isolate->ThrowException(Exception::Error(String::NewFromUtf8(
@@ -153,13 +215,14 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
       return;
     }
   }
+
   char *pFile = abPath;
   if (abPath == NULL) {
     pFile = *filename;
   }
   char *data = NULL;
   size_t lineOffset = 0;
-  if (readSource(context, (const char*)pFile, &data, &lineOffset)) {
+  if (readSource(context, (const char*)pFile, &data, &lineOffset, is_native_lib_flag)) {
     char msg[512];
     snprintf(msg, 512, "require cannot find module '%s'", pFile);
     isolate->ThrowException(
@@ -183,7 +246,12 @@ void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info) {
   free(static_cast<void *>(data));
 }
 
-void InitializeRequireDelegate(RequireDelegateFunc delegate, AttachLibVersionDelegateFunc aDelegate) {
+void InitializeRequireDelegate(
+  RequireDelegateFunc delegate, 
+  AttachLibVersionDelegateFunc aDelegate, 
+  FetchNativeJSLibContentDelegateFunc fDelegate){
+
   sRequireDelegate = delegate;
   attachLibVersionDelegate = aDelegate;
+  fetchNativeJSLibContentDelegate = fDelegate;
 }

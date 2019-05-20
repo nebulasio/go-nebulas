@@ -22,10 +22,12 @@
 #include "../nvm_engine.h"
 #include "callback_util.h"
 
-char *RequireDelegate(void *handler, const char *filename, size_t *lineOffset);
+std::string RequireDelegate(void *handler, const char *filename, size_t *lineOffset);
 
-char *AttachLibVersionDelegate(void *handler, const char *libname);
+std::string AttachLibVersionDelegate(void *handler, const char *libname);
 
-void AddModule(void *handler, const char *filename, const char *source, int lineOffset);
+std::string FetchNativeJSLibContentDelegate(void* handler, const char* file_path);
 
-char *GetModuleSource(void *handler, const char *filename);
+void AddModule(void *handler, const char *filename, const char *source, size_t lineOffset);
+
+//char *GetModuleSource(void *handler, const char *filename);

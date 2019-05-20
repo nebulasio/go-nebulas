@@ -33,7 +33,7 @@ char *GetTxByHash(void *handler, const char *hash, size_t *gasCnt) {
   res->set_func_name(std::string(GET_TX_BY_HASH));
   res->add_func_params(std::string(hash));
 
-  const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
   std::string resStr = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -53,7 +53,7 @@ int GetAccountState(void *handler, const char *address, size_t *gasCnt, char **r
   res->set_func_name(std::string(GET_ACCOUNT_STATE));
   res->add_func_params(std::string(address));
 
-  const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
   int ret = (int)std::stoi(callback_res->result());
   bool not_null_flag = callback_res->not_null();
   std::string resStr = callback_res->extra(0);
@@ -85,7 +85,7 @@ int Transfer(void *handler, const char *to, const char *value, size_t *gasCnt) {
   res->add_func_params(std::string(to));
   res->add_func_params(std::string(value));
 
-  const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
   int ret = (int)std::stoi(callback_res->result());
   
@@ -98,7 +98,7 @@ int VerifyAddress(void *handler, const char *address, size_t *gasCnt) {
   res->set_func_name(std::string(VERIFY_ADDR));
   res->add_func_params(std::string(address));
 
-  const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
   int ret = (int)std::stoi(callback_res->result());
   
@@ -111,7 +111,7 @@ int GetPreBlockHash(void *handler, unsigned long long offset, size_t *gasCnt, ch
   res->set_func_name(std::string(GET_PRE_BLOCK_HASH));
   res->add_func_params(std::to_string(offset));
 
-  const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
   int ret = (int)std::stoi(callback_res->result());
   bool not_null_flag = callback_res->not_null();
   std::string resStr = callback_res->extra(0);
@@ -142,7 +142,7 @@ int GetPreBlockSeed(void *handler, unsigned long long offset, size_t *gasCnt, ch
   res->set_func_name(std::string(GET_PRE_BLOCK_SEED));
   res->add_func_params(std::to_string(offset));
 
-  const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
   int ret = (int)std::stoi(callback_res->result());
   bool not_null_flag = callback_res->not_null();
   std::string resStr = callback_res->extra(0);
@@ -174,8 +174,10 @@ char *GetContractSource(void *handler,
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(GET_CONTRACT_SRC));
   res->add_func_params(std::string(address));
+  
+  std::cout<<"$$$$$$$$$$$ Heyhey"<<std::endl;
 
-  const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
   std::string srcStr = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -204,10 +206,13 @@ char *InnerContract(void *handler,
   res->add_func_params(std::string(v));
   res->add_func_params(std::string(args));
 
-  const NVMCallbackResult *callback_res = DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res, true);
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
   std::string resStr = callback_res->result();
   bool not_null_flag = callback_res->not_null();
+
+  std::cout<<"%%%%%%% not null flag is: "<<std::endl;
+  std::cout<<not_null_flag<<std::endl;
 
   if(!not_null_flag)
     return nullptr;
@@ -215,11 +220,7 @@ char *InnerContract(void *handler,
   char* ret = (char*)calloc(resStr.length()+1, sizeof(char));
   strcpy(ret, resStr.c_str());
 
-  // After this, start to create engine and run new contract
-  if(resStr.compare("success") == 0){
-    // Call handler defined in inner_contract.cc
-    
-  }
+  std::cout<<"%%%%%%%%%% inner contract call result: "<<ret<<", with gascnt: "<<*gasCnt<<std::endl;
 
   return ret;
 }

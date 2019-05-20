@@ -20,6 +20,7 @@
 
 #include <unistd.h>
 #include "engine.h"
+#include "compatibility.h"
 #include "lib/blockchain.h"
 #include "lib/file.h"
 #include "lib/log_callback.h"
@@ -39,10 +40,11 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <string>
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <mutex>
 
 #include <grpc/grpc.h>
 #include <grpcpp/server.h>
@@ -69,8 +71,7 @@
 
 #define FG_DEBUG true
 
-// constants
-static const uint32_t NVM_CURRENCY_LEVEL = 1;
+//static const uint32_t NVM_CURRENCY_LEVEL = 1;
 
 typedef struct{
   std::string source;
@@ -79,75 +80,110 @@ typedef struct{
   uint64_t traceableSourceLineOffset;
 }CacheSrcItem;
 
-class NVMEngine final: public NVMService::Service{
+typedef struct {
+  std::string source;
+  int lineOffset;
+}SourceInfo;
 
-  public:
-    explicit NVMEngine(const int concurrency){
-      //TODO: specify how many threads we should start and do Initialization
+namespace SNVM{
 
-      m_concurrency_scale = concurrency;
-      m_src_offset = 0;
-      std::cout<<"---- Start initialization"<<std::endl;
-      srcModuleCache = std::unique_ptr<LRU_MAP<std::string, CacheSrcItem>>(new LRU_MAP<std::string, CacheSrcItem>());
-    }
+  class NVMEngine final: public NVMService::Service{
 
-    int GetRunnableSourceCode(V8Engine*, const std::string&, const std::string&, const std::string&);
+    public:
+      explicit NVMEngine(const int concurrency):
+        m_concurrency_scale(concurrency),
+        m_src_offset(0){
 
-    void ReadExeStats(NVMStatsBundle *);
+        srcModuleCache = std::unique_ptr<LRU_MAP<std::string, CacheSrcItem>>(new LRU_MAP<std::string, CacheSrcItem>());
+        engineSrcModules = std::unique_ptr<LRU_MAP<std::string, SourceInfo>>(new LRU_MAP<std::string, SourceInfo>());
+        lib_content_cache = std::unique_ptr<std::unordered_map<std::string, std::string>>(new std::unordered_map<std::string, std::string>);
+        m_compat_manager = new SNVM::CompatManager(m_chain_id);
+      }
 
-    int StartScriptExecution(V8Engine*, const std::string&, const std::string&, const std::string&, const std::string&,
-            const std::string&, const NVMConfigBundle&, char*);
+      ~NVMEngine(){
+        srcModuleCache->clear();
+        engineSrcModules->clear();
+        lib_content_cache->clear();
+        if(m_compat_manager != nullptr)
+          delete m_compat_manager;
+      }
 
-    NVMCallbackResult* Callback(void*, NVMCallbackResponse*);
+      // Reset data structures before the next time running to avoid status mismatch
+      void ResetRuntimeStatus();
 
-    uintptr_t GetCurrentEngineLcsHandler(); // By default, it returns this->engine's lcshandler, or returns the lcshandler of the latest engine pushed in the inner engine stack
+      int GetRunnableSourceCode(V8Engine*, const std::string&, const std::string&, const std::string&);
 
-    uintptr_t GetCurrentEngineGcsHandler();
+      void ReadExeStats(NVMStatsBundle *);
 
-    const std::string ConfigBundleToString(NVMConfigBundle&);
+      int StartScriptExecution(V8Engine*, const std::string&, const std::string&, const std::string&, const std::string&,
+              const std::string&, const NVMConfigBundle&, char*&);
 
-    void LocalTest();       // for testing purpose
+      NVMCallbackResult* Callback(void*, NVMCallbackResponse*, bool);
+
+      std::string FetchLibContent(const char*);
+
+      std::string FetchContractSrc(const char*, size_t*);
+
+      std::string AttachNativeJSLibVersion(const char*);
+
+      void AddContractSrcToModules(const char*, const char*, size_t);
 
 
-    // grpc call interface
-    grpc::Status SmartContractCall(grpc::ServerContext*, grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest>*) override;
+      // By default, it returns this->engine's lcshandler, or returns the lcshandler of the latest engine pushed in the inner engine stack
+      uintptr_t GetCurrentEngineLcsHandler();
+
+      uintptr_t GetCurrentEngineGcsHandler();
+
+      const std::string ConfigBundleToString(NVMConfigBundle&);
+
+      void LocalTest();
+
+      grpc::Status SmartContractCall(grpc::ServerContext*, grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest>*) override;
+
+      V8Engine* CreateInnerContractEngine(const std::string&, const std::string&, const std::string&, const std::string&, uint64_t, std::string&);
+
+      inline void SetChainID(uint32_t chain_id){
+        m_chain_id = chain_id;
+        if(m_compat_manager != nullptr)
+          m_compat_manager->SetChainID(chain_id);
+      }
+      
+
+    private:
+      const std::string TS_TYPE = "ts";
+      const std::string JS_TYPE = "js";
+      const std::string DATA_EXHG_START = "start";
+      const std::string DATA_EXHG_CALL_BACK = "callback";
+      const std::string DATA_EXHG_FINAL = "final";
+      const std::string DATA_EXHG_INNER_CALL = "innercall";
+
+      std::mutex m_mutex;
+      int m_concurrency_scale = 1;              // default concurrency number
+      int m_src_offset = 0;                     // default source code offset
+      int m_allow_usage = 1;                    // default allow usage
+      int m_response_indx = 0;                  // index of the data request/response pair
+      uint32_t m_chain_id = MainNetID;          // default chaind id
+
+      SNVM::CompatManager* m_compat_manager=nullptr;                      // compatibility manager
+
+      V8Engine* engine = nullptr;                                         // default engine
+      char* m_exe_result = nullptr;                                       // contract execution result
+      char* m_inner_exe_result = nullptr;                                 // inner contract call execution result
+      NVMConfigBundle* config_bundle = nullptr;                           // default config bundle
+      std::unique_ptr<std::stack<V8Engine*>> m_inner_engines = nullptr;   // stack for keeping engines created because of inner contract calls
+      grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest> *m_stm;   // stream used to send request from server
+      std::unique_ptr<LRU_MAP<std::string, CacheSrcItem>> srcModuleCache; // LRU map: src code hash --> traceable js src code & offset
+      std::unique_ptr<LRU_MAP<std::string, SourceInfo>> engineSrcModules; // LRU map: engine address + contract name --> SourceInfo
+
+      std::unique_ptr<std::unordered_map<std::string, std::string>> lib_content_cache;  // source code cache for js libs
+  };
 
 
-    // For inner contract call
-    V8Engine* CreateInnerContractEngine(const std::string&, const std::string&,  const std::string&, const std::string&, std::string&);     // return index of the newly created engine in the vector
+  const NVMCallbackResult* DataExchangeCallback(void*, NVMCallbackResponse*, bool inner_call_flag=false);
+  void AddContractSrcToModules(const char*, const char*, size_t);
+  std::string FetchContractSrcFromModules(const char*, size_t*);
+  std::string FetchNativeJSLibContentFromCache(const char*);
+  std::string AttachNativeJSLibVersion(const char*);
+}
 
-  private:
-    int m_concurrency_scale = 1;              // default concurrency number
-
-    int m_src_offset = 0;                     // default source code offset
-    int m_allow_usage = 1;                    // default allow usage
-    std::string m_module_id = "contract.js";  // default module ID to be used
-    std::string m_traceable_src;              // source code after injection
-    //std::string m_runnable_src;               // runnable source code
-    uint64_t m_traceale_src_line_offset = 0;    // set to be 0 by default
-    //uintptr_t m_lcs_handler = 0;                // lcs handler
-    //uintptr_t m_gcs_handler = 0;                // gcs handler
-    
-    V8Engine* engine = nullptr;                    // default engine
-    NVMConfigBundle* config_bundle = nullptr;       // initial configuration bundle
-    //std::unique_ptr<std::vector<V8Engine*>> m_inner_engines = nullptr;  // for inner contract call, engines of the subsequent engines
-    std::unique_ptr<std::stack<V8Engine*>> m_inner_engines = nullptr;   // stack for keeping engines created because of inner contract calls
-    char* m_exe_result = nullptr;                  // contract execution result
-    
-    // constants for defining contract source type
-    const std::string TS_TYPE = "ts";
-    const std::string JS_TYPE = "js";
-
-    const std::string DATA_EXHG_START = "start";
-    const std::string DATA_EXHG_CALL_BACK = "callback";
-    const std::string DATA_EXHG_FINAL = "final";
-    const std::string DATA_EXHG_CONTRACT_SRC = "contractsrc";
-    const std::string DATA_EXHG_INNER_CALL = "innercall";
-
-    grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest> *m_stm;    // stream used to send request from server
-    int m_response_indx = 0;                                            // index of the data request/response pair
-
-    std::unique_ptr<LRU_MAP<std::string, CacheSrcItem>> srcModuleCache;
-};
-
-const NVMCallbackResult* DataExchangeCallback(void*, NVMCallbackResponse*);
+extern SNVM::NVMEngine* gNVMEngine;

@@ -19,35 +19,58 @@
 #include "nvm_engine.h"
 #include "compatibility.h"
 
-uint32_t CurrChainID = 1;   // default value
+//uint32_t CurrChainID = 1;   // default value
 
-uintptr_t NVMEngine::GetCurrentEngineLcsHandler(){
+SNVM::NVMEngine* gNVMEngine = nullptr;
+
+uintptr_t SNVM::NVMEngine::GetCurrentEngineLcsHandler(){
+  uintptr_t curr_lcs = (uintptr_t)0;
+
   if(this->m_inner_engines != nullptr && this->m_inner_engines->size() > 0){
     V8Engine* curr_engine = this->m_inner_engines->top();
-    return curr_engine->lcs;
+    curr_lcs = curr_engine->lcs;
+    std::cout<<">>>>>>>>>>>>Got lcs handler from inner engine"<<std::endl;
 
   }else if(this->engine != nullptr){
-    return this->engine->lcs;
-
-  }else{
-    return (uintptr_t)0;
+    curr_lcs = this->engine->lcs;
+    std::cout<<">>>>>>>>>>>>Got lcs handler from THIS engine"<<std::endl;
   }
+
+  std::cout<<">>>>> Current lcs handler is: "<<(uint64)curr_lcs<<std::endl;
+  return curr_lcs;
 }
 
-uintptr_t NVMEngine::GetCurrentEngineGcsHandler(){
+uintptr_t SNVM::NVMEngine::GetCurrentEngineGcsHandler(){
+  uintptr_t curr_gcs = (uintptr_t)0;
+
   if(this->m_inner_engines != nullptr && this->m_inner_engines->size() > 0){
     V8Engine* curr_engine = this->m_inner_engines->top();
-    return curr_engine->gcs;
+    curr_gcs = curr_engine->gcs;
 
   }else if(this->engine != nullptr){
-    return this->engine->gcs;
+    curr_gcs = this->engine->gcs;
 
-  }else{
-    return (uintptr_t)0;
   }
+  return curr_gcs;
 }
 
-int NVMEngine::GetRunnableSourceCode(
+void SNVM::NVMEngine::ResetRuntimeStatus(){
+    if(this->m_inner_engines != nullptr){
+      while(!this->m_inner_engines->empty()){
+        this->m_inner_engines->pop();
+      }
+    }
+    if(this->m_exe_result != nullptr){
+      free(this->m_exe_result);
+      this->m_exe_result = nullptr;
+    }
+    if(this->m_inner_exe_result != nullptr){
+      free(this->m_inner_exe_result);
+      this->m_inner_exe_result = nullptr;
+    }
+}
+
+int SNVM::NVMEngine::GetRunnableSourceCode(
   V8Engine* engine, 
   const std::string& sourceType, 
   const std::string& scriptHash, 
@@ -69,11 +92,12 @@ int NVMEngine::GetRunnableSourceCode(
   std::cout<<">>>>Hey, checking modules, with script hash: "<<scriptHash<<std::endl;
   if(this->srcModuleCache == nullptr)
     std::cout<<"<<<<<<<<<src module cache is null"<<std::endl;
-  std::cout<<", srcmodulecache side: "<<this->srcModuleCache->size()<<std::endl;
+  std::cout<<", srcmodulecache size: "<<this->srcModuleCache->size()<<std::endl;
   if(this->srcModuleCache->find(scriptHash)){
     CacheSrcItem cachedSourceItem = this->srcModuleCache->get(scriptHash);
     engine->traceable_src = cachedSourceItem.traceableSource;
     engine->traceable_line_offset = cachedSourceItem.traceableSourceLineOffset;
+    std::cout<<">>>>Found src from src module cache"<<std::endl;
     return 0;
 
   }else{
@@ -96,7 +120,7 @@ int NVMEngine::GetRunnableSourceCode(
 }
 
 
-int NVMEngine::StartScriptExecution(
+int SNVM::NVMEngine::StartScriptExecution(
     V8Engine* engine, 
     const std::string& contractSource, 
     const std::string& scriptType,
@@ -104,7 +128,7 @@ int NVMEngine::StartScriptExecution(
     const std::string& runnableSrc, 
     const std::string& moduleID, 
     const NVMConfigBundle& configBundle,
-    char* exeResult){
+    char* &exeResult){
 
     // transpile script and inject tracing code if necessary
     int runnableSourceResult = this->GetRunnableSourceCode(engine, scriptType, scriptHash, contractSource);
@@ -117,10 +141,10 @@ int NVMEngine::StartScriptExecution(
 
     AddModule(engine, moduleID.c_str(), engine->traceable_src.c_str(), engine->traceable_line_offset);
 
-    std::cout<<">>>>After adding module"<<std::endl;
+    std::cout<<">>>>After adding module with ID: "<<moduleID<<std::endl;
 
     // check limitations
-    if(this->config_bundle->block_height() >= GetNVMMemoryLimitWithoutInjectHeight()) {
+    if(this->config_bundle->block_height() >= this->m_compat_manager->GetNVMMemoryLimitWithoutInjectHeight()) {
       ReadMemoryStatistics(engine);
       uint64_t actualTotalMemorySize = (uint64_t)engine->stats.total_memory_size;
       uint64_t mem = actualTotalMemorySize + DefaultLimitsOfTotalMemorySize;
@@ -150,13 +174,14 @@ int NVMEngine::StartScriptExecution(
     }
 
     if(FG_DEBUG && ctx.output.result!=nullptr)
-      std::cout<<"$$$$$$$$$$$$  The ret is: "<<ctx.output.ret<<", while the result is: "<<ctx.output.result<<std::endl;
+      std::cout<<"$$$$$$$$$$$$  The ret is: "<<ctx.output.ret<<", while the result is: "
+          <<ctx.output.result<<", exeresult: "<<exeResult<<std::endl;
 
     return ctx.output.ret;
 }
 
 
-void NVMEngine::ReadExeStats(NVMStatsBundle *statsBundle){
+void SNVM::NVMEngine::ReadExeStats(NVMStatsBundle *statsBundle){
   ReadMemoryStatistics(this->engine);
 
   statsBundle->set_actual_count_of_execution_instruction((google::protobuf::uint64)this->engine->stats.count_of_executed_instructions);
@@ -164,10 +189,11 @@ void NVMEngine::ReadExeStats(NVMStatsBundle *statsBundle){
 }
 
 
-grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest>* stream){
+grpc::Status SNVM::NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest>* stream){
 
   this->m_stm = stream;
-  
+  this->ResetRuntimeStatus();
+
   try{
 
     NVMDataRequest *request = new NVMDataRequest();
@@ -182,12 +208,14 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
 
       NVMConfigBundle configBundle = request->config_bundle();
       this->config_bundle = &configBundle;
-      CurrChainID = (uint32_t)configBundle.chain_id();
+      //CurrChainID = (uint32_t)configBundle.chain_id();
+      SetChainID((uint32_t)configBundle.chain_id());
       std::string scriptSrc = configBundle.script_src();
       std::string scriptType = configBundle.script_type();
       std::string scriptHash = configBundle.script_hash();
       std::string runnableSrc = configBundle.runnable_src();
       std::string moduleID = configBundle.module_id();
+      uint64_t blockHeight = configBundle.block_height();
       google::protobuf::uint64 maxLimitsOfExecutionInstructions = configBundle.max_limits_of_execution_instruction();
       google::protobuf::uint64 defaultTotalMemSize = configBundle.default_limits_of_total_mem_size();
       google::protobuf::uint64 limitsOfExecutionInstructions = configBundle.limits_exe_instruction();
@@ -196,8 +224,11 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
       //bool enableLimits = configBundle.enable_limits();
       std::string blockJson = configBundle.block_json();
       std::string txJson = configBundle.tx_json();
+      std::string metaVersion = configBundle.meta_version();
 
       std::cout<<">>>>The configBundle is: "<<scriptHash<<", module id: "<<moduleID<<std::endl;
+      std::cout<<">>>>Now receiving request from golang side, with lcshandler: "<<lcsHandler<<std::endl;
+      std::cout<<">>>>*************** The meta version is: "<<metaVersion<<std::endl;
       
       LogInfof(">>>>Script source is: %s", scriptSrc.c_str());
       LogInfof(">>>>Script type is: %s", scriptType.c_str());
@@ -209,24 +240,22 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
       LogInfof(">>>>The limit of exe instruction %ld", limitsOfExecutionInstructions);
       LogInfof(">>>>The limit of mem usage is: %ld", totalMemSize);
 
-      this->m_module_id = moduleID;
-      //this->m_lcs_handler = (uintptr_t)lcsHandler;
-      //this->m_gcs_handler = (uintptr_t)gcsHandler;
-
-      std::cout<<">>>>Now receiving request from golang side"<<std::endl;
-
       // create engine and inject tracing instructions
       this->engine = CreateEngine();
       this->engine->limits_of_executed_instructions = configBundle.limits_exe_instruction();
       this->engine->limits_of_total_memory_size = configBundle.limits_total_mem_size();
       this->engine->lcs = (uintptr_t)lcsHandler;
       this->engine->gcs = (uintptr_t)gcsHandler;
+      if(blockHeight >= this->m_compat_manager->InnerContractCallAvailableHeight()){
+        EnableInnerContract(this->engine);
+      }
 
       std::cout<<">>>>After creating engine, the original lcs is: "<<lcsHandler<<std::endl;
       std::cout<<">>>>After creating engine, the lcs handler is: "<<this->engine->lcs<<std::endl;
 
       char* exeResult = nullptr;
-      int ret = this->StartScriptExecution(this->engine, scriptSrc, scriptType, scriptHash, runnableSrc, moduleID, configBundle, exeResult);
+      int ret = this->StartScriptExecution(this->engine, scriptSrc, scriptType, 
+                            scriptHash, runnableSrc, moduleID, configBundle, exeResult);
       this->m_exe_result = exeResult;
 
       std::cout<<">>>>After starting script execution"<<std::endl;
@@ -257,6 +286,7 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
         free(this->m_exe_result);
         this->m_exe_result = nullptr;
       }
+
       
     }else{
       // throw exception since the request type is not allowed
@@ -271,10 +301,12 @@ grpc::Status NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::Se
 
   DeleteEngine(this->engine);
 
+  std::cout<<std::endl<<std::endl<<std::endl<<"&&&&&&&&&&& Finished EXE &&&&&&&&&&&"<<std::endl<<std::endl<<std::endl;
+
   return grpc::Status::OK;
 }
 
-NVMCallbackResult* NVMEngine::Callback(void* handler, NVMCallbackResponse* callback_response){
+NVMCallbackResult* SNVM::NVMEngine::Callback(void* handler, NVMCallbackResponse* callback_response, bool inner_call_flag=false){
     std::cout<<"<<<<<< Callback"<<std::endl;
 
     if(this->m_stm != nullptr){
@@ -283,7 +315,10 @@ NVMCallbackResult* NVMEngine::Callback(void* handler, NVMCallbackResponse* callb
 
         bool getResultFlag = false;
         NVMDataResponse *response = new NVMDataResponse();
-        response->set_response_type(DATA_EXHG_CALL_BACK);
+        if(inner_call_flag)
+          response->set_response_type(DATA_EXHG_INNER_CALL);
+        else
+          response->set_response_type(DATA_EXHG_CALL_BACK);
         response->set_response_indx(++this->m_response_indx);
         //response->set_lcs_handler(google::protobuf::uint64((uintptr_t)handler));
         std::cout<<"<><><><> Before setting handlers"<<std::endl;
@@ -302,9 +337,8 @@ NVMCallbackResult* NVMEngine::Callback(void* handler, NVMCallbackResponse* callb
         while(this->m_stm->Read(request)){
           requestType = request->request_type();
 
-          std::cout<<">>>>>Received callback result for "<<callback_response->func_name()<<std::endl;
-
-          if(requestType.compare(DATA_EXHG_CALL_BACK) == 0 || requestType.compare(DATA_EXHG_INNER_CALL) == 0){
+          std::cout<<">>>>>Received callback result for "<<callback_response->func_name()<<", with type: "<<requestType<<std::endl;
+          if(requestType.compare(DATA_EXHG_CALL_BACK) == 0){
             callback_result = (NVMCallbackResult*)&(request->callback_result());
             getResultFlag = true;
             if(FG_DEBUG){
@@ -319,6 +353,7 @@ NVMCallbackResult* NVMEngine::Callback(void* handler, NVMCallbackResponse* callb
           }else if(requestType.compare(DATA_EXHG_INNER_CALL) == 0){
             // this is NOT the final result of this call, we need to create new engine and execute the contract firstly
             std::cout<<">>>>>>>NOW START to call the new contract"<<std::endl;
+
             callback_result = new NVMCallbackResult();
             NVMConfigBundle configBundle = request->config_bundle();
             std::string scriptSrc = configBundle.script_src();
@@ -326,29 +361,44 @@ NVMCallbackResult* NVMEngine::Callback(void* handler, NVMCallbackResponse* callb
             std::string scriptHash = configBundle.script_hash();
             std::string runnableSrc = configBundle.runnable_src();
             std::string moduleID = configBundle.module_id();
+            uint64_t blockHeight = configBundle.block_height();
             google::protobuf::uint64 maxLimitsOfExecutionInstructions = configBundle.max_limits_of_execution_instruction();
             google::protobuf::uint64 defaultTotalMemSize = configBundle.default_limits_of_total_mem_size();
             google::protobuf::uint64 limitsOfExecutionInstructions = configBundle.limits_exe_instruction();
             google::protobuf::uint64 totalMemSize = configBundle.limits_total_mem_size();
             std::string blockJson = configBundle.block_json();
             std::string txJson = configBundle.tx_json();
+            std::string metaVersion = configBundle.meta_version();
 
             std::string createResult;
             int ret = NVM_SUCCESS;
             char* exeResult = nullptr;
-            V8Engine* newEngine = this->CreateInnerContractEngine(scriptType, scriptHash, scriptSrc, moduleID, createResult);
+            V8Engine* newEngine = this->CreateInnerContractEngine(scriptType, scriptHash, scriptSrc, moduleID, blockHeight, createResult);
             if(newEngine != nullptr){
               newEngine->limits_of_executed_instructions = configBundle.limits_exe_instruction();
               newEngine->limits_of_total_memory_size = configBundle.limits_total_mem_size();
+              std::cout<<">>>>>New engine lcs handler is: "<<request->lcs_handler()<<std::endl;
               newEngine->lcs = (uintptr_t)request->lcs_handler();
               newEngine->gcs = (uintptr_t)request->gcs_handler();
+              std::cout<<">>>>>New engine set lcs: "<<(uint64)newEngine->lcs<<std::endl;
+              std::cout<<">>>>>New engine set lcs again: "<<(uint64)GetCurrentEngineLcsHandler()<<std::endl;
 
               // NOTE: this creates a new thread to execute the new contract
+              std::cout<<"@@@@@@@@@@@@ Before inner contract exe"<<std::endl;
               ret = this->StartScriptExecution(newEngine, scriptSrc, scriptType, scriptHash, runnableSrc, moduleID, configBundle, exeResult);
+              std::cout<<"@@@@@@@@@@@@ Inner contract exe result is: "<<ret<<std::endl;
+              if(exeResult == nullptr)
+                std::cout<<"Exeresult is null"<<std::endl;
+              else
+                std::cout<<"ExeResult is: "<<exeResult<<std::endl;
             }
             
             getResultFlag = true;
             callback_result->set_result(std::string(exeResult));
+            ReadMemoryStatistics(newEngine);
+            google::protobuf::uint64 memUsed = newEngine->stats.total_memory_size;
+            callback_result->add_extra(std::to_string(newEngine->stats.count_of_executed_instructions));
+            callback_result->set_not_null(true);
           }
           break;
         }
@@ -364,7 +414,7 @@ NVMCallbackResult* NVMEngine::Callback(void* handler, NVMCallbackResponse* callb
     return nullptr;
 }
 
-void NVMEngine::LocalTest(){
+void SNVM::NVMEngine::LocalTest(){
   // compose testing data
   std::string moduleID ("contract.js");
   std::string scriptType ("js");
@@ -409,11 +459,12 @@ void NVMEngine::LocalTest(){
 }
 
 
-V8Engine* NVMEngine::CreateInnerContractEngine(
+V8Engine* SNVM::NVMEngine::CreateInnerContractEngine(
     const std::string& scriptType, 
     const std::string& scriptHash, 
     const std::string& innerContractSrc, 
-    const std::string& moduleID, 
+    const std::string& moduleID,
+    const uint64_t blockHeight,
     std::string& createResult){
 
     if(this->m_inner_engines == nullptr)
@@ -422,18 +473,11 @@ V8Engine* NVMEngine::CreateInnerContractEngine(
     V8Engine* inner_engine = CreateEngine();
     // set limitation for the new engine
     if(inner_engine != nullptr)
-      this->m_inner_engines->push(engine);
+      this->m_inner_engines->push(inner_engine);
     ReadMemoryStatistics(this->engine);
-
-    // transpile script and inject tracing code if necessary
-    int runnableSourceResult = this->GetRunnableSourceCode(inner_engine, scriptType, scriptHash, innerContractSrc);
-    if(runnableSourceResult != 0){
-      LogErrorf("Failed to get runnable source code");
-      createResult = std::string("Failed to get runnable source code");
-      return nullptr;
+    if(blockHeight >= m_compat_manager->InnerContractCallAvailableHeight()){
+      EnableInnerContract(inner_engine);
     }
-
-    AddModule(this->engine, moduleID.c_str(), this->m_traceable_src.c_str(), this->m_traceale_src_line_offset);
 
     return inner_engine;
 }
@@ -441,8 +485,135 @@ V8Engine* NVMEngine::CreateInnerContractEngine(
 // start one level of inner contract call, check the resource usage firstly
 //const void NVMEngine::StartInnerContractCall(const std::string& address, const std::string& valueStr, const std::string& funcName, const std::string& args){
 
-const std::string NVMEngine::ConfigBundleToString(NVMConfigBundle& configBundle){
+const std::string SNVM::NVMEngine::ConfigBundleToString(NVMConfigBundle& configBundle){
   std::string res("chain id: " + std::to_string(configBundle.chain_id()) + ", script src: " + configBundle.script_src() + ", script type: " + configBundle.script_type()
     +  ", script hash: " + configBundle.script_hash() + ", runnable src: " + configBundle.runnable_src() + ", module id: " + configBundle.module_id());
   return res;
+}
+
+std::string SNVM::NVMEngine::FetchLibContent(const char* version_file_path){
+  if(version_file_path == nullptr)
+    return "";
+
+  std::cout<<"&&&&&&&&&& version file path: "<<version_file_path<<std::endl;
+
+  auto find_iter = lib_content_cache->find(std::string(version_file_path));
+  if( find_iter != lib_content_cache->end())
+    return find_iter->second;
+  
+  // read content from file path
+  size_t file_size = 0;
+  char* content = readFile(version_file_path, &file_size);
+  if (content == NULL) {
+    return "";
+  }
+  lib_content_cache->insert(std::pair<std::string, std::string>(std::string(version_file_path), std::string(content)));
+  return std::string(content);
+}
+
+std::string SNVM::NVMEngine::FetchContractSrc(const char* sid, size_t* line_offset){
+  LogInfof("NVMEngine::FetchContractSrc: %s", sid);
+  std::cout<<"[ ----- CALLBACK ------ ] FetchContractSrc: "<<sid<<std::endl;
+
+  if(engineSrcModules->find(std::string(sid))){
+    m_mutex.lock();
+    SourceInfo srcInfo = engineSrcModules->get(std::string(sid));
+    *line_offset = srcInfo.lineOffset;
+    m_mutex.unlock();
+    return srcInfo.source;
+  }
+  return "";
+}
+
+void SNVM::NVMEngine::AddContractSrcToModules(const char* sid, const char* source_code, size_t line_offset){
+  if(engineSrcModules->find(std::string(sid)) == false){
+    m_mutex.lock();
+    SourceInfo srcInfo;
+    srcInfo.lineOffset = line_offset;
+    srcInfo.source = std::string(source_code);
+    engineSrcModules->set(std::string(sid), srcInfo);
+    m_mutex.unlock();
+    std::cout<<">>>>>>> Add contract source code into engine src modules"<<std::endl;
+  }
+}
+
+std::string SNVM::NVMEngine::AttachNativeJSLibVersion(const char* lib_name){
+  std::string lib_name_str(lib_name);
+  std::string meta_version = config_bundle->meta_version();
+  std::cout<<"$$$$$$$$$$ ********* Meta version: "<<meta_version<<std::endl;
+  std::string res = m_compat_manager->AttachVersionForLib(lib_name_str, (uint64_t)config_bundle->block_height(), meta_version);
+  std::cout<<"$$$$$$$$$$ Attached version for lib: "<<res<<std::endl;
+
+  return res;
+}
+
+
+
+std::string SNVM::AttachNativeJSLibVersion(const char* lib_name){
+  if(lib_name == nullptr)
+    return nullptr;
+
+  if(gNVMEngine != nullptr){
+    try{
+      return gNVMEngine->AttachNativeJSLibVersion(lib_name);
+    }catch(const std::exception& e){
+      LogErrorf("NVM engine is nil when attaching native js lib version");
+    }
+  }
+  return nullptr;
+}
+
+void SNVM::AddContractSrcToModules(const char* sid, const char* source_code, size_t line_offset){
+  if(sid == nullptr || source_code == nullptr)
+    return;
+
+  if(gNVMEngine != nullptr){
+    try{
+      gNVMEngine->AddContractSrcToModules(sid, source_code, line_offset);
+    }catch(const std::exception& e){
+      LogErrorf("NVM engine is nil when adding contract source code to modules");
+    }
+  }
+}
+
+std::string SNVM::FetchContractSrcFromModules(const char* sid, size_t* line_offset){
+  if(sid == nullptr)
+    return "";
+  
+  if(gNVMEngine != nullptr){
+    try{
+      return gNVMEngine->FetchContractSrc(sid, line_offset);
+    }catch(const std::exception& e){
+      LogErrorf("NVM engine is nil when fetching contract source code from cache");
+    }
+  }
+  return "";
+}
+
+std::string SNVM::FetchNativeJSLibContentFromCache(const char* file_path){
+  if(file_path == nullptr)
+    return "";
+
+  if(gNVMEngine != nullptr){
+    try{
+      return gNVMEngine->FetchLibContent(file_path);
+    }catch(const std::exception& e){
+      LogErrorf("NVM engine is nil when fetching native js lib content from cache");
+    }
+  }
+  return "";
+}
+
+const NVMCallbackResult* SNVM::DataExchangeCallback(void* handler, NVMCallbackResponse* response, bool inner_call_flag){
+
+    std::cout<<"Now is executing callback: "<<response->func_name()<<std::endl;
+
+    if(gNVMEngine != nullptr){
+        std::cout<<">>>>nvmengine is not null!"<<std::endl;
+        return gNVMEngine->Callback(handler, response, inner_call_flag);
+    }else{
+        std::cout<<">>>>>>> Failed to exchange data"<<std::endl;
+        LogErrorf("Failed to exchange data");
+    }
+    return nullptr;
 }

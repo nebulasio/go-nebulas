@@ -25,7 +25,7 @@ char *Sha256(const char *data, size_t *counterVal){
   res->set_func_name(std::string(SHA_256_FUNC));
   res->add_func_params(std::string(data));
 
-  const NVMCallbackResult *callback_res = DataExchangeCallback(nullptr, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(nullptr, res);
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -44,7 +44,7 @@ char *Sha3256(const char *data, size_t *counterVal){
   res->set_func_name(std::string(SHA_3256_FUNC));
   res->add_func_params(std::string(data));
 
-  const NVMCallbackResult *callback_res = DataExchangeCallback(nullptr, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(nullptr, res);
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -63,7 +63,7 @@ char *Ripemd160(const char *data, size_t *counterVal){
   res->set_func_name(std::string(RIPEMD_160_FUNC));
   res->add_func_params(std::string(data));
 
-  const NVMCallbackResult *callback_res = DataExchangeCallback(nullptr, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(nullptr, res);
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -84,7 +84,7 @@ char *RecoverAddress(int alg, const char *data, const char *sign, size_t *counte
   res->add_func_params(std::string(data));
   res->add_func_params(std::string(sign));
 
-  const NVMCallbackResult *callback_res = DataExchangeCallback(nullptr, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(nullptr, res);
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -103,7 +103,7 @@ char *Md5(const char *data, size_t *counterVal){
   res->set_func_name(std::string(MD5_FUNC));
   res->add_func_params(std::string(data));
 
-  const NVMCallbackResult *callback_res = DataExchangeCallback(nullptr, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(nullptr, res);
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -122,7 +122,7 @@ char *Base64(const char *data, size_t *counterVal){
   res->set_func_name(std::string(BASE64_FUNC));
   res->add_func_params(std::string(data));
 
-  const NVMCallbackResult *callback_res = DataExchangeCallback(nullptr, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(nullptr, res);
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();

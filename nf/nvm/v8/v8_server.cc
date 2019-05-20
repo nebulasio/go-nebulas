@@ -22,14 +22,12 @@
 
 #define MicroSecondDiff(newtv, oldtv) (1000000 * (unsigned long long)((newtv).tv_sec - (oldtv).tv_sec) + (newtv).tv_usec - (oldtv).tv_usec)  //milliseconds
 
+/*
 static int enable_tracer_injection = 0;
 static int strict_disallow_usage = 0;
 static size_t limits_of_executed_instructions = 0;
 static size_t limits_of_total_memory_size = 0;
-
-
-class NVMEngine;
-NVMEngine *gNVMEngine = nullptr;
+*/
 
 void logFuncOld(int level, const char *msg) {
   std::thread::id tid = std::this_thread::get_id();
@@ -64,7 +62,7 @@ void Logger(int level, const char *msg){
 void Initialization(){
   Initialize();
   InitializeLogger(Logger);
-  InitializeRequireDelegate(RequireDelegate, AttachLibVersionDelegate);
+  InitializeRequireDelegate(RequireDelegate, AttachLibVersionDelegate, FetchNativeJSLibContentDelegate);
   InitializeExecutionEnvDelegate(AttachLibVersionDelegate);
 
   InitializeStorage(StorageGet, StoragePut, StorageDel);
@@ -203,7 +201,7 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
         if(FG_DEBUG)
           std::cout<<"%%%%%%%%%%%% checking termination condition"<<std::endl;
         LogErrorf("CreateScriptThread timeout timeout:%d diff:%d\n", timeout, diff);
-        fprintf(stderr, "CreateScriptThread timeout timeout:%d diff:%d\n", timeout, diff);
+        std::cout<<"CreateScriptThread timeout timeout:"<<timeout<<" diff:"<<diff<<std::endl;
         TerminateExecution(ctx->e);
         is_kill = true;
       }
@@ -213,33 +211,13 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
   return true;
 }
 
-
-const NVMCallbackResult* DataExchangeCallback(void* handler, NVMCallbackResponse* response){
-
-    std::cout<<"Now is executing callback: "<<response->func_name()<<std::endl;
-
-    if(gNVMEngine != nullptr){
-        std::cout<<">>>>nvmengine is not null!"<<std::endl;
-        return gNVMEngine->Callback(handler, response);
-    }else{
-        std::cout<<">>>>>>> Failed to exchange data"<<std::endl;
-        LogErrorf("Failed to exchange data");
-    }
-    return nullptr;
-}
-
 void RunServer(const char* addr_str){
 
   std::string engine_addr(addr_str);
 
-  /*
-  if(gNVMEngine != nullptr){
-    free(gNVMEngine);
-  }
-  */
-
   if(gNVMEngine == nullptr){
-    gNVMEngine = new NVMEngine(NVM_CURRENCY_LEVEL);
+    const int concurrency_num = 1;
+    gNVMEngine = new SNVM::NVMEngine(concurrency_num);
     std::cout<<"%%%%%%%%%%%% nvm engine is initialized!!!!!!!!!!!"<<std::endl;
   }
 
@@ -261,7 +239,8 @@ int main(int argc, const char *argv[]) {
   bool DEBUG = false;
 
   if(DEBUG){
-    NVMEngine* engine = new NVMEngine(NVM_CURRENCY_LEVEL);
+    const int concurrency_num = 1;
+    SNVM::NVMEngine* engine = new SNVM::NVMEngine(concurrency_num);
     engine->LocalTest();
 
   }else{

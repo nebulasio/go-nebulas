@@ -26,18 +26,19 @@
 static AttachLibVersionDelegateFunc alvDelegate = NULL;
 
 int SetupExecutionEnv(Isolate *isolate, Local<Context> &context) {
-  char *verlib = NULL;
+  std::string verlib;
   if (alvDelegate != NULL) {
     V8Engine *e = GetV8EngineInstance(context);
     verlib = alvDelegate(e, "lib/execution_env.js");
   }
-  if (verlib == NULL) {
+
+  if (verlib.length() == 0) {
     return 1;
   }
 
   char path[64] = {0};
-  strcat(path, verlib);
-  free(verlib);
+  strcat(path, verlib.c_str());
+  //free(verlib);
 
   char *data = readFile(path, NULL);
   // char *data = readFile("lib/execution_env.js", NULL);

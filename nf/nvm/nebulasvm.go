@@ -49,21 +49,15 @@ func (nvm *NebulasVM) StartNebulasVM(nvmPath string, listenAddr string) (int, er
 
 	/*
 	cmd := exec.Command(nvmPath, listenAddr)
-
 	err := cmd.Start()
 	if err != nil {
 		err = errors.New("Failed to start NVM process")
 		return 0, err
 	}
-
 	pid := cmd.Process.Pid
-
 	*/
-
 	logging.CLog().Info("Started NVM process with port: ", listenAddr)
-
 	pid := 37373		// for debugging purpose
-
 	nvm.listenAddr = listenAddr
 	
 	return pid, nil
@@ -117,6 +111,8 @@ func (nvm *NebulasVM) CheckV8ServerRunning(enginePid int) error {
 
 //==================== V8 specific =====================
 
+
+
 // CreateEngine start engine
 func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, contract state.Account, state core.WorldState) (core.SmartContractEngine, error) {
 
@@ -124,5 +120,6 @@ func (nvm *NebulasVM) CreateEngine(block *core.Block, tx *core.Transaction, cont
 	if err != nil {
 		return nil, err
 	}
+	ResetRuntimeStatus()
 	return NewV8Engine(ctx), nil
 }
