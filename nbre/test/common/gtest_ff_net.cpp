@@ -30,5 +30,5 @@ TEST(test_ff_net, seri_and_deseri) {
   param.set<coinbase_addr>(std::to_string(4));
   param.set<p_version>(0);
   auto ret = param.serialize_to_string();
-  std::cout << ret << std::endl;
+  // std::cout << ret << std::endl;
 }
