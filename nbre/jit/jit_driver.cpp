@@ -21,6 +21,7 @@
 #include "jit/jit_driver.h"
 #include "common/configuration.h"
 #include "jit/OrcLazyJIT.h"
+#include "jit/jit_mangled_entry_point.h"
 
 #include "jit/jit_exception.h"
 #include "llvm/ADT/StringExtras.h"
@@ -74,9 +75,17 @@ jit_driver::jit_driver() {
   llvm::sys::Process::PreventCoreFiles();
   std::string errMsg;
   llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr, &errMsg);
+  m_mangler = std::make_unique<jit::jit_mangled_entry_point>();
 }
 
-jit_driver::~jit_driver() { llvm::llvm_shutdown(); }
+jit_driver::~jit_driver() {
+  m_mangler.reset();
+  llvm::llvm_shutdown();
+}
+
+std::string jit_driver::get_mangled_entry_point(const std::string &name) {
+  return m_mangler->get_mangled_entry_name(name);
+}
 
 bool jit_driver::find_mangling(llvm::Module *M, const std::string &func_name,
                                std::string &mangling_name) {
@@ -125,7 +134,8 @@ jit_driver::make_context(const std::vector<nbre::NBREIR> &irs,
 
     auto module =
         llvm::parseIR(mem_buf->getMemBufferRef(), err, ret->m_context, true);
-    find_mangling(module.get(), func_name, mangling_name);
+    mangling_name = get_mangled_entry_point(func_name);
+    // find_mangling(module.get(), func_name, mangling_name);
     if (nullptr == module) {
       LOG(ERROR) << "Module broken";
     } else {

@@ -7,3 +7,7 @@ add_test(NAME test_jit
 
 add_executable(test_jit_driver test_jit_driver.cpp)
 target_link_libraries(test_jit_driver nbre_rt)
+
+add_executable(test_jit_mangled_entry_point test_jit_mangled_entry_point.cpp)
+target_link_libraries(test_jit_mangled_entry_point nbre_rt)
+set_target_properties(test_jit_mangled_entry_point PROPERTIES LINK_FLAGS "-rdynamic")

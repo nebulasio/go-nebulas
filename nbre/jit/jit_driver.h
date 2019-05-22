@@ -32,6 +32,10 @@ class jit_driver_impl;
 namespace core {
 class driver;
 }
+namespace jit {
+class jit_mangled_entry_point;
+}
+
 class jit_driver : public ::neb::util::singleton<jit_driver> {
 public:
   jit_driver();
@@ -103,6 +107,8 @@ public:
 
   void timer_callback();
 
+  std::string get_mangled_entry_point(const std::string &name);
+
 protected:
   void shrink_instances();
 
@@ -126,5 +132,6 @@ protected:
 protected:
   std::mutex m_mutex;
   std::unordered_map<std::string, std::unique_ptr<jit_context>> m_jit_instances;
+  std::unique_ptr<jit::jit_mangled_entry_point> m_mangler;
 }; // end class jit_driver;
 } // end namespace neb
