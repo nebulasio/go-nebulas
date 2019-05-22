@@ -1738,43 +1738,412 @@ TEST(test_common_math, pow_int_y) {
 
 TEST(test_common_math, sqrt) {
   float x = 0.0;
-  auto actual_sqrt = neb::math::sqrt(neb::floatxx_t(x));
+  auto actual_sqrt = neb::math::sqrt(zero);
   auto expect_sqrt = std::sqrt(x);
-  EXPECT_TRUE(neb::math::abs(actual_sqrt, neb::floatxx_t(expect_sqrt)) <
-              precesion(1.0f, 1e-9 * PRECESION));
+  auto ret = neb::math::abs(actual_sqrt, neb::floatxx_t(expect_sqrt));
+  EXPECT_TRUE(ret < precesion(1.0f, 1e-9 * PRECESION));
+  EXPECT_EQ(mem_bytes(actual_sqrt), "25d0d31e");
 
   x = 1.0;
-  actual_sqrt = neb::math::sqrt(neb::floatxx_t(x));
+  actual_sqrt = neb::math::sqrt(one);
   expect_sqrt = std::sqrt(x);
-  EXPECT_TRUE(neb::math::abs(actual_sqrt, neb::floatxx_t(expect_sqrt)) <
-              precesion(expect_sqrt, 1e-1 * PRECESION));
+  ret = neb::math::abs(actual_sqrt, neb::floatxx_t(expect_sqrt));
+  EXPECT_TRUE(ret < precesion(expect_sqrt, 1e-1 * PRECESION));
+  EXPECT_EQ(mem_bytes(actual_sqrt), "0100803f");
 
   x = 0.5;
-  actual_sqrt = neb::math::sqrt(neb::floatxx_t(x));
+  actual_sqrt = neb::math::sqrt(one / two);
   expect_sqrt = std::sqrt(x);
-  EXPECT_TRUE(neb::math::abs(actual_sqrt, neb::floatxx_t(expect_sqrt)) <
-              precesion(expect_sqrt, 1e-1 * PRECESION));
+  ret = neb::math::abs(actual_sqrt, neb::floatxx_t(expect_sqrt));
+  EXPECT_TRUE(ret < precesion(expect_sqrt, 1e-1 * PRECESION));
+  EXPECT_EQ(mem_bytes(actual_sqrt), "f204353f");
 
   x = 2.0;
-  actual_sqrt = neb::math::sqrt(neb::floatxx_t(x));
+  actual_sqrt = neb::math::sqrt(two);
   expect_sqrt = std::sqrt(x);
-  EXPECT_TRUE(neb::math::abs(actual_sqrt, neb::floatxx_t(expect_sqrt)) <
-              precesion(expect_sqrt, 1e-1 * PRECESION));
+  ret = neb::math::abs(actual_sqrt, neb::floatxx_t(expect_sqrt));
+  EXPECT_TRUE(ret < precesion(expect_sqrt, 1e-1 * PRECESION));
+  EXPECT_EQ(mem_bytes(actual_sqrt), "f204b53f");
+
+  neb::floatxx_t f_delta =
+      softfloat_cast<int32_t, typename neb::floatxx_t::value_type>(1000);
+  f_delta = one / f_delta;
+  neb::floatxx_t f_xx = f_delta;
 
   float delta(0.001);
   for (x = delta; x < 1.0; x += delta) {
-    actual_sqrt = neb::math::sqrt(neb::floatxx_t(x));
+    actual_sqrt = neb::math::sqrt(f_xx);
+    // std::cout << '\"' << mem_bytes(actual_sqrt) << '\"' << ',';
     expect_sqrt = std::sqrt(x);
-    EXPECT_TRUE(neb::math::abs(actual_sqrt, neb::floatxx_t(expect_sqrt)) <
-                precesion(expect_sqrt, 1e-1 * PRECESION));
+    ret = neb::math::abs(actual_sqrt, neb::floatxx_t(expect_sqrt));
+    EXPECT_TRUE(ret < precesion(expect_sqrt, 1e-1 * PRECESION));
+    f_xx += f_delta;
+  }
+  // std::cout << std::endl;
+  std::string mem_bytes_arr[] = {
+      "e286013d", "bf2d373d", "df58603d", "e286813d", "c3d0903d", "2ca39e3d",
+      "1559ab3d", "bf2db73d", "544ac23d", "cdcccc3d", "cacbd63d", "e058e03d",
+      "0982e93d", "9952f23d", "e8d3fa3d", "e286013e", "6583053e", "5062093e",
+      "0f260d3e", "c3d0103e", "4764143e", "3ee2173e", "1b4c1b3e", "2ca31e3e",
+      "9ce8213e", "731d253e", "a842283e", "15592b3e", "84612e3e", "ad5c313e",
+      "384b343e", "bf2d373e", "d2043a3e", "f6d03c3e", "a6923f3e", "524a423e",
+      "68f8443e", "439d473e", "49394a3e", "cccc4c3e", "1b584f3e", "86db513e",
+      "5557543e", "c7cb563e", "2039593e", "9c9f5b3e", "74ff5d3e", "dc58603e",
+      "09ac623e", "2bf9643e", "6f40673e", "0282693e", "10be6b3e", "bef46d3e",
+      "3326703e", "9252723e", "ff79743e", "9d9c763e", "89ba783e", "e0d37a3e",
+      "c5e87c3e", "4df97e3e", "cc82803e", "df86813e", "eb88823e", "fe88833e",
+      "2387843e", "6283853e", "ca7d863e", "6276873e", "356d883e", "4d62893e",
+      "b2558a3e", "6f478b3e", "8a378c3e", "0d268d3e", "00138e3e", "69fe8e3e",
+      "53e88f3e", "c1d0903e", "bdb7913e", "4f9d923e", "7a81933e", "4664943e",
+      "ba45953e", "da25963e", "b004973e", "3de2973e", "89be983e", "9a99993e",
+      "73739a3e", "1b4c9b3e", "97239c3e", "eaf99c3e", "1bcf9d3e", "2da39e3e",
+      "26769f3e", "0748a03e", "d818a13e", "9de8a13e", "57b7a23e", "0c85a33e",
+      "bf51a43e", "741da53e", "30e8a53e", "f5b1a63e", "c87aa73e", "a942a83e",
+      "a009a93e", "adcfa93e", "d394aa3e", "1759ab3e", "7c1cac3e", "03dfac3e",
+      "b0a0ad3e", "8661ae3e", "8921af3e", "b9e0af3e", "1a9fb03e", "b05cb13e",
+      "7b19b23e", "7fd5b23e", "bd90b33e", "3b4bb43e", "f704b53e", "f6bdb53e",
+      "3976b63e", "c22db73e", "95e4b73e", "b29ab83e", "1d50b93e", "d704ba3e",
+      "e2b8ba3e", "3e6cbb3e", "f11ebc3e", "fcd0bc3e", "5e82bd3e", "1c33be3e",
+      "33e3be3e", "ab92bf3e", "8341c03e", "bcefc03e", "579dc13e", "584ac23e",
+      "c1f6c23e", "91a2c33e", "c94dc43e", "6ef8c43e", "7fa2c53e", "fd4bc63e",
+      "ebf4c63e", "4b9dc73e", "1e45c83e", "63ecc83e", "1e93c93e", "5139ca3e",
+      "fadeca3e", "1c84cb3e", "ba28cc3e", "d2cccc3e", "6a70cd3e", "7d13ce3e",
+      "10b6ce3e", "2358cf3e", "b9f9cf3e", "d29ad03e", "6e3bd13e", "91dbd13e",
+      "367bd23e", "651ad33e", "1db9d33e", "5d57d43e", "27f5d43e", "7f92d53e",
+      "612fd63e", "d1cbd63e", "cf67d73e", "5d03d83e", "7b9ed83e", "2a39d93e",
+      "6cd3d93e", "426dda3e", "aa06db3e", "a89fdb3e", "3b38dc3e", "63d0dc3e",
+      "2568dd3e", "80ffdd3e", "7296de3e", "fe2cdf3e", "24c3df3e", "e658e03e",
+      "46eee03e", "4283e13e", "db17e23e", "16ace23e", "ed3fe33e", "64d3e33e",
+      "7c66e43e", "38f9e43e", "938be53e", "931de63e", "36afe63e", "7c40e73e",
+      "69d1e73e", "fa61e83e", "31f2e83e", "1182e93e", "9811ea3e", "c6a0ea3e",
+      "9e2feb3e", "1dbeeb3e", "494cec3e", "1fdaec3e", "a067ed3e", "ccf4ed3e",
+      "a581ee3e", "2b0eef3e", "5f9aef3e", "4126f03e", "d1b1f03e", "123df13e",
+      "02c8f13e", "a252f23e", "f2dcf23e", "f566f33e", "aaf0f33e", "0f7af43e",
+      "2903f53e", "f68bf53e", "7814f63e", "ad9cf63e", "9824f73e", "37acf73e",
+      "8d33f83e", "98baf83e", "5b41f93e", "d5c7f93e", "084efa3e", "f1d3fa3e",
+      "9459fb3e", "f0defb3e", "0564fc3e", "d7e8fc3e", "606dfd3e", "a5f1fd3e",
+      "a375fe3e", "5ff9fe3e", "d77cff3e", "0600003f", "7e41003f", "d582003f",
+      "0ac4003f", "1e05013f", "1346013f", "e686013f", "99c7013f", "2c08023f",
+      "9f48023f", "f388023f", "25c9023f", "3909033f", "2e49033f", "0489033f",
+      "bac8033f", "5308043f", "cc47043f", "2787043f", "64c6043f", "8305053f",
+      "8344053f", "6683053f", "2cc2053f", "d400063f", "5f3f063f", "cc7d063f",
+      "1dbc063f", "50fa063f", "6938073f", "6476073f", "42b4073f", "05f2073f",
+      "ab2f083f", "366d083f", "a5aa083f", "f8e7083f", "3025093f", "4d62093f",
+      "4e9f093f", "34dc093f", "00190a3f", "b1550a3f", "47920a3f", "c3ce0a3f",
+      "250b0b3f", "6c470b3f", "9a830b3f", "adbf0b3f", "a7fb0b3f", "87370c3f",
+      "4e730c3f", "fbae0c3f", "8eea0c3f", "09260d3f", "6b610d3f", "b39c0d3f",
+      "e4d70d3f", "fa120e3f", "fa4d0e3f", "e0880e3f", "adc30e3f", "64fe0e3f",
+      "02390f3f", "88730f3f", "f6ad0f3f", "4be80f3f", "8b22103f", "b15c103f",
+      "c296103f", "bad0103f", "9c0a113f", "6644113f", "197e113f", "b6b7113f",
+      "3bf1113f", "aa2a123f", "0464123f", "469d123f", "71d6123f", "860f133f",
+      "8648133f", "7081133f", "43ba133f", "00f3133f", "a92b143f", "3b64143f",
+      "b89c143f", "1fd5143f", "710d153f", "ae45153f", "d67d153f", "e8b5153f",
+      "e6ed153f", "ce25163f", "a25d163f", "6295163f", "0ccd163f", "a304173f",
+      "243c173f", "9273173f", "eaaa173f", "30e2173f", "6019183f", "7d50183f",
+      "8687183f", "7abe183f", "5df5183f", "292c193f", "e462193f", "8b99193f",
+      "1dd0193f", "9d061a3f", "093d1a3f", "63731a3f", "aaa91a3f", "dddf1a3f",
+      "fe151b3f", "0c4c1b3f", "05821b3f", "edb71b3f", "c3ed1b3f", "85231c3f",
+      "36591c3f", "d48e1c3f", "60c41c3f", "d9f91c3f", "402f1d3f", "95641d3f",
+      "d7991d3f", "08cf1d3f", "27041e3f", "35391e3f", "2f6e1e3f", "19a31e3f",
+      "f2d71e3f", "b80c1f3f", "6d411f3f", "11761f3f", "a3aa1f3f", "24df1f3f",
+      "9413203f", "f347203f", "417c203f", "7db0203f", "a9e4203f", "c318213f",
+      "cd4c213f", "c680213f", "adb4213f", "85e8213f", "4d1c223f", "0350223f",
+      "aa83223f", "3fb7223f", "c5ea223f", "3a1e233f", "9f51233f", "f484233f",
+      "39b8233f", "6deb233f", "921e243f", "a651243f", "ac84243f", "a1b7243f",
+      "85ea243f", "5b1d253f", "2250253f", "d982253f", "7fb5253f", "17e8253f",
+      "9f1a263f", "174d263f", "817f263f", "dab1263f", "25e4263f", "6216273f",
+      "8f48273f", "ac7a273f", "baac273f", "bbde273f", "ac10283f", "8d42283f",
+      "6174283f", "26a6283f", "dbd7283f", "8409293f", "1d3b293f", "a66c293f",
+      "229e293f", "8fcf293f", "ee002a3f", "3f322a3f", "81632a3f", "b5942a3f",
+      "dbc52a3f", "f3f62a3f", "fe272b3f", "f9582b3f", "e7892b3f", "c5ba2b3f",
+      "99eb2b3f", "5d1c2c3f", "124d2c3f", "ba7d2c3f", "57ae2c3f", "e3de2c3f",
+      "620f2d3f", "d53f2d3f", "39702d3f", "90a02d3f", "d9d02d3f", "15012e3f",
+      "45312e3f", "65612e3f", "7a912e3f", "81c12e3f", "7af12e3f", "68212f3f",
+      "47512f3f", "19812f3f", "dfb02f3f", "97e02f3f", "4210303f", "e13f303f",
+      "736f303f", "f79e303f", "6fce303f", "dbfd303f", "3a2d313f", "8c5c313f",
+      "d28b313f", "0bbb313f", "37ea313f", "5619323f", "6b48323f", "7177323f",
+      "6ca6323f", "5ad5323f", "3d04333f", "1333333f", "dc61333f", "9990333f",
+      "4abf333f", "eeed333f", "871c343f", "144b343f", "9679343f", "0ba8343f",
+      "74d6343f", "d104353f", "2333353f", "6961353f", "a28f353f", "cfbd353f",
+      "f1eb353f", "071a363f", "1248363f", "1276363f", "05a4363f", "eed1363f",
+      "c9ff363f", "9b2d373f", "615b373f", "1b89373f", "cab6373f", "6de4373f",
+      "0612383f", "913f383f", "136d383f", "899a383f", "f4c7383f", "55f5383f",
+      "aa22393f", "f34f393f", "337d393f", "67aa393f", "8fd7393f", "ad043a3f",
+      "c0313a3f", "c85e3a3f", "c58b3a3f", "b8b83a3f", "9fe53a3f", "7c123b3f",
+      "4e3f3b3f", "156c3b3f", "d1983b3f", "83c53b3f", "2af23b3f", "c71e3c3f",
+      "594b3c3f", "e1773c3f", "5da43c3f", "d1d03c3f", "39fd3c3f", "96293d3f",
+      "e9553d3f", "32823d3f", "70ae3d3f", "a4da3d3f", "d0063e3f", "ee323e3f",
+      "055f3e3f", "0f8b3e3f", "0fb73e3f", "07e33e3f", "f30e3f3f", "d73a3f3f",
+      "b0663f3f", "7e923f3f", "43be3f3f", "fee93f3f", "af15403f", "5541403f",
+      "f16c403f", "8598403f", "0ec4403f", "8def403f", "041b413f", "6f46413f",
+      "d071413f", "289d413f", "79c8413f", "bcf3413f", "f71e423f", "294a423f",
+      "5075423f", "70a0423f", "84cb423f", "8ff6423f", "9221433f", "8a4c433f",
+      "7a77433f", "5ea2433f", "3bcd433f", "0ff8433f", "d822443f", "984d443f",
+      "4f78443f", "fca2443f", "a1cd443f", "3cf8443f", "ce22453f", "554d453f",
+      "d577453f", "4ca2453f", "b9cc453f", "1df7453f", "7821463f", "ca4b463f",
+      "1376463f", "53a0463f", "8bca463f", "b8f4463f", "df1e473f", "fb48473f",
+      "0e73473f", "179d473f", "19c7473f", "12f1473f", "021b483f", "ea44483f",
+      "c86e483f", "9e98483f", "6bc2483f", "2fec483f", "ea15493f", "9d3f493f",
+      "4869493f", "ea92493f", "84bc493f", "14e6493f", "9c0f4a3f", "1b394a3f",
+      "92624a3f", "008c4a3f", "66b54a3f", "c4de4a3f", "19084b3f", "66314b3f",
+      "ab5a4b3f", "e5834b3f", "1aad4b3f", "45d64b3f", "68ff4b3f", "83284c3f",
+      "96514c3f", "a07a4c3f", "a2a34c3f", "9ccc4c3f", "8ff54c3f", "761e4d3f",
+      "57474d3f", "30704d3f", "02994d3f", "cac14d3f", "8dea4d3f", "45134e3f",
+      "f53b4e3f", "9f644e3f", "3e8d4e3f", "d8b54e3f", "69de4e3f", "f0064f3f",
+      "722f4f3f", "eb574f3f", "5c804f3f", "c5a84f3f", "26d14f3f", "7ff94f3f",
+      "d121503f", "1c4a503f", "5e72503f", "999a503f", "cbc2503f", "f5ea503f",
+      "1913513f", "353b513f", "4763513f", "538b513f", "58b3513f", "54db513f",
+      "4a03523f", "372b523f", "1e53523f", "fc7a523f", "d3a2523f", "a2ca523f",
+      "6af2523f", "2a1a533f", "e441533f", "9569533f", "3d91533f", "e1b8533f",
+      "7be0533f", "0f08543f", "9d2f543f", "2257543f", "9e7e543f", "15a6543f",
+      "84cd543f", "ebf4543f", "4b1c553f", "a543553f", "f76a553f", "4192553f",
+      "84b9553f", "c0e0553f", "f607563f", "242f563f", "4a56563f", "6a7d563f",
+      "82a4563f", "93cb563f", "9df2563f", "a019573f", "9c40573f", "9167573f",
+      "7e8e573f", "66b5573f", "47dc573f", "1f03583f", "f129583f", "bb50583f",
+      "7f77583f", "3c9e583f", "f3c4583f", "a1eb583f", "4a12593f", "eb38593f",
+      "855f593f", "1a86593f", "a8ac593f", "2dd3593f", "adf9593f", "25205a3f",
+      "96465a3f", "016d5a3f", "65935a3f", "c3b95a3f", "18e05a3f", "68065b3f",
+      "b12c5b3f", "f4525b3f", "31795b3f", "679f5b3f", "95c55b3f", "bdeb5b3f",
+      "dd115c3f", "f9375c3f", "0d5e5c3f", "1a845c3f", "20aa5c3f", "22d05c3f",
+      "1bf65c3f", "0f1c5d3f", "fc415d3f", "e2675d3f", "c28d5d3f", "9cb35d3f",
+      "70d95d3f", "3cff5d3f", "03255e3f", "c24a5e3f", "7c705e3f", "2e965e3f",
+      "dbbb5e3f", "80e15e3f", "21075f3f", "b92c5f3f", "4e525f3f", "db775f3f",
+      "619d5f3f", "e1c25f3f", "5ae85f3f", "ce0d603f", "3b33603f", "a358603f",
+      "047e603f", "5ea3603f", "b3c8603f", "00ee603f", "4913613f", "8b38613f",
+      "c75d613f", "fc82613f", "2ba8613f", "56cd613f", "7bf2613f", "9717623f",
+      "af3c623f", "c061623f", "ca86623f", "cfab623f", "ced0623f", "c7f5623f",
+      "b91a633f", "a63f633f", "8c64633f", "6d89633f", "48ae633f", "1dd3633f",
+      "edf7633f", "b61c643f", "7841643f", "3666643f", "ed8a643f", "9eaf643f",
+      "4ad4643f", "f0f8643f", "8f1d653f", "2a42653f", "bd66653f", "4b8b653f",
+      "d4af653f", "57d4653f", "d4f8653f", "4a1d663f", "bb41663f", "2766663f",
+      "8e8a663f", "edae663f", "47d3663f", "9bf7663f", "ea1b673f", "3440673f",
+      "7764673f", "b488673f", "ecac673f", "1fd1673f", "4df5673f", "7219683f",
+      "943d683f", "b061683f", "c685683f", "d8a9683f", "e3cd683f", "e8f1683f",
+      "e915693f", "e239693f", "d75d693f", "c681693f", "b0a5693f", "95c9693f",
+      "74ed693f", "4d116a3f", "20356a3f", "ee586a3f", "b77c6a3f", "7aa06a3f",
+      "38c46a3f", "f1e76a3f", "a50b6b3f", "522f6b3f", "f9526b3f", "9c766b3f",
+      "3b9a6b3f", "d3bd6b3f", "65e16b3f", "f2046c3f", "7a286c3f", "fe4b6c3f",
+      "7a6f6c3f", "f1926c3f", "64b66c3f", "d2d96c3f", "39fd6c3f", "9e206d3f",
+      "fa436d3f", "52676d3f", "a68a6d3f", "f3ad6d3f", "3bd16d3f", "7ef46d3f",
+      "be176e3f", "f63a6e3f", "2a5e6e3f", "58816e3f", "81a46e3f", "a5c76e3f",
+      "c4ea6e3f", "dd0d6f3f", "f2306f3f", "02546f3f", "0d776f3f", "129a6f3f",
+      "11bd6f3f", "0be06f3f", "0103703f", "f325703f", "de48703f", "c56b703f",
+      "a68e703f", "83b1703f", "5ad4703f", "2df7703f", "fb19713f", "c23c713f",
+      "855f713f", "4482713f", "fda4713f", "b1c7713f", "62ea713f", "0c0d723f",
+      "b02f723f", "5152723f", "ee74723f", "8597723f", "15ba723f", "a3dc723f",
+      "2aff723f", "ad21733f", "2b44733f", "a466733f", "1989733f", "88ab733f",
+      "f4cd733f", "58f0733f", "b912743f", "1635743f", "6a57743f", "bd79743f",
+      "0b9c743f", "54be743f", "97e0743f", "d602753f", "1025753f", "4647753f",
+      "7769753f", "a38b753f", "ccad753f", "eecf753f", "0cf2753f", "2514763f",
+      "3836763f", "4858763f", "557a763f", "5a9c763f", "5bbe763f", "59e0763f",
+      "5002773f", "4424773f", "3346773f", "1d68773f", "038a773f", "e4ab773f",
+      "c1cd773f", "97ef773f", "6b11783f", "3833783f", "0355783f", "c876783f",
+      "8898783f", "45ba783f", "fcdb783f", "affd783f", "5d1f793f", "0741793f",
+      "ac62793f", "4e84793f", "eaa5793f", "81c7793f", "14e9793f", "a10a7a3f",
+      "2c2c7a3f", "b24d7a3f", "326f7a3f", "b0907a3f", "28b27a3f", "9bd37a3f",
+      "0bf57a3f", "76167b3f", "dd377b3f", "3f597b3f", "9b7a7b3f", "f49b7b3f",
+      "4abd7b3f", "99de7b3f", "e6ff7b3f", "2c217c3f", "6f427c3f", "af637c3f",
+      "ea847c3f", "21a67c3f", "52c77c3f", "7fe87c3f", "a7097d3f", "cd2a7d3f",
+      "ed4b7d3f", "096d7d3f", "218e7d3f", "33af7d3f", "42d07d3f", "4cf17d3f",
+      "53127e3f", "55337e3f", "53547e3f", "4c757e3f", "42967e3f", "32b77e3f",
+      "1ed87e3f", "07f97e3f", "ec197f3f", "ca3a7f3f", "a65b7f3f", "7e7c7f3f",
+      "529d7f3f", "21be7f3f", "ecde7f3f", "b2ff7f3f"
+  };
+  f_delta = softfloat_cast<int32_t, typename neb::floatxx_t::value_type>(1000);
+  f_delta = one / f_delta;
+  f_xx = f_delta;
+  for (size_t i = 0; i < sizeof(mem_bytes_arr) / sizeof(mem_bytes_arr[0]);
+       i++) {
+    EXPECT_EQ(mem_bytes(neb::math::sqrt(f_xx)), mem_bytes_arr[i]);
+    f_xx += f_delta;
   }
 
+  f_delta = one / ten;
+  f_xx = one + f_delta;
+
   delta = 0.1;
-  for (x = 1.0 + delta; x < 1000.0; x += delta) {
-    actual_sqrt = neb::math::sqrt(neb::floatxx_t(x));
+  for (x = 1.0 + delta; x < 100.0; x += delta) {
+    actual_sqrt = neb::math::sqrt(f_xx);
+    // std::cout << '\"' << mem_bytes(actual_sqrt) << '\"' << ',';
     expect_sqrt = std::sqrt(x);
-    EXPECT_TRUE(neb::math::abs(actual_sqrt, neb::floatxx_t(expect_sqrt)) <
-                precesion(expect_sqrt, 1e-1 * PRECESION));
+    ret = neb::math::abs(actual_sqrt, neb::floatxx_t(expect_sqrt));
+    EXPECT_TRUE(ret < precesion(expect_sqrt, 1e-1 * PRECESION));
+    f_xx += f_delta;
+  }
+  // std::cout << std::endl;
+  std::string another_mem_bytes_arr[] = {
+      "5f3f863f", "8c378c3f", "45f1913f", "a073973f", "72c49c3f", "9ce8a13f",
+      "3fe4a63f", "e4baab3f", "936fb03f", "f404b53f", "587db93f", "ccdabd3f",
+      "211fc23f", "f84bc63f", "c162ca3f", "d064ce3f", "4f53d23f", "592fd63f",
+      "e2f9d93f", "d6b3dd3f", "045ee13f", "2cf9e43f", "0586e83f", "3305ec3f",
+      "4d77ef3f", "e7dcf23f", "7e36f63f", "9484f93f", "9bc7fc3f", "feffff3f",
+      "11970140", "33290340", "94b60440", "5d3f0640", "b5c30740", "c3430940",
+      "a8bf0a40", "8a370c40", "86ab0d40", "ba1b0f40", "45881040", "43f11140",
+      "cb561340", "f7b81440", "e0171640", "9c731740", "41cc1840", "e3211a40",
+      "96741b40", "6ec41c40", "7c111e40", "d25b1f40", "81a32040", "98e82140",
+      "282b2340", "406b2440", "eba82540", "3ce42640", "3b1d2840", "fa532940",
+      "81882a40", "dfba2b40", "1deb2c40", "48192e40", "6b452f40", "8d6f3040",
+      "bd973140", "02be3240", "66e23340", "ee043540", "aa253640", "a0443740",
+      "d6613840", "557d3940", "25973a40", "4faf3b40", "d8c53c40", "cbda3d40",
+      "2aee3e40", "00004040", "50104140", "211f4240", "7c2c4340", "65384440",
+      "e0424540", "f84b4640", "af534740", "095a4840", "0e5f4940", "c3624a40",
+      "2b654b40", "4e664c40", "2f664d40", "d3644e40", "3c624f40", "745e5040",
+      "7a595140", "56535240", "084c5340", "99435440", "093a5540", "5f2f5640",
+      "9b235740", "c5165840", "dd085940", "eaf95940", "ebe95a40", "e9d85b40",
+      "e3c65c40", "deb35d40", "db9f5e40", "e08a5f40", "ef746040", "0a5e6140",
+      "36466240", "752d6340", "c9136440", "36f96440", "bedd6540", "62c16640",
+      "28a46740", "10866840", "1c676940", "52476a40", "b3266b40", "3f056c40",
+      "f8e26c40", "e5bf6d40", "059c6e40", "5b776f40", "e8517040", "af2b7140",
+      "b2047240", "f4dc7240", "74b47340", "378b7440", "3f617540", "8d367640",
+      "230b7740", "01df7740", "2cb27840", "a3847940", "6a567a40", "81277b40",
+      "ebf77b40", "aac77c40", "be967d40", "29657e40", "ef327f40", "07008040",
+      "44668040", "31cc8040", "cc318140", "19978140", "17fc8140", "c5608240",
+      "27c58240", "3c298340", "058d8340", "82f08340", "b5538440", "9db68440",
+      "3c198540", "937b8540", "a0dd8540", "663f8640", "e6a08640", "1d028740",
+      "11638740", "bfc38740", "28248840", "4c848840", "2de48840", "cc438940",
+      "28a38940", "43028a40", "1b618a40", "b3bf8a40", "0b1e8b40", "237c8b40",
+      "fbd98b40", "95378c40", "f0948c40", "0df28c40", "ee4e8d40", "91ab8d40",
+      "f8078e40", "23648e40", "12c08e40", "c61b8f40", "40778f40", "80d28f40",
+      "862d9040", "51889040", "e5e29040", "413d9140", "63979140", "4ef19140",
+      "034b9240", "80a49240", "c7fd9240", "d7569340", "b2af9340", "58089440",
+      "c8609440", "04b99440", "0c119540", "e0689540", "80c09540", "ed179640",
+      "286f9640", "30c69640", "061d9740", "a9739740", "1cca9740", "5f209840",
+      "6e769840", "4ecc9840", "fe219940", "7e779940", "d0cc9940", "f0219a40",
+      "e4769a40", "a7cb9a40", "3d209b40", "a5749b40", "dec89b40", "ea1c9c40",
+      "ca709c40", "7dc49c40", "02189d40", "5b6b9d40", "89be9d40", "8a119e40",
+      "61649e40", "0cb79e40", "8c099f40", "e05b9f40", "0bae9f40", "0c00a040",
+      "e451a040", "91a3a040", "13f5a040", "6d46a140", "a097a140", "a8e8a140",
+      "8939a240", "408aa240", "d0daa240", "382ba340", "797ba340", "92cba340",
+      "841ba440", "4e6ba440", "f4baa440", "730aa540", "cb59a540", "fda8a540",
+      "09f8a540", "ef46a640", "b095a640", "4ce4a640", "c432a740", "1681a740",
+      "44cfa740", "4c1da840", "326ba840", "f3b8a840", "9206a940", "0b54a940",
+      "62a1a940", "95eea940", "a53baa40", "9388aa40", "5fd5aa40", "0822ab40",
+      "8d6eab40", "f1baab40", "3407ac40", "5353ac40", "539fac40", "2febac40",
+      "ed36ad40", "8682ad40", "02cead40", "5b19ae40", "9464ae40", "adafae40",
+      "a4faae40", "7e45af40", "3690af40", "cedaaf40", "4825b040", "a16fb040",
+      "dcb9b040", "f703b140", "f24db140", "d197b140", "8fe1b140", "302bb240",
+      "b274b240", "15beb240", "5b07b340", "8350b340", "8c99b340", "77e2b340",
+      "472bb440", "f873b440", "8cbcb440", "0305b540", "5c4db540", "9a95b540",
+      "baddb540", "bc25b640", "a46db640", "6eb5b640", "1dfdb640", "af44b740",
+      "268cb740", "82d3b740", "c11ab840", "e561b840", "eca8b840", "d9efb840",
+      "ab36b940", "627db940", "ffc3b940", "800aba40", "e750ba40", "3297ba40",
+      "63ddba40", "7a23bb40", "7769bb40", "5aafbb40", "23f5bb40", "d23abc40",
+      "6780bc40", "e2c5bc40", "440bbd40", "8c50bd40", "bd95bd40", "d3dabd40",
+      "d01fbe40", "b464be40", "7fa9be40", "31eebe40", "ca32bf40", "4b77bf40",
+      "b5bbbf40", "0500c040", "3c44c040", "5b88c040", "63ccc040", "5310c140",
+      "2b54c140", "ec97c140", "94dbc140", "241fc240", "9d62c240", "ffa5c240",
+      "4ae9c240", "7d2cc340", "9a6fc340", "9eb2c340", "8cf5c340", "6538c440",
+      "257bc440", "cfbdc440", "6400c540", "e042c540", "4685c540", "97c7c540",
+      "d109c640", "f64bc640", "038ec640", "fccfc640", "df11c740", "ab53c740",
+      "6095c740", "02d7c740", "8e18c840", "055ac840", "649bc840", "b2dcc840",
+      "e61dc940", "085fc940", "15a0c940", "0be1c940", "ed21ca40", "bc62ca40",
+      "74a3ca40", "18e4ca40", "a924cb40", "2265cb40", "8aa5cb40", "dde5cb40",
+      "1a26cc40", "4466cc40", "5aa6cc40", "5ce6cc40", "4b26cd40", "2366cd40",
+      "e9a5cd40", "9ce5cd40", "3c25ce40", "c664ce40", "3ea4ce40", "a1e3ce40",
+      "f122cf40", "2f62cf40", "59a1cf40", "6fe0cf40", "741fd040", "665ed040",
+      "419dd040", "0ddcd040", "c51ad140", "6a59d140", "fd97d140", "7cd6d140",
+      "ea14d240", "4353d240", "8c91d240", "c1cfd240", "e50dd340", "f64bd340",
+      "f589d340", "e2c7d340", "bc05d440", "8543d440", "3c81d440", "e1bed440",
+      "74fcd440", "f439d540", "6477d540", "c1b4d540", "0df2d540", "4a2fd640",
+      "726cd640", "8aa9d640", "8fe6d640", "8423d740", "6960d740", "3b9dd740",
+      "fdd9d740", "ae16d840", "4c53d840", "da8fd840", "58ccd840", "c508d940",
+      "2245d940", "6a81d940", "a6bdd940", "d0f9d940", "e935da40", "f171da40",
+      "eaadda40", "d1e9da40", "a725db40", "7161db40", "269ddb40", "cdd8db40",
+      "6314dc40", "e94fdc40", "608bdc40", "c5c6dc40", "1b02dd40", "623ddd40",
+      "9778dd40", "c0b3dd40", "d5eedd40", "de29de40", "d464de40", "bb9fde40",
+      "94dade40", "5d15df40", "1650df40", "c08adf40", "59c5df40", "e5ffdf40",
+      "623ae040", "cd74e040", "2aafe040", "79e9e040", "b823e140", "e85de140",
+      "0a98e140", "1ed2e140", "200ce240", "1546e240", "fa7fe240", "d0b9e240",
+      "99f3e240", "512de340", "fc66e340", "98a0e340", "26dae340", "a513e440",
+      "144de440", "7886e440", "cbbfe440", "10f9e440", "4732e540", "6f6be540",
+      "8ba4e540", "96dde540", "9516e640", "844fe640", "6688e640", "3ac1e640",
+      "01fae640", "b932e740", "636be740", "00a4e740", "8ddce740", "0e15e840",
+      "804de840", "e585e840", "3ebee840", "87f6e840", "c32ee940", "f366e940",
+      "149fe940", "28d7e940", "2d0fea40", "2747ea40", "137fea40", "f0b6ea40",
+      "c2eeea40", "8526eb40", "3b5eeb40", "e595eb40", "81cdeb40", "1105ec40",
+      "933cec40", "0774ec40", "70abec40", "cae2ec40", "181aed40", "5a51ed40",
+      "8f88ed40", "b7bfed40", "d1f6ed40", "e02dee40", "e164ee40", "d49bee40",
+      "bdd2ee40", "9909ef40", "6740ef40", "2977ef40", "e0adef40", "89e4ef40",
+      "251bf040", "b551f040", "3a88f040", "b1bef040", "1df5f040", "7b2bf140",
+      "ce61f140", "1698f140", "4fcef140", "7e04f240", "a03af240", "b670f240",
+      "c1a6f240", "c0dcf240", "b112f340", "9748f340", "717ef340", "3fb4f340",
+      "03eaf340", "b91ff440", "6155f440", "008bf440", "93c0f440", "1cf6f440",
+      "972bf540", "0861f540", "6c96f540", "c6cbf540", "1201f640", "5436f640",
+      "8a6bf640", "b7a0f640", "d6d5f640", "e90af740", "f33ff740", "f074f740",
+      "e0a9f740", "c7def740", "a313f840", "7348f840", "387df840", "f0b1f840",
+      "a0e6f840", "421bf940", "da4ff940", "6884f940", "eab8f940", "60edf940",
+      "cc21fa40", "2d56fa40", "838afa40", "cfbefa40", "0ef3fa40", "4327fb40",
+      "6e5bfb40", "8e8ffb40", "a2c3fb40", "adf7fb40", "ab2bfc40", "a15ffc40",
+      "8d93fc40", "6cc7fc40", "40fbfc40", "0b2ffd40", "c962fd40", "7e96fd40",
+      "2acafd40", "c9fdfd40", "5e31fe40", "e864fe40", "6a98fe40", "dfcbfe40",
+      "4cfffe40", "ad32ff40", "0566ff40", "5199ff40", "92ccff40", "ccffff40",
+      "7d190041", "0e330041", "9b4c0041", "23660041", "a67f0041", "22990041",
+      "9cb20041", "0ecc0041", "7de50041", "e7fe0041", "4b180141", "aa310141",
+      "044b0141", "5a640141", "ab7d0141", "f7960141", "3db00141", "7fc90141",
+      "bce20141", "f4fb0141", "26150241", "552e0241", "7e470241", "a2600241",
+      "c1790241", "dd920241", "f3ab0241", "03c50241", "0fde0241", "18f70241",
+      "1a100341", "18290341", "12420341", "065b0341", "f6730341", "e08c0341",
+      "c7a50341", "a8be0341", "86d70341", "5ef00341", "31090441", "ff210441",
+      "ca3a0441", "8f530441", "516c0441", "0d850441", "c49d0441", "78b60441",
+      "26cf0441", "d0e70441", "75000541", "16190541", "b2310541", "4a4a0541",
+      "dd620541", "6c7b0541", "f5930541", "7bac0541", "fcc40541", "7add0541",
+      "f1f50541", "650e0641", "d5260641", "3f3f0641", "a5570641", "07700641",
+      "65880641", "bea00641", "13b90641", "63d10641", "afe90641", "f6010741",
+      "391a0741", "78320741", "b24a0741", "e8620741", "1b7b0741", "48930741",
+      "71ab0741", "96c30741", "b7db0741", "d3f30741", "eb0b0841", "ff230841",
+      "0e3c0841", "1a540841", "216c0841", "23840841", "229c0841", "1cb40841",
+      "13cc0841", "04e40841", "f2fb0841", "dc130941", "c12b0941", "a2430941",
+      "805b0941", "58730941", "2d8b0941", "fea20941", "cbba0941", "94d20941",
+      "57ea0941", "18020a41", "d4190a41", "8c310a41", "41490a41", "f0600a41",
+      "9c780a41", "44900a41", "e8a70a41", "88bf0a41", "24d70a41", "bbee0a41",
+      "4f060b41", "df1d0b41", "6b350b41", "f34c0b41", "77640b41", "f67b0b41",
+      "72930b41", "eaaa0b41", "5ec20b41", "ced90b41", "3bf10b41", "a3080c41",
+      "07200c41", "68370c41", "c54e0c41", "1d660c41", "727d0c41", "c3940c41",
+      "0fac0c41", "59c30c41", "9fda0c41", "e0f10c41", "1e090d41", "58200d41",
+      "8e370d41", "c04e0d41", "ef650d41", "197d0d41", "40940d41", "62ab0d41",
+      "82c20d41", "9dd90d41", "b5f00d41", "ca070e41", "da1e0e41", "e6350e41",
+      "ef4c0e41", "f4630e41", "f57a0e41", "f3910e41", "eda80e41", "e3bf0e41",
+      "d6d60e41", "c4ed0e41", "b0040f41", "961b0f41", "7b320f41", "5b490f41",
+      "38600f41", "10770f41", "e68d0f41", "b7a40f41", "85bb0f41", "50d20f41",
+      "16e90f41", "daff0f41", "98161041", "552d1041", "0d441041", "c25a1041",
+      "73711041", "20881041", "cc9e1041", "71b51041", "15cc1041", "b4e21041",
+      "50f91041", "e80f1141", "7e261141", "0f3d1141", "9d531141", "276a1141",
+      "ae801141", "31971141", "b2ad1141", "2ec41141", "a7da1141", "1cf11141",
+      "8e071241", "fd1d1241", "69341241", "d04a1241", "36611241", "97771241",
+      "f38d1241", "4da41241", "a5ba1241", "f7d01241", "47e71241", "93fd1241",
+      "dd131341", "222a1341", "65401341", "a4561341", "e06c1341", "18831341",
+      "4d991341", "7eaf1341", "adc51341", "d7db1341", "fff11341", "24081441",
+      "451e1441", "62341441", "7d4a1441", "94601441", "a8761441", "b88c1441",
+      "c6a21441", "d0b81441", "d6ce1441", "dae41441", "dafa1441", "d8101541",
+      "d0261541", "c83c1541", "bb521541", "ab681541", "997e1541", "81941541",
+      "67aa1541", "4ac01541", "2ad61541", "08ec1541", "e1011641", "b7171641",
+      "8b2d1641", "5b431641", "28591641", "f26e1641", "b8841641", "7c9a1641",
+      "3db01641", "f9c51641", "b4db1641", "6af11641", "1f071741", "d01c1741",
+      "7d321741", "28481741", "ce5d1741", "72731741", "14891741", "b29e1741",
+      "4db41741", "e5c91741", "7adf1741", "0df51741", "9b0a1841", "27201841",
+      "af351841", "354b1841", "b7601841", "36761841", "b38b1841", "2da11841",
+      "a3b61841", "17cc1841", "87e11841", "f5f61841", "5e0c1941", "c6211941",
+      "2a371941", "8c4c1941", "ea611941", "46771941", "9f8c1941", "f4a11941",
+      "47b71941", "96cc1941", "e3e11941", "2cf71941", "740c1a41", "b8211a41",
+      "f9361a41", "364c1a41", "72611a41", "aa761a41", "e08b1a41", "12a11a41",
+      "41b61a41", "6dcb1a41", "97e01a41", "bef51a41", "e20a1b41", "03201b41",
+      "21351b41", "3d4a1b41", "545f1b41", "6b741b41", "7d891b41", "8d9e1b41",
+      "99b31b41", "a4c81b41", "abdd1b41", "b0f21b41", "b2071c41", "b01c1c41",
+      "ab311c41", "a5461c41", "9c5b1c41", "8f701c41", "7f851c41", "6d9a1c41",
+      "58af1c41", "41c41c41", "26d91c41", "0aee1c41", "e9021d41", "c6171d41",
+      "a12c1d41", "78411d41", "4d561d41", "206b1d41", "ef7f1d41", "bb941d41",
+      "86a91d41", "4dbe1d41", "11d31d41", "d2e71d41", "91fc1d41", "4d111e41",
+      "07261e41", "be3a1e41", "734f1e41", "24641e41", "d3781e41", "7e8d1e41",
+      "28a21e41", "ceb61e41", "72cb1e41", "13e01e41", "b3f41e41", "4e091f41",
+      "e81d1f41", "7e321f41", "12471f41", "a35b1f41", "31701f41", "bd841f41",
+      "47991f41", "cdad1f41", "52c21f41", "d3d61f41", "52eb1f41", "ceff1f41"};
+  f_delta = one / ten;
+  f_xx = one + f_delta;
+  for (size_t i = 0;
+       i < sizeof(another_mem_bytes_arr) / sizeof(another_mem_bytes_arr[0]);
+       i++) {
+    EXPECT_EQ(mem_bytes(neb::math::sqrt(f_xx)), another_mem_bytes_arr[i]);
+    f_xx += f_delta;
   }
 
   std::random_device rd;
@@ -1784,7 +2153,7 @@ TEST(test_common_math, sqrt) {
     x = dis(mt);
     actual_sqrt = neb::math::sqrt(neb::floatxx_t(x));
     expect_sqrt = std::sqrt(x);
-    EXPECT_TRUE(neb::math::abs(actual_sqrt, neb::floatxx_t(expect_sqrt)) <
-                precesion(expect_sqrt, 1e-1 * PRECESION));
+    ret = neb::math::abs(actual_sqrt, neb::floatxx_t(expect_sqrt));
+    EXPECT_TRUE(ret < precesion(expect_sqrt, 1e-1 * PRECESION));
   }
 }
