@@ -27,6 +27,7 @@
 #include "llvm/Support/MemoryBuffer.h"
 //#include "llvm/Support/PluginLoader.h"
 #include "common/configuration.h"
+#include "fs/storage_holder.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
@@ -41,13 +42,32 @@ jit_mangled_entry_point::jit_mangled_entry_point()
 jit_mangled_entry_point::~jit_mangled_entry_point() {}
 
 std::string
+jit_mangled_entry_point::get_storage_key(const std::string &entry_name) {
+  return std::string("mangle_name_") + entry_name;
+}
+
+std::string
 jit_mangled_entry_point::get_mangled_entry_name(const std::string &entry_name) {
   std::unique_lock<std::mutex> _l(m_mutex);
   if (m_mangled_entry_names.find(entry_name) != m_mangled_entry_names.end()) {
     return m_mangled_entry_names[entry_name];
   }
+  auto storage = ::neb::fs::storage_holder::instance().nbre_db_ptr();
+  if (storage) {
+    try {
+      auto bn = storage->get(get_storage_key(entry_name));
+      return byte_to_string(bn);
+    } catch (...) {
+    }
+  }
   gen_mangle_name_for_entry(entry_name);
   if (m_mangled_entry_names.find(entry_name) != m_mangled_entry_names.end()) {
+    try {
+      storage->put(get_storage_key(entry_name),
+                   string_to_byte(m_mangled_entry_names[entry_name]));
+    } catch (...) {
+    }
+
     return m_mangled_entry_names[entry_name];
   } else {
     return std::string();
