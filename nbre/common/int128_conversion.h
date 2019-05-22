@@ -37,8 +37,9 @@ public:
     T limits = softfloat_cast<uint64_t, typename T::value_type>(
         std::numeric_limits<uint64_t>::max());
 
-    return T(m_data.m_detail.m_low) +
-           T(m_data.m_detail.m_high) * (limits + one);
+    T tl = T(m_data.m_detail.m_low);
+    T th = T(m_data.m_detail.m_high) * (limits + one);
+    return tl + th;
   }
 
   template <typename T> inline int128_t from_float(const T &x) {

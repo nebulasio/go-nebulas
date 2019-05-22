@@ -35,10 +35,10 @@ public:
 protected:
   virtual void get_transfer_event(const neb::bytes &events_root,
                                   const neb::bytes &tx_hash,
-                                  std::vector<transaction_info_t> &infos,
+                                  std::vector<transaction_info_t> &events,
                                   transaction_info_t &info);
   virtual void json_parse_event(const std::string &json,
-                                std::vector<transaction_info_t> &infos,
+                                std::vector<transaction_info_t> &events,
                                 transaction_info_t &info);
 };
 

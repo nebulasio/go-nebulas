@@ -104,7 +104,8 @@ TEST(test_common_conversion, to_float) {
 
   std::random_device rd;
   std::mt19937 mt(rd());
-  std::uniform_int_distribution<> dis(0, std::numeric_limits<int32_t>::max());
+  std::uniform_int_distribution<> dis(0, std::numeric_limits<int32_t>::max() %
+                                             (1 << 20));
   for (auto i = 0; i < 1000; i++) {
     high = dis(mt);
     low = dis(mt);
