@@ -17,8 +17,9 @@ type RocksStorage struct {
 	mutex       sync.Mutex
 	batchOpts   map[string]*batchOpt
 
-	ro *gorocksdb.ReadOptions
-	wo *gorocksdb.WriteOptions
+	ro            *gorocksdb.ReadOptions
+	wo            *gorocksdb.WriteOptions
+	cfHandlersMap map[string]*gorocksdb.ColumnFamilyHandle
 
 	cache *gorocksdb.Cache
 }
@@ -57,6 +58,116 @@ func NewRocksStorage(path string) (*RocksStorage, error) {
 	//go RecordMetrics(storage)
 
 	return storage, nil
+}
+
+// NewRocksStorage init a storage with column Families
+func NewRocksStorageWithCF(path string, columnFamiliesNames []string) (*RocksStorage, error) {
+
+	filter := gorocksdb.NewBloomFilter(10)
+	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
+	bbto.SetFilterPolicy(filter)
+
+	cache := gorocksdb.NewLRUCache(512 << 20)
+	bbto.SetBlockCache(cache)
+	opts := gorocksdb.NewDefaultOptions()
+	opts.SetBlockBasedTableFactory(bbto)
+	opts.SetCreateIfMissing(true)
+	opts.SetCreateIfMissingColumnFamilies(true)
+	opts.SetMaxOpenFiles(500)
+	opts.SetWriteBufferSize(64 * opt.MiB) //Default: 4MB
+	opts.IncreaseParallelism(4)           //flush and compaction thread
+	opts.SetKeepLogFileNum(1)
+
+	optArray := make([]*gorocksdb.Options, len(columnFamiliesNames))
+	for i := 0; i < len(columnFamiliesNames); i++ {
+		optArray[i] = opts
+	}
+	db, cfh, err := gorocksdb.OpenDbColumnFamilies(opts, path, columnFamiliesNames, optArray)
+	if err != nil {
+		return nil, err
+	}
+
+	storage := &RocksStorage{
+		db:            db,
+		cache:         cache,
+		enableBatch:   false,
+		batchOpts:     make(map[string]*batchOpt),
+		ro:            gorocksdb.NewDefaultReadOptions(),
+		wo:            gorocksdb.NewDefaultWriteOptions(),
+		cfHandlersMap: make(map[string]*gorocksdb.ColumnFamilyHandle),
+	}
+	for i := 0; i < len(columnFamiliesNames); i++ {
+		storage.cfHandlersMap[columnFamiliesNames[i]] = cfh[i]
+	}
+
+	return storage, nil
+}
+
+// Get return value to the key in Storage with column Families
+func (storage *RocksStorage) GetCF(cfName string, key []byte) ([]byte, error) {
+	if handler, ok := storage.cfHandlersMap[cfName]; ok {
+		value, err := storage.db.GetCF(storage.ro, handler, key)
+		defer value.Free()
+
+		if err != nil {
+			return nil, err
+		}
+
+		if value == nil {
+			return nil, ErrKeyNotFound
+		}
+
+		dst := value.Data()
+		data := make([]byte, len(dst))
+		copy(data, dst)
+		return data, err
+	} else {
+		return nil, ErrCFNotFound
+	}
+}
+
+// Put put the key-value entry to Storage with column Families
+func (storage *RocksStorage) PutCF(cfName string, key []byte, value []byte) error {
+	if handler, ok := storage.cfHandlersMap[cfName]; ok {
+		if storage.enableBatch {
+			storage.mutex.Lock()
+			defer storage.mutex.Unlock()
+
+			storage.batchOpts[byteutils.Hex(key)] = &batchOpt{
+				cfName:  cfName,
+				key:     key,
+				value:   value,
+				deleted: false,
+			}
+
+			return nil
+		}
+
+		return storage.db.PutCF(storage.wo, handler, key, value)
+	} else {
+		return ErrCFNotFound
+	}
+}
+
+// Del delete the key in Storage with column Families
+func (storage *RocksStorage) DelCF(cfName string, key []byte) error {
+	if handler, ok := storage.cfHandlersMap[cfName]; ok {
+		if storage.enableBatch {
+			storage.mutex.Lock()
+			defer storage.mutex.Unlock()
+
+			storage.batchOpts[byteutils.Hex(key)] = &batchOpt{
+				cfName:  cfName,
+				key:     key,
+				deleted: true,
+			}
+
+			return nil
+		}
+		return storage.db.DeleteCF(storage.wo, handler, key)
+	} else {
+		return ErrCFNotFound
+	}
 }
 
 // Get return value to the key in Storage

@@ -23,6 +23,7 @@ import "errors"
 // const
 var (
 	ErrKeyNotFound = errors.New("not found")
+	ErrCFNotFound = errors.New("column family not found")
 )
 
 // Storage interface of Storage.
