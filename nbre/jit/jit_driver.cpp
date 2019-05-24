@@ -124,7 +124,7 @@ jit_driver::make_context(const std::vector<nbre::NBREIR> &irs,
                          const std::string &func_name) {
   std::unique_ptr<jit_context> ret = std::make_unique<jit_context>();
 
-  std::string mangling_name;
+  std::string mangling_name = get_mangled_entry_point(func_name);
   std::vector<std::unique_ptr<llvm::Module>> modules;
   for (const auto &ir : irs) {
     std::string ir_str = ir.ir();
@@ -134,7 +134,6 @@ jit_driver::make_context(const std::vector<nbre::NBREIR> &irs,
 
     auto module =
         llvm::parseIR(mem_buf->getMemBufferRef(), err, ret->m_context, true);
-    mangling_name = get_mangled_entry_point(func_name);
     // find_mangling(module.get(), func_name, mangling_name);
     if (nullptr == module) {
       LOG(ERROR) << "Module broken";

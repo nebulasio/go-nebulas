@@ -33,6 +33,7 @@ public:
 protected:
   void init_prog_slice();
   void gen_mangle_name_for_entry(const std::string &entry_name);
+  std::string get_storage_key(const std::string &entry_name);
 
 protected:
   std::mutex m_mutex;

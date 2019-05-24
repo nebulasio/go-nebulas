@@ -18,11 +18,13 @@
 // <http://www.gnu.org/licenses/>.
 
 #include "common/configuration.h"
+#include "fs/storage_holder.h"
 #include "jit/jit_driver.h"
 #include "jit/jit_mangled_entry_point.h"
 
 int main(int argc, char *argv[]) {
 
+  LOG(INFO) << "nbre db: " << neb::configuration::instance().nbre_db_dir();
   auto n1 = neb::jit_driver::instance().get_mangled_entry_point(
       neb::configuration::instance().nr_func_name());
   LOG(INFO) << "nr entry point: " << n1;
@@ -32,5 +34,7 @@ int main(int argc, char *argv[]) {
   auto n3 = neb::jit_driver::instance().get_mangled_entry_point(
       neb::configuration::instance().auth_func_name());
   LOG(INFO) << "auth entry point: " << n3;
+
+  neb::fs::storage_holder::instance().release();
   return 0;
 }
