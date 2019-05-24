@@ -799,4 +799,70 @@ TEST(test_runtime_dip_reward, dip_votes_float) {
     EXPECT_TRUE(ret != actual_ret.end());
     EXPECT_EQ(ret->second, mem_bytes(it.second));
   }
+
+  std::vector<std::string> specific_str(
+      {"n1JsdNK15j12woqrQiaRYj7vYmgX41QzTFy,"
+       "n1yCUCFCpLzjY2E7iBEBNtQYcmuLBzQoMxB,1217888379",
+       "n1XBGikvoTU6huJcJHkP8woian8pvaRfHQk,"
+       "n1yCUCFCpLzjY2E7iBEBNtQYcmuLBzQoMxB,1092285986",
+       "n1cZF8Kp4o8PmSyhPvmkn4VEp3phUXP1Qke,"
+       "n1yCUCFCpLzjY2E7iBEBNtQYcmuLBzQoMxB,1035609660",
+       "n1YFU5oWhDDaDJx9EknAiyQh4PUfVkcnvRs,"
+       "n1yCUCFCpLzjY2E7iBEBNtQYcmuLBzQoMxB,1167363398",
+       "n1NXTt5CRyBXVHA2D7VHpS6RmiqdpT9XGTG,"
+       "n1yCUCFCpLzjY2E7iBEBNtQYcmuLBzQoMxB,0",
+       "n1dBZ4yXoMLp4x8snpXojw9dWf5iBmaX2D9,"
+       "n1yCUCFCpLzjY2E7iBEBNtQYcmuLBzQoMxB,1090870797",
+       "n1EaZqWVrwxDHqDhXrqX4nethcNZ2sTMCtu,"
+       "n1yCUCFCpLzjY2E7iBEBNtQYcmuLBzQoMxB,1053044065",
+       "n1HVtTZW7V7U4BSXfcWFW33wceGc7R24CqF,"
+       "n1yCUCFCpLzjY2E7iBEBNtQYcmuLBzQoMxB,1073180097",
+       "n1K2MYYg7JfLgUAbWVMp3bHHwGReU4CAHDe,"
+       "n1yCUCFCpLzjY2E7iBEBNtQYcmuLBzQoMxB,0",
+       "n1Sayf8Yqif9n69wi9kZDXd1PYQZfnE4wEo,"
+       "n1yCUCFCpLzjY2E7iBEBNtQYcmuLBzQoMxB,0",
+       "n1YxyaBzoRogNh72eri7HBGijCAtcHpf9nm,"
+       "n1yCUCFCpLzjY2E7iBEBNtQYcmuLBzQoMxB,1158007225",
+       "n1GV9UScgncwU6KKL9T18mCo2S6uAE69SWs,"
+       "n1yCUCFCpLzjY2E7iBEBNtQYcmuLBzQoMxB,1126029837",
+       "n1X2SXyEKej7GZgAreXDCkiT59qaYKBDcYi,"
+       "n1yCUCFCpLzjY2E7iBEBNtQYcmuLBzQoMxB,997704071"});
+
+  neb::floatxx_t zero =
+      softfloat_cast<uint32_t, typename neb::floatxx_t::value_type>(0);
+  neb::floatxx_t sum = zero;
+
+  std::vector<std::pair<std::string, std::string>> intermed_ret(
+      {{"8a410b44", "8a410b44"},
+       {"732c4740", "b6080c44"},
+       {"405c9a3e", "021c0c44"},
+       {"c1e48942", "9a581d44"},
+       {"25d0d31e", "9a581d44"},
+       {"92c63840", "61111e44"},
+       {"aa761e3f", "ff381e44"},
+       {"8ff6b13f", "fa911e44"},
+       {"25d0d31e", "fa911e44"},
+       {"25d0d31e", "fa911e44"},
+       {"1a113942", "0c232a44"},
+       {"c3054941", "23472d44"},
+       {"20d87b3d", "124b2d44"}});
+  auto it = intermed_ret.begin();
+
+  for (auto &line : specific_str) {
+    auto ret = split_by_comma(line, ',');
+
+    auto source = ret[0];
+    auto target = ret[1];
+    auto source_bytes = neb::bytes::from_base58(source);
+    auto target_bytes = neb::bytes::from_base58(target);
+
+    auto mem_int = std::stoi(ret[2]);
+    auto f_x = *reinterpret_cast<neb::floatxx_t *>(&mem_int);
+
+    auto tmp = neb::math::sqrt(f_x);
+    sum += tmp;
+    EXPECT_EQ(it->first, mem_bytes(tmp));
+    EXPECT_EQ(it->second, mem_bytes(sum));
+    it++;
+  }
 }
