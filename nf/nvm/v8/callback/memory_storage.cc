@@ -52,9 +52,11 @@ char* StorageGet(void* handler, const char *key, size_t *cnt){
   *cnt = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
+  if(callback_res != nullptr)
+    delete callback_res;
+
   if(!not_null_flag)
     return NULL;
-
   char* cStr = (char*)calloc(resString.length()+1, sizeof(char));
   strcpy(cStr, resString.c_str());
   return cStr;
@@ -69,6 +71,8 @@ int StoragePut(void* handler, const char* key, const char *value, size_t *cnt){
   const NVMCallbackResult* callback_res = SNVM::DataExchangeCallback(handler, res);
   *cnt = (size_t)std::stoull(callback_res->extra(0));
   int resCode = std::stoi(callback_res->result());
+  if(callback_res != nullptr)
+    delete callback_res;
 
   return resCode;
 }
@@ -81,6 +85,8 @@ int StorageDel(void* handler, const char* key, size_t *cnt){
   const NVMCallbackResult* callback_res = SNVM::DataExchangeCallback(handler, res);
   *cnt = (size_t)std::stoull(callback_res->extra(0));
   int resCode = std::stoi(callback_res->result());
+  if(callback_res != nullptr)
+    delete callback_res;
 
   return resCode;
 }

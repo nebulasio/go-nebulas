@@ -240,6 +240,13 @@ func transfer(e *V8Engine, from *core.Address, to *core.Address, amount *util.Ui
 		return ErrTransferGetAccount
 	}
 
+	logging.CLog().WithFields(logrus.Fields{
+		"fromaddr":  from,
+		"toValue":  amount,
+		"toaddr": to,
+		"engine": e,
+	}).Error(">>>>transfer amount!")
+
 	// TestNet sync adjust
 	if amount == nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -252,6 +259,11 @@ func transfer(e *V8Engine, from *core.Address, to *core.Address, amount *util.Ui
 
 	// update balance
 	if amount.Cmp(util.NewUint128()) > 0 {
+
+		logging.CLog().WithFields(logrus.Fields{
+			"from-balance": fromAcc.Balance(),
+		}).Error(">>>>before sub balance from from account!")
+
 		err = fromAcc.SubBalance(amount) 		//TODO: add unit amount不足，超大, NaN
 		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
@@ -675,8 +687,14 @@ func earlierTestnetInnerTxCompatibility(engine *V8Engine) bool {
 }
 
 //Return: engineNew(*V8Engine), nvmConfigNew(*NVMConfig), gasCnt(uint64), err(error)
-func InnerContractFunc(handler uint64, address string, funcName string, 
-	innerTxValueStr string, args string) (*V8Engine, *core.NVMConfig, uint64, error) {
+func InnerContractFunc(
+	handler uint64,
+	address string,
+	funcName string,
+	innerTxValueStr string,
+	args string,
+	remainInstructionCount uint64,
+	remainMemSize uint64) (*V8Engine, *core.NVMConfig, uint64, error) {
 
 	var gasCnt uint64 = uint64(InnerContractGasBase)
 	var engineNew *V8Engine = nil
@@ -725,7 +743,6 @@ func InnerContractFunc(handler uint64, address string, funcName string,
 		}
 
 		deploy = payload.deploy
-		//run
 		payloadType := core.TxPayloadCallType
 		callpayload, err := core.NewCallPayload(funcName, args)
 		if err != nil {
@@ -745,7 +762,7 @@ func InnerContractFunc(handler uint64, address string, funcName string,
 			return engineNew, nvmConfigNew, gasCnt, err
 		}
 		//transfer
-		// var transferCostGas uint64
+		//var transferCostGas uint64
 		toValue, err = util.NewUint128FromString(innerTxValueStr)
 		if err != nil {
 			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
@@ -791,7 +808,6 @@ func InnerContractFunc(handler uint64, address string, funcName string,
 			return engineNew, nvmConfigNew, gasCnt, err
 		}
 		deploy = payload.deploy
-
 		from := engine.ctx.contract.Address()
 		fromAddr, err = core.AddressParseFromBytes(from)
 		if err != nil {
@@ -804,6 +820,14 @@ func InnerContractFunc(handler uint64, address string, funcName string,
 			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 			return engineNew, nvmConfigNew, gasCnt, err
 		}
+
+		logging.CLog().WithFields(logrus.Fields{
+			"fromaddr":  fromAddr,
+			"toValue":  toValue,
+			"addr": addr,
+			"handler": handler,
+		}).Error(">>>>before transferring by address!")
+
 		iRet := TransferByAddress(handler, fromAddr, addr, toValue)
 		if iRet != 0 {
 			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, ErrInnerTransferFailed.Error(), true)
@@ -815,14 +839,35 @@ func InnerContractFunc(handler uint64, address string, funcName string,
 			setHeadErrAndLog(engine, index, core.ErrExecutionFailed, err.Error(), true)
 			return engineNew, nvmConfigNew, gasCnt, err
 		}
+	}
 
+	if remainInstructionCount < uint64(InnerContractGasBase) {
+		logging.VLog().WithFields(logrus.Fields{
+			"remainInstruction": remainInstructionCount,
+			"mem": remainMemSize,
+			"err": ErrInnerInsufficientGas.Error(),
+		}).Error("failed to prepare create nvm")
+		setHeadErrAndLog(engine, index, ErrInsufficientGas, "null", false)
+		return engineNew, nvmConfigNew, gasCnt, ErrInsufficientGas
+	}else{
+		remainInstructionCount -= uint64(InnerContractGasBase)
+	}
+	if remainMemSize <= 0 {
+		logging.VLog().WithFields(logrus.Fields{
+			"remainInstruction": remainInstructionCount,
+			"mem": remainMemSize,
+			"err": ErrInnerInsufficientMem.Error(),
+		}).Error("failed to prepare create nvm")
+		setHeadErrAndLog(engine, index, ErrExceedMemoryLimits, "null", false)
+		return engineNew, nvmConfigNew, gasCnt, ErrExceedMemoryLimits
 	}
 
 	// The function should be moved into V8 process
 	engineNew = NewV8Engine(newCtx)
-
-	//engineNew.SetExecutionLimits(remainInstruction, remainMem)
-
+	engineNew.SetExecutionLimits(remainInstructionCount, remainMemSize)
+	logging.CLog().WithFields(logrus.Fields{
+		"enginenew":  engineNew.lcsHandler,
+	}).Error(">>>>after creating new V8 engine!")
 	nvmConf := &core.NVMConfig{
 		PayloadSource: deploy.Source,
 		PayloadSourceType: deploy.SourceType,
@@ -831,6 +876,8 @@ func InnerContractFunc(handler uint64, address string, funcName string,
 		ListenAddr: engine.serverListenAddr,
 		ChainID: engine.chainID,
 	}
+
+	recordInnerContractEvent(err, fromAddr.String(), addr.String(), toValue.String(), ws, parentTx.Hash())
 
 	return engineNew, nvmConf, gasCnt, nil
 }

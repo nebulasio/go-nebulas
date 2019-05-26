@@ -35,7 +35,6 @@ SNVM::Version* SNVM::ParseVersion(std::string& version_str){
             if(version_str[i] != delimer){
                 buf += version_str[i];
             }else if(buf.length()>0){
-                std::cout<<"$$$$$$>>>>>>.  buf: "<<buf<<std::endl;
                 str_vec.push_back(buf);
                 buf = "";
             }
@@ -43,7 +42,6 @@ SNVM::Version* SNVM::ParseVersion(std::string& version_str){
         }
         if(!buf.empty()){
             str_vec.push_back(buf);
-            std::cout<<"$$$$$$>>>>>>---.  buf: "<<buf<<std::endl;
         }
 
         if(str_vec.size() != 3)
@@ -181,17 +179,13 @@ std::string SNVM::CompatManager::GetNearestInstructionCounterVersionAtHeight(uin
 }
 
 std::string SNVM::CompatManager::FindLastNearestLibVersion(std::string& deploy_version_str, std::string& lib_file_name){
-    
     if(deploy_version_str.length() == 0 || lib_file_name.length() == 0){
         LogErrorf("FindLastNearestLibVersion: empty arguments");
         return "";
     }
 
-    std::cout<<"$$$$$$$$ ---- deploy_version_str"<<deploy_version_str<<", lib file name: "<<lib_file_name<<std::endl;
-
     try{
         Version* deploy_version = ParseVersion(deploy_version_str);
-        std::cout<<"$$$$$$$ --- Deploy version major: "<<deploy_version->major<<std::endl;
         auto vec_iter = lib_version_manager.find(lib_file_name);
         if( vec_iter != lib_version_manager.end()){
             std::vector<std::string> version_vec = vec_iter->second;
@@ -230,51 +224,31 @@ std::string SNVM::CompatManager::AttachVersionForLib(
 
     std::string empty_res("");
 
-    std::cout<<"$$$$$$$$$ Attaching version for lib: "<<std::endl;
-    std::cout<<"$$$$$$$$$ lib name: "<<lib_name<<", height: "<<block_height<<", meta: "<<meta_version<<"|"<<std::endl;
-
     // lib/execution_env.js
-
     std::string inst_counter_file_name("instruction_counter.js");
-
-        std::cout<<"$$$$$$$$$ before Attaching version for lib: "<<std::endl;
 
     // if lib_name endwith "instruction_counter.js"
     if(lib_name.length()>=inst_counter_file_name.length() &&  (lib_name.compare(lib_name.length()-inst_counter_file_name.length(), 
             inst_counter_file_name.length(), inst_counter_file_name) == 0)){
 
-    std::cout<<"$$$$$$$$$ ALOW "<<std::endl;
-
-
         std::string version = this->GetNearestInstructionCounterVersionAtHeight(block_height);
         std::string version_file_path = this->JSLibRootName + version 
                 + lib_name.substr(this->JSLibRootNameLen-1, lib_name.length()-this->JSLibRootNameLen+1);
-            
-        std::cout<<"--------- Get instruction_counter js file path: "<<version_file_path<<std::endl;
         return version_file_path;
     }
 
-    std::cout<<"$$$$$$$$$$$ block height js: "<<this->V8JSLibVersionControlHeight()<<std::endl;
-
-
 	// block after core.V8JSLibVersionControlHeight, inclusive
 	if(block_height >= this->V8JSLibVersionControlHeight()){
-
-        std::cout<<"$$$$$$$$$$$ block height reaches"<<std::endl;
 
         if(meta_version.length() == 0){
             LogDebugf("Contract meta is nil for %s at height: %lld", static_cast<const char*>(lib_name.c_str()), block_height);
 			return this->AttachDefaultVersionLib(lib_name);
 		}
 
-        std::cout<<"$$$$$$$$$$$ meta?"<<std::endl;
-
         if(lib_name.compare(0, this->JSLibRootName.length(), this->JSLibRootName)!=0 ||
             lib_name.find("../") != std::string::npos){
             return empty_res;
         }
-
-        std::cout<<"$$$$$$$$$$$ shit!"<<std::endl;
 
         // lib/inst.js
         std::string lib_file_name = lib_name.substr(this->JSLibRootNameLen, lib_name.length()-this->JSLibRootNameLen);
@@ -295,12 +269,8 @@ std::string SNVM::CompatManager::AttachVersionForLib(
 }
 
 std::string SNVM::CompatManager::AttachDefaultVersionLib(std::string& lib_name){
-
-    std::cout<<"$$$$$$$$$$ Attach default version for lib with lib name: "<<lib_name<<std::endl;
-
     // if lib_name startswith "lib/"
     if(lib_name.compare(0, JSLibRootNameLen, JSLibRootName) != 0){
-        std::cout<<"$$$$$$$$ Illegal lib name"<<std::endl;
         if(lib_name[0] == '/'){
             lib_name = "lib" + lib_name;
         }else{

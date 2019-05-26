@@ -113,7 +113,7 @@ namespace SNVM{
 
       int GetRunnableSourceCode(V8Engine*, const std::string&, const std::string&, const std::string&);
 
-      void ReadExeStats(NVMStatsBundle *);
+      void ReadExeStats(V8Engine*, NVMStatsBundle *);
 
       int StartScriptExecution(V8Engine*, const std::string&, const std::string&, const std::string&, const std::string&,
               const std::string&, const NVMConfigBundle&, char*&);
@@ -130,6 +130,8 @@ namespace SNVM{
 
 
       // By default, it returns this->engine's lcshandler, or returns the lcshandler of the latest engine pushed in the inner engine stack
+      V8Engine* GetCurrentV8EngineInstance();
+
       uintptr_t GetCurrentEngineLcsHandler();
 
       uintptr_t GetCurrentEngineGcsHandler();
@@ -141,6 +143,8 @@ namespace SNVM{
       grpc::Status SmartContractCall(grpc::ServerContext*, grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest>*) override;
 
       V8Engine* CreateInnerContractEngine(const std::string&, const std::string&, const std::string&, const std::string&, uint64_t, std::string&);
+
+      void PopInnerEngine(V8Engine*);
 
       inline void SetChainID(uint32_t chain_id){
         m_chain_id = chain_id;

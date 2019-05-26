@@ -37,6 +37,8 @@ char *GetTxByHash(void *handler, const char *hash, size_t *gasCnt) {
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
   std::string resStr = callback_res->result();
   bool not_null_flag = callback_res->not_null();
+  if(callback_res != nullptr)
+    delete callback_res;
 
   if(!not_null_flag)
     return NULL;
@@ -60,7 +62,8 @@ int GetAccountState(void *handler, const char *address, size_t *gasCnt, char **r
   std::string exceptionInfoStr = callback_res->extra(1);
   *gasCnt = (size_t)std::stoull(callback_res->extra(2));
 
-  // since the string value assigned to exceptionInfoStr is determined on golang side, we can just use length to check if it's NULL or not
+  // since the string value assigned to exceptionInfoStr is determined on golang side
+  // we can just use length to check if it's NULL or not
   if(exceptionInfoStr.length() > 0){
     *info = (char*)calloc(exceptionInfoStr.length()+1, sizeof(char));
     strcpy(*info, exceptionInfoStr.c_str());
@@ -74,6 +77,8 @@ int GetAccountState(void *handler, const char *address, size_t *gasCnt, char **r
   }else{
     *result = NULL;
   }
+  if(callback_res != nullptr)
+    delete callback_res;
 
   return ret;
 }
@@ -88,6 +93,8 @@ int Transfer(void *handler, const char *to, const char *value, size_t *gasCnt) {
   const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
   int ret = (int)std::stoi(callback_res->result());
+  if(callback_res != nullptr)
+    delete callback_res;
   
   return ret;
 }
@@ -101,6 +108,8 @@ int VerifyAddress(void *handler, const char *address, size_t *gasCnt) {
   const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
   int ret = (int)std::stoi(callback_res->result());
+  if(callback_res != nullptr)
+    delete callback_res;
   
   return ret;
 }
@@ -132,6 +141,8 @@ int GetPreBlockHash(void *handler, unsigned long long offset, size_t *gasCnt, ch
   }else{
     *result = NULL;
   }
+  if(callback_res != nullptr)
+    delete callback_res;
   
   return ret;  
 }
@@ -163,11 +174,14 @@ int GetPreBlockSeed(void *handler, unsigned long long offset, size_t *gasCnt, ch
   }else{
     *result = NULL;
   }
+  if(callback_res != nullptr)
+    delete callback_res;
     
   return ret;
 }
 
-char *GetContractSource(void *handler, 
+char *GetContractSource(
+    void *handler,
     const char *address, 
     size_t *gasCnt){
 
@@ -175,16 +189,16 @@ char *GetContractSource(void *handler,
   res->set_func_name(std::string(GET_CONTRACT_SRC));
   res->add_func_params(std::string(address));
   
-  std::cout<<"$$$$$$$$$$$ Heyhey"<<std::endl;
-
   const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
   std::string srcStr = callback_res->result();
   bool not_null_flag = callback_res->not_null();
 
+  if(callback_res != nullptr)
+    delete callback_res;
+
   if(!not_null_flag)
     return nullptr;
-
   char* ret = (char*)calloc(srcStr.length()+1, sizeof(char));
   strcpy(ret, srcStr.c_str());
   std::cout<<"++++++ The fetched contract source is: "<<ret<<std::endl;
@@ -210,13 +224,11 @@ char *InnerContract(void *handler,
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
   std::string resStr = callback_res->result();
   bool not_null_flag = callback_res->not_null();
-
-  std::cout<<"%%%%%%% not null flag is: "<<std::endl;
-  std::cout<<not_null_flag<<std::endl;
+  if(callback_res != nullptr)
+    delete callback_res;
 
   if(!not_null_flag)
     return nullptr;
-
   char* ret = (char*)calloc(resStr.length()+1, sizeof(char));
   strcpy(ret, resStr.c_str());
 
@@ -225,23 +237,76 @@ char *InnerContract(void *handler,
   return ret;
 }
 
-int GetLatestNebulasRank(void *handler, 
-    const char *addres, 
-    size_t *counterVal, 
+int GetLatestNebulasRank(
+    void *handler, 
+    const char *address, 
+    size_t *gasCnt, 
     char **result, 
     char **info){
-  
-  int ret = 0;
+    
+  NVMCallbackResponse *res = new NVMCallbackResponse();
+  res->set_func_name(std::string(GET_LATEST_NR));
+  res->add_func_params(std::string(address));
+
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
+  int ret = (int)std::stoi(callback_res->result());
+  bool not_null_flag = callback_res->not_null();
+  std::string resStr = callback_res->extra(0);
+  std::string exceptionInfoStr = callback_res->extra(1);
+  *gasCnt = (size_t)std::stoull(callback_res->extra(2));
+
+  // The string value assigned to exceptionInfoStr is determined on golang side, just use length to check if it's NULL or not
+  if(exceptionInfoStr.length() > 0){
+    *info = (char*)calloc(exceptionInfoStr.length()+1, sizeof(char));
+    strcpy(*info, exceptionInfoStr.c_str());
+  }else{
+    *info = NULL;
+  }
+
+  if(not_null_flag){
+    *result = (char*)calloc(resStr.length()+1, sizeof(char));
+    strcpy(*result, resStr.c_str());
+  }else{
+    *result = NULL;
+  }
+  if(callback_res != nullptr)
+    delete callback_res;
 
   return ret;
 }
 
-int GetLatestNebulasRankSummary(void *handler, 
+int GetLatestNebulasRankSummary(
+    void *handler, 
     size_t *gasCnt, 
     char **result, 
     char **info){
 
-  int ret = 0;
+  NVMCallbackResponse *res = new NVMCallbackResponse();
+  res->set_func_name(std::string(GET_LATEST_NR_SUMMARY));
+
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
+  int ret = (int)std::stoi(callback_res->result());
+  bool not_null_flag = callback_res->not_null();
+  std::string resStr = callback_res->extra(0);
+  std::string exceptionInfoStr = callback_res->extra(1);
+  *gasCnt = (size_t)std::stoull(callback_res->extra(2));
+
+  // The string value assigned to exceptionInfoStr is determined on golang side, just use length to check if it's NULL or not
+  if(exceptionInfoStr.length() > 0){
+    *info = (char*)calloc(exceptionInfoStr.length()+1, sizeof(char));
+    strcpy(*info, exceptionInfoStr.c_str());
+  }else{
+    *info = NULL;
+  }
+
+  if(not_null_flag){
+    *result = (char*)calloc(resStr.length()+1, sizeof(char));
+    strcpy(*result, resStr.c_str());
+  }else{
+    *result = NULL;
+  }
+  if(callback_res != nullptr)
+    delete callback_res;
 
   return ret;
 }

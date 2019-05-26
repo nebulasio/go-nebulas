@@ -29,9 +29,11 @@ char *Sha256(const char *data, size_t *counterVal){
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
+  if(callback_res != nullptr)
+    delete callback_res;
+
   if(!not_null_flag)
     return NULL;
-
   char* value = (char*)calloc(resString.length()+1, sizeof(char));
   strcpy(value, resString.c_str());
 
@@ -48,9 +50,11 @@ char *Sha3256(const char *data, size_t *counterVal){
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
+  if(callback_res != nullptr)
+    delete callback_res;
+
   if(!not_null_flag)
     return NULL;
-
   char* value = (char*)calloc(resString.length()+1, sizeof(char));
   strcpy(value, resString.c_str());
 
@@ -67,9 +71,11 @@ char *Ripemd160(const char *data, size_t *counterVal){
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
+   if(callback_res != nullptr)
+    delete callback_res;
+ 
   if(!not_null_flag)
     return NULL;
-
   char* value = (char*)calloc(resString.length()+1, sizeof(char));
   strcpy(value, resString.c_str());
 
@@ -88,9 +94,11 @@ char *RecoverAddress(int alg, const char *data, const char *sign, size_t *counte
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
+  if(callback_res != nullptr)
+    delete callback_res;
+
   if(!not_null_flag)
     return NULL;
-
   char* value = (char*)calloc(resString.length()+1, sizeof(char));
   strcpy(value, resString.c_str());
 
@@ -107,9 +115,11 @@ char *Md5(const char *data, size_t *counterVal){
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
+  if(callback_res != nullptr)
+    delete callback_res; 
+
   if(!not_null_flag)
     return NULL;
-
   char* value = (char*)calloc(resString.length()+1, sizeof(char));
   strcpy(value, resString.c_str());
 
@@ -126,9 +136,11 @@ char *Base64(const char *data, size_t *counterVal){
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
+  if(callback_res != nullptr)
+    delete callback_res;
+
   if(!not_null_flag)
     return NULL;
-
   char* value = (char*)calloc(resString.length()+1, sizeof(char));
   strcpy(value, resString.c_str());
 

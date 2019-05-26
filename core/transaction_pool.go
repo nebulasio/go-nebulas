@@ -414,7 +414,7 @@ func (pool *TransactionPool) dropTx() {
 	}
 }
 
-// PopWithBlacklist return a tx with highest gasprice and not in the blocklist
+// PopWithBlacklist return a tx with highest gasprice and not in the blacklist
 func (pool *TransactionPool) PopWithBlacklist(fromBlacklist *sync.Map, toBlacklist *sync.Map) *Transaction {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()

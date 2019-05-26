@@ -87,6 +87,9 @@ const (
 	// inner contract call
 	GET_CONTRACT_SRC = "GetContractSource"
 	INNER_CONTRACT_CALL = "InnerContractCall"
+	// nr
+	GET_LATEST_NR = "GetLatestNebulasRank"
+	GET_LATEST_NR_SUMMARY = "GetLatestNebulasRankSummary"
 )
 
 //engine_v8 private data
@@ -102,6 +105,7 @@ var (
 	hit                  = 0
 	nvmRequestIndex uint32	 = 1
 
+	engines 			 = make([]*V8Engine, 0)
 	StartSCTime = time.Now()
 )
 
@@ -136,6 +140,7 @@ type sourceModuleItem struct {
 
 func ResetRuntimeStatus(){
 	storagesIdx = 0
+	engines = nil
 }
 
 // NewV8Engine return new V8Engine instance.
@@ -269,23 +274,31 @@ func (e *V8Engine) DeployAndInit(config *core.NVMConfig) (string, error){
 	return e.RunScriptSource(config)
 }
 
-/*
 // GetNVMLeftResources return current NVM verb total resource
-//TODO: move this into V8 process
-func (e *V8Engine) GetNVMLeftResources() (uint64, uint64) {
-	e.CollectTracingStats()
-	instruction := uint64(0)
-	mem := uint64(0)
-	if e.limitsOfExecutionInstructions >= e.actualCountOfExecutionInstructions {
-		instruction = e.limitsOfExecutionInstructions - e.actualCountOfExecutionInstructions
+func (e *V8Engine) GetNVMLeftResources(engine *V8Engine, finalResponse *NVMFinalResponse) (uint64, uint64) {
+	if finalResponse == nil {
+		return engine.limitsOfExecutionInstructions, engine.limitsOfTotalMemorySize
 	}
 
-	if e.limitsOfTotalMemorySize >= e.actualTotalMemorySize {
-		mem = e.limitsOfTotalMemorySize - e.actualTotalMemorySize
+	statsBundle := finalResponse.StatsBundle
+	instruction := uint64(0)
+	mem := uint64(0)
+	if engine.limitsOfExecutionInstructions >= statsBundle.ActualCountOfExecutionInstruction {
+		instruction = engine.limitsOfExecutionInstructions - statsBundle.ActualCountOfExecutionInstruction
+	}
+
+	if engine.limitsOfTotalMemorySize >= statsBundle.ActualUsedMemSize {
+		mem = engine.limitsOfTotalMemorySize - statsBundle.ActualUsedMemSize
 	}
 	return instruction, mem
 }
-*/
+
+func (e *V8Engine) GetCurrentV8Engine() *V8Engine{
+	if len(engines) > 0{
+		return engines[len(engines)-1]
+	}
+	return e
+}
 
 // Prepare V8 data exchange request, if it's inner contract call, then the innercall flag is true
 func PrepareLaunchRequest(e *V8Engine, config *core.NVMConfig, innerCallFlag bool) (*NVMDataRequest, error) {
@@ -392,7 +405,7 @@ func PrepareLaunchRequest(e *V8Engine, config *core.NVMConfig, innerCallFlag boo
 	}
 	request := &NVMDataRequest{
 		RequestType: requestType, 
-		RequestIndx:nvmRequestIndex,
+		RequestIndx: nvmRequestIndex,
 		ConfigBundle: configBundle,
 		LcsHandler: e.lcsHandler, 
 		GcsHandler: e.gcsHandler,
@@ -403,21 +416,6 @@ func PrepareLaunchRequest(e *V8Engine, config *core.NVMConfig, innerCallFlag boo
 
 func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 
-	// check height settings carefully
-	/*
-	if e.ctx.block.Height() >= core.NvmMemoryLimitWithoutInjectHeight {
-		//TODO: collect tracing stats
-		mem := e.actualTotalMemorySize + core.DefaultLimitsOfTotalMemorySize
-		logging.VLog().WithFields(logrus.Fields{
-			"actualTotalMemorySize": e.actualTotalMemorySize,
-			"limit":                 core.DefaultLimitsOfTotalMemorySize,
-			"tx.hash":               e.ctx.tx.Hash(),
-		}).Debug("mem limit")
-		e.limitsOfTotalMemorySize = mem
-	}
-	*/
-
-	// Send request
 	conn, err := grpc.Dial(e.serverListenAddr, grpc.WithInsecure())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -441,7 +439,7 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 	// For debugging
 	StartSCTime = time.Now()
 
-
+	engines = append(engines, e)
 	request, err := PrepareLaunchRequest(e, config, false)
 	if err != nil {
 		return "", err
@@ -523,18 +521,6 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 				}
 			}
 
-			/*
-			recordInnerContractEvent(err, fromAddr.String(), addr.String(), toValue.String(), ws, parentTx.Hash())
-			if err != nil {
-				if err == core.ErrInnerExecutionFailed {
-					logging.VLog().Errorf("check inner err, engine index:%v", index)
-				} else {
-					errLog := setHeadErrAndLog(engine, index, err, val, false)
-					logging.VLog().Errorf(errLog)
-				}
-				return engineNew, nvmConfigNew, gasCnt, err.Error()
-			}
-			*/
 
 			//set err
 			if ret == NVM_TRANSPILE_SCRIPT_ERR {
@@ -605,35 +591,47 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 					"param1": responseFuncParams[1],
 					"param2": responseFuncParams[2],
 					"param3": responseFuncParams[3],
-				}).Error(">>>>>>>INNER CONTRACT CALL callback on Golang side!")
+				}).Error("INNER CONTRACT CALL callback on Golang side!")
 
-				resStr := "success"
-				engineNew, nvmConfigNew, gasCnt, innerCallErr := InnerContractFunc(serverLcsHandler, 
-											responseFuncParams[0], responseFuncParams[1], responseFuncParams[2], responseFuncParams[3])
+				// check remaining mem and instructions
+				currEngine := e.GetCurrentV8Engine()  			// The new engine's parent engine
+				remainCountOfInstructions, remainMemSize := e.GetNVMLeftResources(currEngine, dataResponse.GetFinalResponse())
+				engineNew, nvmConfigNew, gasCnt, innerCallErr := InnerContractFunc(
+											serverLcsHandler, 
+											responseFuncParams[0],
+											responseFuncParams[1],
+											responseFuncParams[2],
+											responseFuncParams[3],
+											remainCountOfInstructions,
+											remainMemSize)
+
+				nvmRequestIndex+=1
 				if innerCallErr != nil {
-					resStr = "fail"
-					logging.CLog().Error(">>>>>>>Error after creating inner contract ENGINE!")
+					logging.CLog().Error("Failed to create inner contract engine")
+					innerCallbackResult := &NVMCallbackResult{Result:""}
+					innerCallbackResult.NotNull = false
+					innerCallbackResult.FuncName = responseFuncName
+					innerCallbackResult.Extra = append(innerCallbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+					// for call request, the metadata is nil
+					requestType := NVMDataExchangeTypeInnerContractCall
+					newRequest = &NVMDataRequest{
+						RequestType: requestType,
+						LcsHandler: serverLcsHandler, 
+						GcsHandler: serverGcsHandler,
+						RequestIndx: nvmRequestIndex,
+						CallbackResult: innerCallbackResult}
+
+				}else{
+					engines = append(engines, engineNew)
+					logging.CLog().Info("Successfully created inner contract engine")
+					newRequest, err = PrepareLaunchRequest(engineNew, nvmConfigNew, true)
+					newRequest.CallbackResult.Result = ""
+					newRequest.LcsHandler = engineNew.lcsHandler
+					newRequest.GcsHandler = engineNew.gcsHandler
+					newRequest.CallbackResult.NotNull = true
+					newRequest.CallbackResult.FuncName = responseFuncName
+					newRequest.CallbackResult.Extra = append(newRequest.CallbackResult.Extra, fmt.Sprintf("%v", gasCnt))
 				}
-
-				logging.CLog().WithFields(logrus.Fields{
-					"responseFuncName": responseFuncName,
-				}).Error(">>>>>>>After creating NEW INNER call engine!")
-
-				newRequest, err = PrepareLaunchRequest(engineNew, nvmConfigNew, true)
-				if err != nil {
-					resStr = "fail"
-				}
-
-				nvmRequestIndex += 1
-				newRequest.CallbackResult.Result = resStr
-				newRequest.LcsHandler = engineNew.lcsHandler
-				newRequest.GcsHandler = engineNew.gcsHandler
-				newRequest.CallbackResult.NotNull = true
-				newRequest.CallbackResult.FuncName = responseFuncName
-				newRequest.CallbackResult.Extra = append(newRequest.CallbackResult.Extra, fmt.Sprintf("%v", gasCnt))
-
-				//TODO, move this into v8 process
-				//logging.VLog().Infof("end cal val:%v,gascount:%v,gasSum:%v, engine index:%v", val, gasCout, gasSum, index)
 
 			} else {
 				callbackResult := &NVMCallbackResult{}
@@ -641,13 +639,6 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 				switch responseFuncName{
 				case ATTACH_LIB_VERSION_DELEGATE_FUNC:
 					pathName := AttachLibVersionDelegateFunc(serverLcsHandler, responseFuncParams[0])
-
-					logging.CLog().WithFields(logrus.Fields{
-						"param": responseFuncParams[0],
-						"serverLcsHandler": serverLcsHandler,
-						"pathName": pathName,
-					}).Error(">>>>AttachLibVersionDelegate!!")
-
 					callbackResult.Result = pathName
 				case STORAGE_GET:
 					value, gasCnt, notNil := StorageGetFunc(serverLcsHandler, responseFuncParams[0])
@@ -737,6 +728,20 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 					callbackResult.Result = resStr
 					callbackResult.NotNull = notNil
 					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case GET_LATEST_NR:
+					resCode, resStr, exceptionInfo, gasCnt, notNil := GetLatestNebulasRankFunc(serverLcsHandler, responseFuncParams[0])
+					callbackResult.Result = fmt.Sprintf("%v", resCode)
+					callbackResult.NotNull = notNil
+					callbackResult.Extra = append(callbackResult.Extra, resStr)
+					callbackResult.Extra = append(callbackResult.Extra, exceptionInfo)
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
+				case GET_LATEST_NR_SUMMARY:
+					resCode, resStr, exceptionInfo, gasCnt, notNil := GetLatestNebulasRankSummaryFunc(serverLcsHandler)
+					callbackResult.Result = fmt.Sprintf("%v", resCode)
+					callbackResult.NotNull = notNil
+					callbackResult.Extra = append(callbackResult.Extra, resStr)
+					callbackResult.Extra = append(callbackResult.Extra, exceptionInfo)
+					callbackResult.Extra = append(callbackResult.Extra, fmt.Sprintf("%v", gasCnt))
 				default:
 					logging.CLog().WithFields(logrus.Fields{
 						"func": responseFuncName,
@@ -755,15 +760,14 @@ func (e *V8Engine) RunScriptSource(config *core.NVMConfig) (string, error){
 					GcsHandler:serverGcsHandler,
 					CallbackResult:callbackResult,
 				}
-			
 			}
 
 			stream.Send(newRequest)
 		}
 		
 		if(e.CheckTimeout()){
+			stream.CloseSend()
 			return "", ErrExecutionTimeout
-			break
 		}
 	}
 
@@ -818,16 +822,6 @@ func getEngineByEngineHandler(handler uint64) *V8Engine {
 		return nil
 	}
 }
-
-/*
-func getEngineByEngineHandler(handler unsafe.Pointer) *V8Engine {
-	v8engine := (*C.V8Engine)(handler)
-	enginesLock.RLock()
-	defer enginesLock.RUnlock()
-
-	return engines[v8engine]
-}
-*/
 
 func formatArgs(s string) string {
 	s = strings.Replace(s, "\\", "\\\\", -1)

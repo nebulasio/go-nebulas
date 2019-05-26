@@ -40,3 +40,7 @@
 // inner contract call
 #define GET_CONTRACT_SRC                    "GetContractSource"
 #define INNER_CONTRACT_CALL                 "InnerContractCall"
+
+// nr
+#define GET_LATEST_NR                       "GetLatestNebulasRank"
+#define GET_LATEST_NR_SUMMARY               "GetLatestNebulasRankSummary"

@@ -82,28 +82,8 @@ std::string FetchNativeJSLibContentDelegate(void* handler, const char* file_path
 }
 
 std::string AttachLibVersionDelegate(void *handler, const char *lib_name) {
-
-  /*
-  NVMCallbackResponse *res = new NVMCallbackResponse();
-  res->set_func_name(std::string(ATTACH_LIB_VERSION_DELEGATE_FUNC));
-  res->add_func_params(std::string(lib_name));
-
-  std::cout<<">>>>>>>>>>><<<<< libname is: "<<lib_name<<std::endl;
-
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
-  const std::string func_name = callback_res->func_name();
-  if(func_name.compare(ATTACH_LIB_VERSION_DELEGATE_FUNC) != 0){
-    return nullptr;
-  }
-  std::string resStr = callback_res->result();
-  //char* path = (char*)calloc(resString.length(), sizeof(char));
-  //strcpy(path, resString.c_str());
-  std::cout<<">>>>>>>------ lib path with version from CALLBACK : "<<resStr.c_str()<<std::endl;
-  */
-  
   std::string resStr = SNVM::AttachNativeJSLibVersion(lib_name);
-  std::cout<<"$$$$$$$$ >>>>> attachlib callback: "<<resStr<<std::endl;
-
+  std::cout<<">>>>> attachlib callback: "<<resStr<<std::endl;
   return resStr;
 }
 
@@ -118,23 +98,8 @@ void AddModule(void *handler, const char *filename, const char *source, size_t l
   }
 
   char sid[128];
-  sprintf(sid, "%zu:%s", (uintptr_t)handler, filepath);      // 0xsdfsdfsdfdsfsdf:lib/blockchain.js
+  // 0xsdfsdfsdfdsfsdf:lib/blockchain.js
+  sprintf(sid, "%zu:%s", (uintptr_t)handler, filepath);
 
   SNVM::AddContractSrcToModules(sid, source, lineOffset);
 }
-
-/*
-char *GetModuleSource(void *handler, const char *filename) {
-  char filepath[128];
-  if (strncmp(filename, "/", 1) != 0 && strncmp(filename, "./", 2) != 0 &&
-      strncmp(filename, "../", 3) != 0) {
-    sprintf(filepath, "lib/%s", filename);
-    reformatModuleId(filepath, filepath);
-  } else {
-    reformatModuleId(filepath, filename);
-  }
-
-  size_t size = 0;
-  return RequireDelegate(handler, filepath, &size);
-}
-*/

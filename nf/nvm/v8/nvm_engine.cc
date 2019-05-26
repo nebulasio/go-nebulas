@@ -23,6 +23,15 @@
 
 SNVM::NVMEngine* gNVMEngine = nullptr;
 
+V8Engine* SNVM::NVMEngine::GetCurrentV8EngineInstance(){
+  if(this->m_inner_engines != nullptr && this->m_inner_engines->size() > 0){
+    V8Engine* top_engine = this->m_inner_engines->top();
+    if(top_engine != nullptr)
+      return top_engine;
+  }
+  return this->engine;
+}
+
 uintptr_t SNVM::NVMEngine::GetCurrentEngineLcsHandler(){
   uintptr_t curr_lcs = (uintptr_t)0;
 
@@ -181,15 +190,16 @@ int SNVM::NVMEngine::StartScriptExecution(
 }
 
 
-void SNVM::NVMEngine::ReadExeStats(NVMStatsBundle *statsBundle){
-  ReadMemoryStatistics(this->engine);
-
-  statsBundle->set_actual_count_of_execution_instruction((google::protobuf::uint64)this->engine->stats.count_of_executed_instructions);
-  statsBundle->set_actual_used_mem_size((google::protobuf::uint64)this->engine->stats.total_memory_size);
+void SNVM::NVMEngine::ReadExeStats(V8Engine* currEngine, NVMStatsBundle *statsBundle){
+  ReadMemoryStatistics(currEngine);
+  statsBundle->set_actual_count_of_execution_instruction((google::protobuf::uint64)currEngine->stats.count_of_executed_instructions);
+  statsBundle->set_actual_used_mem_size((google::protobuf::uint64)currEngine->stats.total_memory_size);
 }
 
 
-grpc::Status SNVM::NVMEngine::SmartContractCall(grpc::ServerContext* context, grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest>* stream){
+grpc::Status SNVM::NVMEngine::SmartContractCall(
+  grpc::ServerContext* context, 
+  grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest>* stream){
 
   this->m_stm = stream;
   this->ResetRuntimeStatus();
@@ -200,7 +210,6 @@ grpc::Status SNVM::NVMEngine::SmartContractCall(grpc::ServerContext* context, gr
     stream->Read(request);
 
     std::string requestType = request->request_type();
-    //google::protobuf::uint32 requestIndx = request->request_indx();
     google::protobuf::uint64 lcsHandler = request->lcs_handler();
     google::protobuf::uint64 gcsHandler = request->gcs_handler();
 
@@ -208,7 +217,6 @@ grpc::Status SNVM::NVMEngine::SmartContractCall(grpc::ServerContext* context, gr
 
       NVMConfigBundle configBundle = request->config_bundle();
       this->config_bundle = &configBundle;
-      //CurrChainID = (uint32_t)configBundle.chain_id();
       SetChainID((uint32_t)configBundle.chain_id());
       std::string scriptSrc = configBundle.script_src();
       std::string scriptType = configBundle.script_type();
@@ -271,7 +279,7 @@ grpc::Status SNVM::NVMEngine::SmartContractCall(grpc::ServerContext* context, gr
       finalResponse->set_msg(this->m_exe_result);
 
       NVMStatsBundle *statsBundle = new NVMStatsBundle();
-      ReadExeStats(statsBundle);
+      ReadExeStats(this->engine, statsBundle);
       finalResponse->set_allocated_stats_bundle(statsBundle);
 
       response->set_allocated_final_response(finalResponse);
@@ -307,105 +315,128 @@ grpc::Status SNVM::NVMEngine::SmartContractCall(grpc::ServerContext* context, gr
 }
 
 NVMCallbackResult* SNVM::NVMEngine::Callback(void* handler, NVMCallbackResponse* callback_response, bool inner_call_flag=false){
-    std::cout<<"<<<<<< Callback"<<std::endl;
-
     if(this->m_stm != nullptr){
+        NVMDataResponse response;
+        if(inner_call_flag){
+          response.set_response_type(DATA_EXHG_INNER_CALL);
+          NVMFinalResponse* innerFinalResponse = new NVMFinalResponse();
+          NVMStatsBundle* innerStatsBundle = new NVMStatsBundle();
+          V8Engine* topEngine = GetCurrentV8EngineInstance();
+          ReadExeStats(topEngine, innerStatsBundle);
+          innerFinalResponse->set_allocated_stats_bundle(innerStatsBundle);
+          response.set_allocated_final_response(innerFinalResponse);
 
-        std::cout<<"<<<<<< m_stm is NOT null"<<std::endl;
+        }else{
+          response.set_response_type(DATA_EXHG_CALL_BACK);
+        }
 
-        bool getResultFlag = false;
-        NVMDataResponse *response = new NVMDataResponse();
-        if(inner_call_flag)
-          response->set_response_type(DATA_EXHG_INNER_CALL);
-        else
-          response->set_response_type(DATA_EXHG_CALL_BACK);
-        response->set_response_indx(++this->m_response_indx);
-        //response->set_lcs_handler(google::protobuf::uint64((uintptr_t)handler));
-        std::cout<<"<><><><> Before setting handlers"<<std::endl;
-        response->set_lcs_handler((google::protobuf::uint64)this->GetCurrentEngineLcsHandler());
-        response->set_gcs_handler((google::protobuf::uint64)this->GetCurrentEngineGcsHandler()); // gcs handler is not used by now
+        response.set_response_indx(++this->m_response_indx);
+        response.set_lcs_handler((google::protobuf::uint64)this->GetCurrentEngineLcsHandler());
+        response.set_gcs_handler((google::protobuf::uint64)this->GetCurrentEngineGcsHandler()); // gcs handler is not used by now
         std::cout<<"<><><><><> After setting handlers"<<std::endl;
-        response->set_allocated_callback_response(callback_response);
-        this->m_stm->Write(*response);
+        response.set_allocated_callback_response(callback_response);
+        this->m_stm->Write(response);
 
-        std::cout<<">>>>>After sending request: "<<callback_response->func_name()<<std::endl;
+        std::cout<<">>>>>After sending request: "<<std::endl;
+        std::cout<<callback_response->func_name()<<std::endl;
 
         // wait for the result and return
-        NVMDataRequest *request = new NVMDataRequest();        
-        NVMCallbackResult* callback_result;
+        NVMDataRequest request;
+        NVMCallbackResult* callback_result = nullptr;
         std::string requestType;
-        while(this->m_stm->Read(request)){
-          requestType = request->request_type();
+        while(this->m_stm->Read(&request)){
+          requestType = request.request_type();
+
+          //callback_result = new NVMCallbackResult(request.callback_result());
+          callback_result = new NVMCallbackResult();
+          for(int i=0; i<request.callback_result().extra_size(); i++){
+            callback_result->add_extra(request.callback_result().extra(i));
+          }
+          callback_result->set_result(request.callback_result().result());
+          callback_result->set_not_null(request.callback_result().not_null());
 
           std::cout<<">>>>>Received callback result for "<<callback_response->func_name()<<", with type: "<<requestType<<std::endl;
+
           if(requestType.compare(DATA_EXHG_CALL_BACK) == 0){
-            callback_result = (NVMCallbackResult*)&(request->callback_result());
-            getResultFlag = true;
-            if(FG_DEBUG){
-              std::cout<<"-- Callback response from the GOLANG side with function: "<<callback_response->func_name()<<std::endl;
-              // check gas cnt one by one
-              std::cout<<"********** CALLBACK result of "<<callback_response->func_name()<<" is: "<<callback_result->result()<<std::endl;
-              for(int i=0; i<callback_result->extra_size(); i++){
-                std::cout<<"************* CALLBACK extra: "<<callback_result->extra(i)<<std::endl;
-              }
-            }
+            std::cout<<"********** CALLBACK result of "<<callback_response->func_name()<<" is: "<<callback_result->result()<<std::endl;
 
           }else if(requestType.compare(DATA_EXHG_INNER_CALL) == 0){
             // this is NOT the final result of this call, we need to create new engine and execute the contract firstly
             std::cout<<">>>>>>>NOW START to call the new contract"<<std::endl;
+            if(callback_result->not_null()){
+              NVMConfigBundle configBundle = request.config_bundle();
+              callback_result->clear_extra();
+              std::string scriptSrc = configBundle.script_src();
+              std::string scriptType = configBundle.script_type();
+              std::string scriptHash = configBundle.script_hash();
+              std::string runnableSrc = configBundle.runnable_src();
+              std::string moduleID = configBundle.module_id();
+              uint64_t blockHeight = configBundle.block_height();
+              google::protobuf::uint64 maxLimitsOfExecutionInstructions = configBundle.max_limits_of_execution_instruction();
+              google::protobuf::uint64 defaultTotalMemSize = configBundle.default_limits_of_total_mem_size();
+              google::protobuf::uint64 limitsOfExecutionInstructions = configBundle.limits_exe_instruction();
+              google::protobuf::uint64 totalMemSize = configBundle.limits_total_mem_size();
+              std::string blockJson = configBundle.block_json();
+              std::string txJson = configBundle.tx_json();
+              std::string metaVersion = configBundle.meta_version();
 
-            callback_result = new NVMCallbackResult();
-            NVMConfigBundle configBundle = request->config_bundle();
-            std::string scriptSrc = configBundle.script_src();
-            std::string scriptType = configBundle.script_type();
-            std::string scriptHash = configBundle.script_hash();
-            std::string runnableSrc = configBundle.runnable_src();
-            std::string moduleID = configBundle.module_id();
-            uint64_t blockHeight = configBundle.block_height();
-            google::protobuf::uint64 maxLimitsOfExecutionInstructions = configBundle.max_limits_of_execution_instruction();
-            google::protobuf::uint64 defaultTotalMemSize = configBundle.default_limits_of_total_mem_size();
-            google::protobuf::uint64 limitsOfExecutionInstructions = configBundle.limits_exe_instruction();
-            google::protobuf::uint64 totalMemSize = configBundle.limits_total_mem_size();
-            std::string blockJson = configBundle.block_json();
-            std::string txJson = configBundle.tx_json();
-            std::string metaVersion = configBundle.meta_version();
+              std::string createResult;
+              int ret = NVM_SUCCESS;
+              char* exeResult = nullptr;
+              V8Engine* newEngine = this->CreateInnerContractEngine(scriptType, scriptHash, scriptSrc, moduleID, blockHeight, createResult);
+              if(newEngine != nullptr){
+                newEngine->limits_of_executed_instructions = configBundle.limits_exe_instruction();
+                newEngine->limits_of_total_memory_size = configBundle.limits_total_mem_size();
+                newEngine->lcs = (uintptr_t)request.lcs_handler();
+                newEngine->gcs = (uintptr_t)request.gcs_handler();
+                std::cout<<">>>>>New engine set lcs: "<<(uint64)newEngine->lcs<<std::endl;
 
-            std::string createResult;
-            int ret = NVM_SUCCESS;
-            char* exeResult = nullptr;
-            V8Engine* newEngine = this->CreateInnerContractEngine(scriptType, scriptHash, scriptSrc, moduleID, blockHeight, createResult);
-            if(newEngine != nullptr){
-              newEngine->limits_of_executed_instructions = configBundle.limits_exe_instruction();
-              newEngine->limits_of_total_memory_size = configBundle.limits_total_mem_size();
-              std::cout<<">>>>>New engine lcs handler is: "<<request->lcs_handler()<<std::endl;
-              newEngine->lcs = (uintptr_t)request->lcs_handler();
-              newEngine->gcs = (uintptr_t)request->gcs_handler();
-              std::cout<<">>>>>New engine set lcs: "<<(uint64)newEngine->lcs<<std::endl;
-              std::cout<<">>>>>New engine set lcs again: "<<(uint64)GetCurrentEngineLcsHandler()<<std::endl;
+                // NOTE: this creates a new thread to execute the new contract
+                std::cout<<"@@@@@@@@@@@@ Before inner contract exe"<<std::endl;
+                ret = this->StartScriptExecution(newEngine, scriptSrc, scriptType, 
+                                                  scriptHash, runnableSrc, moduleID, configBundle, exeResult);
+                std::cout<<"@@@@@@@@@@@@ Inner contract exe result is: "<<ret<<std::endl;
+                if(exeResult == nullptr)
+                  std::cout<<"Exeresult is null"<<std::endl;
+                else
+                  std::cout<<"ExeResult is: "<<exeResult<<std::endl;
 
-              // NOTE: this creates a new thread to execute the new contract
-              std::cout<<"@@@@@@@@@@@@ Before inner contract exe"<<std::endl;
-              ret = this->StartScriptExecution(newEngine, scriptSrc, scriptType, scriptHash, runnableSrc, moduleID, configBundle, exeResult);
-              std::cout<<"@@@@@@@@@@@@ Inner contract exe result is: "<<ret<<std::endl;
-              if(exeResult == nullptr)
-                std::cout<<"Exeresult is null"<<std::endl;
-              else
-                std::cout<<"ExeResult is: "<<exeResult<<std::endl;
+                // Check execution result and return to the caller
+                if(ret != NVM_SUCCESS){
+                  ret = NVM_INNER_EXE_ERR;
+                  if(exeResult != nullptr)
+                    callback_result->set_result("");
+                  else
+                    callback_result->set_result(std::string(exeResult));
+                  callback_result->set_not_null(false);
+                }else{
+                  callback_result->set_result(std::string(exeResult));
+                  callback_result->set_not_null(true);
+                }
+                // calculate gas fee
+                ReadMemoryStatistics(newEngine);
+                size_t gasCnt = newEngine->stats.count_of_executed_instructions;
+                size_t callbackGasCnt = (size_t)std::stoull((request.callback_result()).extra(0));
+                std::cout<<">>>>> new engine execution gas cnt: "<<gasCnt<<", callback gas cnt: "<<callbackGasCnt<<std::endl;
+                gasCnt += callbackGasCnt;
+                callback_result->add_extra(std::to_string(gasCnt));
+                // pop engine from the stack
+                this->PopInnerEngine(newEngine);
+
+              }else{
+                callback_result->set_result("");
+                callback_result->add_extra(request.callback_result().extra(0));
+                callback_result->set_not_null(false);
+
+              }
+
             }
-            
-            getResultFlag = true;
-            callback_result->set_result(std::string(exeResult));
-            ReadMemoryStatistics(newEngine);
-            google::protobuf::uint64 memUsed = newEngine->stats.total_memory_size;
-            callback_result->add_extra(std::to_string(newEngine->stats.count_of_executed_instructions));
-            callback_result->set_not_null(true);
           }
           break;
         }
 
-        free(request);
-        if(!getResultFlag)
-          callback_result = nullptr;
+        if(callback_result != nullptr)
+          std::cout<<">>>> Return a none callback result!!!!"<<callback_result<<std::endl;
         return callback_result;
 
     }else{
@@ -482,9 +513,15 @@ V8Engine* SNVM::NVMEngine::CreateInnerContractEngine(
     return inner_engine;
 }
 
+void SNVM::NVMEngine::PopInnerEngine(V8Engine* engine){
+  if(engine == nullptr || m_inner_engines == nullptr)
+    return;
+  if(m_inner_engines->top() == engine)
+    m_inner_engines->pop();
+}
+
 // start one level of inner contract call, check the resource usage firstly
 //const void NVMEngine::StartInnerContractCall(const std::string& address, const std::string& valueStr, const std::string& funcName, const std::string& args){
-
 const std::string SNVM::NVMEngine::ConfigBundleToString(NVMConfigBundle& configBundle){
   std::string res("chain id: " + std::to_string(configBundle.chain_id()) + ", script src: " + configBundle.script_src() + ", script type: " + configBundle.script_type()
     +  ", script hash: " + configBundle.script_hash() + ", runnable src: " + configBundle.runnable_src() + ", module id: " + configBundle.module_id());
@@ -605,8 +642,6 @@ std::string SNVM::FetchNativeJSLibContentFromCache(const char* file_path){
 }
 
 const NVMCallbackResult* SNVM::DataExchangeCallback(void* handler, NVMCallbackResponse* response, bool inner_call_flag){
-
-    std::cout<<"Now is executing callback: "<<response->func_name()<<std::endl;
 
     if(gNVMEngine != nullptr){
         std::cout<<">>>>nvmengine is not null!"<<std::endl;

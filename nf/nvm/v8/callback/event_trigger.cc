@@ -30,4 +30,6 @@ void EventTrigger(void *handler, const char *topic, const char *data, size_t *cn
 
   const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
   *cnt = (size_t)std::stoll(callback_res->result());
+  if(callback_res != nullptr)
+    delete callback_res;
 }
