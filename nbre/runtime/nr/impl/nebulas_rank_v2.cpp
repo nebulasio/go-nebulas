@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "test/benchmark/nebulas_rank_v2.h"
+#include "runtime/nr/impl/nebulas_rank_v2.h"
 #include "common/int128_conversion.h"
 
 namespace neb {

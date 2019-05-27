@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "test/benchmark/account_db_v2.h"
+#include "fs/blockchain/account/account_db_v2.h"
 
 namespace neb {
 namespace fs {

@@ -1,3 +1,4 @@
 
-add_executable(test_benchmark test_benchmark.cpp account_db_v2.cpp nebulas_rank_v2.cpp blockchain_api_v2.cpp transaction_db_v2.cpp)
+add_executable(test_benchmark test_benchmark.cpp
+  )
 target_link_libraries(test_benchmark nbre_rt)

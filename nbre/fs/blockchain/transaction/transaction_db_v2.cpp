@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "test/benchmark/transaction_db_v2.h"
+#include "fs/blockchain/transaction/transaction_db_v2.h"
 
 namespace neb {
 namespace fs {

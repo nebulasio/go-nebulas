@@ -19,9 +19,9 @@
 //
 
 #pragma once
+#include "fs/blockchain/account/account_db_v2.h"
+#include "fs/blockchain/transaction/transaction_db_v2.h"
 #include "runtime/nr/impl/nebulas_rank.h"
-#include "test/benchmark/account_db_v2.h"
-#include "test/benchmark/transaction_db_v2.h"
 
 #define BLOCK_INTERVAL_MAGIC_NUM 128
 

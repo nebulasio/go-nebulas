@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "test/benchmark/blockchain_api_v2.h"
+#include "fs/blockchain/blockchain_api_v2.h"
 #include "common/nebulas_currency.h"
 #include "fs/blockchain/trie/trie.h"
 #include <boost/property_tree/json_parser.hpp>

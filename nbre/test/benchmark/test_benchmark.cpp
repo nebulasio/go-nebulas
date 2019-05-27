@@ -19,11 +19,11 @@
 //
 
 #include "common/version.h"
+#include "fs/blockchain/account/account_db_v2.h"
+#include "fs/blockchain/blockchain_api_v2.h"
+#include "fs/blockchain/transaction/transaction_db_v2.h"
+#include "runtime/nr/impl/nebulas_rank_v2.h"
 #include "runtime/nr/impl/nr_impl.h"
-#include "test/benchmark/account_db_v2.h"
-#include "test/benchmark/blockchain_api_v2.h"
-#include "test/benchmark/nebulas_rank_v2.h"
-#include "test/benchmark/transaction_db_v2.h"
 #include <boost/program_options.hpp>
 
 namespace po = boost::program_options;
