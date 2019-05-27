@@ -347,6 +347,11 @@ template <typename T> T sqrt(const T &x) {
   sqrt_x = sqrt_x * (one_and_half - half_x * sqrt_x * sqrt_x);
   return one / sqrt_x;
 }
+
+template <typename T> T ssqrt(const T &x) {
+  typename T::value_type tmp_x = typename T::value_type(x);
+  return softfloat_sqrt(tmp_x);
+}
 } // namespace math
 
 } // namespace neb
