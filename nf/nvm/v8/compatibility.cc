@@ -60,9 +60,9 @@ SNVM::Version* SNVM::ParseVersion(std::string& version_str){
             return nullptr;
 
         SNVM::Version* parsed_version = new SNVM::Version();
-        parsed_version->major = major;
-        parsed_version->minor = minor;
-        parsed_version->patch = patch;
+        parsed_version->vmajor = major;
+        parsed_version->vminor = minor;
+        parsed_version->vpatch = patch;
 
         return parsed_version;
 
@@ -74,22 +74,22 @@ SNVM::Version* SNVM::ParseVersion(std::string& version_str){
 }
 
 int32_t SNVM::CompareVersion(Version* a, Version* b){
-    if(a->major > b->major){
+    if(a->vmajor > b->vmajor){
         return 1;
     }
-    if(a->major < b->major){
+    if(a->vmajor < b->vmajor){
         return -1;
     }
-    if(a->minor > b->minor){
+    if(a->vminor > b->vminor){
         return 1;
     }
-    if(a->minor < b->minor){
+    if(a->vminor < b->vminor){
         return -1;
     }
-    if(a->patch > b->patch){
+    if(a->vpatch > b->vpatch){
         return 1;
     }
-    if(a->patch < b->patch){
+    if(a->vpatch < b->vpatch){
         return -1;
     }
     return 0;
@@ -244,7 +244,6 @@ std::string SNVM::CompatManager::AttachVersionForLib(
             LogDebugf("Contract meta is nil for %s at height: %lld", static_cast<const char*>(lib_name.c_str()), block_height);
 			return this->AttachDefaultVersionLib(lib_name);
 		}
-
         if(lib_name.compare(0, this->JSLibRootName.length(), this->JSLibRootName)!=0 ||
             lib_name.find("../") != std::string::npos){
             return empty_res;
@@ -252,7 +251,6 @@ std::string SNVM::CompatManager::AttachVersionForLib(
 
         // lib/inst.js
         std::string lib_file_name = lib_name.substr(this->JSLibRootNameLen, lib_name.length()-this->JSLibRootNameLen);
-
 		std::string ver = this->FindLastNearestLibVersion(meta_version, lib_file_name);
         if(ver.length() == 0){
             LogErrorf("lib version not found. libname: %s, deployLibVer: %s", 

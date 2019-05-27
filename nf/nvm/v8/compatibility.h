@@ -30,10 +30,10 @@ const uint32_t TestNetID = 1001;
 namespace SNVM{
 
     typedef struct version{
-        int32_t major;
-        int32_t minor;
-        int32_t patch;
-        version():major(0), minor(0), patch(0){}
+        int32_t vmajor;
+        int32_t vminor;
+        int32_t vpatch;
+        version():vmajor(0), vminor(0), vpatch(0){}
     }Version;
 
     Version* ParseVersion(std::string&);

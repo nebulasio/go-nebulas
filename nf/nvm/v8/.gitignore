@@ -1,9 +1,6 @@
 main
 engine_test
+v8_server
 *.o
 *.so
 *.dylib
-
-natives_blob.bin.h
-snapshot_blob.bin.h
-
