@@ -22,18 +22,18 @@
 #include "fs/blockchain/account/account_db_v2.h"
 #include "fs/blockchain/blockchain_api_v2.h"
 #include "fs/blockchain/transaction/transaction_db_v2.h"
+#include "runtime/dip/dip_impl.h"
+#include "runtime/dip/dip_reward_v2.h"
 #include "runtime/nr/impl/nebulas_rank_v2.h"
 #include "runtime/nr/impl/nr_impl.h"
 #include <boost/program_options.hpp>
 
 namespace po = boost::program_options;
 
-neb::rt::nr::nr_ret_type
-entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
-                    const std::string &address, neb::rt::nr::version_t version,
-                    int64_t a, int64_t b, int64_t c, int64_t d,
-                    neb::rt::nr::nr_float_t theta, neb::rt::nr::nr_float_t mu,
-                    neb::rt::nr::nr_float_t lambda) {
+neb::rt::nr::nr_ret_type entry_point_nr_impl(
+    uint64_t start_block, uint64_t end_block, neb::rt::nr::version_t version,
+    int64_t a, int64_t b, int64_t c, int64_t d, neb::rt::nr::nr_float_t theta,
+    neb::rt::nr::nr_float_t mu, neb::rt::nr::nr_float_t lambda) {
 
   std::unique_ptr<neb::fs::blockchain_api_base> pba =
       std::unique_ptr<neb::fs::blockchain_api_base>(
@@ -78,13 +78,44 @@ entry_point_nr_impl(uint64_t start_block, uint64_t end_block,
     }
   }
   LOG(INFO) << "diff set size " << diff_set.size();
+  return ret;
+}
 
-  // neb::address_t addr = neb::bytes::from_base58(address);
-  // for (auto h = start_block; h < end_block; h++) {
-  // auto b1 = adb_ptr->get_account_balance_internal(addr, h);
-  // auto b2 = adb_ptr_v2->get_account_balance_internal(addr, h);
-  // std::cout << h << ',' << b1 << ',' << b2 << std::endl;
-  //}
+neb::rt::dip::dip_ret_type entry_point_dip_impl(
+    uint64_t start_block, uint64_t end_block, neb::rt::dip::version_t version,
+    uint64_t height, const neb::rt::nr::nr_ret_type &nr_ret,
+    neb::rt::dip::dip_float_t alpha, neb::rt::dip::dip_float_t beta) {
+
+  std::unique_ptr<neb::fs::blockchain_api_base> pba =
+      std::unique_ptr<neb::fs::blockchain_api_base>(
+          new neb::fs::blockchain_api_v2());
+  neb::rt::nr::transaction_db_ptr_t tdb_ptr =
+      std::make_unique<neb::fs::transaction_db>(pba.get());
+  neb::rt::nr::account_db_ptr_t adb_ptr =
+      std::make_unique<neb::fs::account_db>(pba.get());
+
+  auto tdb_ptr_v2 = std::make_unique<neb::fs::transaction_db_v2>(tdb_ptr.get());
+  auto adb_ptr_v2 = std::make_unique<neb::fs::account_db_v2>(adb_ptr.get());
+
+  std::vector<std::pair<std::string, std::string>> meta_info;
+  meta_info.push_back(
+      std::make_pair("start_height", std::to_string(start_block)));
+  meta_info.push_back(std::make_pair("end_height", std::to_string(end_block)));
+  meta_info.push_back(std::make_pair("version", std::to_string(version)));
+
+  neb::rt::dip::dip_ret_type ret;
+  std::get<0>(ret) = 1;
+  std::get<1>(ret) = neb::rt::meta_info_to_json(meta_info);
+
+  auto &nr_result = std::get<2>(nr_ret);
+  std::get<2>(ret) = neb::rt::dip::dip_reward_v2::get_dip_reward(
+      start_block, end_block, height, nr_result, tdb_ptr_v2, adb_ptr_v2, alpha,
+      beta);
+  LOG(INFO) << "get dip reward resurned";
+
+  std::get<3>(ret) = nr_ret;
+  LOG(INFO) << "append nr_ret to dip_ret";
+
   return ret;
 }
 
@@ -114,10 +145,6 @@ int main(int argc, char *argv[]) {
     std::cout << "You must specify \"end_block\"!" << std::endl;
     return 1;
   }
-  if (!vm.count("address")) {
-    std::cout << "You must specify \"address\"!" << std::endl;
-    return 1;
-  }
   if (!vm.count("db_path")) {
     std::cout << "You must specify \"db_path\"!" << std::endl;
     return 1;
@@ -131,16 +158,20 @@ int main(int argc, char *argv[]) {
   neb::rt::nr::nr_float_t mu = 1;
   neb::rt::nr::nr_float_t lambda = 2;
 
+  neb::rt::dip::dip_float_t alpha = 8e-3;
+  neb::rt::dip::dip_float_t beta = 1;
+
   uint64_t start_block = vm["start_block"].as<uint64_t>();
   uint64_t end_block = vm["end_block"].as<uint64_t>();
-  std::string address = vm["address"].as<std::string>();
   std::string neb_path = vm["db_path"].as<std::string>();
 
   neb::fs::bc_storage_session::instance().init(neb_path,
                                                neb::fs::storage_open_default);
 
-  auto nr_ret = entry_point_nr_impl(start_block, end_block, address, 0, a, b, c,
-                                    d, theta, mu, lambda);
+  auto nr_ret = entry_point_nr_impl(start_block, end_block, 0, a, b, c, d,
+                                    theta, mu, lambda);
+  auto dip_ret =
+      entry_point_dip_impl(start_block, end_block, 0, 0, nr_ret, alpha, beta);
 
   neb::fs::bc_storage_session::instance().release();
   return 0;
