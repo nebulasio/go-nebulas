@@ -86,6 +86,9 @@ private:
                                   floatxx_t theta, floatxx_t mu,
                                   floatxx_t lambda, floatxx_t S, floatxx_t R);
 
+  static auto sort_accounts(const std::unordered_set<address_t> &accounts)
+      -> std::unique_ptr<std::vector<address_t>>;
+
 }; // class nebulas_rank
 
 } // namespace nr

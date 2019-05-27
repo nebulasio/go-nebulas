@@ -171,12 +171,16 @@ nebulas_rank_v2::get_account_balance_median(
 floatxx_t nebulas_rank_v2::f_account_weight(floatxx_t in_val,
                                             floatxx_t out_val) {
   floatxx_t pi = math::constants<floatxx_t>::pi();
-  floatxx_t atan_val = pi / 2.0;
-  if (in_val > 0) {
+  floatxx_t zero = softfloat_cast<uint32_t, typename floatxx_t::value_type>(0);
+  floatxx_t two = softfloat_cast<uint32_t, typename floatxx_t::value_type>(2);
+  floatxx_t four = softfloat_cast<uint32_t, typename floatxx_t::value_type>(4);
+
+  floatxx_t atan_val = pi / two;
+  if (in_val > zero) {
     atan_val = math::arctan(out_val / in_val);
   }
-  auto tmp = math::sin(pi / 4.0 - atan_val);
-  return (in_val + out_val) * math::exp((-2.0) * tmp * tmp);
+  auto tmp = math::sin(pi / four - atan_val);
+  return (in_val + out_val) * math::exp((zero - two) * tmp * tmp);
 }
 
 std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
@@ -208,9 +212,10 @@ floatxx_t nebulas_rank_v2::f_account_rank(int64_t a, int64_t b, int64_t c,
                                           floatxx_t S, floatxx_t R) {
   floatxx_t zero = softfloat_cast<uint32_t, typename floatxx_t::value_type>(0);
   floatxx_t one = softfloat_cast<uint32_t, typename floatxx_t::value_type>(1);
+
   auto gamma = math::pow(theta * R / (R + mu), lambda);
   auto ret = zero;
-  if (S > 0) {
+  if (S > zero) {
     ret = (S / (one + math::pow(a / S, one / b))) * gamma;
   }
   return ret;
@@ -235,6 +240,16 @@ nebulas_rank_v2::get_account_rank(
     }
   }
 
+  return ret;
+}
+
+std::unique_ptr<std::vector<address_t>>
+nebulas_rank_v2::sort_accounts(const std::unordered_set<address_t> &accounts) {
+  auto ret = std::make_unique<std::vector<address_t>>();
+  for (auto &acc : accounts) {
+    ret->push_back(acc);
+  }
+  sort(ret->begin(), ret->end());
   return ret;
 }
 
@@ -309,8 +324,10 @@ std::vector<std::shared_ptr<nr_info_t>> nebulas_rank_v2::get_nr_score(
   auto account_rank = *account_rank_ptr;
   LOG(INFO) << "account rank size: " << account_rank.size();
 
+  auto sorted_accounts_ptr = sort_accounts(*accounts_ptr);
   std::vector<std::shared_ptr<nr_info_t>> infos;
-  for (auto it = accounts_ptr->begin(); it != accounts_ptr->end(); it++) {
+  for (auto it = sorted_accounts_ptr->begin(); it != sorted_accounts_ptr->end();
+       it++) {
     address_t addr = *it;
     if (in_out_vals.find(addr) != in_out_vals.end() &&
         account_median.find(addr) != account_median.end() &&
