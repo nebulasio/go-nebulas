@@ -42,7 +42,7 @@ namespace SNVM{
     class CompatManager{
         public:
             explicit CompatManager(uint32_t chain_id){
-                this->curr_chain_id = chain_id;
+                curr_chain_id = chain_id;
                 std::cout<<"**** curr chain id: "<<curr_chain_id<<std::endl;
                 MainNetVersionHeightMap.clear();
                 TestNetVersionHeightMap.clear();
@@ -55,8 +55,8 @@ namespace SNVM{
                 InitializeLibVersionManager();
             }
             ~CompatManager(){
-                this->lib_version_manager.clear();
-                this->version_map.clear();
+                lib_version_manager.clear();
+                version_map.clear();
             }
 
             void InitializeLibVersionManager();
@@ -147,7 +147,7 @@ namespace SNVM{
             uint32_t curr_chain_id;
 
             // data structures
-            std::unordered_map<std::string, std::vector<std::string>> lib_version_manager;    // js lib version manager
-            std::unordered_map<uint32_t, std::unordered_map<std::string, uint64_t>> version_map;  // map<chain_id, map<"1.1.0", 123456>>
+            std::unordered_map<std::string, std::vector<std::string>> lib_version_manager;          // js lib version manager
+            std::unordered_map<uint32_t, std::unordered_map<std::string, uint64_t>> version_map;    // map<chain_id, map<"1.1.0", 123456>>
     };
 }

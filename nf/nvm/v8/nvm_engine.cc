@@ -99,8 +99,6 @@ int SNVM::NVMEngine::GetRunnableSourceCode(
   }
 
   std::cout<<">>>>Hey, checking modules, with script hash: "<<scriptHash<<std::endl;
-  if(this->srcModuleCache == nullptr)
-    std::cout<<"<<<<<<<<<src module cache is null"<<std::endl;
   std::cout<<", srcmodulecache size: "<<this->srcModuleCache->size()<<std::endl;
   if(this->srcModuleCache->find(scriptHash)){
     CacheSrcItem cachedSourceItem = this->srcModuleCache->get(scriptHash);
@@ -409,6 +407,7 @@ NVMCallbackResult* SNVM::NVMEngine::Callback(void* handler, NVMCallbackResponse*
                 callback_result->add_extra(std::to_string(gasCnt));
                 // pop engine from the stack
                 this->PopInnerEngine(newEngine);
+                DeleteEngine(newEngine);
 
               }else{
                 callback_result->set_result("");
@@ -503,8 +502,9 @@ V8Engine* SNVM::NVMEngine::CreateInnerContractEngine(
 void SNVM::NVMEngine::PopInnerEngine(V8Engine* engine){
   if(engine == nullptr || m_inner_engines == nullptr)
     return;
-  if(m_inner_engines->top() == engine)
+  if(m_inner_engines->top() == engine){
     m_inner_engines->pop();
+  }
 }
 
 // start one level of inner contract call, check the resource usage firstly
@@ -540,10 +540,10 @@ std::string SNVM::NVMEngine::FetchContractSrc(const char* sid, size_t* line_offs
   std::cout<<"[ ----- CALLBACK ------ ] FetchContractSrc: "<<sid<<std::endl;
 
   if(engineSrcModules->find(std::string(sid))){
-    m_mutex.lock();
+    //m_mutex.lock();
     SourceInfo srcInfo = engineSrcModules->get(std::string(sid));
     *line_offset = srcInfo.lineOffset;
-    m_mutex.unlock();
+    //m_mutex.unlock();
     return srcInfo.source;
   }
   return "";
@@ -551,12 +551,12 @@ std::string SNVM::NVMEngine::FetchContractSrc(const char* sid, size_t* line_offs
 
 void SNVM::NVMEngine::AddContractSrcToModules(const char* sid, const char* source_code, size_t line_offset){
   if(engineSrcModules->find(std::string(sid)) == false){
-    m_mutex.lock();
+    //m_mutex.lock();
     SourceInfo srcInfo;
     srcInfo.lineOffset = line_offset;
     srcInfo.source = std::string(source_code);
     engineSrcModules->set(std::string(sid), srcInfo);
-    m_mutex.unlock();
+    //m_mutex.unlock();
     std::cout<<">>>>>>> Add contract source code into engine src modules"<<std::endl;
   }
 }

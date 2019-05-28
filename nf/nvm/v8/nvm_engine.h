@@ -96,7 +96,7 @@ namespace SNVM{
 
         srcModuleCache = std::unique_ptr<LRU_MAP<std::string, CacheSrcItem>>(new LRU_MAP<std::string, CacheSrcItem>());
         engineSrcModules = std::unique_ptr<LRU_MAP<std::string, SourceInfo>>(new LRU_MAP<std::string, SourceInfo>());
-        lib_content_cache = std::unique_ptr<std::unordered_map<std::string, std::string>>(new std::unordered_map<std::string, std::string>);
+        lib_content_cache = std::unique_ptr<std::unordered_map<std::string, std::string>>(new std::unordered_map<std::string, std::string>());
         m_compat_manager = new SNVM::CompatManager(m_chain_id);
       }
 
@@ -176,9 +176,9 @@ namespace SNVM{
       NVMConfigBundle* config_bundle = nullptr;                           // default config bundle
       std::unique_ptr<std::stack<V8Engine*>> m_inner_engines = nullptr;   // stack for keeping engines created because of inner contract calls
       grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest> *m_stm;   // stream used to send request from server
+
       std::unique_ptr<LRU_MAP<std::string, CacheSrcItem>> srcModuleCache; // LRU map: src code hash --> traceable js src code & offset
       std::unique_ptr<LRU_MAP<std::string, SourceInfo>> engineSrcModules; // LRU map: engine address + contract name --> SourceInfo
-
       std::unique_ptr<std::unordered_map<std::string, std::string>> lib_content_cache;  // source code cache for js libs
   };
 
