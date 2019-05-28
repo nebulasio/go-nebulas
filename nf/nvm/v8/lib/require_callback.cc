@@ -65,8 +65,8 @@ static int readSource(Local<Context> context, const char *filename, char **data,
      std::cout<<"^^^^^^^^^^^^^^ Before read source content with native lib flag is true"<<std::endl;
 
     if(fetchNativeJSLibContentDelegate != NULL){
-      V8Engine *e = GetV8EngineInstance(context);
-      content = fetchNativeJSLibContentDelegate(e, filename);
+      //V8Engine *e = GetV8EngineInstance(context);
+      content = fetchNativeJSLibContentDelegate(filename);
     }
 
   }else{
@@ -88,44 +88,6 @@ static int readSource(Local<Context> context, const char *filename, char **data,
   return -1;
 }
 
-/*
-static int readSource(Local<Context> context, 
-                      const char *filename, 
-                      char **data,
-                      size_t *lineOffset,
-                      bool native_lib_flag) {
-  if (strstr(filename, "\"") != NULL) {
-    return -1;
-  }
-
-  *lineOffset = 0;
-
-  //char *content = NULL;
-  std::string content;
-
-  // try sRequireDelegate.
-  if (sRequireDelegate != NULL) {
-    V8Engine *e = GetV8EngineInstance(context);
-    content = sRequireDelegate(e, filename, lineOffset);
-  }
-
-  if (content.length()==0) {
-    size_t file_size = 0;
-    char* content_str = readFile(filename, &file_size);
-    if (content_str == NULL) {
-      return 1;
-    }
-    content = std::string(content_str);
-  }
-
-  asprintf(data, source_require_format, content.c_str());
-  *lineOffset += -2;
-  //free(content);
-
-  return 0;
-}
-*/
-
 void attachVersion(char *out, int maxoutlen, Local<Context> context, const char *libname) {
 
   //const char *verlib;
@@ -133,14 +95,13 @@ void attachVersion(char *out, int maxoutlen, Local<Context> context, const char 
   std::string verlib;
   
   if (attachLibVersionDelegate != NULL) {
-    V8Engine *e = GetV8EngineInstance(context);
-    verlib = attachLibVersionDelegate(e, libname);
+    //V8Engine *e = GetV8EngineInstance(context);
+    verlib = attachLibVersionDelegate(libname);
   }
 
   if (verlib.length()>0) {
     std::cout<<"$$$$$$$ >>>>> verlib is not NULL: "<<verlib.c_str()<<std::endl;
     strncat(out, verlib.c_str(), maxoutlen - strlen(out) - 1);
-    //free(verlib);
   }
 }
 

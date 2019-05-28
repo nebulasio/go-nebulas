@@ -535,11 +535,11 @@ std::string SNVM::NVMEngine::FetchLibContent(const char* version_file_path){
   return std::string(content);
 }
 
-std::string SNVM::NVMEngine::FetchContractSrc(const char* sid, size_t* line_offset){
-  LogInfof("NVMEngine::FetchContractSrc: %s", sid);
+std::string SNVM::NVMEngine::FetchContractSrc(const std::string& sid, size_t* line_offset){
+  LogInfof("NVMEngine::FetchContractSrc: %s", sid.c_str());
   std::cout<<"[ ----- CALLBACK ------ ] FetchContractSrc: "<<sid<<std::endl;
 
-  if(engineSrcModules->find(std::string(sid))){
+  if(engineSrcModules->find(sid)){
     //m_mutex.lock();
     SourceInfo srcInfo = engineSrcModules->get(std::string(sid));
     *line_offset = srcInfo.lineOffset;
@@ -549,8 +549,8 @@ std::string SNVM::NVMEngine::FetchContractSrc(const char* sid, size_t* line_offs
   return "";
 }
 
-void SNVM::NVMEngine::AddContractSrcToModules(const char* sid, const char* source_code, size_t line_offset){
-  if(engineSrcModules->find(std::string(sid)) == false){
+void SNVM::NVMEngine::AddContractSrcModule(const std::string& sid, const char* source_code, size_t line_offset){
+  if(engineSrcModules->find(sid) == false){
     //m_mutex.lock();
     SourceInfo srcInfo;
     srcInfo.lineOffset = line_offset;
@@ -587,21 +587,21 @@ std::string SNVM::AttachNativeJSLibVersion(const char* lib_name){
   return nullptr;
 }
 
-void SNVM::AddContractSrcToModules(const char* sid, const char* source_code, size_t line_offset){
-  if(sid == nullptr || source_code == nullptr)
+void SNVM::AddContractSrcToModules(const std::string& sid, const char* source_code, size_t line_offset){
+  if(sid.compare("") == 0)
     return;
 
   if(gNVMEngine != nullptr){
     try{
-      gNVMEngine->AddContractSrcToModules(sid, source_code, line_offset);
+      gNVMEngine->AddContractSrcModule(sid, source_code, line_offset);
     }catch(const std::exception& e){
       LogErrorf("NVM engine is nil when adding contract source code to modules");
     }
   }
 }
 
-std::string SNVM::FetchContractSrcFromModules(const char* sid, size_t* line_offset){
-  if(sid == nullptr)
+std::string SNVM::FetchContractSrcFromModules(const std::string& sid, size_t* line_offset){
+  if(sid.compare("") == 0)
     return "";
   
   if(gNVMEngine != nullptr){

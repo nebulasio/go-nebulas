@@ -95,7 +95,7 @@ namespace SNVM{
         m_src_offset(0){
 
         srcModuleCache = std::unique_ptr<LRU_MAP<std::string, CacheSrcItem>>(new LRU_MAP<std::string, CacheSrcItem>());
-        engineSrcModules = std::unique_ptr<LRU_MAP<std::string, SourceInfo>>(new LRU_MAP<std::string, SourceInfo>());
+        engineSrcModules = std::unique_ptr<LRU_MAP<std::string, SourceInfo>>(new LRU_MAP<std::string, SourceInfo>(SRC_MODULE_SIZE));
         lib_content_cache = std::unique_ptr<std::unordered_map<std::string, std::string>>(new std::unordered_map<std::string, std::string>());
         m_compat_manager = new SNVM::CompatManager(m_chain_id);
       }
@@ -122,11 +122,11 @@ namespace SNVM{
 
       std::string FetchLibContent(const char*);
 
-      std::string FetchContractSrc(const char*, size_t*);
+      std::string FetchContractSrc(const std::string&, size_t*);
 
       std::string AttachNativeJSLibVersion(const char*);
 
-      void AddContractSrcToModules(const char*, const char*, size_t);
+      void AddContractSrcModule(const std::string&, const char*, size_t);
 
 
       // By default, it returns this->engine's lcshandler, or returns the lcshandler of the latest engine pushed in the inner engine stack
@@ -160,6 +160,7 @@ namespace SNVM{
       const std::string DATA_EXHG_CALL_BACK = "callback";
       const std::string DATA_EXHG_FINAL = "final";
       const std::string DATA_EXHG_INNER_CALL = "innercall";
+      const uint32_t SRC_MODULE_SIZE = 8;
 
       std::mutex m_mutex;
       int m_concurrency_scale = 1;              // default concurrency number
@@ -184,8 +185,8 @@ namespace SNVM{
 
 
   const NVMCallbackResult* DataExchangeCallback(void*, NVMCallbackResponse*, bool inner_call_flag=false);
-  void AddContractSrcToModules(const char*, const char*, size_t);
-  std::string FetchContractSrcFromModules(const char*, size_t*);
+  void AddContractSrcToModules(const std::string&, const char*, size_t);
+  std::string FetchContractSrcFromModules(const std::string&, size_t*);
   std::string FetchNativeJSLibContentFromCache(const char*);
   std::string AttachNativeJSLibVersion(const char*);
 }

@@ -136,9 +136,9 @@ EXPORT char *GetV8Version();
 // require callback.
 typedef std::string (*RequireDelegateFunc)(void *handler, const char *filename, size_t *lineOffset);
 
-typedef std::string (*AttachLibVersionDelegateFunc)(void *handler, const char *libname);
+typedef std::string (*AttachLibVersionDelegateFunc)(const char *libname);
 
-typedef std::string (*FetchNativeJSLibContentDelegateFunc)(void *handler, const char* filepath);
+typedef std::string (*FetchNativeJSLibContentDelegateFunc)(const char* filepath);
 
 EXPORT void InitializeRequireDelegate(RequireDelegateFunc delegate, AttachLibVersionDelegateFunc libDelegate, FetchNativeJSLibContentDelegateFunc fDelegate);
 

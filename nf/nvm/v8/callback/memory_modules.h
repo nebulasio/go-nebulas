@@ -24,10 +24,8 @@
 
 std::string RequireDelegate(void *handler, const char *filename, size_t *lineOffset);
 
-std::string AttachLibVersionDelegate(void *handler, const char *libname);
+std::string AttachLibVersionDelegate(const char *libname);
 
-std::string FetchNativeJSLibContentDelegate(void* handler, const char* file_path);
+std::string FetchNativeJSLibContentDelegate(const char* file_path);
 
 void AddModule(void *handler, const char *filename, const char *source, size_t lineOffset);
-
-//char *GetModuleSource(void *handler, const char *filename);

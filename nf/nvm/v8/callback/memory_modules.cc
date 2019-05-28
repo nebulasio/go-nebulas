@@ -67,27 +67,27 @@ void reformatModuleId(char *dst, const char *src) {
   strcpy(dst, ss.str().c_str());
 }
 
-std::string RequireDelegate(void *handler, const char *filepath, size_t *lineOffset){
+std::string RequireDelegate(void *engineptr, const char *filepath, size_t *lineOffset){
   char sid[128];
-  sprintf(sid, "%zu:%s", (uintptr_t)handler, filepath);
+  sprintf(sid, "%zu:%s", (uintptr_t)engineptr, filepath);
+  std::string ssid(sid);
   *lineOffset = 0;
-  std::cout<<">>>> sid is: "<<sid<<std::endl;
-  std::string res = SNVM::FetchContractSrcFromModules(sid, lineOffset);
+  std::string res = SNVM::FetchContractSrcFromModules(ssid, lineOffset);
   return res;
 }
 
-std::string FetchNativeJSLibContentDelegate(void* handler, const char* file_path){
+std::string FetchNativeJSLibContentDelegate(const char* file_path){
   std::string res = SNVM::FetchNativeJSLibContentFromCache(file_path);
   return res;
 }
 
-std::string AttachLibVersionDelegate(void *handler, const char *lib_name) {
+std::string AttachLibVersionDelegate(const char *lib_name) {
   std::string resStr = SNVM::AttachNativeJSLibVersion(lib_name);
   std::cout<<">>>>> attachlib callback: "<<resStr<<std::endl;
   return resStr;
 }
 
-void AddModule(void *handler, const char *filename, const char *source, size_t lineOffset) {
+void AddModule(void *engineptr, const char *filename, const char *source, size_t lineOffset) {
   char filepath[128];
   if (strncmp(filename, "/", 1) != 0 && strncmp(filename, "./", 2) != 0 &&
       strncmp(filename, "../", 3) != 0) {
@@ -98,8 +98,8 @@ void AddModule(void *handler, const char *filename, const char *source, size_t l
   }
 
   char sid[128];
-  // 0xsdfsdfsdfdsfsdf:lib/blockchain.js
-  sprintf(sid, "%zu:%s", (uintptr_t)handler, filepath);
-
-  SNVM::AddContractSrcToModules(sid, source, lineOffset);
+  // 140568151729856:lib/blockchain.js
+  sprintf(sid, "%zu:%s", (uintptr_t)engineptr, filepath);
+  std::string ssid(sid);
+  SNVM::AddContractSrcToModules(ssid, source, lineOffset);
 }
