@@ -147,7 +147,6 @@ int SNVM::NVMEngine::StartScriptExecution(
     }
 
     std::cout<<">>>>After getting runnable source code"<<std::endl;
-
     AddModule(engine, moduleID.c_str(), engine->traceable_src.c_str(), engine->traceable_line_offset);
 
     std::cout<<">>>>After adding module with ID: "<<moduleID<<std::endl;
@@ -167,8 +166,6 @@ int SNVM::NVMEngine::StartScriptExecution(
 
     std::cout<<">>>>After setting runscript args"<<std::endl;
 
-    //ctx.input.lcs = lcsHandler;
-    //ctx.input.gcs = gcsHandler;
     bool btn = CreateScriptThread(&ctx);      // start exe thread
     if (btn == false) {
       return NVM_UNEXPECTED_ERR;
@@ -294,7 +291,6 @@ grpc::Status SNVM::NVMEngine::SmartContractCall(
         free(this->m_exe_result);
         this->m_exe_result = nullptr;
       }
-
       
     }else{
       // throw exception since the request type is not allowed
@@ -346,16 +342,7 @@ NVMCallbackResult* SNVM::NVMEngine::Callback(void* handler, NVMCallbackResponse*
         std::string requestType;
         while(this->m_stm->Read(&request)){
           requestType = request.request_type();
-
-          //callback_result = new NVMCallbackResult(request.callback_result());
-          callback_result = new NVMCallbackResult();
-          for(int i=0; i<request.callback_result().extra_size(); i++){
-            callback_result->add_extra(request.callback_result().extra(i));
-          }
-          callback_result->set_result(request.callback_result().result());
-          callback_result->set_not_null(request.callback_result().not_null());
-
-          std::cout<<">>>>>Received callback result for "<<callback_response->func_name()<<", with type: "<<requestType<<std::endl;
+          callback_result = new NVMCallbackResult(request.callback_result());
 
           if(requestType.compare(DATA_EXHG_CALL_BACK) == 0){
             std::cout<<"********** CALLBACK result of "<<callback_response->func_name()<<" is: "<<callback_result->result()<<std::endl;

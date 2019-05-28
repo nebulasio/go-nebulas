@@ -110,11 +110,11 @@ void EnableInnerContract(V8Engine *e) {
 }
 
 void DeleteEngine(V8Engine *e) {
+  if(e == nullptr)
+    return;
   Isolate *isolate = static_cast<Isolate *>(e->isolate);
   isolate->Dispose();
-
   delete static_cast<ArrayBuffer::Allocator *>(e->allocator);
-
   free(e);
 }
 
