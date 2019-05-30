@@ -1,5 +1,5 @@
 #add_executable(test_jit main.cpp gtest_jit_driver.cpp gtest_orclazy_jit.cpp)
-add_executable(test_jit main.cpp gtest_jit_driver.cpp gtest_cpp_ir.cpp)
+add_executable(test_jit main.cpp gtest_jit_driver.cpp gtest_cpp_ir.cpp gtest_jit_mangled_entry_point.cpp)
 target_link_libraries(test_jit nbre_rt ${gtest_lib})
 #gtest_discover_tests(test_jit)
 add_test(NAME test_jit
