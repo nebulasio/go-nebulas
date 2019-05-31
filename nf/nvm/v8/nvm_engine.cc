@@ -77,6 +77,9 @@ void SNVM::NVMEngine::ResetRuntimeStatus(){
       free(this->m_inner_exe_result);
       this->m_inner_exe_result = nullptr;
     }
+    if(this->engineSrcModules != nullptr){
+      this->engineSrcModules->clear();
+    }
 }
 
 int SNVM::NVMEngine::GetRunnableSourceCode(
@@ -100,8 +103,9 @@ int SNVM::NVMEngine::GetRunnableSourceCode(
 
   std::cout<<">>>>Hey, checking modules, with script hash: "<<scriptHash<<std::endl;
   std::cout<<", srcmodulecache size: "<<this->srcModuleCache->size()<<std::endl;
-  if(this->srcModuleCache->find(scriptHash)){
-    CacheSrcItem cachedSourceItem = this->srcModuleCache->get(scriptHash);
+  auto cacheItem = this->srcModuleCache->find(scriptHash);
+  if(cacheItem != this->srcModuleCache->end()){
+    CacheSrcItem cachedSourceItem = cacheItem->second;
     engine->traceable_src = cachedSourceItem.traceableSource;
     engine->traceable_line_offset = cachedSourceItem.traceableSourceLineOffset;
     std::cout<<">>>>Found src from src module cache"<<std::endl;
@@ -114,7 +118,11 @@ int SNVM::NVMEngine::GetRunnableSourceCode(
       engine->traceable_src = std::string(traceableSource);
       engine->traceable_line_offset = 0;
       CacheSrcItem newItem = {originalSource, originalSourceLineOffset, traceableSource, engine->traceable_line_offset};
-      this->srcModuleCache->set(scriptHash, newItem);
+      // Check size and clear the cache if necessary, we actually do not need to hold all the code in cache
+      if(this->srcModuleCache->size() > SRC_MODULE_CACHE_SIZE){
+        this->srcModuleCache->clear();
+      }
+      this->srcModuleCache->insert(std::pair<std::string, CacheSrcItem>(scriptHash, newItem));
       return 0;
     }
 
@@ -539,9 +547,10 @@ std::string SNVM::NVMEngine::FetchContractSrc(const std::string& sid, size_t* li
   LogInfof("NVMEngine::FetchContractSrc: %s", sid.c_str());
   std::cout<<"[ ----- CALLBACK ------ ] FetchContractSrc: "<<sid<<std::endl;
 
-  if(engineSrcModules->find(sid)){
+  auto engineSrc = engineSrcModules->find(sid);
+  if(engineSrc != engineSrcModules->end()){
     //m_mutex.lock();
-    SourceInfo srcInfo = engineSrcModules->get(std::string(sid));
+    SourceInfo srcInfo = engineSrc->second;
     *line_offset = srcInfo.lineOffset;
     //m_mutex.unlock();
     return srcInfo.source;
@@ -550,12 +559,12 @@ std::string SNVM::NVMEngine::FetchContractSrc(const std::string& sid, size_t* li
 }
 
 void SNVM::NVMEngine::AddContractSrcModule(const std::string& sid, const char* source_code, size_t line_offset){
-  if(engineSrcModules->find(sid) == false){
+  if(engineSrcModules->find(sid) == engineSrcModules->end()){
     //m_mutex.lock();
     SourceInfo srcInfo;
     srcInfo.lineOffset = line_offset;
     srcInfo.source = std::string(source_code);
-    engineSrcModules->set(std::string(sid), srcInfo);
+    engineSrcModules->insert(std::pair<std::string, SourceInfo>(std::string(sid), srcInfo));
     //m_mutex.unlock();
     std::cout<<">>>>>>> Add contract source code into engine src modules"<<std::endl;
   }

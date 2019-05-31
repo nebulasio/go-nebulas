@@ -148,7 +148,7 @@ void *ExecuteThread(void *args) {
                 (void *)ctx->e->gcs, ExecuteSourceDataDelegate, nullptr);
     LogInfof("iRtn:%d--result:%s\n", ctx->output.ret, ctx->output.result);
     fprintf(stderr, "iRtn:%d--result:%s\n", ctx->output.ret, ctx->output.result);
-    
+
   }
 
   ctx->is_finished = true;
@@ -185,7 +185,7 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
   while(1) {
     if (ctx->is_finished == true) {
         if (is_kill == true) {
-          ctx->output.ret = NVM_EXE_TIMEOUT_ERR; 
+          ctx->output.ret = NVM_EXE_TIMEOUT_ERR;
         }
         break;
 
@@ -227,6 +227,9 @@ void RunServer(const char* addr_str){
   std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
   
   server->Wait();
+
+  if(gNVMEngine != nullptr)
+    delete gNVMEngine;
 }
 
 int main(int argc, const char *argv[]) {

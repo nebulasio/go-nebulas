@@ -40,17 +40,13 @@ class LRU_MAP{
     ~LRU_MAP(){}
 
     void set(Key key, Value value){
-      std::cout<<"%%%%%%%%%% LRU vec size before: "<<m_vec->size()<<std::endl;
-      if(m_vec->size() >= m_buffer_size){
-        std::cout<<"%%%%%%%%%%%% The LRU_MAP vec size is: "<<m_vec->size()<<std::endl;
+      if(m_mp->size() >= m_buffer_size){
         Key old_key = *(m_vec->begin());
         m_vec->erase(m_vec->begin());
         m_mp->erase(old_key);
-        std::cout<<"%%%%%%%%%%% Erased an old key"<<std::endl;
       }
       m_vec->push_back(key);
       m_mp->insert(std::make_pair(key, value));
-      std::cout<<"%%%%%%%%%% LRU vec size after: "<<m_vec->size()<<std::endl;
     }
 
     bool find(const Key& key){

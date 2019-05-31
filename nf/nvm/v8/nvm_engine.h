@@ -94,8 +94,9 @@ namespace SNVM{
         m_concurrency_scale(concurrency),
         m_src_offset(0){
 
-        srcModuleCache = std::unique_ptr<LRU_MAP<std::string, CacheSrcItem>>(new LRU_MAP<std::string, CacheSrcItem>());
-        engineSrcModules = std::unique_ptr<LRU_MAP<std::string, SourceInfo>>(new LRU_MAP<std::string, SourceInfo>(SRC_MODULE_SIZE));
+        engineSrcModules = std::unique_ptr<std::unordered_map<std::string, SourceInfo>>(new std::unordered_map<std::string, SourceInfo>());
+
+        srcModuleCache = std::unique_ptr<std::unordered_map<std::string, CacheSrcItem>>(new std::unordered_map<std::string, CacheSrcItem>());
         lib_content_cache = std::unique_ptr<std::unordered_map<std::string, std::string>>(new std::unordered_map<std::string, std::string>());
         m_compat_manager = new SNVM::CompatManager(m_chain_id);
       }
@@ -160,7 +161,7 @@ namespace SNVM{
       const std::string DATA_EXHG_CALL_BACK = "callback";
       const std::string DATA_EXHG_FINAL = "final";
       const std::string DATA_EXHG_INNER_CALL = "innercall";
-      const uint32_t SRC_MODULE_SIZE = 8;
+      const uint32_t SRC_MODULE_CACHE_SIZE = 128;
 
       std::mutex m_mutex;
       int m_concurrency_scale = 1;              // default concurrency number
@@ -178,11 +179,11 @@ namespace SNVM{
       std::unique_ptr<std::stack<V8Engine*>> m_inner_engines = nullptr;   // stack for keeping engines created because of inner contract calls
       grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest> *m_stm;   // stream used to send request from server
 
-      std::unique_ptr<LRU_MAP<std::string, CacheSrcItem>> srcModuleCache; // LRU map: src code hash --> traceable js src code & offset
-      std::unique_ptr<LRU_MAP<std::string, SourceInfo>> engineSrcModules; // LRU map: engine address + contract name --> SourceInfo
+      std::unique_ptr<std::unordered_map<std::string, SourceInfo>> engineSrcModules;    // clear it before each smart contract call
+
+      std::unique_ptr<std::unordered_map<std::string, CacheSrcItem>> srcModuleCache; // LRU map: src code hash --> traceable js src code & offset
       std::unique_ptr<std::unordered_map<std::string, std::string>> lib_content_cache;  // source code cache for js libs
   };
-
 
   const NVMCallbackResult* DataExchangeCallback(void*, NVMCallbackResponse*, bool inner_call_flag=false);
   void AddContractSrcToModules(const std::string&, const char*, size_t);
