@@ -18,18 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "common/byte.h"
 #include "fs/proto/ir.pb.h"
-#include "jit/cpp_ir.h"
-#include "test/jit/ir/gen_ir.h"
-#include <gtest/gtest.h>
+#include <vector>
 
-TEST(test_cpp_ir, llvm_ir_content) {
-  auto ir = gen_auth_ir();
-  std::stringstream ss;
-  ss << ir.name();
-  ss << ir.version();
-  neb::cpp::cpp_ir ci(std::make_pair(ss.str(), ir.ir()));
-  neb::bytes ir_content = ci.llvm_ir_content();
-
-}
+extern nbre::NBREIR gen_auth_ir();

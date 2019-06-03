@@ -19,6 +19,7 @@
 //
 
 #include "common/configuration.h"
+#include "core/ir_warden.h"
 #include "fs/storage_holder.h"
 #include "jit/jit_mangled_entry_point.h"
 #include <gtest/gtest.h>
@@ -37,7 +38,20 @@ TEST(test_jit_mangled_entry_point, get_mangled_entry_name) {
   auto dip_func_name = neb::configuration::instance().dip_func_name();
   auto dip_func_mangled = ret->get_mangled_entry_name(dip_func_name);
   EXPECT_EQ(dip_func_mangled, "_Z15entry_point_dipB5cxx11y");
+}
 
+TEST(test_jit_mangled_entry_point, get_mangled_entry_name_illegal) {
+  auto jm = std::make_unique<neb::jit::jit_mangled_entry_point>();
+
+  auto ret = jm->get_mangled_entry_name(std::string());
+  EXPECT_EQ(ret, std::string());
+
+  ret = jm->get_mangled_entry_name("_Z16entry_point_authB5cxx11v");
+  EXPECT_EQ(ret, std::string());
+}
+
+TEST(test_jit_mangled_entry_point, release) {
   neb::fs::storage_holder::instance().release();
+  neb::core::ir_warden::instance().release();
 }
 
