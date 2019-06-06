@@ -10,26 +10,19 @@
 //
 // the go-nebulas library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the // GNU General
-// Public License for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "common/byte.h"
-#include "fs/proto/ir.pb.h"
-#include "jit/cpp_ir.h"
-#include "test/jit/ir/gen_ir.h"
+#include "fs/storage_holder.h"
 #include <gtest/gtest.h>
 
-TEST(test_cpp_ir, llvm_ir_content) {
-  auto ir = gen_auth_ir();
-  std::stringstream ss;
-  ss << ir.name();
-  ss << ir.version();
-  neb::cpp::cpp_ir ci(std::make_pair(ss.str(), ir.ir()));
-  neb::bytes ir_content = ci.llvm_ir_content();
-
+TEST(test_storage_holder, simple) {
+  auto ret = neb::fs::storage_holder::instance().nbre_db_ptr();
+  std::cout << ret << std::endl;
+  neb::fs::storage_holder::instance().release();
 }
