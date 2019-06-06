@@ -23,7 +23,7 @@
 #include "core/ir_warden.h"
 #include "fs/proto/ir.pb.h"
 #include "jit/jit_driver.h"
-#include "runtime/nr/impl/nebulas_rank.h"
+#include "runtime/util.h"
 #include <ff/functionflow.h>
 
 namespace neb {
@@ -32,6 +32,7 @@ namespace nr {
 
 nr_handler::nr_handler() {}
 
+#if 0
 void nr_handler::run_if_default(block_height_t start_block,
                                 block_height_t end_block,
                                 const std::string &nr_handle) {
@@ -76,44 +77,85 @@ void nr_handler::run_if_specify(block_height_t start_block,
     //});
 }
 
-void nr_handler::start(const std::string &nr_handle) {
+#endif
 
+void nr_handler::start(block_height_t start_block, block_height_t end_block,
+                       uint64_t nr_version) {
+#if 0
+  std::string nr_handle = param_to_key(start_block, end_block, nr_version);
   if (!nr_handle.empty() && m_nr_result.exists(nr_handle)) {
     return;
   }
+  m_running_nr_handler_mutex.lock();
+  if (m_running_nr_handlers.find(nr_handle) != m_running_nr_handlers.end()) {
+    m_running_nr_handler_mutex.unlock();
+    return;
+  }
+  m_running_nr_handlers.insert(nr_handle);
+  m_running_nr_handler_mutex.unlock();
 
-  neb::bytes nr_handle_bytes = neb::bytes::from_hex(nr_handle);
-  size_t bytes = sizeof(uint64_t) / sizeof(byte_t);
-  assert(nr_handle_bytes.size() == 3 * bytes);
-
-  const auto &s = neb::bytes(nr_handle_bytes.value(), bytes);
-  const auto &e = neb::bytes(nr_handle_bytes.value() + bytes, bytes);
-  const auto &v = neb::bytes(nr_handle_bytes.value() + 2 * bytes, bytes);
-
-  uint64_t start_block = neb::byte_to_number<uint64_t>(s);
-  uint64_t end_block = neb::byte_to_number<uint64_t>(e);
-  uint64_t nr_version = neb::byte_to_number<uint64_t>(v);
-
+  auto remove_nr_hander_from_running = [this, nr_handle]() {
+    m_running_nr_handler_mutex.lock();
+    m_running_nr_handlers.erase(nr_handle);
+    m_running_nr_handler_mutex.unlock();
+  };
   if (!nr_version) {
     run_if_default(start_block, end_block, nr_handle);
+    remove_nr_hander_from_running();
     return;
   }
 
   run_if_specify(start_block, end_block, nr_version, nr_handle);
+  remove_nr_hander_from_running();
+#endif
+}
+
+std::string nr_handler::get_nr_handle(block_height_t start_block,
+                                      block_height_t end_block,
+                                      uint64_t version) {
+  return param_to_key(start_block, end_block, version);
+}
+
+std::string nr_handler::get_nr_handle(block_height_t height) {
+  throw std::runtime_error("no impl");
 }
 
 nr_ret_type nr_handler::get_nr_result(const std::string &nr_handle) {
 
   nr_ret_type nr_result;
-  auto ret = m_nr_result.get(nr_handle, nr_result);
-  LOG(INFO) << "nr result ret\n" << ret << "\nwith handle " << nr_handle;
-  if (!ret) {
-    auto err_str = std::string(
-        "{\"err\":\"nr hash expired or nr result not complete yet\"}");
-    std::get<0>(nr_result) = 0;
-    std::get<1>(nr_result) = err_str;
+  bool status = m_checker.get_nr_result(nr_result, nr_handle);
+  if (!status) {
+    nr_result = m_cache.get_nr_score(nr_handle);
   }
   return nr_result;
+}
+bool nr_handler::get_nr_sum(floatxx_t &nr_sum, const std::string &handle) {
+
+  //! TODO: we need compute NR if not exist
+  nr_sum = floatxx_t();
+  nr_ret_type nr_result = get_nr_result(handle);
+  if (!core::is_succ(nr_result)) {
+    return false;
+  }
+  const std::vector<nr_item> &nrs = nr_result->get<p_nr_items>();
+  for (auto &ts : nrs) {
+    nr_sum += ts.get<p_nr_item_score>();
+  }
+  return true;
+}
+bool nr_handler::get_nr_addr_list(std::vector<address_t> &nr_addrs,
+                                  const std::string &handle) {
+  //! TODO: we need compute NR if not exist
+  nr_addrs.clear();
+  nr_ret_type nr_result = get_nr_result(handle);
+  if (!core::is_succ(nr_result)) {
+    return false;
+  }
+  const std::vector<nr_item> &nrs = nr_result->get<p_nr_items>();
+  for (auto &ts : nrs) {
+    nr_addrs.push_back(to_address(ts.get<p_nr_item_addr>()));
+  }
+  return true;
 }
 } // namespace nr
 } // namespace rt

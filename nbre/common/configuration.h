@@ -55,7 +55,13 @@ public:
   }
 
   inline const char *nr_func_name() const { return "entry_point_nr"; }
+  inline const char *nr_param_func_name() const {
+    return "entry_point_nr_param";
+  }
   inline const char *dip_func_name() const { return "entry_point_dip"; }
+  inline const char *dip_param_func_name() const {
+    return "entry_point_dip_param";
+  }
 
   // nbre api config
   inline const char *ir_list_name() const { return "ir_list"; }

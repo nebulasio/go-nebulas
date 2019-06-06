@@ -24,6 +24,7 @@ THE SOFTWARE.
 #pragma once
 
 #include "ff/net/common/common.h"
+#include "ff/net/common/internal_supported_archive.h"
 
 namespace ff {
 namespace net {
@@ -45,6 +46,24 @@ public:
   marshaler(char *buf, size_t len, marshaler_type at);
 
   marshaler(marshaler_type at);
+
+  template <class T>
+  typename std::enable_if<!internal::internal_supported_archive_type<T>::value,
+                          void>::type
+  archive(T &data) {
+    switch (m_iAT) {
+    case seralizer:
+      m_iBase += udt_marshaler<T>::seralize(m_pWriteBuf + m_iBase, data);
+      break;
+    case deseralizer:
+      m_iBase += udt_marshaler<T>::deseralize(m_pReadBuf + m_iBase,
+                                              m_iBufLen - m_iBase, data);
+      break;
+    case length_retriver:
+      m_iBase += udt_marshaler<T>::length(data);
+      break;
+    }
+  }
 
 #include "ff/net/common/archive_data.h"
 

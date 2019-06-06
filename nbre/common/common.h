@@ -27,6 +27,7 @@
 #include <boost/thread/shared_lock_guard.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include <cstdint>
+#include <ff/network.h>
 #include <glog/logging.h>
 #include <iostream>
 #include <memory>
@@ -76,3 +77,30 @@ const static std::string llvm = "llvm";
 const static std::string cpp = "cpp";
 };
 }
+
+namespace std {
+std::string to_string(const neb::floatxx_t &v);
+}
+
+namespace ff {
+namespace net {
+template <> class udt_marshaler<neb::floatxx_t> {
+public:
+  static size_t seralize(char *buf, neb::floatxx_t &v) {
+    typename neb::floatxx_t::value_type t = v.value();
+    std::memcpy(buf, &t, sizeof(t));
+    return sizeof(t);
+  }
+  static size_t deseralize(const char *buf, size_t len, neb::floatxx_t &v) {
+    typename neb::floatxx_t::value_type t;
+    std::memcpy((char *)&t, buf, sizeof(t));
+    v = neb::floatxx_t(t);
+    return sizeof(t);
+  }
+  static size_t length(neb::floatxx_t &) {
+    return sizeof(typename neb::floatxx_t::value_type);
+  }
+};
+
+} // namespace net
+} // namespace ff

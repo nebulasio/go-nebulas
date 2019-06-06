@@ -24,7 +24,6 @@
 #include "common/math/softfloat.hpp"
 #include "runtime/dip/dip_handler.h"
 #include "runtime/dip/dip_reward.h"
-#include "runtime/nr/impl/nebulas_rank.h"
 #include "runtime/stdrt.h"
 
 namespace neb {
@@ -32,8 +31,7 @@ namespace rt {
 namespace dip {
 
 using dip_float_t = float32;
-using version_t = compatible_uint64_t;
-using nr_info_t = ::neb::rt::nr::nr_info_t;
+// using version_t = compatible_uint64_t;
 
 dip_ret_type entry_point_dip_impl(compatible_uint64_t start_block,
                                   compatible_uint64_t end_block,
@@ -41,9 +39,9 @@ dip_ret_type entry_point_dip_impl(compatible_uint64_t start_block,
                                   const nr::nr_ret_type &nr_ret,
                                   dip_float_t alpha, dip_float_t beta);
 
-std::string dip_param_list(compatible_uint64_t dip_start_block,
-                           compatible_uint64_t dip_block_interval,
-                           const std::string &dip_reward_addr,
+dip_param_t make_dip_param(block_height_t start_block,
+                           block_height_t block_interval,
+                           const std::string &reward_addr,
                            const std::string &coinbase_addr, version_t v);
 
 } // namespace dip

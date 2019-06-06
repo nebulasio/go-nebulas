@@ -81,12 +81,25 @@ void jit_mangled_entry_point::init_prog_slice() {
       "neb::rt::nr::nr_ret_type "
       "entry_point_nr(neb::compatible_uint64_t, "
       "neb::compatible_uint64_t){return neb::rt::nr::nr_ret_type(); }"));
+
+  m_prog_slice.insert(
+      std::make_pair(configuration::instance().nr_param_func_name(),
+                     "#include \"runtime/nr/impl/nr_impl.h\"\n"
+                     "neb::rt::nr::nr_param_t"
+                     "get_nr_param()"
+                     "{return neb::rt::nr::nr_param_t(); }"));
   m_prog_slice.insert(
       std::make_pair(configuration::instance().dip_func_name(),
                      "#include \"runtime/dip/dip_impl.h\"\n"
                      "neb::rt::dip::dip_ret_type "
                      "entry_point_dip(neb::compatible_uint64_t)"
                      "{return neb::rt::dip::dip_ret_type(); }"));
+  m_prog_slice.insert(
+      std::make_pair(configuration::instance().dip_param_func_name(),
+                     "#include \"runtime/dip/dip_impl.h\"\n"
+                     "neb::rt::dip::dip_param_t"
+                     "get_dip_param()"
+                     "{return neb::rt::dip::dip_param_t(); }"));
   m_prog_slice.insert(
       std::make_pair(configuration::instance().auth_func_name(),
                      "#include <string>\n"
@@ -103,8 +116,8 @@ void jit_mangled_entry_point::gen_mangle_name_for_entry(
   if (m_prog_slice.find(entry_name) == m_prog_slice.end())
     return;
 
-  auto auth_check_func = [](llvm::LLVMContext &context,
-                            const llvm::Function &func) -> bool {
+  auto check_func_with_no_args = [](llvm::LLVMContext &context,
+                                    const llvm::Function &func) -> bool {
     if (func.isIntrinsic())
       return false;
     llvm::FunctionType *ft = func.getFunctionType();
@@ -166,11 +179,15 @@ void jit_mangled_entry_point::gen_mangle_name_for_entry(
 
   std::function<bool(llvm::LLVMContext &, const llvm::Function &)> check_func;
   if (entry_name == configuration::instance().auth_func_name()) {
-    check_func = auth_check_func;
+    check_func = check_func_with_no_args;
   } else if (entry_name == configuration::instance().nr_func_name()) {
     check_func = nr_check_func;
   } else if (entry_name == configuration::instance().dip_func_name()) {
     check_func = dip_check_func;
+  } else if (entry_name == configuration::instance().nr_param_func_name()) {
+    check_func = check_func_with_no_args;
+  } else if (entry_name == configuration::instance().dip_param_func_name()) {
+    check_func = check_func_with_no_args;
   } else {
     return;
   }

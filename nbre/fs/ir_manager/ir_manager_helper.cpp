@@ -19,6 +19,7 @@
 
 #include "fs/ir_manager/ir_manager_helper.h"
 #include "common/configuration.h"
+#include "compatible/compatible_checker.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "jit/cpp_ir.h"
 #include "jit/jit_driver.h"
@@ -274,8 +275,16 @@ void ir_manager_helper::compile_payload_code(nbre::NBREIR *nbre_ir,
     std::stringstream ss;
     ss << nbre_ir->name();
     ss << nbre_ir->version();
-    cpp::cpp_ir ci(std::make_pair(ss.str(), nbre_ir->ir()));
 
+    //! For compatible reason, we may ignore this.
+    compatible::compatible_checker cc;
+    bool need_compile =
+        cc.is_ir_need_compile(nbre_ir->name(), nbre_ir->version());
+    if (!need_compile) {
+      return;
+    }
+
+    cpp::cpp_ir ci(std::make_pair(ss.str(), nbre_ir->ir()));
     neb::bytes ir = ci.llvm_ir_content();
     nbre_ir->set_ir(neb::byte_to_string(ir));
 

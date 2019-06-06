@@ -21,7 +21,8 @@
 #pragma once
 #include "common/byte.h"
 #include "common/common.h"
-#include "runtime/nr/impl/nebulas_rank.h"
+#include "compatible/compatible_checker.h"
+#include "runtime/nr/impl/nebulas_rank_cache.h"
 #include "util/lru_cache.h"
 #include "util/singleton.h"
 
@@ -33,17 +34,29 @@ class nr_handler : public util::singleton<nr_handler> {
 public:
   nr_handler();
 
-  void start(const std::string &nr_handle);
+  void start(block_height_t start_block, block_height_t end_block,
+             uint64_t nr_version);
+
+  std::string get_nr_handle(block_height_t start_block,
+                            block_height_t end_block, uint64_t nr_version);
+
+  std::string get_nr_handle(block_height_t height);
 
   nr_ret_type get_nr_result(const std::string &nr_handle);
 
+  bool get_nr_sum(floatxx_t &nr_sum, const std::string &handle);
+  bool get_nr_addr_list(std::vector<address_t> &nr_addrs,
+                        const std::string &handle);
+
+  /*
   void run_if_default(block_height_t start_block, block_height_t end_block,
                       const std::string &nr_handle);
   void run_if_specify(block_height_t start_block, block_height_t end_block,
                       uint64_t nr_version, const std::string &nr_handle);
-
-private:
-  util::lru_cache<std::string, nr_ret_type> m_nr_result;
+*/
+protected:
+  nebulas_rank_cache m_cache;
+  compatible::compatible_checker m_checker;
 };
 } // namespace nr
 } // namespace rt

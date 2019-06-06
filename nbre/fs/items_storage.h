@@ -17,31 +17,29 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
 #pragma once
-#include "fs/blockchain/blockchain_api.h"
+#include "common/byte.h"
+#include "common/common.h"
+#include "fs/rocksdb_storage.h"
+
+define_nt(p_item_prev_block_key, neb::bytes);
 
 namespace neb {
 namespace fs {
-
-class blockchain_api_v2 : public blockchain_api {
+template <class ItemType, class ItemContainerType> class items_storage {
 public:
-  blockchain_api_v2();
-  virtual ~blockchain_api_v2();
+  typedef ItemType item_type;
+  typedef ItemContainerType item_containter_type;
+  items_storage(const std::string &key_prefix,
+                const std::string &latest_item_key,
+                size_t block_trunk_size = 4);
 
-  virtual std::unique_ptr<std::vector<transaction_info_t>>
-  get_block_transactions_api(block_height_t height);
+  virtual void append_item(const item_type &item);
+  virtual std::vector<item_type> &get_all_items();
 
 protected:
-  virtual void get_transfer_event(const neb::bytes &events_root,
-                                  const neb::bytes &tx_hash,
-                                  std::vector<transaction_info_t> &events,
-                                  transaction_info_t &info);
-  virtual void json_parse_event(const std::string &json,
-                                std::vector<transaction_info_t> &events,
-                                transaction_info_t &info);
+  typedef ::ff::net::ntpackage<1, p_item_prev_block_key, ItemContainerType>
+      block_t;
 };
-
 } // namespace fs
 } // namespace neb
-

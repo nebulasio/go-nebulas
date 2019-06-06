@@ -47,7 +47,7 @@ client_driver_base::~client_driver_base() {
 }
 
 bool client_driver_base::init() {
-  ff::initialize(8);
+  ff::initialize(4);
   m_client = std::unique_ptr<nipc_client>(new nipc_client());
   LOG(INFO) << "ipc client construct";
   add_handlers();
@@ -291,14 +291,12 @@ void client_driver::add_handlers() {
           uint64_t end_block = req->get<p_end_block>();
           uint64_t nr_version = req->get<p_nr_version>();
 
-          std::stringstream ss;
-          ss << neb::number_to_byte<neb::bytes>(start_block).to_hex()
-             << neb::number_to_byte<neb::bytes>(end_block).to_hex()
-             << neb::number_to_byte<neb::bytes>(nr_version).to_hex();
+          auto handle = param_to_key(start_block, end_block, nr_version);
 
           auto ack = new_ack_pkg<nbre_nr_handle_ack>(req);
-          ack->set<p_nr_handle>(ss.str());
-          neb::rt::nr::nr_handler::instance().start(ss.str());
+          ack->set<p_nr_handle>(handle);
+          neb::rt::nr::nr_handler::instance().start(start_block, end_block,
+                                                    nr_version);
           m_ipc_conn->send(ack);
 
         } catch (const std::exception &e) {
@@ -316,14 +314,13 @@ void client_driver::add_handlers() {
           auto nr_ret =
               neb::rt::nr::nr_handler::instance().get_nr_result(nr_handle);
           if (!std::get<0>(nr_ret)) {
-            ack->set<p_nr_result>(std::get<1>(nr_ret));
+            ack->set<p_nr_result>("");
             m_ipc_conn->send(ack);
             return;
           }
 
-          auto str_ptr = neb::rt::nr::nebulas_rank::nr_info_to_json(nr_ret);
-          LOG(INFO) << "nr result \n" << *str_ptr;
-          ack->set<p_nr_result>(*str_ptr);
+          auto str_ptr = std::get<1>(nr_ret)->serialize_to_string();
+          ack->set<p_nr_result>(str_ptr);
           m_ipc_conn->send(ack);
         } catch (const std::exception &e) {
           LOG(ERROR) << "got exception " << typeid(e).name()

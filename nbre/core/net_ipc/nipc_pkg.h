@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
+#include "common/common.h"
 #include <ff/network.h>
 
 enum ipc_pkg_type {
@@ -63,6 +64,8 @@ std::shared_ptr<PkgType1> new_ack_pkg(PkgType2 req) {
 std::string pkg_type_id_to_name(uint64_t type);
 bool is_pkg_type_has_callback(uint64_t type);
 
+std::string convert_nr_result_to_json(const nr_result &nr);
+
 template <typename T> struct get_pkg_ack_type { typedef T type; };
 #define define_ipc_param(type, name)
 #define define_ipc_pkg(type, ...)
@@ -75,6 +78,22 @@ template <typename T> struct get_pkg_ack_type { typedef T type; };
 #undef define_ipc_api
 #undef define_ipc_pkg
 #undef define_ipc_param
+
+struct result_status {
+  const static uint32_t succ = 0;
+  const static uint32_t is_running = 1;
+  const static uint32_t no_cached = 2;
+  const static uint32_t unknown = 255;
+};
+
+std::string result_status_to_string(uint32_t status);
+
+template <class T> bool is_succ(const T &pkg) {
+  return pkg.template get<p_result_status>() == result_status::succ;
+}
+template <class T> bool is_succ(const std::shared_ptr<T> &pkg) {
+  return pkg->template get<p_result_status>() == result_status::succ;
+}
 
 } // namespace core
 } // namespace neb

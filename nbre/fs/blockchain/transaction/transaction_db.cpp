@@ -19,6 +19,7 @@
 //
 
 #include "fs/blockchain/transaction/transaction_db.h"
+#include "fs/blockchain/blockchain_api.h"
 
 namespace neb {
 namespace fs {
@@ -39,22 +40,6 @@ transaction_db::read_transactions_from_db_with_duration(
   return ret;
 }
 
-std::unique_ptr<std::vector<transaction_info_t>>
-transaction_db::read_transactions_with_address_type(
-    const std::vector<transaction_info_t> &txs, byte_t from_type,
-    byte_t to_type) {
-
-  auto ret = std::make_unique<std::vector<transaction_info_t>>();
-  for (auto &tx : txs) {
-    neb::bytes from_bytes = tx.m_from;
-    neb::bytes to_bytes = tx.m_to;
-
-    if (from_bytes[1] == from_type && to_bytes[1] == to_type) {
-      ret->push_back(tx);
-    }
-  }
-  return ret;
-}
 
 } // namespace fs
 } // namespace neb

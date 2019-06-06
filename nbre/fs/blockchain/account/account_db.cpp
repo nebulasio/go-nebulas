@@ -10,8 +10,8 @@
 //
 // the go-nebulas library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the // GNU General
+// Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see
@@ -20,32 +20,56 @@
 
 #include "fs/blockchain/account/account_db.h"
 #include "common/nebulas_currency.h"
+#include "fs/blockchain/blockchain_api.h"
 #include "fs/blockchain/trie/trie.h"
 #include "fs/util.h"
 
 namespace neb {
 namespace fs {
 
-account_db::account_db(blockchain_api_base *blockchain_ptr)
-    : m_blockchain(blockchain_ptr) {}
+account_db::account_db(neb::fs::blockchain_api_base *blockchain)
+    : m_blockchain(blockchain) {}
 
-wei_t account_db::get_balance(const address_t &addr, block_height_t height) {
+neb::wei_t account_db::get_balance(const neb::address_t &addr,
+                                   neb::block_height_t height) {
   auto corepb_account_ptr = m_blockchain->get_account_api(addr, height);
   std::string balance_str = corepb_account_ptr->balance();
   return storage_to_wei(neb::string_to_byte(balance_str));
 }
 
-address_t account_db::get_contract_deployer(const address_t &addr,
-                                            block_height_t height) {
+neb::address_t account_db::get_contract_deployer(const neb::address_t &addr,
+                                                 neb::block_height_t height) {
   auto corepb_account_ptr = m_blockchain->get_account_api(addr, height);
   std::string birth_place = corepb_account_ptr->birth_place();
   auto corepb_txs_ptr = m_blockchain->get_transaction_api(birth_place, height);
   return to_address(corepb_txs_ptr->from());
 }
 
-void account_db::set_height_address_val_internal(
-    const std::vector<transaction_info_t> &txs,
-    std::unordered_map<address_t, wei_t> &addr_balance) {
+void account_db::init_height_address_val_internal(
+    neb::block_height_t start_block,
+    const std::unordered_map<neb::address_t, neb::wei_t> &addr_balance) {
+
+  for (auto &ele : addr_balance) {
+    std::vector<neb::block_height_t> v{start_block};
+    m_addr_height_list.insert(std::make_pair(ele.first, v));
+
+    auto iter = m_height_addr_val.find(start_block);
+    if (iter == m_height_addr_val.end()) {
+      std::unordered_map<address_t, wei_t> addr_val = {{ele.first, ele.second}};
+      m_height_addr_val.insert(std::make_pair(start_block, addr_val));
+    } else {
+      auto &addr_val = iter->second;
+      addr_val.insert(std::make_pair(ele.first, ele.second));
+    }
+  }
+}
+
+void account_db::update_height_address_val_internal(
+    neb::block_height_t start_block,
+    const std::vector<neb::fs::transaction_info_t> &txs,
+    std::unordered_map<neb::address_t, neb::wei_t> &addr_balance) {
+
+  init_height_address_val_internal(start_block, addr_balance);
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
     address_t from = it->m_from;
@@ -62,16 +86,18 @@ void account_db::set_height_address_val_internal(
       addr_balance.insert(std::make_pair(to, 0));
     }
 
-    int32_t status = it->m_status;
-    if (status) {
-      addr_balance[from] -= value;
-      addr_balance[to] += value;
-    }
+    if (height != start_block) {
+      int32_t status = it->m_status;
+      if (status) {
+        addr_balance[from] -= value;
+        addr_balance[to] += value;
+      }
 
-    wei_t gas_used = it->m_gas_used;
-    if (gas_used != 0) {
-      wei_t gas_val = gas_used * it->m_gas_price;
-      addr_balance[from] -= gas_val;
+      wei_t gas_used = it->m_gas_used;
+      if (gas_used != 0) {
+        wei_t gas_val = gas_used * it->m_gas_price;
+        addr_balance[from] -= gas_val;
+      }
     }
 
     if (m_height_addr_val.find(height) == m_height_addr_val.end()) {
@@ -116,12 +142,15 @@ void account_db::set_height_address_val_internal(
   }
 }
 
-wei_t account_db::get_account_balance_internal(const address_t &address,
-                                               block_height_t height) {
+neb::wei_t
+account_db::get_account_balance_internal(const neb::address_t &address,
+                                         neb::block_height_t height) {
+
   auto addr_it = m_addr_height_list.find(address);
   if (addr_it == m_addr_height_list.end()) {
-    return 0;
+    return get_balance(address, height);
   }
+
   auto height_it =
       std::lower_bound(addr_it->second.begin(), addr_it->second.end(), height);
 
@@ -134,7 +163,7 @@ wei_t account_db::get_account_balance_internal(const address_t &address,
     if (*height_it == height) {
       return m_height_addr_val[*height_it][address];
     } else {
-      return 0;
+      return get_balance(address, height);
     }
   }
 
@@ -145,9 +174,7 @@ wei_t account_db::get_account_balance_internal(const address_t &address,
   return m_height_addr_val[*height_it][address];
 }
 
-floatxx_t account_db::get_normalized_value(floatxx_t value) {
-  uint64_t ratio = 1000000000000000000ULL;
-  return value / floatxx_t(ratio);
-}
+
 } // namespace fs
 } // namespace neb
+

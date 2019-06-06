@@ -19,11 +19,12 @@
 //
 
 #include "runtime/util.h"
+#include "common/byte.h"
 #include "util/json_parser.h"
 
 namespace neb {
 namespace rt {
-
+/*
 std::string meta_info_to_json(
     const std::vector<std::pair<std::string, std::string>> &meta_info) {
   boost::property_tree::ptree pt;
@@ -49,6 +50,14 @@ json_to_meta_info(const std::string &json) {
   meta_info.push_back(std::make_pair("end_height", end_height));
   meta_info.push_back(std::make_pair("version", version));
   return meta_info;
+}
+*/
+std::string param_to_key(block_height_t start_block, block_height_t end_block,
+                         uint64_t version) {
+  std::string nr_handle = std::to_string(number_to_byte<bytes>(start_block));
+  nr_handle += std::to_string(number_to_byte<bytes>(end_block));
+  nr_handle += std::to_string(number_to_byte<bytes>(version));
+  return nr_handle;
 }
 
 } // namespace rt

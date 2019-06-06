@@ -282,7 +282,8 @@ void driver::add_handlers() {
         neb::ipc::char_string_t cstr_handler_id(
             ss.str().c_str(), m_ipc_conn->default_allocator());
         ack->set<neb::core::ipc_pkg::nr_handler_id>(cstr_handler_id);
-        neb::rt::nr::nr_handler::instance().start(ss.str());
+        neb::rt::nr::nr_handler::instance().start(start_block, end_block,
+                                                  nr_version);
         m_ipc_conn->push_back(ack);
 
       });

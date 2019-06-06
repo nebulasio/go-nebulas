@@ -20,9 +20,41 @@
 #include "benchmark/benchmark_instances.h"
 #include "common/byte.h"
 #include "common/math.h"
+#include "common/version.h"
 #include "fs/proto/ir.pb.h"
 #include <ff/network.h>
 #include <iostream>
+#include <sstream>
+std::string param_to_key(neb::block_height_t start_block,
+                         neb::block_height_t end_block, uint64_t version) {
+  std::string nr_handle =
+      std::to_string(neb::number_to_byte<neb::bytes>(start_block));
+  nr_handle += std::to_string(neb::number_to_byte<neb::bytes>(end_block));
+  nr_handle += std::to_string(neb::number_to_byte<neb::bytes>(version));
+  return nr_handle;
+}
+
+BENCHMARK(seralize_sev, byte) {
+  neb::block_height_t s = 1998786;
+  neb::block_height_t e = 1998786;
+  neb::version v(1, 0, 0);
+  uint64_t tv = v.data();
+  for (int i = 0; i < 10000; i++) {
+    param_to_key(s, e, tv);
+  }
+}
+
+BENCHMARK(seralize_sev, sstream) {
+  neb::block_height_t s = 1998786;
+  neb::block_height_t e = 1998786;
+  neb::version v(1, 0, 0);
+  uint64_t tv = v.data();
+  for (int i = 0; i < 10000; i++) {
+    std::stringstream ss;
+    ss << s << e << tv;
+    ss.str();
+  }
+}
 
 define_nt(name, std::string);
 define_nt(version, uint64_t);

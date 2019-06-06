@@ -18,6 +18,9 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "core/net_ipc/nipc_pkg.h"
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/foreach.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 namespace neb {
 namespace core {
@@ -67,6 +70,54 @@ bool is_pkg_type_has_callback(uint64_t type) {
 #undef define_ipc_pkg
 #undef define_ipc_param
   return false;
+}
+std::string convert_nr_result_to_json(const nr_result &nr) {
+  boost::property_tree::ptree root;
+  boost::property_tree::ptree arr;
+
+  root.put("start_height", std::to_string(nr.get<p_start_block>()));
+  root.put("end_height", std::to_string(nr.get<p_end_block>()));
+  root.put("version", std::to_string(nr.get<p_version>()));
+  std::vector<nr_item> nrs = nr.get<p_nr_items>();
+  if (nrs.empty()) {
+    boost::property_tree::ptree p;
+    arr.push_back(std::make_pair(std::string(), p));
+  }
+  for (auto &it : nrs) {
+    boost::property_tree::ptree p;
+    auto addr = to_address(it.get<p_nr_item_addr>());
+    p.put(std::string("address"), address_to_base58(addr));
+    p.put(std::string("in_outs"), std::to_string(it.get<p_nr_item_in_outs>()));
+    p.put(std::string("median"), std::to_string(it.get<p_nr_item_median>()));
+    p.put(std::string("weight"), std::to_string(it.get<p_nr_item_weight>()));
+    p.put(std::string("score"), std::to_string(it.get<p_nr_item_score>()));
+    arr.push_back(std::make_pair(std::string(), p));
+  }
+  root.add_child("nrs", arr);
+  std::stringstream ss;
+  boost::property_tree::json_parser::write_json(ss, root, false);
+  std::string tmp_ss;
+  boost::replace_all(tmp_ss, "[\"\"]", "[]");
+  return tmp_ss;
+}
+
+std::string result_status_to_string(uint32_t status) {
+  std::string result;
+  switch (status) {
+  case result_status::succ:
+    result = "success";
+    break;
+  case result_status::is_running:
+    result = "the same computation is already running, ignore this one";
+    break;
+  case result_status::no_cached:
+    result = "there is no cached data for this on disk or in mem!";
+    break;
+  default:
+    result = "unknown status";
+    break;
+  }
+  return result;
 }
 } // namespace core
 } // namespace neb

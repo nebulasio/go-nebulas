@@ -18,6 +18,11 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "common/common.h"
+#include "common/math/internal/math_extension.h"
 namespace neb {
 std::string program_name;
 }
+
+namespace std {
+std::string to_string(const floatxx_t &v) { return neb::math::to_string(v); }
+} // namespace std
