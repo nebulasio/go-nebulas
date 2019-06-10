@@ -35,6 +35,8 @@ type CompatibilityMainNet struct {
 	nvmValueCheckUpdateHeight uint64
 
 	nbreAvailableHeight uint64
+
+	nrc20SecurityCheckHeight uint64
 }
 
 // NewCompatibilityMainNet ..
@@ -63,6 +65,7 @@ func NewCompatibilityMainNet() Compatibility {
 		transferFromContractFailureEventRecordableHeight2: 600000,
 		nvmValueCheckUpdateHeight:                         2188985,
 		nbreAvailableHeight:                               2307000,
+		nrc20SecurityCheckHeight:                          2517131,
 	}
 }
 
@@ -149,4 +152,9 @@ func (c *CompatibilityMainNet) NvmValueCheckUpdateHeight() uint64 {
 // NbreAvailableHeight ..
 func (c *CompatibilityMainNet) NbreAvailableHeight() uint64 {
 	return c.nbreAvailableHeight
+}
+
+// Nrc20SecurityCheckHeight ..
+func (c *CompatibilityMainNet) Nrc20SecurityCheckHeight() uint64 {
+	return c.nrc20SecurityCheckHeight
 }

@@ -151,6 +151,7 @@ type Compatibility interface {
 	TransferFromContractFailureEventRecordableHeight2() uint64
 	NvmValueCheckUpdateHeight() uint64
 	NbreAvailableHeight() uint64
+	Nrc20SecurityCheckHeight() uint64
 }
 
 // NebCompatibility ..
@@ -451,4 +452,9 @@ func NvmValueCheckUpdateHeight(blockHeight uint64) bool {
 // NbreAvailableHeight ..
 func NbreAvailableHeight(blockHeight uint64) bool {
 	return blockHeight >= NebCompatibility.NbreAvailableHeight()
+}
+
+// Nrc20SecurityCheckAtHeight ..
+func Nrc20SecurityCheckAtHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.Nrc20SecurityCheckHeight()
 }

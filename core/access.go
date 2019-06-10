@@ -19,14 +19,22 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core/pb"
+)
+
+const (
+	NRC20FuncTransfer     = "transfer"
+	NRC20FuncTransferFrom = "transferFrom"
+	NRC20FuncApprove      = "approve"
 )
 
 type Access struct {
@@ -61,47 +69,99 @@ func (a *Access) CheckTransaction(tx *Transaction) error {
 		// no access config need to check
 		return nil
 	}
-	for _, addr := range a.access.Blacklist.From {
-		if addr == tx.from.String() {
-			return ErrRestrictedFromAddress
-		}
-	}
-	for _, addr := range a.access.Blacklist.To {
-		if addr == tx.to.String() {
-			return ErrRestrictedToAddress
-		}
-	}
-	if tx.Type() == TxPayloadDeployType || tx.Type() == TxPayloadCallType {
-		for _, contract := range a.access.Blacklist.Contracts {
-			match := false
-			if contract.Address != "" {
-				match = contract.Address == tx.to.String()
+	if a.access.Blacklist != nil {
+		for _, addr := range a.access.Blacklist.From {
+			if addr == tx.from.String() {
+				return ErrRestrictedFromAddress
 			}
-			if tx.Type() == TxPayloadCallType && len(contract.Functions) > 0 {
+		}
+		for _, addr := range a.access.Blacklist.To {
+			if addr == tx.to.String() {
+				return ErrRestrictedToAddress
+			}
+		}
+
+		if tx.Type() == TxPayloadDeployType || tx.Type() == TxPayloadCallType {
+			for _, contract := range a.access.Blacklist.Contracts {
+				match := false
+				if contract.Address != "" {
+					match = contract.Address == tx.to.String()
+				}
+				if tx.Type() == TxPayloadCallType && len(contract.Functions) > 0 {
+					payload, err := tx.LoadPayload()
+					callPayload := payload.(*CallPayload)
+					if err != nil {
+						return err
+					}
+					funcMatch := false
+					for _, function := range contract.Functions {
+						if function == callPayload.Function {
+							funcMatch = true
+							break
+						}
+					}
+					match = match && funcMatch
+				}
+				if match {
+					return ErrUnsupportedFunction
+				}
+				if tx.Type() == TxPayloadDeployType && len(contract.Keywords) > 0 {
+					data := strings.ToLower(string(tx.Data()))
+					for _, keyword := range contract.Keywords {
+						keyword = strings.ToLower(keyword)
+						if strings.Contains(data, keyword) {
+							unsupportedKeywordError := fmt.Sprintf("transaction data has unsupported keyword(keyword: %s)", keyword)
+							return errors.New(unsupportedKeywordError)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if a.access.Nrc20List != nil {
+		// check nrc20 security
+		if err := a.nrc20SecurityCheck(tx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// nrc20SecurityCheck check nrc20 contract params security
+func (a *Access) nrc20SecurityCheck(tx *Transaction) error {
+	if tx.Type() == TxPayloadCallType && len(a.access.Nrc20List.Contracts) > 0 {
+		for _, contract := range a.access.Nrc20List.Contracts {
+			// check nrc20 security
+			if tx.To().String() == contract {
 				payload, err := tx.LoadPayload()
-				callPayload := payload.(*CallPayload)
 				if err != nil {
 					return err
 				}
-				funcMatch := false
-				for _, function := range contract.Functions {
-					if function == callPayload.Function {
-						funcMatch = true
-						break
-					}
+				call := payload.(*CallPayload)
+				valueIndex := 0
+				switch call.Function {
+				case NRC20FuncTransfer:
+					valueIndex = 1
+				case NRC20FuncTransferFrom:
+					valueIndex = 2
+				case NRC20FuncApprove:
+					valueIndex = 2
+				default:
+					valueIndex = -1
 				}
-				match = match && funcMatch
-			}
-			if match {
-				return ErrUnsupportedFunction
-			}
-			if tx.Type() == TxPayloadDeployType && len(contract.Keywords) > 0 {
-				data := strings.ToLower(string(tx.Data()))
-				for _, keyword := range contract.Keywords {
-					keyword = strings.ToLower(keyword)
-					if strings.Contains(data, keyword) {
-						unsupportedKeywordError := fmt.Sprintf("transaction data has unsupported keyword(keyword: %s)", keyword)
-						return errors.New(unsupportedKeywordError)
+				if valueIndex > 0 {
+					var argsObj []string
+					if err := json.Unmarshal([]byte(call.Args), &argsObj); err != nil {
+						return ErrNrc20ArgsCheckFailed
+					}
+					addr := argsObj[0]
+					if _, err := AddressParse(addr); err != nil {
+						return ErrNrc20AddressCheckFailed
+					}
+					value := argsObj[valueIndex]
+					if matched, err := regexp.MatchString("^[0-9]+$", value); matched == false || err != nil {
+						return ErrNrc20ValueCheckFailed
 					}
 				}
 			}

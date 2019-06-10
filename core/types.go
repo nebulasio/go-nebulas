@@ -183,10 +183,13 @@ var (
 	ErrCreateInnerTx        = errors.New("Failed to create inner transaction")
 
 	// access control
-	ErrUnsupportedKeyword    = errors.New("transaction data has unsupported keyword")
-	ErrUnsupportedFunction   = errors.New("transaction payload has unsupported function")
-	ErrRestrictedFromAddress = errors.New("transaction from address is restricted")
-	ErrRestrictedToAddress   = errors.New("transaction to address is restricted")
+	ErrUnsupportedKeyword      = errors.New("transaction data has unsupported keyword")
+	ErrUnsupportedFunction     = errors.New("transaction payload has unsupported function")
+	ErrRestrictedFromAddress   = errors.New("transaction from address is restricted")
+	ErrRestrictedToAddress     = errors.New("transaction to address is restricted")
+	ErrNrc20ArgsCheckFailed    = errors.New("transaction nrc20 args check failed")
+	ErrNrc20AddressCheckFailed = errors.New("transaction nrc20 address check failed")
+	ErrNrc20ValueCheckFailed   = errors.New("transaction nrc20 value check failed")
 )
 
 // Default gas count

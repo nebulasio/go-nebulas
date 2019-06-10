@@ -25,6 +25,9 @@ message Access {
 
     // Blacklists of transactions, some of which are not accepted on the blacklists
     Blacklist blacklist = 2;
+
+    // nrc20list of transactions, some of security check for this tx.
+    Nrc20list nrc20list = 3;
 }
 
 message Whitelist {
@@ -52,4 +55,8 @@ message Contract {
 
     // slice of deploy type transaction's data keyword.
     repeated string keywords = 3;
+}
+
+message Nrc20list {
+    repeated string contracts = 1;
 }
