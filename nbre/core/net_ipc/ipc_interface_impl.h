@@ -100,5 +100,7 @@ define_ipc_api(nbre_dip_reward_req, nbre_dip_reward_ack)
 
 define_ipc_param(std::vector<std::string>, p_ir_transactions)
 define_ipc_pkg(nbre_ir_transactions_req, p_holder, p_height, p_ir_transactions)
-
+define_ipc_param(std::string, p_raw_key)
+define_ipc_param(std::string, p_ir_key)
+define_ipc_pkg(nr_param_storage_t, p_start_block, p_block_interval, p_version, p_raw_key, p_ir_key)
     // clang-format on

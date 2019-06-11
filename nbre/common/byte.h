@@ -85,6 +85,15 @@ public:
   bool operator<(const fix_bytes<ByteLength> &v) const {
     return memcmp(m_value, v.m_value, ByteLength) < 0;
   }
+  template <size_t BL>
+  fix_bytes<BL + ByteLength> operator+(const fix_bytes<BL> &v) const {
+    fix_bytes<BL + ByteLength> ret;
+    std::copy(ret.m_value.begin(), ret.m_value.begin() + ByteLength,
+              m_value.begin());
+    std::copy(ret.m_value.begin() + ByteLength, ret.m_value.end(),
+              v.m_value.begin());
+    return ret;
+  }
   byte_t operator[](size_t index) const { return m_value[index]; }
   byte_t &operator[](size_t index) { return m_value[index]; }
 
@@ -160,6 +169,27 @@ public:
   bool operator==(const bytes &v) const;
   bool operator!=(const bytes &v) const;
   bool operator<(const bytes &v) const;
+
+  bytes operator+(const bytes &v) const {
+    bytes ret(size() + v.size());
+    if (size() != 0) {
+      memcpy(ret.value(), value(), size());
+    }
+    if (v.size() != 0) {
+      memcpy(ret.value() + size(), v.value(), v.size());
+    }
+    return ret;
+  }
+  bytes operator+(const std::string &v) const {
+    bytes ret(size() + v.size());
+    if (size() != 0) {
+      memcpy(ret.value(), value(), size());
+    }
+    if (v.size() != 0) {
+      memcpy(ret.value() + size(), v.data(), v.size());
+    }
+    return ret;
+  }
 
   byte_t operator[](size_t index) const;
   byte_t &operator[](size_t index);

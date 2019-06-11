@@ -20,6 +20,7 @@
 #include "core/net_ipc/client/client_driver.h"
 #include "common/address.h"
 #include "common/configuration.h"
+#include "compatible/db_checker.h"
 #include "core/ir_warden.h"
 #include "fs/bc_storage_session.h"
 #include "fs/ir_manager/api/ir_api.h"
@@ -160,6 +161,10 @@ void client_driver_base::init_nbre() {
       configuration::instance().neb_db_dir(), fs::storage_open_for_readonly);
 
   auto *rs = neb::fs::storage_holder::instance().nbre_db_ptr();
+
+  compatible::db_checker dc;
+  dc.update_db_if_needed();
+
   neb::block_height_t height = 1;
   try {
     auto tmp = rs->get(neb::configuration::instance().nbre_max_height_name());

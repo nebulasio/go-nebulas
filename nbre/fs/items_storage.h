@@ -22,24 +22,46 @@
 #include "common/common.h"
 #include "fs/rocksdb_storage.h"
 
-define_nt(p_item_prev_block_key, neb::bytes);
+define_nt(p_item_content, neb::bytes);
+define_nt(p_item_count, size_t);
+typedef ff::net::ntpackage<1, p_item_content, p_item_count> item_info_t;
+define_nt(p_item_keys, std::vector<item_info_t>);
+define_nt(p_item_contents, std::vector<neb::bytes>);
+typedef ::ff::net::ntpackage<1, p_item_keys> item_index_table_t;
+typedef ::ff::net::ntpackage<2, p_item_contents> item_contents_t;
 
 namespace neb {
 namespace fs {
-template <class ItemType, class ItemContainerType> class items_storage {
+namespace internal {
+class items_storage_base {
 public:
-  typedef ItemType item_type;
-  typedef ItemContainerType item_containter_type;
-  items_storage(const std::string &key_prefix,
-                const std::string &latest_item_key,
-                size_t block_trunk_size = 4);
+  items_storage_base(rocksdb_storage *db, const std::string &key_prefix,
+                     const std::string &last_item_key,
+                     size_t block_trunk_size = 16);
 
-  virtual void append_item(const item_type &item);
-  virtual std::vector<item_type> &get_all_items();
+  virtual void append_item(const bytes &item);
+  virtual std::vector<bytes> get_all_items();
 
 protected:
-  typedef ::ff::net::ntpackage<1, p_item_prev_block_key, ItemContainerType>
-      block_t;
-};
-} // namespace fs
+  void read_index_table();
+  void write_index_table();
+  inline bool is_empty_index_table() const {
+    return m_index_table.get<p_item_keys>().empty();
+  }
+  item_info_t get_last_live_block_info();
+  item_contents_t read_block_with_key(const bytes &key);
+  void write_block_with_key(const bytes &key, item_contents_t &contents);
+  void update_index_table(const item_info_t &info);
+
+protected:
+  rocksdb_storage *m_db;
+  std::string m_key_prefix;
+  std::string m_last_item_key;
+  size_t m_block_trunk_size;
+  item_index_table_t m_index_table;
+  boost::shared_mutex m_mutex;
+  };
+  } // namespace internal
+
+  } // namespace fs
 } // namespace neb

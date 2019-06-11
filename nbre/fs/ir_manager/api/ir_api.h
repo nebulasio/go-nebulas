@@ -27,6 +27,12 @@ namespace fs {
 
 class ir_api {
 public:
+  std::vector<std::string> get_ir_list() {
+    std::vector<std::string> t;
+    return t;
+  };
+
+  void get_ir_list(std::vector<std::string> *t) { return; }
   static std::unique_ptr<std::vector<std::string>>
   get_ir_list(rocksdb_storage *rs);
 
