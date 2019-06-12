@@ -17,30 +17,19 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#pragma once
-#include "fs/ir_manager/api/ir_item_list_interface.h"
+#include "fs/ir_manager/api/auth_ir_list.h"
 
 namespace neb {
 namespace fs {
-class rocksdb_storage;
-class ir_list {
-public:
-  ir_list(rocksdb_storage *storage);
+auth_ir_list::auth_ir_list(rocksdb_storage *storage)
+    : internal::ir_item_list_base<auth_params_storage_t>(storage) {}
 
-  virtual void write_ir(const nbre::NBREIR &raw_ir,
-                        const nbre::NBREIR &compiled_ir);
+auth_ir_list::item_type get_ir_param(const nbre::NBREIR &compiled_ir) {
+  auth_param_storage_t ret;
+  ret.set<p_start_block, p_version>(compiled_ir.height(),
+                                    compiled_ir.version());
+  return ret;
+}
 
-  virtual nbre::NBREIR get_raw_ir(const std::string &ir_name, version_t v);
-  virtual nbre::NBREIR get_ir(const std::string &ir_name, version_t v);
-
-  virtual nbre::NBREIR find_ir_at_height(const std::string &ir_name,
-                                         block_height_t height);
-
-protected:
-  std::unordered_map<std::string,
-                     std::shared_ptr<internal::ir_item_list_interface>>
-      m_ir_item_list;
-  rocksdb_storage *m_storage;
-};
 } // namespace fs
 } // namespace neb

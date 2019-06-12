@@ -18,29 +18,18 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
-#include "fs/ir_manager/api/ir_item_list_interface.h"
+#include "fs/ir_manager/api/ir_item_list_base.h"
+#include "fs/nt_item_simple_storage.h"
 
 namespace neb {
 namespace fs {
-class rocksdb_storage;
-class ir_list {
+class dip_ir_list : public internal::ir_item_list_base<dip_params_storage_t> {
 public:
-  ir_list(rocksdb_storage *storage);
+  typedef dip_params_storage_t::item_type item_type;
+  dip_ir_list(rocksdb_storage *storage);
+  virtual item_type get_ir_param(const nbre::NBREIR &compiled_ir);
 
-  virtual void write_ir(const nbre::NBREIR &raw_ir,
-                        const nbre::NBREIR &compiled_ir);
-
-  virtual nbre::NBREIR get_raw_ir(const std::string &ir_name, version_t v);
-  virtual nbre::NBREIR get_ir(const std::string &ir_name, version_t v);
-
-  virtual nbre::NBREIR find_ir_at_height(const std::string &ir_name,
-                                         block_height_t height);
-
-protected:
-  std::unordered_map<std::string,
-                     std::shared_ptr<internal::ir_item_list_interface>>
-      m_ir_item_list;
-  rocksdb_storage *m_storage;
+  virtual nbre::NBREIR find_ir_at_height(block_height_t height);
 };
 } // namespace fs
 } // namespace neb

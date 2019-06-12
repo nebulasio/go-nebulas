@@ -38,5 +38,6 @@ nr_ir_list::get_ir_param(const nbre::NBREIR &compiled_ir) {
   return ret;
 }
 
+
 } // namespace fs
 } // namespace neb

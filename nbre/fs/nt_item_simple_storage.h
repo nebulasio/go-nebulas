@@ -53,10 +53,22 @@ struct dip_param_storage_traits {
   constexpr static size_t block_trunk_size = 16;
 };
 
+struct auth_param_storage_traints {
+  constexpr static const char *key_prefix = "auth_param_";
+  constexpr static const char *last_item_key = "auth_param_last_block";
+  constexpr static size_t block_trunk_size = 32;
+};
 } // namespace internal
 typedef nt_items_simple_storage<nr_param_storage_t,
                                 internal::nr_param_storage_traits>
     nr_params_storage_t;
 
+typedef nt_items_simple_storage<dip_param_storage_t,
+                                internal::dip_param_storage_traits>
+    dip_params_storage_t;
+
+typedef nt_items_simple_storage<auth_param_storage_t,
+                                internal::auth_param_storage_traints>
+    auth_params_storage_t;
 } // namespace fs
 } // namespace neb

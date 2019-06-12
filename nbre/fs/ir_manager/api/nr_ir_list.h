@@ -28,6 +28,8 @@ public:
   typedef nr_params_storage_t::item_type item_type;
   nr_ir_list(rocksdb_storage *storage);
   virtual item_type get_ir_param(const nbre::NBREIR &compiled_ir);
+
+  virtual nbre::NBREIR find_ir_at_height(block_height_t height);
 };
 } // namespace fs
 } // namespace neb

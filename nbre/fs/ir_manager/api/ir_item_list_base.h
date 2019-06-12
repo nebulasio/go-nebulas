@@ -20,21 +20,13 @@
 #pragma once
 #include "common/common.h"
 #include "core/net_ipc/nipc_pkg.h"
+#include "fs/ir_item_list_interface.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/rocksdb_storage.h"
 
 namespace neb {
 namespace fs {
 namespace internal {
-
-class ir_item_list_interface {
-public:
-  virtual void write_ir(const nbre::NBREIR &raw_ir,
-                        const nbre::NBREIR &compiled_ir) = 0;
-
-  virtual nbre::NBREIR get_raw_ir(version_t v) = 0;
-  virtual nbre::NBREIR get_ir(version_t v) = 0;
-};
 
 template <class PST> class ir_item_list_base {
 public:
@@ -70,6 +62,28 @@ public:
     bytes bs = m_storage->get_bytes(compiled_ir_key(v));
     ir.ParseFromArray(bs.value(), bs.size());
     return ir;
+  }
+  virtual nbre::NBREIR find_ir_at_height(block_height_t height) {
+    std::vector<item_type> items = m_param_storage.get_all_items();
+
+    //! Note, sort via start_block or version should be the same.
+    std::sort(items.first(), items.end(),
+              [](const item_type &t1, const item_type &t2) {
+                return t1.template get<p_start_block>() <
+                       t2.template get<p_start_block>();
+              });
+    item_type v;
+    v.template set<p_start_block>(height);
+    auto pos = std::lower_bound(items.first(), items.end(), v,
+                                [](const item_type &t1, const item_type &t2) {
+                                  return t1.template get<p_start_block>() <
+                                         t2.template get<p_start_block>();
+                                });
+    if (pos == items.end()) {
+      LOG(ERROR) << "cannot find ir at height " << height;
+      throw std::runtime_error("cannot find ir at height");
+    }
+    return get_raw_ir(items[pos].template get<p_version>());
   }
 
   virtual item_type get_ir_param(const nbre::NBREIR &compiled_ir) = 0;
