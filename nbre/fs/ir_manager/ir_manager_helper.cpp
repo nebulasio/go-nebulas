@@ -67,12 +67,6 @@ block_height_t ir_manager_helper::nbre_block_height(rocksdb_storage *rs) {
   return start_height;
 }
 
-block_height_t ir_manager_helper::lib_block_height(blockchain *bc) {
-
-  std::unique_ptr<corepb::Block> end_block = bc->load_LIB_block();
-  block_height_t end_height = end_block->height();
-  return end_height;
-}
 
 void ir_manager_helper::run_auth_table(
     nbre::NBREIR &nbre_ir, std::map<auth_key_t, auth_val_t> &auth_table) {
@@ -114,10 +108,9 @@ void ir_manager_helper::load_auth_table(
   }
 
   std::unique_ptr<nbre::NBREIR> nbre_ir = std::make_unique<nbre::NBREIR>();
-  neb::bytes payload_bytes;
-  try {
-    payload_bytes =
-        rs->get(neb::configuration::instance().nbre_auth_table_name());
+  payload_bytes = rs->get(neb
+                          : k
+                          : configuration::instance().nbre_auth_table_name());
   } catch (const std::exception &e) {
     LOG(INFO) << "auth table not deploy yet " << e.what();
     return;

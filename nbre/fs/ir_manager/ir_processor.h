@@ -17,27 +17,37 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "fs/ir_manager/api/nr_ir_list.h"
-#include "runtime/nr/impl/data_type.h"
-#include "runtime/param_trait.h"
+#pragma once
+#include "common/common.h"
+#include "core/net_ipc/nipc_pkg.h"
 
 namespace neb {
-namespace fs {
-nr_ir_list::nr_ir_list(storage *storage)
-    : internal::ir_item_list_base<nr_params_storage_t>(storage, "nr") {}
-
-nr_ir_list::item_type
-nr_ir_list::get_ir_param(const nbre::NBREIR &compiled_ir) {
-  nr_param_t param = rt::param_trait::get_param<nr_param_t>(
-      compiled_ir, configuration::instance().nr_param_func_name());
-
-  nr_param_storage_t ret;
-  ret.set<p_start_block, p_block_interval, p_version>(
-      param.get<p_start_block>(), param.get<p_block_interval>(),
-      param.get<p_version>());
-  return ret;
+namespace util {
+template <class T> class wakeable_queue;
+template <class T> class persistent_type;
+class persistent_flag;
 }
+namespace rt {
+namespace auth {
+class auth_handler;
+}
+} // namespace rt
+namespace fs {
+class ir_list;
+class storage;
+class ir_processor {
+public:
+  ir_processor(storage *s);
 
+  virtual void parse_irs(
+      util::wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> &q_txs);
 
+protected:
+  storage *m_storage;
+  std::unique_ptr<ir_list> m_ir_list;
+  std::unique_ptr<rt::auth::auth_handler> m_auth_handler;
+  std::unique_ptr<util::persistent_flag> m_failed_flag;
+  std::unique_ptr<util::persistent_type<block_height_t>> m_nbre_block_height;
+};
 } // namespace fs
 } // namespace neb

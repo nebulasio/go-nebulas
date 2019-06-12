@@ -17,27 +17,31 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "fs/ir_manager/api/nr_ir_list.h"
-#include "runtime/nr/impl/data_type.h"
-#include "runtime/param_trait.h"
+#pragma once
+#include "common/common.h"
+#include "fs/proto/ir.pb.h"
+#include "runtime/auth/data_type.h"
 
 namespace neb {
 namespace fs {
-nr_ir_list::nr_ir_list(storage *storage)
-    : internal::ir_item_list_base<nr_params_storage_t>(storage, "nr") {}
-
-nr_ir_list::item_type
-nr_ir_list::get_ir_param(const nbre::NBREIR &compiled_ir) {
-  nr_param_t param = rt::param_trait::get_param<nr_param_t>(
-      compiled_ir, configuration::instance().nr_param_func_name());
-
-  nr_param_storage_t ret;
-  ret.set<p_start_block, p_block_interval, p_version>(
-      param.get<p_start_block>(), param.get<p_block_interval>(),
-      param.get<p_version>());
-  return ret;
+class ir_list;
 }
+namespace rt {
+namespace auth {
+class auth_table;
+class auth_handler {
+public:
+  auth_handler(fs::ir_list *ir_list);
 
+  virtual void handle_auth_nir(const nbre::NBREIR &ir);
 
-} // namespace fs
+  virtual bool is_ir_legitimate(const std::string ir_name,
+                                const address_t &from_addr);
+
+protected:
+  fs::ir_list *m_ir_list;
+  std::unique_ptr<auth_table> m_auth_table;
+};
+} // namespace auth
+} // namespace rt
 } // namespace neb

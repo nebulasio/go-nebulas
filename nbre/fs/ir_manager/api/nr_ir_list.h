@@ -26,7 +26,7 @@ namespace fs {
 class nr_ir_list : public internal::ir_item_list_base<nr_params_storage_t> {
 public:
   typedef nr_params_storage_t::item_type item_type;
-  nr_ir_list(rocksdb_storage *storage);
+  nr_ir_list(storage *storage);
   virtual item_type get_ir_param(const nbre::NBREIR &compiled_ir);
 
   virtual nbre::NBREIR find_ir_at_height(block_height_t height);

@@ -17,27 +17,18 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "fs/ir_manager/api/nr_ir_list.h"
-#include "runtime/nr/impl/data_type.h"
-#include "runtime/param_trait.h"
+#pragma once
+#include "common/common.h"
 
 namespace neb {
-namespace fs {
-nr_ir_list::nr_ir_list(storage *storage)
-    : internal::ir_item_list_base<nr_params_storage_t>(storage, "nr") {}
-
-nr_ir_list::item_type
-nr_ir_list::get_ir_param(const nbre::NBREIR &compiled_ir) {
-  nr_param_t param = rt::param_trait::get_param<nr_param_t>(
-      compiled_ir, configuration::instance().nr_param_func_name());
-
-  nr_param_storage_t ret;
-  ret.set<p_start_block, p_block_interval, p_version>(
-      param.get<p_start_block>(), param.get<p_block_interval>(),
-      param.get<p_version>());
-  return ret;
-}
-
-
-} // namespace fs
+namespace rt {
+namespace auth {
+typedef std::string name_t;
+typedef std::string address_t;
+//! Note: it's dangerous to change this type, we may have compatible issues
+//! here. You may check ir/auth_table/auth.cpp
+typedef std::tuple<name_t, address_t, block_height_t, block_height_t>
+    auth_items_t;
+} // namespace auth
+} // namespace rt
 } // namespace neb

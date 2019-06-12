@@ -26,8 +26,9 @@ namespace fs {
 
 storage_holder::storage_holder() {
   m_storage = std::make_unique<rocksdb_storage>();
-  m_storage->open_database(neb::configuration::instance().nbre_db_dir(),
-                           storage_open_for_readwrite);
+  ((rocksdb_storage *)m_storage)
+      ->open_database(neb::configuration::instance().nbre_db_dir(),
+                      storage_open_for_readwrite);
 }
 
 storage_holder::~storage_holder() { m_storage->close_database(); }

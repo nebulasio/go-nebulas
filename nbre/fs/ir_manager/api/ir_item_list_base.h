@@ -20,9 +20,9 @@
 #pragma once
 #include "common/common.h"
 #include "core/net_ipc/nipc_pkg.h"
-#include "fs/ir_item_list_interface.h"
+#include "fs/ir_manager/api/ir_item_list_interface.h"
 #include "fs/proto/ir.pb.h"
-#include "fs/rocksdb_storage.h"
+#include "fs/storage.h"
 
 namespace neb {
 namespace fs {
@@ -34,7 +34,7 @@ public:
   typedef typename param_storage_t::item_type item_type;
   typedef typename param_storage_t::item_traits item_traits;
 
-  ir_item_list_base(rocksdb_storage *storage, const std::string &name)
+  ir_item_list_base(storage *storage, const std::string &name)
       : m_storage(storage), m_ir_name(name){};
 
   virtual void write_ir(const nbre::NBREIR &raw_ir,
@@ -99,7 +99,7 @@ protected:
   }
 
 protected:
-  rocksdb_storage *m_storage;
+  storage *m_storage;
   std::string m_ir_name;
   param_storage_t m_param_storage;
 };

@@ -20,7 +20,6 @@
 #pragma once
 #include "common/byte.h"
 #include "common/common.h"
-#include "fs/rocksdb_storage.h"
 
 define_nt(p_item_content, neb::bytes);
 define_nt(p_item_count, size_t);
@@ -32,10 +31,11 @@ typedef ::ff::net::ntpackage<2, p_item_contents> item_contents_t;
 
 namespace neb {
 namespace fs {
+class storage;
 namespace internal {
 class items_storage_base {
 public:
-  items_storage_base(rocksdb_storage *db, const std::string &key_prefix,
+  items_storage_base(storage *db, const std::string &key_prefix,
                      const std::string &last_item_key,
                      size_t block_trunk_size = 16);
 
@@ -54,7 +54,7 @@ protected:
   void update_index_table(const item_info_t &info);
 
 protected:
-  rocksdb_storage *m_db;
+  storage *m_db;
   std::string m_key_prefix;
   std::string m_last_item_key;
   size_t m_block_trunk_size;

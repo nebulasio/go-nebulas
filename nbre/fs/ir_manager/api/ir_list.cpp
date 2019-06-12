@@ -24,10 +24,10 @@
 
 namespace neb {
 namespace fs {
-ir_list::ir_list(rocksdb_storage *storage) : m_storage(storage) {
-  m_ir_item_list.insert("nr", std::make_shared<nr_ir_list>(storage));
-  m_ir_item_list.insert("auth", std::make_shared<auth_ir_list>(storage));
-  m_ir_item_list.insert("dip", std::make_shared<dip_ir_list>(storage));
+ir_list::ir_list(storage *s) : m_storage(s) {
+  m_ir_item_list.insert("nr", std::make_shared<nr_ir_list>(s));
+  m_ir_item_list.insert("auth", std::make_shared<auth_ir_list>(s));
+  m_ir_item_list.insert("dip", std::make_shared<dip_ir_list>(s));
 }
 
 void ir_list::write_ir(const nbre::NBREIR &raw_ir,

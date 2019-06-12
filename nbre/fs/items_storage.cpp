@@ -18,11 +18,12 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "fs/items_storage.h"
+#include "fs/storage.h"
 
 namespace neb {
 namespace fs {
 namespace internal {
-items_storage_base::items_storage_base(rocksdb_storage *db,
+items_storage_base::items_storage_base(storage *db,
                                        const std::string &key_prefix,
                                        const std::string &last_item_key,
                                        size_t block_trunk_size)

@@ -17,27 +17,15 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "fs/ir_manager/api/nr_ir_list.h"
-#include "runtime/nr/impl/data_type.h"
-#include "runtime/param_trait.h"
+#include "fs/ir_manager/ir_processor.h"
+#include "fs/ir_manager/api/ir_list.h"
+#include "fs/storage.h"
+#include "util/persistent_flag.h"
+#include "util/persistent_type.h"
+#include "util/wakeable_queue.h"
 
 namespace neb {
 namespace fs {
-nr_ir_list::nr_ir_list(storage *storage)
-    : internal::ir_item_list_base<nr_params_storage_t>(storage, "nr") {}
-
-nr_ir_list::item_type
-nr_ir_list::get_ir_param(const nbre::NBREIR &compiled_ir) {
-  nr_param_t param = rt::param_trait::get_param<nr_param_t>(
-      compiled_ir, configuration::instance().nr_param_func_name());
-
-  nr_param_storage_t ret;
-  ret.set<p_start_block, p_block_interval, p_version>(
-      param.get<p_start_block>(), param.get<p_block_interval>(),
-      param.get<p_version>());
-  return ret;
-}
-
-
+ir_processor::ir_processor(storage *s) : m_storage(s) {}
 } // namespace fs
 } // namespace neb

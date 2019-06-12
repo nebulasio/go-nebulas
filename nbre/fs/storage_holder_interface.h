@@ -22,7 +22,7 @@
 
 namespace neb {
 namespace fs {
-class rocksdb_storage;
-rocksdb_storage *nbre_db_ptr();
+class storage;
+storage *nbre_db_ptr();
 } // namespace fs
 } // namespace neb

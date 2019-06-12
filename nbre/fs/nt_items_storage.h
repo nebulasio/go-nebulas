@@ -27,7 +27,7 @@ template <class ItemType>
 class nt_items_storage : public internal::items_storage_base {
 public:
   typedef ItemType item_type;
-  nt_items_storage(rocksdb_storage *db, const std::string &key_prefix,
+  nt_items_storage(storage *db, const std::string &key_prefix,
                    const std::string &latest_item_key,
                    size_t block_trunk_size = 16)
       : items_storage_base(db, key_prefix, latest_item_key, block_trunk_size) {}

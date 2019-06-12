@@ -22,10 +22,10 @@
 
 namespace neb {
 namespace fs {
-class rocksdb_storage;
+class storage;
 class ir_list {
 public:
-  ir_list(rocksdb_storage *storage);
+  ir_list(storage *s);
 
   virtual void write_ir(const nbre::NBREIR &raw_ir,
                         const nbre::NBREIR &compiled_ir);
@@ -40,7 +40,7 @@ protected:
   std::unordered_map<std::string,
                      std::shared_ptr<internal::ir_item_list_interface>>
       m_ir_item_list;
-  rocksdb_storage *m_storage;
+  storage *m_storage;
 };
 } // namespace fs
 } // namespace neb

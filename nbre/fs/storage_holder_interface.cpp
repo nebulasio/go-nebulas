@@ -24,9 +24,7 @@
 
 namespace neb {
 namespace fs {
-rocksdb_storage *nbre_db_ptr() {
-  return storage_holder::instance().nbre_db_ptr();
-}
+storage *nbre_db_ptr() { return storage_holder::instance().nbre_db_ptr(); }
 } // namespace fs
 } // namespace neb
 

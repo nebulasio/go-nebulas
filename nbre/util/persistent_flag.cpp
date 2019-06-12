@@ -17,27 +17,34 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "fs/ir_manager/api/nr_ir_list.h"
-#include "runtime/nr/impl/data_type.h"
-#include "runtime/param_trait.h"
+#include "util/persistent_flag.h"
+#include "fs/storage.h"
 
 namespace neb {
-namespace fs {
-nr_ir_list::nr_ir_list(storage *storage)
-    : internal::ir_item_list_base<nr_params_storage_t>(storage, "nr") {}
+namespace util {
 
-nr_ir_list::item_type
-nr_ir_list::get_ir_param(const nbre::NBREIR &compiled_ir) {
-  nr_param_t param = rt::param_trait::get_param<nr_param_t>(
-      compiled_ir, configuration::instance().nr_param_func_name());
+persistent_flag::persistent_flag(fs::storage *storage,
+                                 const std::string &key_name)
+    : m_storage(storage), m_key_name(key_name) {}
 
-  nr_param_storage_t ret;
-  ret.set<p_start_block, p_block_interval, p_version>(
-      param.get<p_start_block>(), param.get<p_block_interval>(),
-      param.get<p_version>());
-  return ret;
+void persistent_flag::set() {
+  m_storage->put(m_key_name, neb::string_to_byte(m_key_name));
 }
 
+bool persistent_flag::test() {
+  try {
+    m_storage->get(m_key_name);
+  } catch (...) {
+    return false;
+  }
+  return true;
+}
 
-} // namespace fs
+void persistent_flag::clear() {
+  try {
+    m_storage->del(m_key_name);
+  } catch (...) {
+  }
+}
+} // namespace util
 } // namespace neb

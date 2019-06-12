@@ -47,11 +47,7 @@ typedef uint8_t byte_t;
 typedef uint64_t block_height_t;
 extern std::string program_name;
 
-typedef std::string module_t;
 typedef uint64_t version_t;
-typedef block_height_t start_block_t;
-typedef block_height_t end_block_t;
-
 typedef boost::multiprecision::int128_t int128_t;
 typedef boost::multiprecision::uint128_t uint128_t;
 typedef int128_t wei_t;
