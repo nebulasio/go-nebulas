@@ -19,26 +19,22 @@
 //
 
 #pragma once
-
-#include "fs/blockchain/blockchain_api.h"
+#include "fs/blockchain/transaction/transaction_db_interface.h"
 
 namespace neb {
 namespace fs {
+class blockchain_api_base;
+class transaction_db_interface;
 
-class transaction_db {
+class transaction_db : public transaction_db_interface {
 public:
   transaction_db(blockchain_api_base *blockchain_ptr);
 
-  std::unique_ptr<std::vector<transaction_info_t>>
+  virtual std::unique_ptr<std::vector<transaction_info_t>>
   read_transactions_from_db_with_duration(block_height_t start_block,
                                           block_height_t end_block);
 
-  static std::unique_ptr<std::vector<transaction_info_t>>
-  read_transactions_with_address_type(
-      const std::vector<transaction_info_t> &txs, byte_t from_type,
-      byte_t to_type);
-
-private:
+protected:
   blockchain_api_base *m_blockchain;
 };
 } // namespace fs

@@ -17,31 +17,27 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
-#pragma once
-#include "fs/blockchain/blockchain_api.h"
+#include "fs/ir_manager/api/nr_ir_list.h"
+#include "runtime/nr/impl/data_type.h"
+#include "runtime/param_trait.h"
 
 namespace neb {
 namespace fs {
+nr_ir_list::nr_ir_list(storage *storage)
+    : internal::ir_item_list_base<nr_params_storage_t>(storage, "nr") {}
 
-class blockchain_api_v2 : public blockchain_api {
-public:
-  blockchain_api_v2();
-  virtual ~blockchain_api_v2();
+nr_ir_list::item_type
+nr_ir_list::get_ir_param(const nbre::NBREIR &compiled_ir) {
+  nr_param_t param = rt::param_trait::get_param<nr_param_t>(
+      compiled_ir, configuration::instance().nr_param_func_name());
 
-  virtual std::unique_ptr<std::vector<transaction_info_t>>
-  get_block_transactions_api(block_height_t height);
+  nr_param_storage_t ret;
+  ret.set<p_start_block, p_block_interval, p_version>(
+      param.get<p_start_block>(), param.get<p_block_interval>(),
+      param.get<p_version>());
+  return ret;
+}
 
-protected:
-  virtual void get_transfer_event(const neb::bytes &events_root,
-                                  const neb::bytes &tx_hash,
-                                  std::vector<transaction_info_t> &events,
-                                  transaction_info_t &info);
-  virtual void json_parse_event(const std::string &json,
-                                std::vector<transaction_info_t> &events,
-                                transaction_info_t &info);
-};
 
 } // namespace fs
 } // namespace neb
-

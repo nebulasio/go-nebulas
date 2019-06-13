@@ -18,32 +18,34 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "fs/blockchain/transaction/transaction_db_v2.h"
+#pragma once
+#include "common/common.h"
+#include "runtime/nr/impl/data_type.h"
 
 namespace neb {
 namespace fs {
-
-transaction_db_v2::transaction_db_v2(transaction_db *tdb_ptr)
-    : m_tdb_ptr(tdb_ptr) {}
-
-std::unique_ptr<std::vector<transaction_info_t>>
-transaction_db_v2::read_transactions_from_db_with_duration(
-    block_height_t start_block, block_height_t end_block) {
-  return m_tdb_ptr->read_transactions_from_db_with_duration(start_block,
-                                                            end_block);
-}
-
-std::unique_ptr<std::vector<transaction_info_t>>
-transaction_db_v2::read_transactions_with_succ(
-    const std::vector<transaction_info_t> &txs) {
-  auto ptr = std::make_unique<std::vector<transaction_info_t>>();
-  for (auto &tx : txs) {
-    if (tx.m_status) {
-      ptr->push_back(tx);
-    }
-  }
-  return ptr;
-}
-
+class transaction_db_interface;
+class account_db_interface;
 } // namespace fs
+
+namespace rt {
+namespace nr {
+class nebulas_rank_algo;
+class nebulas_rank_calculator {
+public:
+  nebulas_rank_calculator(nebulas_rank_algo *algo,
+                          fs::transaction_db_interface *tdb_ptr,
+                          fs::account_db_interface *adb_ptr);
+
+  virtual std::vector<nr_item> get_nr_score(const rank_params_t &rp,
+                                            neb::block_height_t start_block,
+                                            neb::block_height_t end_block);
+
+protected:
+  nebulas_rank_algo *m_algo;
+  fs::transaction_db_interface *m_tdb_ptr;
+  fs::account_db_interface *m_adb_ptr;
+};
+} // namespace nr
+} // namespace rt
 } // namespace neb

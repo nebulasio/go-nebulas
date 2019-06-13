@@ -21,32 +21,10 @@
 #pragma once
 #include "common/address.h"
 #include "fs/blockchain.h"
+#include "fs/blockchain/data_type.h"
 
 namespace neb {
 namespace fs {
-
-struct transaction_info_t {
-  block_height_t m_height;
-  int32_t m_status; // 0: fail, 1: succ, 2: special
-  address_t m_from;
-  address_t m_to;
-  std::string m_tx_type; // "binary", "call", "deploy", "protocol"
-  wei_t m_tx_value;
-  int64_t m_timestamp; // no use
-  wei_t m_gas_used;
-  wei_t m_gas_price;
-};
-
-struct account_info_t {
-  address_t m_address;
-  wei_t m_balance;
-};
-
-struct event_info_t {
-  int32_t m_status;
-  wei_t m_gas_used;
-};
-
 class blockchain_api_base {
 public:
   virtual ~blockchain_api_base();
@@ -72,11 +50,18 @@ public:
   virtual std::unique_ptr<corepb::Transaction>
   get_transaction_api(const std::string &tx_hash, block_height_t height);
 
-private:
-  std::unique_ptr<event_info_t>
+  virtual std::unique_ptr<event_info_t>
   get_transaction_result_api(const neb::bytes &events_root,
                              const neb::bytes &tx_hash);
-  std::unique_ptr<event_info_t> json_parse_event(const std::string &json);
+
+  virtual void get_transfer_event(const neb::bytes &events_root,
+                                  const neb::bytes &tx_hash,
+                                  std::vector<transaction_info_t> &events,
+                                  transaction_info_t &info);
+
+  virtual void json_parse_event(const std::string &json,
+                                std::vector<transaction_info_t> &events,
+                                transaction_info_t &info);
 };
 
 } // namespace fs

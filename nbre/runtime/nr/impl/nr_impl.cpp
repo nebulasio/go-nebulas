@@ -24,7 +24,6 @@
 #include "common/int128_conversion.h"
 #include "common/nebulas_currency.h"
 #include "fs/blockchain/blockchain_api_test.h"
-#include "runtime/nr/impl/nebulas_rank.h"
 
 namespace neb {
 namespace rt {
@@ -45,9 +44,8 @@ nr_ret_type entry_point_nr_impl(compatible_uint64_t start_block,
     pba = std::unique_ptr<neb::fs::blockchain_api_base>(
         new neb::fs::blockchain_api());
   }
-  transaction_db_ptr_t tdb_ptr =
-      std::make_unique<neb::fs::transaction_db>(pba.get());
-  account_db_ptr_t adb_ptr = std::make_unique<neb::fs::account_db>(pba.get());
+  auto tdb_ptr = std::make_unique<neb::fs::transaction_db>(pba.get());
+  auto adb_ptr = std::make_unique<neb::fs::account_db>(pba.get());
 
   LOG(INFO) << "start block: " << start_block << " , end block: " << end_block;
   neb::rt::nr::rank_params_t rp{a, b, c, d, theta, mu, lambda};
@@ -59,10 +57,11 @@ nr_ret_type entry_point_nr_impl(compatible_uint64_t start_block,
   meta_info.push_back(std::make_pair("version", std::to_string(version)));
 
   nr_ret_type ret;
-  std::get<0>(ret) = 1;
-  std::get<1>(ret) = meta_info_to_json(meta_info);
-  std::get<2>(ret) =
-      nebulas_rank::get_nr_score(tdb_ptr, adb_ptr, rp, start_block, end_block);
+  ret->set<p_start_block, p_end_block, p_nr_version>(start_block, end_block,
+                                                     version);
+  ret->set<p_nr_items>(
+      nebulas_rank::get_nr_score(tdb_ptr, adb_ptr, rp, start_block, end_block));
+  ret->set<p_result_status>(core::result_status::succ);
   return ret;
 }
 

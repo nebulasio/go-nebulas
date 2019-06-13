@@ -27,6 +27,7 @@
 #include <boost/thread/shared_lock_guard.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include <cstdint>
+#include <ff/network.h>
 #include <glog/logging.h>
 #include <iostream>
 #include <memory>
@@ -46,11 +47,7 @@ typedef uint8_t byte_t;
 typedef uint64_t block_height_t;
 extern std::string program_name;
 
-typedef std::string module_t;
 typedef uint64_t version_t;
-typedef block_height_t start_block_t;
-typedef block_height_t end_block_t;
-
 typedef boost::multiprecision::int128_t int128_t;
 typedef boost::multiprecision::uint128_t uint128_t;
 typedef int128_t wei_t;
@@ -76,3 +73,30 @@ const static std::string llvm = "llvm";
 const static std::string cpp = "cpp";
 };
 }
+
+namespace std {
+std::string to_string(const neb::floatxx_t &v);
+}
+
+namespace ff {
+namespace net {
+template <> class udt_marshaler<neb::floatxx_t> {
+public:
+  static size_t seralize(char *buf, neb::floatxx_t &v) {
+    typename neb::floatxx_t::value_type t = v.value();
+    std::memcpy(buf, &t, sizeof(t));
+    return sizeof(t);
+  }
+  static size_t deseralize(const char *buf, size_t len, neb::floatxx_t &v) {
+    typename neb::floatxx_t::value_type t;
+    std::memcpy((char *)&t, buf, sizeof(t));
+    v = neb::floatxx_t(t);
+    return sizeof(t);
+  }
+  static size_t length(neb::floatxx_t &) {
+    return sizeof(typename neb::floatxx_t::value_type);
+  }
+};
+
+} // namespace net
+} // namespace ff

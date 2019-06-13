@@ -38,7 +38,6 @@ public:
   static void del_failed_flag(rocksdb_storage *rs, const std::string &flag);
 
   static block_height_t nbre_block_height(rocksdb_storage *rs);
-  static block_height_t lib_block_height(blockchain *bc);
 
   static void run_auth_table(nbre::NBREIR &nbre_ir,
                              std::map<auth_key_t, auth_val_t> &auth_table);

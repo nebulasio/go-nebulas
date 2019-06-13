@@ -17,16 +17,17 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
-#include "runtime/nr/impl/nebulas_rank_v2.h"
+#include "runtime/nr/impl/nebulas_rank_algo.h"
 #include "common/int128_conversion.h"
+#include "common/math.h"
+#include "common/nebulas_currency.h"
 
 namespace neb {
 namespace rt {
 namespace nr {
 
 std::unique_ptr<std::vector<std::vector<neb::fs::transaction_info_t>>>
-nebulas_rank_v2::split_transactions_by_block_interval(
+nebulas_rank_algo::split_transactions_by_block_interval(
     const std::vector<neb::fs::transaction_info_t> &txs,
     int32_t block_interval) {
 
@@ -63,7 +64,7 @@ nebulas_rank_v2::split_transactions_by_block_interval(
   return ret;
 }
 
-void nebulas_rank_v2::filter_empty_transactions_this_interval(
+void nebulas_rank_algo::filter_empty_transactions_this_interval(
     std::vector<std::vector<neb::fs::transaction_info_t>> &txs) {
   for (auto it = txs.begin(); it != txs.end();) {
     if (it->empty()) {
@@ -74,7 +75,7 @@ void nebulas_rank_v2::filter_empty_transactions_this_interval(
   }
 }
 
-transaction_graph_ptr_t nebulas_rank_v2::build_graph_from_transactions(
+transaction_graph_ptr_t nebulas_rank_algo::build_graph_from_transactions(
     const std::vector<neb::fs::transaction_info_t> &trans) {
   auto ret = std::make_unique<neb::rt::transaction_graph>();
 
@@ -89,7 +90,7 @@ transaction_graph_ptr_t nebulas_rank_v2::build_graph_from_transactions(
 }
 
 std::unique_ptr<std::vector<transaction_graph_ptr_t>>
-nebulas_rank_v2::build_transaction_graphs(
+nebulas_rank_algo::build_transaction_graphs(
     const std::vector<std::vector<neb::fs::transaction_info_t>> &txs) {
 
   std::unique_ptr<std::vector<transaction_graph_ptr_t>> tgs =
@@ -102,7 +103,7 @@ nebulas_rank_v2::build_transaction_graphs(
   return tgs;
 }
 
-block_height_t nebulas_rank_v2::get_max_height_this_block_interval(
+block_height_t nebulas_rank_algo::get_max_height_this_block_interval(
     const std::vector<neb::fs::transaction_info_t> &txs) {
   if (txs.empty()) {
     return 0;
@@ -112,7 +113,7 @@ block_height_t nebulas_rank_v2::get_max_height_this_block_interval(
 }
 
 std::unique_ptr<std::unordered_set<address_t>>
-nebulas_rank_v2::get_normal_accounts(
+nebulas_rank_algo::get_normal_accounts(
     const std::vector<neb::fs::transaction_info_t> &txs) {
 
   auto ret = std::make_unique<std::unordered_set<address_t>>();
@@ -128,11 +129,11 @@ nebulas_rank_v2::get_normal_accounts(
 }
 
 std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
-nebulas_rank_v2::get_account_balance_median(
+nebulas_rank_algo::get_account_balance_median(
     neb::block_height_t start_block,
     const std::unordered_set<address_t> &accounts,
     const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
-    const account_db_v2_ptr_t &db_ptr) {
+    fs::account_db_interface *db_ptr) {
 
   auto ret = std::make_unique<std::unordered_map<address_t, floatxx_t>>();
   std::unordered_map<address_t, std::vector<wei_t>> addr_balance_v;
@@ -161,15 +162,15 @@ nebulas_rank_v2::get_account_balance_median(
       median = (median + tmp) / 2;
     }
 
-    floatxx_t normalized_median = db_ptr->get_normalized_value(median);
+    floatxx_t normalized_median = wei_to_nas(median);
     ret->insert(std::make_pair(it->first, math::max(zero, normalized_median)));
   }
 
   return ret;
 }
 
-floatxx_t nebulas_rank_v2::f_account_weight(floatxx_t in_val,
-                                            floatxx_t out_val) {
+floatxx_t nebulas_rank_algo::f_account_weight(floatxx_t in_val,
+                                              floatxx_t out_val) {
   floatxx_t pi = math::constants<floatxx_t>::pi();
   floatxx_t zero = softfloat_cast<uint32_t, typename floatxx_t::value_type>(0);
   floatxx_t two = softfloat_cast<uint32_t, typename floatxx_t::value_type>(2);
@@ -184,9 +185,9 @@ floatxx_t nebulas_rank_v2::f_account_weight(floatxx_t in_val,
 }
 
 std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
-nebulas_rank_v2::get_account_weight(
+nebulas_rank_algo::get_account_weight(
     const std::unordered_map<address_t, neb::rt::in_out_val_t> &in_out_vals,
-    const account_db_v2_ptr_t &db_ptr) {
+    fs::account_db_interface *db_ptr) {
 
   auto ret = std::make_unique<std::unordered_map<address_t, floatxx_t>>();
 
@@ -197,8 +198,8 @@ nebulas_rank_v2::get_account_weight(
     floatxx_t f_in_val = to_float<floatxx_t>(in_val);
     floatxx_t f_out_val = to_float<floatxx_t>(out_val);
 
-    floatxx_t normalized_in_val = db_ptr->get_normalized_value(f_in_val);
-    floatxx_t normalized_out_val = db_ptr->get_normalized_value(f_out_val);
+    floatxx_t normalized_in_val = wei_to_nas(f_in_val);
+    floatxx_t normalized_out_val = wei_to_nas(f_out_val);
 
     auto tmp = f_account_weight(normalized_in_val, normalized_out_val);
     ret->insert(std::make_pair(it->first, tmp));
@@ -206,10 +207,10 @@ nebulas_rank_v2::get_account_weight(
   return ret;
 }
 
-floatxx_t nebulas_rank_v2::f_account_rank(int64_t a, int64_t b, int64_t c,
-                                          int64_t d, floatxx_t theta,
-                                          floatxx_t mu, floatxx_t lambda,
-                                          floatxx_t S, floatxx_t R) {
+floatxx_t nebulas_rank_algo::f_account_rank(int64_t a, int64_t b, int64_t c,
+                                            int64_t d, floatxx_t theta,
+                                            floatxx_t mu, floatxx_t lambda,
+                                            floatxx_t S, floatxx_t R) {
   floatxx_t zero = softfloat_cast<uint32_t, typename floatxx_t::value_type>(0);
   floatxx_t one = softfloat_cast<uint32_t, typename floatxx_t::value_type>(1);
 
@@ -222,7 +223,7 @@ floatxx_t nebulas_rank_v2::f_account_rank(int64_t a, int64_t b, int64_t c,
 }
 
 std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
-nebulas_rank_v2::get_account_rank(
+nebulas_rank_algo::get_account_rank(
     const std::unordered_map<address_t, floatxx_t> &account_median,
     const std::unordered_map<address_t, floatxx_t> &account_weight,
     const rank_params_t &rp) {
@@ -243,113 +244,14 @@ nebulas_rank_v2::get_account_rank(
   return ret;
 }
 
-std::unique_ptr<std::vector<address_t>>
-nebulas_rank_v2::sort_accounts(const std::unordered_set<address_t> &accounts) {
+std::unique_ptr<std::vector<address_t>> nebulas_rank_algo::sort_accounts(
+    const std::unordered_set<address_t> &accounts) {
   auto ret = std::make_unique<std::vector<address_t>>();
   for (auto &acc : accounts) {
     ret->push_back(acc);
   }
   sort(ret->begin(), ret->end());
   return ret;
-}
-
-std::vector<std::shared_ptr<nr_info_t>> nebulas_rank_v2::get_nr_score(
-    const transaction_db_v2_ptr_t &tdb_ptr, const account_db_v2_ptr_t &adb_ptr,
-    const rank_params_t &rp, neb::block_height_t start_block,
-    neb::block_height_t end_block) {
-
-  auto start_time = std::chrono::high_resolution_clock::now();
-  LOG(INFO) << "start to read neb db transaction";
-  // transactions in total and account inter transactions
-  auto txs_ptr =
-      tdb_ptr->read_transactions_from_db_with_duration(start_block, end_block);
-  LOG(INFO) << "raw tx size: " << txs_ptr->size();
-  auto inter_txs_ptr = fs::transaction_db::read_transactions_with_address_type(
-      *txs_ptr, NAS_ADDRESS_ACCOUNT_MAGIC_NUM, NAS_ADDRESS_ACCOUNT_MAGIC_NUM);
-  LOG(INFO) << "account to account: " << inter_txs_ptr->size();
-  auto succ_inter_txs_ptr =
-      tdb_ptr->read_transactions_with_succ(*inter_txs_ptr);
-  LOG(INFO) << "succ account to account: " << succ_inter_txs_ptr->size();
-
-  // graph operation
-  auto txs_v_ptr = split_transactions_by_block_interval(*succ_inter_txs_ptr);
-  LOG(INFO) << "split by block interval: " << txs_v_ptr->size();
-
-  filter_empty_transactions_this_interval(*txs_v_ptr);
-  auto tgs_ptr = build_transaction_graphs(*txs_v_ptr);
-  if (tgs_ptr->empty()) {
-    return std::vector<std::shared_ptr<nr_info_t>>();
-  }
-  LOG(INFO) << "we have " << tgs_ptr->size() << " subgraphs.";
-  for (auto it = tgs_ptr->begin(); it != tgs_ptr->end(); it++) {
-    transaction_graph *ptr = it->get();
-    graph_algo::non_recursive_remove_cycles_based_on_time_sequence(
-        ptr->internal_graph());
-    graph_algo::merge_edges_with_same_from_and_same_to(ptr->internal_graph());
-  }
-  LOG(INFO) << "done with remove cycle.";
-
-  transaction_graph *tg = neb::rt::graph_algo::merge_graphs(*tgs_ptr);
-  graph_algo::merge_topk_edges_with_same_from_and_same_to(tg->internal_graph());
-  LOG(INFO) << "done with merge graphs.";
-
-  // in_out amount
-  auto in_out_vals_p = graph_algo::get_in_out_vals(tg->internal_graph());
-  auto in_out_vals = *in_out_vals_p;
-  LOG(INFO) << "done with get in_out_vals";
-
-  // median, weight, rank
-  auto accounts_ptr = get_normal_accounts(*inter_txs_ptr);
-  LOG(INFO) << "account size: " << accounts_ptr->size();
-
-  std::unordered_map<neb::address_t, neb::wei_t> addr_balance;
-  for (auto &acc : *accounts_ptr) {
-    auto balance = adb_ptr->get_balance(acc, start_block);
-    addr_balance.insert(std::make_pair(acc, balance));
-  }
-  LOG(INFO) << "done with get balance";
-  adb_ptr->update_height_address_val_internal(start_block, *txs_ptr,
-                                              addr_balance);
-  LOG(INFO) << "done with set height address";
-
-  auto account_median_ptr = get_account_balance_median(
-      start_block, *accounts_ptr, *txs_v_ptr, adb_ptr);
-  LOG(INFO) << "done with get account balance median";
-  auto account_weight_ptr = get_account_weight(in_out_vals, adb_ptr);
-  LOG(INFO) << "done with get account weight";
-
-  auto account_median = *account_median_ptr;
-  auto account_weight = *account_weight_ptr;
-  auto account_rank_ptr = get_account_rank(account_median, account_weight, rp);
-  auto account_rank = *account_rank_ptr;
-  LOG(INFO) << "account rank size: " << account_rank.size();
-
-  auto sorted_accounts_ptr = sort_accounts(*accounts_ptr);
-  std::vector<std::shared_ptr<nr_info_t>> infos;
-  for (auto it = sorted_accounts_ptr->begin(); it != sorted_accounts_ptr->end();
-       it++) {
-    address_t addr = *it;
-    if (in_out_vals.find(addr) != in_out_vals.end() &&
-        account_median.find(addr) != account_median.end() &&
-        account_weight.find(addr) != account_weight.end() &&
-        account_rank.find(addr) != account_rank.end()) {
-      auto in_outs = in_out_vals[addr].m_in_val + in_out_vals[addr].m_out_val;
-      auto f_in_outs = to_float<floatxx_t>(in_outs);
-
-      auto info = std::shared_ptr<nr_info_t>(
-          new nr_info_t({addr, f_in_outs, account_median[addr],
-                         account_weight[addr], account_rank[addr]}));
-      infos.push_back(info);
-    }
-  }
-
-  auto end_time = std::chrono::high_resolution_clock::now();
-  LOG(INFO) << "time spend: "
-            << std::chrono::duration_cast<std::chrono::seconds>(end_time -
-                                                                start_time)
-                   .count()
-            << " seconds";
-  return infos;
 }
 
 } // namespace nr

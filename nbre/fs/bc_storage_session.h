@@ -20,12 +20,12 @@
 
 #pragma once
 #include "common/common.h"
-#include "fs/rocksdb_storage.h"
 #include "fs/storage.h"
 #include "util/singleton.h"
 
 namespace neb {
 namespace fs {
+class rocksdb_storage;
 class bc_storage_session : public util::singleton<bc_storage_session> {
 public:
   bc_storage_session();

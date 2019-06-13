@@ -69,7 +69,7 @@ std::string cpp_ir::generate_fp() {
   std::string temp_path = neb::fs::tmp_dir();
 
   std::string name = std::to_string(util::now()) + std::string("_") +
-                     std::to_string(s_file_counter);
+                     std::to_string(s_file_counter.load());
   auto t =
       neb::fs::join_path(neb::configuration::instance().nbre_db_dir(), name);
   s_file_counter++;

@@ -21,9 +21,7 @@
 #pragma once
 #include "common/address.h"
 #include "common/common.h"
-#include "fs/bc_storage_session.h"
 #include "fs/proto/block.pb.h"
-#include "fs/rocksdb_storage.h"
 
 namespace neb {
 namespace fs {

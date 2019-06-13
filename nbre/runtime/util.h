@@ -27,10 +27,14 @@ namespace rt {
 using str_sptr_t = std::shared_ptr<std::string>;
 using str_uptr_t = std::unique_ptr<std::string>;
 
+/*
 std::string meta_info_to_json(
     const std::vector<std::pair<std::string, std::string>> &meta_info);
 
 std::vector<std::pair<std::string, std::string>>
 json_to_meta_info(const std::string &json);
+*/
+std::string param_to_key(block_height_t start_block, block_height_t end_block,
+                         uint64_t version);
 } // namespace rt
 } // namespace neb

@@ -69,6 +69,35 @@ protected:
         typename std::enable_if<(VT::type_list::len <= Index), void>::type {}
   };
 };
+
+template <uint32_t PackageID, typename... ARGS>
+class udt_marshaler<ntpackage<PackageID, ARGS...>> {
+public:
+  static size_t seralize(char *buf, ntpackage<PackageID, ARGS...> &v) {
+    marshaler lr(marshaler::length_retriver);
+    v.arch(lr);
+    size_t s = lr.get_length();
+
+    marshaler sc(buf, s, marshaler::seralizer);
+    v.arch(sc);
+    return s;
+  }
+  static size_t deseralize(const char *buf, size_t len,
+                           ntpackage<PackageID, ARGS...> &v) {
+    marshaler sc(buf, len, marshaler::deseralizer);
+    v.arch(sc);
+    marshaler lr(marshaler::length_retriver);
+    v.arch(lr);
+    size_t s = lr.get_length();
+    return s;
+  }
+  static size_t length(ntpackage<PackageID, ARGS...> &v) {
+    marshaler lr(marshaler::length_retriver);
+    v.arch(lr);
+    size_t s = lr.get_length();
+    return s;
+  }
+};
 } // namespace net
 } // namespace ff
 

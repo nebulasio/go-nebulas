@@ -10,8 +10,8 @@
 //
 // the go-nebulas library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the // GNU General
+// Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see
@@ -19,37 +19,42 @@
 //
 
 #pragma once
-
-#include "common/address.h"
-#include "common/common.h"
-#include "common/math.h"
-#include "fs/blockchain/transaction/transaction_db.h"
+#include "fs/blockchain/account/account_db_interface.h"
 
 namespace neb {
 namespace fs {
 
-class account_db {
+class blockchain_api_base;
+class account_db : public account_db_interface {
 public:
-  account_db(blockchain_api_base *blockchain_ptr);
+  account_db(neb::fs::blockchain_api_base *blockchain_ptr);
 
-  wei_t get_balance(const address_t &addr, block_height_t height);
-  address_t get_contract_deployer(const address_t &address_t,
-                                  block_height_t height);
+  virtual neb::wei_t get_balance(const neb::address_t &addr,
+                                 neb::block_height_t height);
+  virtual neb::address_t get_contract_deployer(const neb::address_t &addr,
+                                               neb::block_height_t height);
 
-  void set_height_address_val_internal(
-      const std::vector<transaction_info_t> &txs,
-      std::unordered_map<address_t, wei_t> &addr_balance);
+  virtual void update_height_address_val_internal(
+      neb::block_height_t start_block,
+      const std::vector<neb::fs::transaction_info_t> &txs,
+      std::unordered_map<neb::address_t, neb::wei_t> &addr_balance);
 
-  wei_t get_account_balance_internal(const address_t &addr,
-                                     block_height_t height);
+  virtual neb::wei_t get_account_balance_internal(const neb::address_t &addr,
+                                                  neb::block_height_t height);
 
-  static floatxx_t get_normalized_value(floatxx_t value);
+protected:
+  void init_height_address_val_internal(
+      neb::block_height_t start_block,
+      const std::unordered_map<neb::address_t, neb::wei_t> &addr_balance);
 
-private:
-  std::unordered_map<address_t, std::vector<block_height_t>> m_addr_height_list;
-  std::unordered_map<block_height_t, std::unordered_map<address_t, wei_t>>
+protected:
+  std::unordered_map<neb::address_t, std::vector<neb::block_height_t>>
+      m_addr_height_list;
+  std::unordered_map<neb::block_height_t,
+                     std::unordered_map<neb::address_t, neb::wei_t>>
       m_height_addr_val;
   blockchain_api_base *m_blockchain;
 };
+
 } // namespace fs
 } // namespace neb

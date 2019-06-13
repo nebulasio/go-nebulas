@@ -141,6 +141,9 @@ list(FILTER nbre_core_src EXCLUDE REGEX "core/driver.cpp")
 list(FILTER nbre_core_src EXCLUDE REGEX "core/neb_ipc*")
 list(FILTER nbre_common_src EXCLUDE REGEX "common/ipc*")
 
+#remove dip for building
+list(FILTER nbre_rt_src EXCLUDE REGEX "runtime/dip*")
+
 add_library(nbre_rt SHARED
   ${nbre_jit_src}
   ${nbre_rt_src}

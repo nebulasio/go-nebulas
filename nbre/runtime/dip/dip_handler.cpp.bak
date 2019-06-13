@@ -43,8 +43,6 @@ void dip_handler::check_dip_params(block_height_t height) {
 
   if (!m_has_curr && m_incoming.empty()) {
     load_storage("dip_rewards", m_dip_reward);
-    load_storage("nr_results", m_nr_result, 1 << 4);
-    load_storage("nr_sums", m_nr_sum, 1 << 4);
     auto dip_versions_ptr = neb::fs::ir_api::get_ir_versions("dip", m_storage);
     if (dip_versions_ptr->empty()) {
       return;
@@ -154,16 +152,6 @@ void dip_handler::start(neb::block_height_t height,
                    str_sptr_t{std::move(dip_str_ptr)}, m_dip_reward);
       LOG(INFO) << "dump dip rewards done";
 
-      auto &nr_ret = std::get<3>(dip_ret);
-      auto nr_str_ptr = nr::nebulas_rank::nr_info_to_json(nr_ret);
-      dump_storage("nr_results", hash_height, str_sptr_t{std::move(nr_str_ptr)},
-                   m_nr_result, 1 << 4);
-      LOG(INFO) << "dump nr results done";
-
-      auto nr_sum_ptr = nr::nebulas_rank::get_nr_sum_str(nr_ret);
-      dump_storage("nr_sums", hash_height, str_sptr_t{std::move(nr_sum_ptr)},
-                   m_nr_sum, 1 << 4);
-      LOG(INFO) << "dump nr sums done";
     } else {
       LOG(INFO) << std::get<1>(dip_ret);
     }
@@ -280,6 +268,7 @@ str_sptr_t dip_handler::get_dip_reward(neb::block_height_t height) {
   return ret.second;
 }
 
+/*
 str_sptr_t dip_handler::get_nr_result(neb::block_height_t height) {
   LOG(INFO) << "call func get_nr_result height " << height;
   auto ret = m_nr_result.try_lower_than(height);
@@ -308,7 +297,7 @@ str_sptr_t dip_handler::get_nr_sum(neb::block_height_t height) {
   LOG(INFO) << *tmp.second;
   return tmp.second;
 }
-
+*/
 void dip_handler::dump_storage(
     const std::string &key, neb::block_height_t hash_height,
     const str_sptr_t &val_ptr,

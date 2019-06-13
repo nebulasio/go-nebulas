@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "fs/bc_storage_session.h"
+#include "fs/rocksdb_storage.h"
 
 namespace neb {
 namespace fs {

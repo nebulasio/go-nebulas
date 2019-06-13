@@ -51,6 +51,8 @@ public:
   void on_receive_ir_transactions(
       const std::shared_ptr<nbre_ir_transactions_req> &txs_ptr);
 
+  inline fs::ir_manager *get_ir_manager() { return m_ir_manager.get(); };
+
 private:
   std::unique_ptr<fs::ir_manager> m_ir_manager;
   bool m_is_sync_already;

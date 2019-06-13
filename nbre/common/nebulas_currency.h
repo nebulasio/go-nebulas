@@ -182,6 +182,14 @@ inline wei_t storage_to_wei(const neb::bytes &v) {
   return storage_to_nas<nas>(to_fix_bytes<nas_storage_t>(v)).wei_value();
 }
 
+inline neb::floatxx_t wei_to_nas(const neb::floatxx_t wei) {
+  static uint64_t ratio = 1000000000000000000ULL;
+  return wei / neb::floatxx_t(ratio);
+}
+inline neb::floatxx_t nas_to_wei(const neb::floatxx_t nas) {
+  static uint64_t ratio = 1000000000000000000ULL;
+  return nas * neb::floatxx_t(ratio);
+}
 } // end namespace neb
 
 neb::nas operator"" _nas(long double x);

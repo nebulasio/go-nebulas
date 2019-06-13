@@ -106,7 +106,7 @@ protected:
   typedef
       typename convert_type_list_to_tuple<typename nt_extract_content_type_list<
           util::type_list<ARGS...>>::type>::type content_type;
-  std::unique_ptr<content_type> m_content;
+  std::shared_ptr<content_type> m_content;
 };
 
 template <typename... ARGS> class ntarray {

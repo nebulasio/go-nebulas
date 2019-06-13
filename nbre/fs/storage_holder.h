@@ -32,11 +32,10 @@ public:
   storage_holder();
   ~storage_holder();
 
-  inline rocksdb_storage *nbre_db_ptr() { return m_storage.get(); }
-  // inline blockchain *neb_db_ptr() { return m_blockchain.get(); }
+  inline storage *nbre_db_ptr() { return m_storage.get(); }
 
 private:
-  std::unique_ptr<rocksdb_storage> m_storage;
+  std::unique_ptr<storage> m_storage;
   // std::unique_ptr<blockchain> m_blockchain;
 };
 } // namespace fs

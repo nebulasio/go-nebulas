@@ -21,6 +21,7 @@
 #include "common/configuration.h"
 #include "core/net_ipc/nipc_pkg.h"
 #include "core/net_ipc/server/nipc_server.h"
+#include <ff/network.h>
 
 std::shared_ptr<neb::core::nipc_server> _ipc;
 
@@ -114,6 +115,18 @@ struct get_param_helper<
     return reinterpret_cast<void *>(pkg->template get<p_holder>());
   };
 };
+template <>
+struct get_param_helper<
+    p_nr_result, typename ::ff::util::internal::nt_traits<p_nr_result>::type> {
+  template <typename PkgPtrType> static std::string(const PkgPtrType &pkg) {
+    std::string r = pkt->template get<p_nr_result>();
+
+    nr_result nr;
+    nr.deserialize_from_string(r);
+    std::string t = convert_nr_result_to_json(nr);
+    return t;
+  }
+}
 // template <typename IT> struct get_param_helper<IT, std::string> {
 // template <typename PkgPtrType> static const char *get(const PkgPtrType &pkg)
 // { auto t = pkg->template get<IT>().c_str(); LOG(INFO) << "get param: " << t
@@ -122,7 +135,8 @@ struct get_param_helper<
 //};
 //};
 
-template <typename PkgType, typename... Params> struct ipc_callback {
+template <typename PkgType, typename... Params>
+struct ipc_callback {
 
   // template <typename T, typename PkgPtrType>
   // static auto get_param_for_callback(const PkgPtrType &pkg) {
