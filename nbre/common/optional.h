@@ -18,22 +18,11 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
-#include "common/common.h"
-#include "fs/proto/ir.pb.h"
+#include <boost/none.hpp>
+#include <boost/optional.hpp>
+
 namespace neb {
-namespace fs {
-namespace internal {
-
-class ir_item_list_interface {
-public:
-  virtual bool ir_exist(version_t v) = 0;
-  virtual void write_ir(const nbre::NBREIR &raw_ir,
-                        const nbre::NBREIR &compiled_ir) = 0;
-
-  virtual nbre::NBREIR get_raw_ir(version_t v) = 0;
-  virtual nbre::NBREIR get_ir(version_t v) = 0;
-  virtual nbre::NBREIR find_ir_at_height(block_height_t height) = 0;
-};
-} // namespace internal
-} // namespace fs
-} // namespace neb
+template <typename T> using optional = boost::optional<T>;
+typedef boost::none_t none_t;
+extern none_t none;
+}

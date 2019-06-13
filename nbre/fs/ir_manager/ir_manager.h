@@ -43,9 +43,6 @@ public:
   void parse_irs(
       util::wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> &q_txs);
 
-  uint64_t get_ir_version(const std::string &ir_name,
-                          block_height_t start_block, block_height_t end_block);
-
 private:
   void read_ir_depends(const std::string &name, version_t version,
                        block_height_t height, bool depends,

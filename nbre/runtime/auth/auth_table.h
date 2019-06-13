@@ -35,7 +35,7 @@ public:
   virtual void update_auth_table(const auth::auth_items_t &auth_items);
 
   virtual bool is_ir_legitimate(const std::string ir_name,
-                                const address_t &from_addr);
+                                const address_t &from_addr, block_height_t h);
 
 protected:
   typedef std::map<auth_key_t, auth_val_t> auth_table_t;

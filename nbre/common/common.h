@@ -21,6 +21,7 @@
 #pragma once
 
 #include "common/math/softfloat.hpp"
+#include "common/optional.h"
 #include <algorithm>
 #include <array>
 #include <boost/multiprecision/cpp_int.hpp>
@@ -69,6 +70,7 @@ const static char *reset = "\033[0m";
 }
 
 namespace ir_type {
+const static std::string invalid = "invalid";
 const static std::string llvm = "llvm";
 const static std::string cpp = "cpp";
 };

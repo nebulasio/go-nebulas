@@ -33,10 +33,11 @@ class auth_handler {
 public:
   auth_handler(fs::ir_list *ir_list);
 
-  virtual void handle_auth_nir(const nbre::NBREIR &ir);
+  virtual void handle_auth_npr(const nbre::NBREIR &compiled_ir);
 
   virtual bool is_ir_legitimate(const std::string ir_name,
-                                const address_t &from_addr);
+                                const address_t &from_addr,
+                                block_height_t height);
 
 protected:
   fs::ir_list *m_ir_list;

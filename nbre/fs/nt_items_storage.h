@@ -33,10 +33,27 @@ public:
       : items_storage_base(db, key_prefix, latest_item_key, block_trunk_size) {}
 
   virtual void append_item(item_type &item) {
+    boost::unique_lock<boost::shared_mutex> _l(m_mutex);
+    if (m_items.empty()) {
+      get_typed_items_without_lock();
+    }
+    m_items.push_back(item);
+
     auto bs_str = item.serialize_to_string();
     append_item(string_to_byte(bs_str));
   }
-  virtual std::vector<item_type> &get_all_items() {
+  virtual std::vector<item_type> get_typed_items() {
+    boost::shared_lock<boost::shared_mutex> _l(m_mutex);
+    return get_typed_items_without_lock();
+  }
+
+protected:
+  std::vector<item_type> get_typed_items_without_lock() {
+
+    if (!m_items.empty()) {
+      return m_items;
+    }
+
     std::vector<item_type> its;
     std::vector<bytes> bs = get_all_items();
     for (bytes &b : bs) {
@@ -47,6 +64,10 @@ public:
     }
     return its;
   }
+
+protected:
+  boost::shared_mutex m_mutex;
+  std::vector<item_type> m_items;
 };
 
 } // namespace fs

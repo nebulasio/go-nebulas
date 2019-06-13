@@ -35,8 +35,17 @@ public:
   typedef typename param_storage_t::item_traits item_traits;
 
   ir_item_list_base(storage *storage, const std::string &name)
-      : m_storage(storage), m_ir_name(name){};
+      : m_storage(storage), m_ir_name(name), m_param_storage(storage){};
 
+  virtual bool ir_exist(version_t v) {
+    std::vector<item_type> items = m_param_storage.get_all_items();
+    for (auto &item : items) {
+      if (item.template get<p_version>() == v) {
+        return true;
+      }
+    }
+    return false;
+  }
   virtual void write_ir(const nbre::NBREIR &raw_ir,
                         const nbre::NBREIR &compiled_ir) {
     std::string raw_str = raw_ir.SerializeAsString();
@@ -81,7 +90,8 @@ public:
                                 });
     if (pos == items.end()) {
       LOG(ERROR) << "cannot find ir at height " << height;
-      throw std::runtime_error("cannot find ir at height");
+      throw std::runtime_error(
+          "ir_item_list_base::find_ir_at_height: cannot find ir at height");
     }
     return get_raw_ir(items[pos].template get<p_version>());
   }

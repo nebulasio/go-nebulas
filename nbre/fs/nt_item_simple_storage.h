@@ -27,17 +27,15 @@
 namespace neb {
 namespace fs {
 template <class ItemType, class ItemTraits>
-class nt_items_simple_storage
-    : public util::singleton<nt_items_simple_storage<ItemType, ItemTraits>>,
-      public nt_items_storage<ItemType> {
+class nt_items_simple_storage : public nt_items_storage<ItemType> {
 public:
   typedef ItemType item_type;
   typedef ItemTraits item_traits;
 
-  nt_items_simple_storage()
-      : nt_items_storage<ItemType>(
-            storage_holder::instance().nbre_db_ptr(), ItemTraits::key_prefix,
-            ItemTraits::last_item_key, ItemTraits::block_trunk_size) {}
+  nt_items_simple_storage(storage *db)
+      : nt_items_storage<ItemType>(db, ItemTraits::key_prefix,
+                                   ItemTraits::last_item_key,
+                                   ItemTraits::block_trunk_size) {}
 };
 
 namespace internal {

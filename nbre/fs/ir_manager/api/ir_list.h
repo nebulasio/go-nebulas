@@ -27,6 +27,8 @@ class ir_list {
 public:
   ir_list(storage *s);
 
+  virtual bool ir_exist(const std::string &name, version_t v);
+
   virtual void write_ir(const nbre::NBREIR &raw_ir,
                         const nbre::NBREIR &compiled_ir);
 
@@ -36,11 +38,15 @@ public:
   virtual nbre::NBREIR find_ir_at_height(const std::string &ir_name,
                                          block_height_t height);
 
+  virtual std::vector<nbre::NBREIR> get_all_depends_ir(const nbre::NBREIR &ir);
+
+  inline storage *storage() const { return m_storage; }
+
 protected:
   std::unordered_map<std::string,
                      std::shared_ptr<internal::ir_item_list_interface>>
       m_ir_item_list;
-  storage *m_storage;
+  class storage *m_storage;
 };
 } // namespace fs
 } // namespace neb

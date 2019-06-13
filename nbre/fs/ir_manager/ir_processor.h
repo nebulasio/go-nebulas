@@ -20,6 +20,8 @@
 #pragma once
 #include "common/common.h"
 #include "core/net_ipc/nipc_pkg.h"
+#include "fs/proto/block.pb.h"
+#include "fs/proto/ir.pb.h"
 
 namespace neb {
 namespace util {
@@ -39,8 +41,32 @@ class ir_processor {
 public:
   ir_processor(storage *s);
 
+  virtual optional<nbre::NBREIR> get_ir_with_version(const std::string &name,
+                                                     version_t v);
+  virtual optional<nbre::NBREIR> get_ir_with_height(const std::string &name,
+                                                    block_height_t h);
+
+  //! include param itself
+  std::vector<nbre::NBREIR> get_ir_depends(const nbre::NBREIR &ir);
+
   virtual void parse_irs(
       util::wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> &q_txs);
+
+protected:
+  virtual void parse_missed_blocks_between(block_height_t start_block,
+                                           block_height_t end_block);
+
+  virtual void
+  parse_block_with_height_and_txs(block_height_t height,
+                                  const std::vector<std::string> &str_txs);
+  virtual void
+  parse_block_with_height_and_txs(block_height_t height,
+                                  const std::vector<corepb::Transaction> &txs);
+
+  virtual void parse_ir_txs(block_height_t height,
+                            const std::vector<corepb::Transaction> &txs);
+
+  virtual nbre::NBREIR compile_payload_code(const nbre::NBREIR &raw_ir);
 
 protected:
   storage *m_storage;

@@ -17,23 +17,8 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#pragma once
-#include "common/common.h"
-#include "fs/proto/ir.pb.h"
+#include "common/optional.h"
+
 namespace neb {
-namespace fs {
-namespace internal {
-
-class ir_item_list_interface {
-public:
-  virtual bool ir_exist(version_t v) = 0;
-  virtual void write_ir(const nbre::NBREIR &raw_ir,
-                        const nbre::NBREIR &compiled_ir) = 0;
-
-  virtual nbre::NBREIR get_raw_ir(version_t v) = 0;
-  virtual nbre::NBREIR get_ir(version_t v) = 0;
-  virtual nbre::NBREIR find_ir_at_height(block_height_t height) = 0;
-};
-} // namespace internal
-} // namespace fs
-} // namespace neb
+none_t none = boost::none;
+}
