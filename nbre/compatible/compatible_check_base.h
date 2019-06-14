@@ -17,24 +17,21 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
 #pragma once
-#include "common/common.h"
-#include "runtime/dip/data_type.h"
-#include "runtime/nr/impl/data_type.h"
+#include "compatible/compatible_check_interface.h"
 
 namespace neb {
 namespace compatible {
-class compatible_check_base {
+
+class compatible_check_base : public compatible_check_interface {
 public:
-  virtual bool is_ir_need_compile(const std::string &name,
-                                  uint64_t version) = 0;
-  virtual bool get_nr_result(rt::nr::nr_ret_type &nr,
-                             block_height_t start_block,
-                             block_height_t end_block, uint64_t version) = 0;
-  virtual bool get_dip_result(rt::dip::dip_ret_type &dip,
-                              block_height_t start_block,
-                              block_height_t end_block, uint64_t version) = 0;
+  compatible_check_base(version_t v);
+  virtual ~compatible_check_base();
+
+  virtual version_t rt_version() const;
+
+protected:
+  version_t m_version;
 };
 } // namespace compatible
 } // namespace neb

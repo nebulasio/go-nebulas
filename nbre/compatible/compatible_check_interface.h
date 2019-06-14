@@ -17,20 +17,33 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "compatible/db_checker.h"
-#include "core/execution_context.h"
-#include "runtime/version.h"
+
+#pragma once
+#include "common/common.h"
+#include "runtime/dip/data_type.h"
+#include "runtime/nr/impl/data_type.h"
 
 namespace neb {
 namespace compatible {
-static std::string key_nbre_version = "key_nbre_version";
+class compatible_check_interface {
+public:
+  virtual ~compatible_check_interface();
 
-void db_checker::update_db_if_needed() {
-  core::context->wait_until_ready();
-  fs::storage *db = core::context->nbre_storage();
+  virtual bool is_ir_need_compile(const std::string &module_name,
+                                  version_t version) = 0;
 
-  version cur = rt::get_version();
-  db->put(key_nbre_version, cur.data());
-}
+  virtual bool is_compatible_for(const std::string module_name,
+                                 version_t v) = 0;
+
+  virtual optional<rt::nr::nr_ret_type>
+  get_nr_result(block_height_t start_block, block_height_t end_block,
+                uint64_t version) = 0;
+
+  virtual optional<rt::dip::dip_ret_type>
+  get_dip_result(block_height_t start_block, block_height_t end_block,
+                 uint64_t version) = 0;
+
+  virtual version_t rt_version() const = 0;
+};
 } // namespace compatible
 } // namespace neb

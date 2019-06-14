@@ -24,17 +24,23 @@
 
 namespace neb {
 namespace compatible {
+class compatible_check_interface;
 class compatible_checker {
 public:
+  void init();
+
   bool is_ir_need_compile(const std::string &name, uint64_t version);
-  bool is_nr_version_disabled(uint64_t version);
-  bool get_nr_result(rt::nr::nr_ret_type &nr, const std::string &handle);
-  bool get_nr_sum(floatxx_t &nr_sum, const std::string &handle);
-  bool get_nr_addr_list(std::vector<address_t> &nr_addrs,
-                        const std::string &handle);
-  bool get_dip_result(rt::dip::dip_ret_type &dip, const std::string &handle);
+  optional<rt::nr::nr_ret_type> get_nr_result(const std::string &handle);
+  optional<floatxx_t> get_nr_sum(const std::string &handle);
+  optional<std::vector<address_t>> get_nr_addr_list(const std::string &handle);
+
+  optional<rt::dip::dip_ret_type> get_dip_result(const std::string &handle);
+
   std::string get_nr_handle(block_height_t height);
   std::string get_dip_handle(block_height_t height);
+
+protected:
+  std::vector<std::unique_ptr<compatible_check_interface>> m_checkers;
 };
 } // namespace compatible
 } // namespace neb
