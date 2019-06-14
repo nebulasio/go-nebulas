@@ -19,7 +19,7 @@
 //
 
 #include "fs/blockchain/trie/trie.h"
-#include "fs/bc_storage_session.h"
+#include "fs/storage.h"
 #include <exception>
 
 namespace neb {
@@ -89,9 +89,10 @@ std::unique_ptr<triepb::Node> trie_node::to_proto() const {
   return ret;
 }
 
-trie::trie(const hash_t &hash) : m_root_hash(hash) {}
+trie::trie(storage *db, const hash_t &hash)
+    : m_root_hash(hash), m_storage(db) {}
 
-trie::trie() {}
+trie::trie(storage *db) : m_storage(db) {}
 
 trie_node_ptr trie::create_node(const std::vector<neb::bytes> &val) {
   auto ret = std::make_unique<trie_node>(val);
@@ -110,8 +111,7 @@ void trie::commit_node(trie_node *node) {
 
   node->hash() = crypto::sha3_256_hash(bs);
 
-  bc_storage_session::instance().put_bytes(
-      bytes(node->hash().value(), node->hash().size()), bs);
+  m_storage->put_bytes(bytes(node->hash().value(), node->hash().size()), bs);
 }
 
 hash_t trie::put(const hash_t &key, const neb::bytes &val) {
@@ -264,13 +264,12 @@ hash_t trie::update_when_meet_leaf(trie_node *root_node,
 }
 
 std::unique_ptr<trie_node> trie::fetch_node(const hash_t &hash) {
-  neb::bytes triepb_bytes =
-      bc_storage_session::instance().get_bytes(from_fix_bytes(hash));
+  neb::bytes triepb_bytes = m_storage->get_bytes(from_fix_bytes(hash));
   return std::make_unique<trie_node>(triepb_bytes);
 }
 
 std::unique_ptr<trie_node> trie::fetch_node(const neb::bytes &hash) {
-  neb::bytes triepb_bytes = bc_storage_session::instance().get_bytes(hash);
+  neb::bytes triepb_bytes = m_storage->get_bytes(hash);
   return std::make_unique<trie_node>(triepb_bytes);
 }
 

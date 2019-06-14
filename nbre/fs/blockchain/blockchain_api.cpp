@@ -20,6 +20,7 @@
 
 #include "fs/blockchain/blockchain_api.h"
 #include "common/nebulas_currency.h"
+#include "fs/blockchain.h"
 #include "fs/blockchain/trie/trie.h"
 #include "fs/util.h"
 #include <boost/property_tree/json_parser.hpp>
@@ -27,10 +28,11 @@
 
 namespace neb {
 namespace fs {
+blockchain_api_base::blockchain_api_base(blockchain *bc) : m_blockchain(bc) {}
 
 blockchain_api_base::~blockchain_api_base() {}
 
-blockchain_api::blockchain_api() {}
+blockchain_api::blockchain_api(blockchain *bc) : blockchain_api_base(bc) {}
 
 blockchain_api::~blockchain_api() {}
 
@@ -43,7 +45,7 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
     return ret;
   }
 
-  auto block = blockchain::load_block_with_height(height);
+  auto block = m_blockchain->load_block_with_height(height);
   int64_t timestamp = block->header().timestamp();
 
   std::string events_root_str = block->header().events_root();
@@ -81,7 +83,7 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
 std::unique_ptr<event_info_t>
 blockchain_api::get_transaction_result_api(const neb::bytes &events_root,
                                            const neb::bytes &tx_hash) {
-  trie t;
+  trie t(m_blockchain->storage());
   neb::bytes txs_result;
 
   for (int64_t id = 1;; id++) {
@@ -107,7 +109,7 @@ blockchain_api::get_transaction_result_api(const neb::bytes &events_root,
 std::unique_ptr<corepb::Account>
 blockchain_api::get_account_api(const address_t &addr, block_height_t height) {
 
-  auto block = blockchain::load_block_with_height(height);
+  auto block = m_blockchain->load_block_with_height(height);
 
   // get block header account state
   std::string state_root_str = block->header().state_root();
@@ -138,14 +140,14 @@ blockchain_api::get_transaction_api(const std::string &tx_hash,
   auto corepb_txs_ptr = std::make_unique<corepb::Transaction>();
 
   // suppose height is the latest block height
-  auto block = blockchain::load_block_with_height(height);
+  auto block = m_blockchain->load_block_with_height(height);
 
   // get block header transaction root
   std::string txs_root_str = block->header().txs_root();
   neb::bytes txs_root_bytes = neb::string_to_byte(txs_root_str);
 
   // get trie node
-  trie t;
+  trie t(m_blockchain->storage());
   neb::bytes tx_hash_bytes = neb::string_to_byte(tx_hash);
   neb::bytes trie_node_bytes;
   bool ret = t.get_trie_node(txs_root_bytes, tx_hash_bytes, trie_node_bytes);
@@ -171,7 +173,7 @@ void blockchain_api::get_transfer_event(const neb::bytes &events_root,
     neb::bytes events_tx_hash = tx_hash;
     events_tx_hash.append_bytes(id_bytes.value(), id_bytes.size());
 
-    trie t;
+    trie t(m_blockchain->storage());
     neb::bytes trie_node_bytes;
     bool ret = t.get_trie_node(events_root, events_tx_hash, trie_node_bytes);
     if (!ret) {

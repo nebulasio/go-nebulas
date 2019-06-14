@@ -24,7 +24,6 @@
 #include "crypto/hash.h"
 #include "fs/blockchain/trie/byte_shared.h"
 #include "fs/proto/trie.pb.h"
-#include "fs/rocksdb_storage.h"
 
 namespace neb {
 namespace fs {
@@ -34,7 +33,7 @@ constexpr static int32_t trie_node_unknown = 0;
 constexpr static int32_t trie_node_extension = 1;
 constexpr static int32_t trie_node_leaf = 2;
 constexpr static int32_t trie_node_branch = 3;
-
+class storage;
 class trie_node {
 public:
   trie_node(trie_node_type type);
@@ -64,8 +63,8 @@ typedef std::unique_ptr<trie_node> trie_node_ptr;
 
 class trie {
 public:
-  trie(const hash_t &hash);
-  trie();
+  trie(storage *db, const hash_t &hash);
+  trie(storage *db);
 
   bool get_trie_node(const neb::bytes &root_hash, const neb::bytes &key,
                      neb::bytes &trie_node);
@@ -134,8 +133,9 @@ public:
     return min_len;
   }
 
-private:
+protected:
   hash_t m_root_hash;
+  storage *m_storage;
 };
 } // namespace fs
 } // namespace neb

@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2018 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -17,24 +17,25 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#include "fs/bc_storage_session.h"
+#include "fs/rocksdb_session_storage.h"
 #include "fs/rocksdb_storage.h"
 
 namespace neb {
 namespace fs {
-bc_storage_session::bc_storage_session() : m_storage(), m_mutex() {
+rocksdb_session_storage::rocksdb_session_storage() : m_storage(), m_mutex() {
   m_storage = std::make_unique<rocksdb_storage>();
   m_init_already = false;
 }
 
-bc_storage_session::~bc_storage_session() {
+rocksdb_session_storage::~rocksdb_session_storage() {
   boost::unique_lock<boost::shared_mutex> _l(m_mutex);
   m_storage->close_database();
 }
 
-void bc_storage_session::init(const std::string &path,
-                              enum storage_open_flag flag) {
+void rocksdb_session_storage::init(const std::string &path,
+                                   enum storage_open_flag flag) {
   boost::unique_lock<boost::shared_mutex> _l(m_mutex);
+
   if (m_init_already)
     return;
   m_init_already = true;
@@ -43,7 +44,7 @@ void bc_storage_session::init(const std::string &path,
   m_storage->open_database(m_path, m_open_flag);
 }
 
-bytes bc_storage_session::get_bytes(const bytes &key) {
+bytes rocksdb_session_storage::get_bytes(const bytes &key) {
   boost::shared_lock<boost::shared_mutex> _l(m_mutex);
   bool no_exception = true;
   bool tried_already = false;
@@ -67,9 +68,18 @@ bytes bc_storage_session::get_bytes(const bytes &key) {
   return bytes();
 }
 
-void bc_storage_session::put_bytes(const bytes &key, const bytes &val) {
+void rocksdb_session_storage::put_bytes(const bytes &key, const bytes &val) {
   boost::shared_lock<boost::shared_mutex> _l(m_mutex);
   m_storage->put_bytes(key, val);
 }
+void rocksdb_session_storage::del_by_bytes(const bytes &key) {
+  boost::shared_lock<boost::shared_mutex> _l(m_mutex);
+  m_storage->del_by_bytes(key);
+}
+
+void rocksdb_session_storage::enable_batch() {}
+void rocksdb_session_storage::disable_batch() {}
+void rocksdb_session_storage::flush() {}
 } // namespace fs
 } // namespace neb
+

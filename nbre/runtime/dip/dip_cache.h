@@ -1,4 +1,4 @@
-// Copyright (C) 2018 go-nebulas authors
+/ Copyright(C) 2018 go - nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -20,7 +20,7 @@
 #pragma once
 #include "runtime/dip/data_type.h"
 
-namespace neb {
+    namespace neb {
 namespace rt {
 namespace dip {
 class dip_cache {

@@ -1,4 +1,4 @@
-// Copyright (C) 2018 go-nebulas authors
+// Copyright (C) 2017 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -17,34 +17,20 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
 #pragma once
-#include "common/address.h"
 #include "common/common.h"
-#include "fs/proto/block.pb.h"
 
 namespace neb {
 namespace fs {
-
 class storage;
-class blockchain {
+}
+namespace core {
+class execution_context {
 public:
-  static constexpr char const *Block_LIB = "blockchain_lib";
-  static constexpr char const *Block_Tail = "blockchain_tail";
-  blockchain(storage *db);
-  virtual ~blockchain();
+  virtual fs::storage *blockchain_storage();
+  virtual fs::storage *nbre_storage();
+};
 
-  std::unique_ptr<corepb::Block> load_LIB_block();
-  std::unique_ptr<corepb::Block> load_block_with_height(block_height_t height);
-
-  void write_LIB_block(corepb::Block *block);
-
-  virtual storage *storage();
-
-protected:
-  storage *m_storage;
-  std::unique_ptr<corepb::Block>
-  load_block_with_tag_string(const std::string &tag);
-}; // end class blockchain
-} // end namespace fs
-} // end namespace neb
+extern std::unique_ptr<execution_context> context;
+} // namespace core
+} // namespace neb

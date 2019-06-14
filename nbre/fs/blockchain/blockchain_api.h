@@ -20,13 +20,14 @@
 
 #pragma once
 #include "common/address.h"
-#include "fs/blockchain.h"
 #include "fs/blockchain/data_type.h"
 
 namespace neb {
 namespace fs {
+class blockchain;
 class blockchain_api_base {
 public:
+  blockchain_api_base(blockchain *bc);
   virtual ~blockchain_api_base();
   virtual std::unique_ptr<std::vector<transaction_info_t>>
   get_block_transactions_api(block_height_t height) = 0;
@@ -35,11 +36,14 @@ public:
   get_account_api(const address_t &addr, block_height_t height) = 0;
   virtual std::unique_ptr<corepb::Transaction>
   get_transaction_api(const std::string &tx_hash, block_height_t height) = 0;
+
+protected:
+  blockchain *m_blockchain;
 };
 
 class blockchain_api : public blockchain_api_base {
 public:
-  blockchain_api();
+  blockchain_api(blockchain *bc);
   virtual ~blockchain_api();
 
   virtual std::unique_ptr<std::vector<transaction_info_t>>

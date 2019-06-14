@@ -20,10 +20,14 @@
 
 #include "fs/blockchain.h"
 #include "common/byte.h"
-#include "fs/bc_storage_session.h"
+#include "fs/storage.h"
 
 namespace neb {
 namespace fs {
+
+blockchain::blockchain(storage *db) : m_storage(db) {}
+blockchain::~blockchain() {}
+
 std::unique_ptr<corepb::Block> blockchain::load_LIB_block() {
   return load_block_with_tag_string(
       std::string(Block_LIB, std::allocator<char>()));
@@ -33,11 +37,10 @@ std::unique_ptr<corepb::Block>
 blockchain::load_block_with_height(block_height_t height) {
   std::unique_ptr<corepb::Block> block = std::make_unique<corepb::Block>();
 
-  neb::bytes height_hash = bc_storage_session::instance().get_bytes(
-      neb::number_to_byte<neb::bytes>(height));
+  neb::bytes height_hash =
+      m_storage->get_bytes(neb::number_to_byte<neb::bytes>(height));
 
-  neb::bytes block_bytes =
-      bc_storage_session::instance().get_bytes(height_hash);
+  neb::bytes block_bytes = m_storage->get_bytes(height_hash);
 
   bool ret = block->ParseFromArray(block_bytes.value(), block_bytes.size());
   if (!ret) {
@@ -50,10 +53,9 @@ std::unique_ptr<corepb::Block>
 blockchain::load_block_with_tag_string(const std::string &tag) {
 
   std::unique_ptr<corepb::Block> block = std::make_unique<corepb::Block>();
-  neb::bytes tail_hash =
-      bc_storage_session::instance().get_bytes(neb::string_to_byte(tag));
+  neb::bytes tail_hash = m_storage->get_bytes(neb::string_to_byte(tag));
 
-  neb::bytes block_bytes = bc_storage_session::instance().get_bytes(tail_hash);
+  neb::bytes block_bytes = m_storage->get_bytes(tail_hash);
 
   bool ret = block->ParseFromArray(block_bytes.value(), block_bytes.size());
   if (!ret) {
@@ -68,16 +70,16 @@ void blockchain::write_LIB_block(corepb::Block *block) {
 
   block_height_t height = block->height();
   auto height_hash = block->header().hash();
-  bc_storage_session::instance().put_bytes(number_to_byte<neb::bytes>(height),
-                                           string_to_byte(height_hash));
+  m_storage->put_bytes(number_to_byte<neb::bytes>(height),
+                       string_to_byte(height_hash));
 
-  bc_storage_session::instance().put_bytes(
-      string_to_byte(height_hash), string_to_byte(block->SerializeAsString()));
+  m_storage->put_bytes(string_to_byte(height_hash),
+                       string_to_byte(block->SerializeAsString()));
 
   std::string key_str = std::string(Block_LIB, std::allocator<char>());
-  bc_storage_session::instance().put_bytes(string_to_byte(key_str),
-                                           string_to_byte(height_hash));
+  m_storage->put_bytes(string_to_byte(key_str), string_to_byte(height_hash));
 }
+storage *blockchain::storage() { return m_storage; }
 } // namespace fs
 } // namespace neb
 
