@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "runtime/auth/auth_handler.h"
+#include "common/configuration.h"
 #include "fs/ir_manager/api/ir_list.h"
 #include "runtime/auth/auth_table.h"
 
@@ -28,7 +29,27 @@ namespace auth {
 
 auth_handler::auth_handler(fs::ir_list *ir_list) : m_ir_list(ir_list) {}
 
-void auth_handler::handle_auth_npr(const nbre::NBREIR &compiled_ir) {}
+bool auth_handler::is_ir_legitimate(const std::string ir_name,
+                                    const address_t &from_addr,
+                                    block_height_t height) {
+  nbre::NBREIR cir;
+  try {
+    cir = m_ir_list->find_ir_at_height(
+        configuration::instance().auth_module_name(), height);
+  } catch (...) {
+    return false;
+  }
+  version_t v = cir.version();
+  if (m_auth_tables.find(v) == m_auth_tables.end()) {
+    auth_table t = auth_table::generate_auth_table_from_ir(cir);
+    std::unique_ptr<auth_table> table =
+        std::unique_ptr<auth_table>(new auth_table(t));
+
+    m_auth_tables.insert(std::make_pair(v, std::move(table)));
+  }
+  const std::unique_ptr<auth_table> &table = m_auth_tables[v];
+  return table->is_ir_legitimate(ir_name, from_addr, height);
+}
 } // namespace auth
 } // namespace rt
 } // namespace neb

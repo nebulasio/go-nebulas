@@ -28,7 +28,7 @@ namespace neb {
 namespace fs {
 namespace internal {
 
-template <class PST> class ir_item_list_base {
+template <class PST> class ir_item_list_base : public ir_item_list_interface {
 public:
   typedef PST param_storage_t;
   typedef typename param_storage_t::item_type item_type;

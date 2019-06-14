@@ -24,24 +24,13 @@
 #include "fs/proto/ir.pb.h"
 #include "runtime/auth/data_type.h"
 
-namespace nbre {
-class NBREIR;
-}
-
 namespace neb {
 namespace rt {
 namespace auth {
 class auth_table {
 public:
-  auth_table();
-  auth_table(const auth_table &v);
-  auth_table(auth_table &&v);
-  auth_table &operator=(const auth_table &v);
-  auth_table &operator=(auth_table &&v);
-
-  virtual bool is_ir_legitimate(const std::string ir_name,
-                                const address_t &from_addr,
-                                block_height_t h) const;
+  bool is_ir_legitimate(const std::string &ir_name, const address_t &from_addr,
+                        block_height_t h) const;
 
   inline const version &version() const { return m_version; }
   inline block_height_t available_height() const { return m_available_height; }
@@ -50,12 +39,13 @@ public:
   generate_auth_table_from_ir(const nbre::NBREIR &compiled_ir);
 
 protected:
-  typedef std::tuple<std::string, address_t> auth_key_t; // ir_name, address
-  typedef std::tuple<block_height_t, block_height_t>
+  static std::string auth_key(const std::string &ir_name,
+                              const address_t &from_addr);
+
+protected:
+  typedef std::tuple<std::string, address_t, block_height_t, block_height_t>
       auth_val_t; // start_block, end_block
-  typedef std::unordered_map<auth_key_t, auth_val_t> auth_table_t;
-  std::mutex m_mutex;
-  auth_table_t m_auth_table;
+  std::map<std::string, auth_val_t> m_auth_table;
   class version m_version;
   block_height_t m_available_height;
 };

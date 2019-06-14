@@ -17,3 +17,55 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
+#include "runtime/auth/auth_table.h"
+#include "common/byte.h"
+#include "common/configuration.h"
+#include "runtime/param_trait.h"
+
+namespace neb {
+namespace rt {
+namespace auth {
+bool auth_table::is_ir_legitimate(const std::string &ir_name,
+                                  const address_t &from_addr,
+                                  block_height_t h) const {
+  auto key = auth_key(ir_name, from_addr);
+  auto it = m_auth_table.find(key);
+  if (it == m_auth_table.end()) {
+    return false;
+  }
+  auth_val_t v = *it;
+  block_height_t start = std::get<2>(v);
+  block_height_t end = std::get<3>(v);
+  if (h >= start && h < end) {
+    return true;
+  }
+  return false;
+}
+
+std::string auth_table::auth_key(const std::string &ir_name,
+                                 const address_t &from_addr) {
+  return ir_name + std::to_string(from_addr);
+}
+
+auth_table
+auth_table::generate_auth_table_from_ir(const nbre::NBREIR &compiled_ir) {
+  auth_table ret;
+  ret.m_version = ::neb::version(compiled_ir.version());
+  ret.m_available_height = compiled_ir.height();
+
+  std::vector<auth_items_t> items =
+      param_trait::get_param<std::vector<auth_items_t>>(
+          compiled_ir, configuration::instance().auth_func_name());
+
+  for (auto &item : items) {
+    auth_val_t av =
+        std::make_tuple(std::get<0>(item), to_address(std::get<1>(item)),
+                        std::get<2>(item), std::get<3>(item));
+    auto key = auth_key(std::get<0>(av), std::get<1>(av));
+    ret.m_auth_table.insert(std::make_pair(key, av));
+  }
+  return ret;
+}
+} // namespace auth
+} // namespace rt
+} // namespace neb
