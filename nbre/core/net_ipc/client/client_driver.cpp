@@ -22,8 +22,10 @@
 #include "common/configuration.h"
 #include "compatible/db_checker.h"
 #include "core/ir_warden.h"
+#include "core/net_ipc/client/client_context.h"
 #include "fs/bc_storage_session.h"
 #include "fs/ir_manager/api/ir_api.h"
+#include "fs/rocksdb_session_storage.h"
 #include "fs/storage_holder.h"
 #include "jit/jit_driver.h"
 #include "runtime/dip/dip_handler.h"
@@ -48,6 +50,9 @@ client_driver_base::~client_driver_base() {
 }
 
 bool client_driver_base::init() {
+
+  m_context = (client_context *)context.get();
+
   ff::initialize(4);
   m_client = std::unique_ptr<nipc_client>(new nipc_client());
   LOG(INFO) << "ipc client construct";
@@ -157,10 +162,17 @@ void client_driver_base::init_timer_thread() {
 
 void client_driver_base::init_nbre() {
 
-  fs::bc_storage_session::instance().init(
-      configuration::instance().neb_db_dir(), fs::storage_open_for_readonly);
+  m_context->m_bc_storage = std::make_unique<fs::rocksdb_session_storage>();
+  m_context->m_bc_storage->init(configuration::instance().neb_db_dir(),
+                                fs::storage_open_for_readonly);
 
-  auto *rs = neb::fs::storage_holder::instance().nbre_db_ptr();
+  m_context->m_nbre_storage = std::make_unique<fs::rocksdb_storage>();
+  m_context->m_nbre_storage->open_database(
+      configuration::instance().nbre_db_dir(), fs::storage_open_for_readwrite);
+
+  m_context->set_ready();
+
+  auto *rs = m_context->m_nbre_storage.get();
 
   compatible::db_checker dc;
   dc.update_db_if_needed();

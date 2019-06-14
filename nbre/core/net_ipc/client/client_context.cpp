@@ -17,14 +17,24 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-#pragma once
-#include "fs/storage_holder_interface.h"
-#include "fs/rocksdb_storage.h"
-#include "fs/storage_holder.h"
+#include "core/net_ipc/client/client_context.h"
+#include "fs/storage.h"
 
 namespace neb {
-namespace fs {
-storage *nbre_db_ptr() { return storage_holder::instance().nbre_db_ptr(); }
-} // namespace fs
-} // namespace neb
+namespace core {
+client_context::client_context() : execution_context() {}
+client_context::~client_context() {
+  m_bc_storage.reset();
+  m_nbre_storage.reset();
+}
 
+fs::storage *client_context::blockchain_storage() { return m_bc_storage.get(); }
+fs::storage *client_context::nbre_storage() { return m_nbre_storage.get(); }
+
+void client_context::shutdown() {
+  m_bc_storage.reset();
+  m_nbre_storage.reset();
+}
+
+} // namespace core
+} // namespace neb

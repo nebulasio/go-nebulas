@@ -28,6 +28,7 @@
 
 namespace neb {
 namespace core {
+class client_context;
 namespace internal {
 class client_driver_base {
 
@@ -54,6 +55,7 @@ protected:
   std::atomic_bool m_exit_flag;
   std::unique_ptr<std::thread> m_timer_thread;
   std::unique_ptr<util::timer_loop> m_timer_loop;
+  client_context *m_context;
 };
 } // end namespace internal
 

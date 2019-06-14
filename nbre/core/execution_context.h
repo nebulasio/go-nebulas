@@ -27,8 +27,20 @@ class storage;
 namespace core {
 class execution_context {
 public:
-  virtual fs::storage *blockchain_storage();
-  virtual fs::storage *nbre_storage();
+  execution_context();
+  virtual ~execution_context();
+  virtual fs::storage *blockchain_storage() = 0;
+  virtual fs::storage *nbre_storage() = 0;
+  virtual void shutdown() = 0;
+
+  virtual bool is_ready() const;
+  virtual void wait_until_ready();
+  virtual void set_ready();
+
+protected:
+  std::condition_variable m_cond_var;
+  mutable std::mutex m_mutex;
+  bool m_ready_flag;
 };
 
 extern std::unique_ptr<execution_context> context;

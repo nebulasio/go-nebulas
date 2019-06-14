@@ -40,8 +40,9 @@ public:
                                 block_height_t height);
 
 protected:
+protected:
   fs::ir_list *m_ir_list;
-  std::unique_ptr<auth_table> m_auth_table;
+  std::unordered_map<version_t, std::unique_ptr<auth_table>> m_auth_tables;
 };
 } // namespace auth
 } // namespace rt
