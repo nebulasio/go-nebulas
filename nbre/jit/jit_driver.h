@@ -20,7 +20,8 @@
 #pragma once
 
 #include "common/common.h"
-#include "core/ir_warden.h"
+#include "core/execution_context.h"
+#include "fs/ir_manager/ir_processor.h"
 #include "fs/proto/ir.pb.h"
 #include "jit/jit_engine.h"
 #include "util/singleton.h"
@@ -44,21 +45,26 @@ public:
   template <typename RT, typename... ARGS>
   RT run_ir(const std::string &name, uint64_t height,
             const std::string &func_name, ARGS... args) {
-    auto irs_ptr =
-        core::ir_warden::instance().get_ir_by_name_height(name, height, false);
-    auto irs = *irs_ptr;
-    if (irs.size() != 1) {
+    auto opt_ir =
+        core::context->ir_processor()->get_ir_with_height(name, height);
+    if (opt_ir == none) {
+      throw std::invalid_argument("no such ir");
+    }
+
+    auto irs = core::context->ir_processor()->get_ir_depends(*opt_ir);
+
+    if (irs.empty()) {
       throw std::invalid_argument("no such ir");
     }
     std::string key = gen_key(irs, func_name);
-    auto ret = run_if_exists<RT>(irs.back(), func_name, args...);
-    if (ret.first) {
-      return ret.second;
-    }
+    // auto ret = run_if_exists<RT>(irs.back(), func_name, args...);
+    // if (ret.first) {
+    // return ret.second;
+    //}
 
-    irs_ptr =
-        core::ir_warden::instance().get_ir_by_name_height(name, height, true);
-    return run<RT>(key, *irs_ptr, func_name, args...);
+    // irs_ptr =
+    // core::ir_warden::instance().get_ir_by_name_height(name, height, true);
+    return run<RT>(key, irs, func_name, args...);
   }
 
   template <typename RT, typename... ARGS>

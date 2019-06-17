@@ -24,10 +24,10 @@ namespace neb {
 namespace rt {
 namespace auth {
 typedef std::string name_t;
-typedef std::string address_t;
+// typedef std::string address_t;
 //! Note: it's dangerous to change this type, we may have compatible issues
 //! here. You may check ir/auth_table/auth.cpp
-typedef std::tuple<name_t, address_t, block_height_t, block_height_t>
+typedef std::tuple<name_t, std::string, block_height_t, block_height_t>
     auth_items_t;
 } // namespace auth
 } // namespace rt

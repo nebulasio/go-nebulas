@@ -44,10 +44,23 @@ struct storage_exception_no_init : public std::exception {
 
 class storage {
 public:
+  inline virtual ~storage(){};
   template <typename T, typename KT>
   auto get(const KT &key) -> typename std::enable_if<
       std::is_arithmetic<T>::value && std::is_arithmetic<KT>::value, T>::type {
     return byte_to_number<T>(get_bytes(number_to_byte<bytes>(key)));
+  }
+
+  template <typename T>
+  auto get(const bytes &key) ->
+      typename std::enable_if<std::is_arithmetic<T>::value, T>::type {
+    return byte_to_number<T>(get_bytes(key));
+  }
+
+  template <typename T>
+  auto get(const std::string &key) ->
+      typename std::enable_if<std::is_arithmetic<T>::value, T>::type {
+    return byte_to_number<T>(get(key));
   }
 
   template <typename T, typename KT>

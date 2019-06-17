@@ -18,7 +18,15 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "core/net_ipc/client/client_context.h"
+#include "compatible/compatible_check_interface.h"
+#include "fs/blockchain.h"
+#include "fs/ir_manager/api/ir_list.h"
+#include "fs/ir_manager/ir_processor.h"
 #include "fs/storage.h"
+#include "runtime/auth/auth_handler.h"
+#include "runtime/auth/auth_table.h"
+#include "util/persistent_flag.h"
+#include "util/persistent_type.h"
 
 namespace neb {
 namespace core {

@@ -24,7 +24,9 @@
 #include "common/int128_conversion.h"
 #include "common/nebulas_currency.h"
 #include "core/execution_context.h"
+#include "fs/blockchain/account/account_db.h"
 #include "fs/blockchain/blockchain_api_test.h"
+#include "fs/blockchain/transaction/transaction_db.h"
 #include "runtime/nr/impl/general_nebulas_rank.h"
 #include "runtime/nr/impl/nebulas_rank_algo.h"
 #include "runtime/nr/impl/nebulas_rank_cache.h"
@@ -57,7 +59,7 @@ nr_ret_type entry_point_nr_impl(compatible_uint64_t start_block,
       nra_ptr.get(), tdb_ptr.get(), adb_ptr.get());
 
   auto gnr_ptr =
-      std::make_unique<general_nebulas_rank>(nra_ptr.get(), nr_cache.get());
+      std::make_unique<general_nebulas_rank>(nrc_ptr.get(), nr_cache.get());
   rank_params_t rp;
   rp.m_a = a;
   rp.m_b = b;

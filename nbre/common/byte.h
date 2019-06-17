@@ -21,6 +21,7 @@
 #pragma once
 #include "common/common.h"
 #include <boost/endian/conversion.hpp>
+#include <ff/network.h>
 #include <utility>
 
 namespace neb {
@@ -323,3 +324,27 @@ inline std::string to_string(const ::neb::bytes &s) {
   return byte_to_string(s);
 }
 } // namespace std
+
+namespace ff {
+namespace net {
+template <> class udt_marshaler<neb::bytes> {
+public:
+  static size_t seralize(char *buf, neb::bytes &v) {
+    size_t s = v.size();
+    std::memcpy(buf, (void *)&v, sizeof(s));
+    std::memcpy(buf + sizeof(s), v.value(), v.size());
+    return sizeof(s) + v.size();
+  }
+
+  static size_t deseralize(const char *buf, size_t, neb::bytes &v) {
+    size_t s;
+    std::memcpy((void *)&s, buf, sizeof(s));
+    v = neb::bytes(s);
+    std::memcpy(v.value(), buf + sizeof(s), s);
+    return sizeof(s) + s;
+  }
+  static size_t length(neb::bytes &v) { return v.size() + sizeof(size_t); }
+};
+
+} // namespace net
+} // namespace ff

@@ -27,7 +27,7 @@ namespace fs {
 class memory_storage : public storage {
 public:
   memory_storage();
-  ~memory_storage();
+  virtual ~memory_storage();
   memory_storage(const memory_storage &ms) = delete;
   memory_storage &operator=(const memory_storage &) = delete;
 

@@ -18,16 +18,21 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "fs/ir_manager/api/dip_ir_list.h"
+#include "common/configuration.h"
 #include "runtime/dip/data_type.h"
 #include "runtime/param_trait.h"
 
 namespace neb {
 namespace fs {
 dip_ir_list::dip_ir_list(storage *storage)
-    : internal::ir_item_list_base<auth_params_storage_t>(storage) {}
+    : internal::ir_item_list_base<dip_params_storage_t>(storage, "dip") {}
 
 dip_ir_list::item_type get_ir_param(const nbre::NBREIR &compiled_ir) {
-  dip_param_t param = rt::param_trait::get_param < dip_param_storage_t ret;
+  rt::dip::dip_param_t param = rt::param_trait::get_param<rt::dip::dip_param_t>(
+      compiled_ir, configuration::instance().dip_param_func_name());
+
+  dip_param_storage_t ret;
+
   ret.set<p_start_block, p_version>(compiled_ir.height(),
                                     compiled_ir.version());
   return ret;

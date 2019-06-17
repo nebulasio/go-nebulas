@@ -28,7 +28,7 @@ namespace compatible {
 class version_check_interface;
 class compatible_checker : public compatible_check_base {
 public:
-  ~compatible_checker();
+  virtual ~compatible_checker();
 
   virtual void init();
 

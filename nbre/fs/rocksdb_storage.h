@@ -31,7 +31,7 @@ namespace fs {
 class rocksdb_storage : public storage {
 public:
   rocksdb_storage();
-  ~rocksdb_storage();
+  virtual ~rocksdb_storage();
   rocksdb_storage(const rocksdb_storage &rs) = delete;
   rocksdb_storage &operator=(const rocksdb_storage &) = delete;
 

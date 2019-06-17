@@ -33,7 +33,7 @@ bool auth_table::is_ir_legitimate(const std::string &ir_name,
   if (it == m_auth_table.end()) {
     return false;
   }
-  auth_val_t v = *it;
+  auth_val_t v = it->second;
   block_height_t start = std::get<2>(v);
   block_height_t end = std::get<3>(v);
   if (h >= start && h < end) {
@@ -58,9 +58,9 @@ auth_table::generate_auth_table_from_ir(const nbre::NBREIR &compiled_ir) {
           compiled_ir, configuration::instance().auth_func_name());
 
   for (auto &item : items) {
-    auth_val_t av =
-        std::make_tuple(std::get<0>(item), to_address(std::get<1>(item)),
-                        std::get<2>(item), std::get<3>(item));
+    ::neb::address_t addr = to_address(std::get<1>(item));
+    auth_val_t av = std::make_tuple(std::get<0>(item), addr, std::get<2>(item),
+                                    std::get<3>(item));
     auto key = auth_key(std::get<0>(av), std::get<1>(av));
     ret.m_auth_table.insert(std::make_pair(key, av));
   }

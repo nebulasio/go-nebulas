@@ -27,6 +27,7 @@
 #include "llvm/Support/MemoryBuffer.h"
 //#include "llvm/Support/PluginLoader.h"
 #include "common/configuration.h"
+#include "core/execution_context.h"
 #include "fs/storage_holder.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
@@ -52,7 +53,7 @@ jit_mangled_entry_point::get_mangled_entry_name(const std::string &entry_name) {
   if (m_mangled_entry_names.find(entry_name) != m_mangled_entry_names.end()) {
     return m_mangled_entry_names[entry_name];
   }
-  auto storage = ::neb::fs::storage_holder::instance().nbre_db_ptr();
+  auto storage = core::context->nbre_storage();
   if (storage) {
     try {
       auto bn = storage->get(get_storage_key(entry_name));

@@ -26,14 +26,19 @@
 #include "core/ir_warden.h"
 #include "core/net_ipc/client/client_context.h"
 #include "fs/bc_storage_session.h"
+#include "fs/blockchain.h"
 #include "fs/ir_manager/api/ir_api.h"
+#include "fs/ir_manager/api/ir_list.h"
+#include "fs/ir_manager/ir_processor.h"
 #include "fs/rocksdb_session_storage.h"
-#include "fs/storage_holder.h"
+#include "fs/storage.h"
 #include "jit/jit_driver.h"
-#include "runtime/dip/dip_handler.h"
-#include "runtime/nr/impl/nr_handler.h"
+#include "runtime/auth/auth_handler.h"
+#include "runtime/auth/auth_table.h"
 #include "runtime/util.h"
 #include "runtime/version.h"
+#include "util/persistent_flag.h"
+#include "util/persistent_type.h"
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -165,12 +170,15 @@ void client_driver_base::init_timer_thread() {
 void client_driver_base::init_nbre() {
 
   m_context->m_bc_storage = std::make_unique<fs::rocksdb_session_storage>();
-  m_context->m_bc_storage->init(configuration::instance().neb_db_dir(),
-                                fs::storage_open_for_readonly);
+  fs::rocksdb_session_storage *rss =
+      (fs::rocksdb_session_storage *)m_context->blockchain_storage();
+  rss->init(configuration::instance().neb_db_dir(),
+            fs::storage_open_for_readonly);
 
   m_context->m_nbre_storage = std::make_unique<fs::rocksdb_storage>();
-  m_context->m_nbre_storage->open_database(
-      configuration::instance().nbre_db_dir(), fs::storage_open_for_readwrite);
+  fs::rocksdb_storage *rs = (fs::rocksdb_storage *)m_context->nbre_storage();
+  rs->open_database(configuration::instance().nbre_db_dir(),
+                    fs::storage_open_for_readwrite);
 
   m_context->m_blockchain =
       std::make_unique<fs::blockchain>(m_context->blockchain_storage());
@@ -184,7 +192,6 @@ void client_driver_base::init_nbre() {
 
   m_context->set_ready();
 
-  auto *rs = m_context->m_nbre_storage.get();
 
   compatible::db_checker dc;
   dc.update_db_if_needed();
@@ -196,7 +203,9 @@ void client_driver_base::init_nbre() {
   } catch (const std::exception &e) {
   }
   LOG(INFO) << "init dip params with height " << height;
+#if 0
   neb::rt::dip::dip_handler::instance().check_dip_params(height);
+#endif
 }
 } // end namespace internal
 } // namespace core

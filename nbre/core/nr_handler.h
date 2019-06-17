@@ -24,12 +24,11 @@
 #include "compatible/compatible_checker.h"
 #include "runtime/nr/impl/nebulas_rank_cache.h"
 #include "util/lru_cache.h"
-#include "util/singleton.h"
 
 namespace neb {
 namespace core {
 
-class nr_handler : public util::singleton<nr_handler> {
+class nr_handler {
 public:
   nr_handler();
 

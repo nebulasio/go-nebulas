@@ -27,7 +27,6 @@
 #include "fs/bc_storage_session.h"
 #include "fs/ir_manager/api/ir_api.h"
 #include "fs/rocksdb_session_storage.h"
-#include "fs/storage_holder.h"
 #include "jit/jit_driver.h"
 #if 0
 #include "runtime/dip/dip_handler.h"
@@ -48,6 +47,7 @@ client_driver::~client_driver() { LOG(INFO) << "to destroy client driver"; }
 
 void client_driver::add_handlers() {
 
+#if 0
   LOG(INFO) << "client is " << m_client.get();
   m_client->add_handler<nbre_version_req>(
       [this](std::shared_ptr<nbre_version_req> req) {
@@ -164,9 +164,11 @@ void client_driver::add_handlers() {
                      << " with what: " << e.what();
         }
       });
+#endif
 }
 
 void client_driver::add_nr_handlers() {
+#if 0
   m_client->add_handler<nbre_nr_handle_req>(
       [this](std::shared_ptr<nbre_nr_handle_req> req) {
         LOG(INFO) << "recv nbre_nr_handle_req";
@@ -175,7 +177,7 @@ void client_driver::add_nr_handlers() {
           uint64_t end_block = req->get<p_end_block>();
           uint64_t nr_version = req->get<p_nr_version>();
 
-          auto handle = param_to_key(start_block, end_block, nr_version);
+          auto handle = rt::param_to_key(start_block, end_block, nr_version);
 
           auto ack = new_ack_pkg<nbre_nr_handle_ack>(req);
           ack->set<p_nr_handle>(handle);
@@ -209,7 +211,6 @@ void client_driver::add_nr_handlers() {
                      << " with what: " << e.what();
         }
       });
-#if 0
   m_client->add_handler<nbre_nr_result_by_height_req>(
       [this](std::shared_ptr<nbre_nr_result_by_height_req> req) {
         LOG(INFO) << "recv nbre_nr_result_by_height_req";

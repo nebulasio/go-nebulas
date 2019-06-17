@@ -23,25 +23,10 @@
 
 namespace neb {
 namespace compatible {
-class compatible_checker_instance
-    : public util::singleton<compatible_checker_instance> {
-public:
-  compatible_checker_instance() {}
-
-  bool is_ir_need_compile(const std::string &name, uint64_t version);
-  bool get_nr_result(rt::nr::nr_ret_type &nr, block_height_t start_block,
-                     block_height_t end_block, uint64_t version);
-  bool get_dip_result(rt::dip::dip_ret_type &dip, block_height_t start_block,
-                      block_height_t end_block, uint64_t version);
-
-protected:
-  std::vector<std::shared_ptr<compatible_check_base>> m_checkers;
-};
 
 bool compatible_checker::is_ir_need_compile(const std::string &name,
                                             uint64_t version) {
-  return compatible_checker_instance::instance().is_ir_need_compile(name,
-                                                                    version);
+  return false;
 }
 } // namespace compatible
 } // namespace neb

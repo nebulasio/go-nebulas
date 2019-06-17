@@ -105,6 +105,25 @@ blockchain_api::get_transaction_result_api(const neb::bytes &events_root,
   return json_parse_event(json_str);
 }
 
+std::unique_ptr<event_info_t>
+blockchain_api::json_parse_event(const std::string &json) {
+  boost::property_tree::ptree pt;
+  std::stringstream ss(json);
+  boost::property_tree::read_json(ss, pt);
+
+  std::string topic = pt.get<std::string>("Topic");
+  assert(topic.compare("chain.transactionResult") == 0);
+
+  std::string data_json = pt.get<std::string>("Data");
+  ss = std::stringstream(data_json);
+  boost::property_tree::read_json(ss, pt);
+
+  int32_t status = pt.get<int32_t>("status");
+  wei_t gas_used = boost::lexical_cast<wei_t>(pt.get<std::string>("gas_used"));
+
+  auto ret = std::make_unique<event_info_t>(event_info_t{status, gas_used});
+  return ret;
+}
 
 std::unique_ptr<corepb::Account>
 blockchain_api::get_account_api(const address_t &addr, block_height_t height) {
@@ -116,7 +135,7 @@ blockchain_api::get_account_api(const address_t &addr, block_height_t height) {
   neb::bytes state_root_bytes = neb::string_to_byte(state_root_str);
 
   // get trie node
-  trie t;
+  trie t(m_blockchain->storage());
   neb::bytes trie_node_bytes;
   bool is_found = t.get_trie_node(state_root_bytes, addr, trie_node_bytes);
   auto corepb_account_ptr = std::make_unique<corepb::Account>();

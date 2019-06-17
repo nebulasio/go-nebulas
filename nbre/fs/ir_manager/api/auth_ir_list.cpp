@@ -22,7 +22,7 @@
 namespace neb {
 namespace fs {
 auth_ir_list::auth_ir_list(storage *storage)
-    : internal::ir_item_list_base<auth_params_storage_t>(storage) {}
+    : internal::ir_item_list_base<auth_params_storage_t>(storage, "auth") {}
 
 auth_ir_list::item_type get_ir_param(const nbre::NBREIR &compiled_ir) {
   auth_param_storage_t ret;

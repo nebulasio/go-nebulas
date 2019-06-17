@@ -32,15 +32,15 @@ public:
                    size_t block_trunk_size = 16)
       : items_storage_base(db, key_prefix, latest_item_key, block_trunk_size) {}
 
-  virtual void append_item(item_type &item) {
+  virtual void append_item(const item_type &item) {
     boost::unique_lock<boost::shared_mutex> _l(m_mutex);
     if (m_items.empty()) {
       get_typed_items_without_lock();
     }
     m_items.push_back(item);
 
-    auto bs_str = item.serialize_to_string();
-    append_item(string_to_byte(bs_str));
+    auto bs_str = const_cast<item_type &>(item).serialize_to_string();
+    internal::items_storage_base::append_item(string_to_byte(bs_str));
   }
   virtual std::vector<item_type> get_typed_items() {
     boost::shared_lock<boost::shared_mutex> _l(m_mutex);

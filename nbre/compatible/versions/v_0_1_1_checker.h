@@ -19,14 +19,14 @@
 //
 #pragma once
 #include "common/version.h"
-#include "compatible/compatible_check_base.h"
+#include "compatible/version_check_base.h"
 
 namespace neb {
 namespace compatible {
 namespace v {
-class v_0_1_1_checker : public compatible_check_base {
+class v_0_1_1_checker : public version_check_base {
 public:
-  v_0_1_1_checker() : compatible_check_base(version(0, 1, 1).data()) {}
+  v_0_1_1_checker();
 
   virtual bool is_ir_need_compile(const std::string &module_name,
                                   version_t version);

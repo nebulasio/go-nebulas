@@ -24,5 +24,7 @@ std::string program_name;
 }
 
 namespace std {
-std::string to_string(const floatxx_t &v) { return neb::math::to_string(v); }
+std::string to_string(const ::neb::floatxx_t &v) {
+  return neb::math::to_string(v);
+}
 } // namespace std

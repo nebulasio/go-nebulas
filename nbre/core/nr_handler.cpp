@@ -27,8 +27,7 @@
 #include <ff/functionflow.h>
 
 namespace neb {
-namespace rt {
-namespace nr {
+namespace core {
 
 nr_handler::nr_handler() {}
 
@@ -157,6 +156,5 @@ bool nr_handler::get_nr_addr_list(std::vector<address_t> &nr_addrs,
   }
   return true;
 }
-} // namespace nr
-} // namespace rt
+} // namespace core
 } // namespace neb

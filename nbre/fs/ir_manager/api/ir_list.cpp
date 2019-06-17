@@ -25,9 +25,11 @@
 namespace neb {
 namespace fs {
 ir_list::ir_list(class storage *s) : m_storage(s) {
-  m_ir_item_list.insert("nr", std::make_shared<nr_ir_list>(s));
-  m_ir_item_list.insert("auth", std::make_shared<auth_ir_list>(s));
-  m_ir_item_list.insert("dip", std::make_shared<dip_ir_list>(s));
+  m_ir_item_list.insert(std::make_pair("nr", std::make_shared<nr_ir_list>(s)));
+  m_ir_item_list.insert(
+      std::make_pair("auth", std::make_shared<auth_ir_list>(s)));
+  m_ir_item_list.insert(
+      std::make_pair("dip", std::make_shared<dip_ir_list>(s)));
 }
 
 bool ir_list::ir_exist(const std::string &name, uint64_t v) {

@@ -67,7 +67,9 @@ public:
   virtual void json_parse_event(const std::string &json,
                                 std::vector<transaction_info_t> &events,
                                 transaction_info_t &info);
-};
 
+  virtual std::unique_ptr<event_info_t>
+  json_parse_event(const std::string &json);
+};
 } // namespace fs
 } // namespace neb

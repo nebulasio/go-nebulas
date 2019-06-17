@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "fs/ir_manager/api/nr_ir_list.h"
+#include "common/configuration.h"
 #include "runtime/nr/impl/data_type.h"
 #include "runtime/param_trait.h"
 
@@ -28,7 +29,7 @@ nr_ir_list::nr_ir_list(storage *storage)
 
 nr_ir_list::item_type
 nr_ir_list::get_ir_param(const nbre::NBREIR &compiled_ir) {
-  nr_param_t param = rt::param_trait::get_param<nr_param_t>(
+  rt::nr::nr_param_t param = rt::param_trait::get_param<rt::nr::nr_param_t>(
       compiled_ir, configuration::instance().nr_param_func_name());
 
   nr_param_storage_t ret;

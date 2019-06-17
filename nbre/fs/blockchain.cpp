@@ -25,7 +25,7 @@
 namespace neb {
 namespace fs {
 
-blockchain::blockchain(storage *db) : m_storage(db) {}
+blockchain::blockchain(class storage *db) : m_storage(db) {}
 blockchain::~blockchain() {}
 
 std::unique_ptr<corepb::Block> blockchain::load_LIB_block() {

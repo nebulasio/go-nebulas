@@ -27,6 +27,7 @@
 #include "fs/storage.h"
 #include "jit/cpp_ir.h"
 #include "runtime/auth/auth_handler.h"
+#include "runtime/auth/auth_table.h"
 #include "util/npr.h"
 #include "util/persistent_flag.h"
 #include "util/persistent_type.h"
@@ -38,9 +39,10 @@ ir_processor::ir_processor(class storage *s, class blockchain *bc)
     : m_storage(s), m_blockchain(bc) {
   m_ir_list = std::make_unique<ir_list>(s);
   m_auth_handler = std::make_unique<rt::auth::auth_handler>(m_ir_list.get());
-  m_failed_flag = std::make_unique<util::persistent_flag>(s);
-  m_nbre_block_height =
-      std::make_unique<util::persistent_type<block_height_t>>(s);
+  m_failed_flag = std::make_unique<util::persistent_flag>(
+      s, configuration::instance().nbre_failed_flag_name());
+  m_nbre_block_height = std::make_unique<util::persistent_type<block_height_t>>(
+      s, configuration::instance().nbre_max_height_name());
 }
 
 optional<nbre::NBREIR>
@@ -113,7 +115,7 @@ std::vector<nbre::NBREIR> ir_processor::get_ir_depends(const nbre::NBREIR &ir) {
 void ir_processor::parse_irs(
     util::wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> &q_txs) {
   block_height_t last_height = m_nbre_block_height->get();
-  while (!q_txs.empy()) {
+  while (!q_txs.empty()) {
     auto ele = q_txs.try_pop_front();
     if (!ele.first) {
       break;

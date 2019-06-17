@@ -19,7 +19,6 @@
 //
 
 #pragma once
-
 #include "core/net_ipc/nipc_pkg.h"
 #include "runtime/nr/graph/algo.h"
 #include "runtime/util.h"

@@ -39,7 +39,7 @@ public:
       : m_storage(storage), m_ir_name(name), m_param_storage(storage){};
 
   virtual bool ir_exist(version_t v) {
-    std::vector<item_type> items = m_param_storage.get_all_items();
+    std::vector<item_type> items = m_param_storage.get_typed_items();
     for (auto &item : items) {
       if (item.template get<p_version>() == v) {
         return true;
@@ -52,12 +52,12 @@ public:
     std::string raw_str = raw_ir.SerializeAsString();
     std::string ir_str = compiled_ir.SerializeAsString();
     item_type it = get_ir_param(compiled_ir);
-    auto raw_key = std::to_string(raw_ir_key(raw_ir.version()));
-    auto ir_key = std::to_string(compiled_ir_key(compiled_ir.version()));
-    m_storage->put(raw_key, raw_str);
-    m_storage->put(ir_key, ir_str);
-    it.template set<p_raw_key>(raw_key);
-    it.template set<p_ir_key>(ir_key);
+    auto raw_key = raw_ir_key(raw_ir.version());
+    auto ir_key = compiled_ir_key(compiled_ir.version());
+    m_storage->put_bytes(raw_key, string_to_byte(raw_str));
+    m_storage->put_bytes(ir_key, string_to_byte(ir_str));
+    it.template set<p_raw_key>(std::to_string(raw_key));
+    it.template set<p_ir_key>(std::to_string(ir_key));
     m_param_storage.append_item(it);
   }
 
@@ -75,17 +75,17 @@ public:
   }
 
   virtual bytes get_ir_brief_key_with_height(block_height_t height) {
-    std::vector<item_type> items = m_param_storage.get_all_items();
+    std::vector<item_type> items = m_param_storage.get_typed_items();
 
     //! Note, sort via start_block or version should be the same.
-    std::sort(items.first(), items.end(),
+    std::sort(items.begin(), items.end(),
               [](const item_type &t1, const item_type &t2) {
                 return t1.template get<p_start_block>() <
                        t2.template get<p_start_block>();
               });
     item_type v;
     v.template set<p_start_block>(height);
-    auto pos = std::lower_bound(items.first(), items.end(), v,
+    auto pos = std::lower_bound(items.begin(), items.end(), v,
                                 [](const item_type &t1, const item_type &t2) {
                                   return t1.template get<p_start_block>() <
                                          t2.template get<p_start_block>();
@@ -95,22 +95,21 @@ public:
       throw std::runtime_error("ir_item_list_base::get_ir_brief_key_with_"
                                "height: cannot find ir at height");
     }
-    return concate_name_version(m_ir_name,
-                                items[pos].template get<p_version>());
+    return concate_name_version(m_ir_name, pos->template get<p_version>());
   }
 
   virtual nbre::NBREIR find_ir_at_height(block_height_t height) {
-    std::vector<item_type> items = m_param_storage.get_all_items();
+    std::vector<item_type> items = m_param_storage.get_typed_items();
 
     //! Note, sort via start_block or version should be the same.
-    std::sort(items.first(), items.end(),
+    std::sort(items.begin(), items.end(),
               [](const item_type &t1, const item_type &t2) {
                 return t1.template get<p_start_block>() <
                        t2.template get<p_start_block>();
               });
     item_type v;
     v.template set<p_start_block>(height);
-    auto pos = std::lower_bound(items.first(), items.end(), v,
+    auto pos = std::lower_bound(items.begin(), items.end(), v,
                                 [](const item_type &t1, const item_type &t2) {
                                   return t1.template get<p_start_block>() <
                                          t2.template get<p_start_block>();
@@ -120,7 +119,7 @@ public:
       throw std::runtime_error(
           "ir_item_list_base::find_ir_at_height: cannot find ir at height");
     }
-    return get_raw_ir(items[pos].template get<p_version>());
+    return get_raw_ir(pos->template get<p_version>());
   }
 
   virtual item_type get_ir_param(const nbre::NBREIR &compiled_ir) = 0;

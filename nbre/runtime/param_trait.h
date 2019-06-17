@@ -34,11 +34,7 @@ public:
     irs.push_back(ir);
 
     std::string key = ir.name() + std::to_string(ir.version()) + "get_param";
-    std::pair<bool, T> ret = jit_driver::instance().run<T>(key, irs, func_name);
-    if (ret.first) {
-      return ret.second;
-    }
-    throw std::runtime_error("cannot get param");
+    return jit_driver::instance().run<T>(key, irs, func_name);
   }
 };
 } // namespace rt

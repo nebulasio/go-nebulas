@@ -20,8 +20,9 @@
 
 #pragma once
 
+#include "common/common.h"
 #include "common/math/softfloat.hpp"
-#include "runtime/nr/impl/nr_handler.h"
+#include "runtime/nr/impl/data_type.h"
 #include "runtime/stdrt.h"
 
 namespace neb {
@@ -29,7 +30,6 @@ namespace rt {
 namespace nr {
 
 using nr_float_t = float32;
-using version_t = compatible_uint64_t;
 
 nr_ret_type entry_point_nr_impl(compatible_uint64_t start_block,
                                 compatible_uint64_t end_block,
