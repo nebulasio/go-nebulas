@@ -21,6 +21,7 @@
 #pragma once
 #include "common/address.h"
 #include "fs/blockchain/data_type.h"
+#include "fs/proto/block.pb.h"
 
 namespace neb {
 namespace fs {

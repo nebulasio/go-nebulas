@@ -23,9 +23,9 @@
 
 namespace neb {
 namespace fs {
-
 class blockchain_api_test : public blockchain_api_base {
 public:
+  blockchain_api_test();
   virtual ~blockchain_api_test();
   virtual std::unique_ptr<std::vector<transaction_info_t>>
   get_block_transactions_api(block_height_t height);

@@ -72,4 +72,8 @@ std::string now() {
   return ret;
 }
 
+bytes concate_name_version(const std::string &name, version_t v) {
+  return number_to_byte<bytes>(v) + name;
+}
+
 } // end namespace neb

@@ -31,9 +31,21 @@ client_context::~client_context() {
 fs::storage *client_context::blockchain_storage() { return m_bc_storage.get(); }
 fs::storage *client_context::nbre_storage() { return m_nbre_storage.get(); }
 
+compatible::compatible_check_interface *client_context::compatible_checker() {
+  return m_compatible_checker.get();
+}
+
+fs::ir_processor *client_context::ir_processor() {
+  return m_ir_processor.get();
+}
+fs::blockchain *client_context::blockchain() { return m_blockchain.get(); }
+
 void client_context::shutdown() {
+  m_ir_processor.reset();
+  m_blockchain.reset();
   m_bc_storage.reset();
   m_nbre_storage.reset();
+  m_compatible_checker.reset();
 }
 
 } // namespace core

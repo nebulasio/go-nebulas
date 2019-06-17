@@ -21,9 +21,6 @@
 #pragma once
 #include "common/common.h"
 #include "core/net_ipc/nipc_pkg.h"
-#include "fs/ir_manager/ir_manager.h"
-#include "fs/proto/ir.pb.h"
-#include "fs/storage.h"
 #include "util/quitable_thread.h"
 #include "util/singleton.h"
 #include <boost/asio.hpp>
@@ -32,17 +29,14 @@
 #include <thread>
 
 namespace neb {
+class execution_context;
 namespace core {
 class ir_warden : public util::singleton<ir_warden> {
 public:
   ir_warden();
   virtual ~ir_warden();
 
-  std::unique_ptr<nbre::NBREIR> get_ir_by_name_version(const std::string &name,
-                                                       uint64_t version);
-  std::unique_ptr<std::vector<nbre::NBREIR>>
-  get_ir_by_name_height(const std::string &name, uint64_t height,
-                        bool depends = true);
+  void init_with_context(execution_context *c);
 
   bool is_sync_already() const;
   void wait_until_sync();
@@ -51,10 +45,7 @@ public:
   void on_receive_ir_transactions(
       const std::shared_ptr<nbre_ir_transactions_req> &txs_ptr);
 
-  inline fs::ir_manager *get_ir_manager() { return m_ir_manager.get(); };
-
 private:
-  std::unique_ptr<fs::ir_manager> m_ir_manager;
   bool m_is_sync_already;
   mutable std::mutex m_sync_mutex;
   std::condition_variable m_sync_cond_var;

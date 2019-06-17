@@ -19,19 +19,47 @@
 //
 #pragma once
 #include "runtime/nr/impl/data_type.h"
+#include "util/db_mem_cache.h"
+#include "util/one_time_calculator.h"
 
 namespace neb {
+namespace fs {
+class storage;
+}
 namespace rt {
 namespace nr {
+namespace internal {
+
+class nr_db_mem_data
+    : public util::db_mem_cache<std::string, std::shared_ptr<nr_result>> {
+public:
+  nr_db_mem_data(fs::storage *db);
+
+  virtual bytes get_key_bytes(const std::string &k);
+  virtual bytes serialize_data_to_bytes(const std::shared_ptr<nr_result> &v);
+  virtual std::shared_ptr<nr_result>
+  deserialize_data_from_bytes(const bytes &data);
+};
+} // namespace internal
+
 class nebulas_rank_cache {
 public:
   typedef std::function<std::shared_ptr<nr_result>()> nr_function_t;
+
+  nebulas_rank_cache(fs::storage *s);
 
   virtual nr_ret_type get_nr_score(const nr_function_t &func,
                                    block_height_t start_block,
                                    block_height_t end_block, uint64_t version);
 
   virtual nr_ret_type get_nr_score(const std::string &handle);
+
+protected:
+  fs::storage *m_storage;
+  typedef util::one_time_calculator<std::string, nr_ret_type,
+                                    internal::nr_db_mem_data>
+      calculator_t;
+  std::unique_ptr<calculator_t> m_calculator;
 };
 } // namespace nr
 } // namespace rt

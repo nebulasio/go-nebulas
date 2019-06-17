@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
+#include "common/byte.h"
 #include "common/common.h"
 #include "core/net_ipc/nipc_pkg.h"
 #include "fs/proto/block.pb.h"
@@ -37,12 +38,17 @@ class auth_handler;
 namespace fs {
 class ir_list;
 class storage;
+class blockchain;
 class ir_processor {
 public:
-  ir_processor(storage *s);
+  ir_processor(storage *s, blockchain *bc);
 
   virtual optional<nbre::NBREIR> get_ir_with_version(const std::string &name,
                                                      version_t v);
+
+  virtual optional<bytes> get_ir_brief_key_with_height(const std::string &name,
+                                                       block_height_t h);
+
   virtual optional<nbre::NBREIR> get_ir_with_height(const std::string &name,
                                                     block_height_t h);
 
@@ -51,6 +57,11 @@ public:
 
   virtual void parse_irs(
       util::wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> &q_txs);
+
+  inline storage *storage() { return m_storage; }
+  inline blockchain *blockchain() {
+    return m_blockchain;
+  }
 
 protected:
   virtual void parse_missed_blocks_between(block_height_t start_block,
@@ -69,7 +80,8 @@ protected:
   virtual nbre::NBREIR compile_payload_code(const nbre::NBREIR &raw_ir);
 
 protected:
-  storage *m_storage;
+  class storage *m_storage;
+  class blockchain *m_blockchain;
   std::unique_ptr<ir_list> m_ir_list;
   std::unique_ptr<rt::auth::auth_handler> m_auth_handler;
   std::unique_ptr<util::persistent_flag> m_failed_flag;

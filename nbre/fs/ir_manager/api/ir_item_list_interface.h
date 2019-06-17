@@ -18,8 +18,10 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
+#include "common/byte.h"
 #include "common/common.h"
 #include "fs/proto/ir.pb.h"
+
 namespace neb {
 namespace fs {
 namespace internal {
@@ -32,6 +34,7 @@ public:
 
   virtual nbre::NBREIR get_raw_ir(version_t v) = 0;
   virtual nbre::NBREIR get_ir(version_t v) = 0;
+  virtual bytes get_ir_brief_key_with_height(block_height_t height) = 0;
   virtual nbre::NBREIR find_ir_at_height(block_height_t height) = 0;
 };
 } // namespace internal

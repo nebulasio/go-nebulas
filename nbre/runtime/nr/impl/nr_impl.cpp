@@ -23,7 +23,13 @@
 #include "common/configuration.h"
 #include "common/int128_conversion.h"
 #include "common/nebulas_currency.h"
+#include "core/execution_context.h"
 #include "fs/blockchain/blockchain_api_test.h"
+#include "runtime/nr/impl/general_nebulas_rank.h"
+#include "runtime/nr/impl/nebulas_rank_algo.h"
+#include "runtime/nr/impl/nebulas_rank_cache.h"
+#include "runtime/nr/impl/nebulas_rank_calculator.h"
+#include "runtime/nr/impl/nr_handler.h"
 
 namespace neb {
 namespace rt {
@@ -42,7 +48,7 @@ nr_ret_type entry_point_nr_impl(compatible_uint64_t start_block,
         new neb::fs::blockchain_api_test());
   } else {
     pba = std::unique_ptr<neb::fs::blockchain_api_base>(
-        new neb::fs::blockchain_api());
+        new neb::fs::blockchain_api(core::context->blockchain()));
   }
   auto tdb_ptr = std::make_unique<neb::fs::transaction_db>(pba.get());
   auto adb_ptr = std::make_unique<neb::fs::account_db>(pba.get());

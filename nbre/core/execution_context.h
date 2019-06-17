@@ -23,6 +23,11 @@
 namespace neb {
 namespace fs {
 class storage;
+class ir_processor;
+class blockchain;
+}
+namespace compatible {
+class compatible_check_interface;
 }
 namespace core {
 class execution_context {
@@ -31,6 +36,10 @@ public:
   virtual ~execution_context();
   virtual fs::storage *blockchain_storage() = 0;
   virtual fs::storage *nbre_storage() = 0;
+  virtual compatible::compatible_check_interface *compatible_checker() = 0;
+  virtual fs::ir_processor *ir_processor() = 0;
+  virtual fs::blockchain *blockchain() = 0;
+
   virtual void shutdown() = 0;
 
   virtual bool is_ready() const;

@@ -19,32 +19,31 @@
 //
 
 #pragma once
-#include "common/address.h"
 #include "common/common.h"
-#include "fs/proto/block.pb.h"
+#include "runtime/dip/data_type.h"
+#include "runtime/nr/impl/data_type.h"
 
 namespace neb {
-namespace fs {
-
-class storage;
-class blockchain {
+namespace compatible {
+class version_check_interface {
 public:
-  static constexpr char const *Block_LIB = "blockchain_lib";
-  static constexpr char const *Block_Tail = "blockchain_tail";
-  blockchain(storage *db);
-  virtual ~blockchain();
+  virtual ~version_check_interface();
 
-  std::unique_ptr<corepb::Block> load_LIB_block();
-  std::unique_ptr<corepb::Block> load_block_with_height(block_height_t height);
+  virtual bool is_ir_need_compile(const std::string &module_name,
+                                  version_t version) = 0;
 
-  void write_LIB_block(corepb::Block *block);
+  virtual bool is_compatible_for(const std::string module_name,
+                                 version_t v) = 0;
 
-  virtual storage *storage();
+  virtual optional<rt::nr::nr_ret_type>
+  get_nr_result(block_height_t start_block, block_height_t end_block,
+                uint64_t version) = 0;
 
-protected:
-  class storage *m_storage;
-  std::unique_ptr<corepb::Block>
-  load_block_with_tag_string(const std::string &tag);
-}; // end class blockchain
-} // end namespace fs
-} // end namespace neb
+  virtual optional<rt::dip::dip_ret_type>
+  get_dip_result(block_height_t start_block, block_height_t end_block,
+                 uint64_t version) = 0;
+
+  virtual version_t rt_version() const = 0;
+};
+} // namespace compatible
+} // namespace neb

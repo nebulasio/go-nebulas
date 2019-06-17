@@ -19,6 +19,7 @@
 //
 #include "compatible/db_checker.h"
 #include "core/execution_context.h"
+#include "fs/storage.h"
 #include "runtime/version.h"
 
 namespace neb {

@@ -19,7 +19,8 @@
 //
 #include "fs/ir_manager/ir_processor.h"
 #include "common/configuration.h"
-#include "compatible/compatible_checker.h"
+#include "compatible/compatible_check_interface.h"
+#include "core/execution_context.h"
 #include "core/net_ipc/nipc_pkg.h"
 #include "fs/blockchain.h"
 #include "fs/ir_manager/api/ir_list.h"
@@ -33,7 +34,8 @@
 
 namespace neb {
 namespace fs {
-ir_processor::ir_processor(storage *s) : m_storage(s) {
+ir_processor::ir_processor(class storage *s, class blockchain *bc)
+    : m_storage(s), m_blockchain(bc) {
   m_ir_list = std::make_unique<ir_list>(s);
   m_auth_handler = std::make_unique<rt::auth::auth_handler>(m_ir_list.get());
   m_failed_flag = std::make_unique<util::persistent_flag>(s);
@@ -49,6 +51,17 @@ ir_processor::get_ir_with_version(const std::string &name, version_t v) {
     return none;
   }
 }
+
+optional<bytes>
+ir_processor::get_ir_brief_key_with_height(const std::string &name,
+                                           block_height_t h) {
+  try {
+    return m_ir_list->get_ir_brief_key_with_height(name, h);
+  } catch (...) {
+    return none;
+  }
+}
+
 optional<nbre::NBREIR> ir_processor::get_ir_with_height(const std::string &name,
                                                         block_height_t h) {
   try {
@@ -82,6 +95,8 @@ std::vector<nbre::NBREIR> ir_processor::get_ir_depends(const nbre::NBREIR &ir) {
     visited.insert(key);
     optional<nbre::NBREIR> dir = get_ir_with_version(d.name(), d.version());
     if (dir == none) {
+      LOG(WARNING) << "cannot get ir with name: " << d.name() << ", "
+                   << d.version();
       return std::vector<nbre::NBREIR>();
     }
     if (dir->ir_type() != ir_type::llvm) {
@@ -122,7 +137,7 @@ void ir_processor::parse_missed_blocks_between(block_height_t start_height,
   std::string ir_tx_type = neb::configuration::instance().ir_tx_payload_type();
 
   for (block_height_t h = start_height; h < end_height; h++) {
-    auto block = blockchain::load_block_with_height(h);
+    auto block = m_blockchain->load_block_with_height(h);
     std::vector<corepb::Transaction> txs;
 
     for (auto &tx : block->transactions()) {
@@ -226,8 +241,9 @@ nbre::NBREIR ir_processor::compile_payload_code(const nbre::NBREIR &raw_ir) {
     ss << raw_ir.name();
     ss << raw_ir.version();
     //! For compatible reason, we may ignore this.
-    compatible::compatible_checker cc;
-    bool need_compile = cc.is_ir_need_compile(raw_ir.name(), raw_ir.version());
+    compatible::compatible_check_interface *cc =
+        core::context->compatible_checker();
+    bool need_compile = cc->is_ir_need_compile(raw_ir.name(), raw_ir.version());
     if (!need_compile) {
       return nbre_ir;
     }

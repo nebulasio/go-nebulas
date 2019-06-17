@@ -23,6 +23,7 @@
 #include "fs/ir_manager/api/ir_item_list_interface.h"
 #include "fs/proto/ir.pb.h"
 #include "fs/storage.h"
+#include "fs/util.h"
 
 namespace neb {
 namespace fs {
@@ -72,6 +73,32 @@ public:
     ir.ParseFromArray(bs.value(), bs.size());
     return ir;
   }
+
+  virtual bytes get_ir_brief_key_with_height(block_height_t height) {
+    std::vector<item_type> items = m_param_storage.get_all_items();
+
+    //! Note, sort via start_block or version should be the same.
+    std::sort(items.first(), items.end(),
+              [](const item_type &t1, const item_type &t2) {
+                return t1.template get<p_start_block>() <
+                       t2.template get<p_start_block>();
+              });
+    item_type v;
+    v.template set<p_start_block>(height);
+    auto pos = std::lower_bound(items.first(), items.end(), v,
+                                [](const item_type &t1, const item_type &t2) {
+                                  return t1.template get<p_start_block>() <
+                                         t2.template get<p_start_block>();
+                                });
+    if (pos == items.end()) {
+      LOG(ERROR) << "cannot find ir at height " << height;
+      throw std::runtime_error("ir_item_list_base::get_ir_brief_key_with_"
+                               "height: cannot find ir at height");
+    }
+    return concate_name_version(m_ir_name,
+                                items[pos].template get<p_version>());
+  }
+
   virtual nbre::NBREIR find_ir_at_height(block_height_t height) {
     std::vector<item_type> items = m_param_storage.get_all_items();
 

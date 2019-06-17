@@ -29,21 +29,25 @@ class compatible_check_interface {
 public:
   virtual ~compatible_check_interface();
 
-  virtual bool is_ir_need_compile(const std::string &module_name,
-                                  version_t version) = 0;
+  virtual void init() = 0;
 
-  virtual bool is_compatible_for(const std::string module_name,
-                                 version_t v) = 0;
+  virtual bool is_ir_need_compile(const std::string &name,
+                                  uint64_t version) = 0;
 
   virtual optional<rt::nr::nr_ret_type>
-  get_nr_result(block_height_t start_block, block_height_t end_block,
-                uint64_t version) = 0;
+  get_nr_result(const std::string &handle) = 0;
+
+  virtual optional<floatxx_t> get_nr_sum(const std::string &handle);
+
+  virtual optional<std::vector<address_t>>
+  get_nr_addr_list(const std::string &handle) = 0;
 
   virtual optional<rt::dip::dip_ret_type>
-  get_dip_result(block_height_t start_block, block_height_t end_block,
-                 uint64_t version) = 0;
+  get_dip_result(const std::string &handle) = 0;
 
-  virtual version_t rt_version() const = 0;
+  virtual optional<std::string> get_nr_handle(block_height_t height) = 0;
+
+  virtual optional<std::string> get_dip_handle(block_height_t height) = 0;
 };
 } // namespace compatible
 } // namespace neb

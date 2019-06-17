@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
+#include "common/byte.h"
 #include "fs/ir_manager/api/ir_item_list_interface.h"
 
 namespace neb {
@@ -35,10 +36,11 @@ public:
   virtual nbre::NBREIR get_raw_ir(const std::string &ir_name, version_t v);
   virtual nbre::NBREIR get_ir(const std::string &ir_name, version_t v);
 
+  virtual bytes get_ir_brief_key_with_height(const std::string &ir_name,
+                                             block_height_t height);
+
   virtual nbre::NBREIR find_ir_at_height(const std::string &ir_name,
                                          block_height_t height);
-
-  virtual std::vector<nbre::NBREIR> get_all_depends_ir(const nbre::NBREIR &ir);
 
   inline storage *storage() const { return m_storage; }
 

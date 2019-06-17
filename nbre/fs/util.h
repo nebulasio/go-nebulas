@@ -19,6 +19,7 @@
 //
 
 #pragma once
+#include "common/byte.h"
 #include "common/common.h"
 
 namespace neb {
@@ -36,6 +37,8 @@ std::string get_user_name();
 } // end namespace fs
 
 std::string now();
+
+bytes concate_name_version(const std::string &name, version_t v);
 
 } // end namespace neb
 

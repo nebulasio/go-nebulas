@@ -20,8 +20,7 @@
 #pragma once
 #include "common/byte.h"
 #include "common/common.h"
-#include "fs/rocksdb_storage.h"
-#include "fs/storage_holder_interface.h"
+#include "fs/storage.h"
 #include "util/lru_cache.h"
 
 namespace neb {
@@ -31,9 +30,13 @@ public:
   typedef KT key_type;
   typedef DT data_type;
 
+  db_mem_cache(fs::storage *storage) : m_storage(storage) {}
+
+  fs::storage *storage() const { return m_storage; }
+
   void set(const key_type &k, const data_type &v) {
     m_mem_data.set(k, v);
-    fs::nbre_db_ptr()->put_bytes(get_key_bytes(k), serialize_data_to_bytes(v));
+    m_storage->put_bytes(get_key_bytes(k), serialize_data_to_bytes(v));
   }
 
   bool get(const key_type &k, data_type &v) {
@@ -42,7 +45,7 @@ public:
       return true;
     }
     try {
-      bytes data = fs::nbre_db_ptr()->get_bytes(get_key_bytes(k));
+      bytes data = m_storage->get_bytes(get_key_bytes(k));
       v = deserialize_data_from_bytes(data);
       return true;
     } catch (...) {
@@ -58,6 +61,7 @@ public:
   virtual data_type deserialize_data_from_bytes(const bytes &data) = 0;
 
 protected:
+  fs::storage *m_storage;
   lru_cache<key_type, data_type> m_mem_data;
 };
 } // namespace util

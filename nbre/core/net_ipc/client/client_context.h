@@ -27,11 +27,17 @@ class client_context : public execution_context {
 public:
   std::unique_ptr<fs::storage> m_bc_storage;
   std::unique_ptr<fs::storage> m_nbre_storage;
+  std::unique_ptr<compatible::compatible_check_interface> m_compatible_checker;
+  std::unique_ptr<fs::ir_processor> m_ir_processor;
+  std::unique_ptr<fs::blockchain> m_blockchain;
 
   client_context();
   virtual ~client_context();
   virtual fs::storage *blockchain_storage();
   virtual fs::storage *nbre_storage();
+  virtual compatible::compatible_check_interface *compatible_checker();
+  virtual fs::ir_processor *ir_processor();
+  virtual fs::blockchain *blockchain();
   virtual void shutdown();
 };
 } // namespace core

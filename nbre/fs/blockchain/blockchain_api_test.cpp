@@ -25,6 +25,8 @@
 namespace neb {
 namespace fs {
 
+blockchain_api_test::blockchain_api_test() : blockchain_api_base(nullptr) {}
+
 blockchain_api_test::~blockchain_api_test() {}
 
 std::unique_ptr<std::vector<transaction_info_t>>

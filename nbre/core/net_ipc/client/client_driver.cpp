@@ -20,6 +20,7 @@
 #include "core/net_ipc/client/client_driver.h"
 #include "common/address.h"
 #include "common/configuration.h"
+#include "compatible/compatible_checker.h"
 #include "compatible/db_checker.h"
 #include "core/ir_warden.h"
 #include "core/net_ipc/client/client_context.h"
@@ -169,6 +170,16 @@ void client_driver_base::init_nbre() {
   m_context->m_nbre_storage = std::make_unique<fs::rocksdb_storage>();
   m_context->m_nbre_storage->open_database(
       configuration::instance().nbre_db_dir(), fs::storage_open_for_readwrite);
+
+  m_context->m_blockchain =
+      std::make_unique<fs::blockchain>(m_context->blockchain_storage());
+
+  m_context->m_ir_processor = std::make_unique<fs::ir_processor>(
+      m_context->nbre_storage(), m_context->blockchain());
+
+  m_context->m_compatible_checker =
+      std::make_unique<compatible::compatible_checker>();
+  m_context->m_compatible_checker->init();
 
   m_context->set_ready();
 

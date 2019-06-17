@@ -38,6 +38,9 @@ public:
   typedef CacheType cache_type;
   typedef std::function<data_type()> calculator_t;
 
+  template <typename... Args>
+  one_time_calculator(Args... args) : m_cached_result(args...) {}
+
   virtual bool get_cached_or_ignore(const key_type &key, DT &v) {
     m_running_mutex.lock();
     bool status = m_cached_result.get(key, v);

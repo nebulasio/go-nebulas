@@ -17,34 +17,15 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
-#pragma once
-#include "common/address.h"
-#include "common/common.h"
-#include "fs/proto/block.pb.h"
+#include "compatible/version_check_base.h"
 
 namespace neb {
-namespace fs {
+namespace compatible {
+version_check_interface::~version_check_interface {}
 
-class storage;
-class blockchain {
-public:
-  static constexpr char const *Block_LIB = "blockchain_lib";
-  static constexpr char const *Block_Tail = "blockchain_tail";
-  blockchain(storage *db);
-  virtual ~blockchain();
+version_check_base::~version_check_base() {}
+version_check_base::version_check_base(version_t v) : m_version(v) {}
 
-  std::unique_ptr<corepb::Block> load_LIB_block();
-  std::unique_ptr<corepb::Block> load_block_with_height(block_height_t height);
-
-  void write_LIB_block(corepb::Block *block);
-
-  virtual storage *storage();
-
-protected:
-  class storage *m_storage;
-  std::unique_ptr<corepb::Block>
-  load_block_with_tag_string(const std::string &tag);
-}; // end class blockchain
-} // end namespace fs
-} // end namespace neb
+version_t version_check_base::rt_version() const { return m_version; }
+} // namespace compatible
+} // namespace neb

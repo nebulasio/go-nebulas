@@ -18,37 +18,36 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "runtime/nr/impl/nebulas_rank_cache.h"
-#include "fs/storage_holder_interface.h"
 #include "util/db_mem_cache.h"
 #include "util/lru_cache.h"
 #include "util/one_time_calculator.h"
-#include "util/singleton.h"
 
 namespace neb {
 namespace rt {
 namespace nr {
-class nr_db_mem_data
-    : public util::db_mem_cache<std::string, std::shared_ptr<nr_result>> {
-public:
-  virtual bytes get_key_bytes(const std::string &k) {
-    return string_to_byte(std::string("cache_nr_") + k);
-  }
-  virtual bytes serialize_data_to_bytes(const std::shared_ptr<nr_result> &v) {
-    return string_to_byte(v->serialize_to_string());
-  }
-  virtual std::shared_ptr<nr_result>
-  deserialize_data_from_bytes(const bytes &data) {
-    std::shared_ptr<nr_result> v = std::make_shared<nr_result>();
-    auto str_data = byte_to_string(data);
-    v->deserialize_from_string(str_data);
-    return v;
-  }
+namespace internal {
+nr_db_mem_data::nr_db_mem_data(fs::storage *db)
+    : util::db_mem_cache<std::string, std::shared_ptr<nr_result>>(db) {}
+
+bytes nr_db_mem_data::get_key_bytes(const std::string &k) {
+  return string_to_byte(std::string("cache_nr_") + k);
+}
+bytes nr_db_mem_data::serialize_data_to_bytes(
+    const std::shared_ptr<nr_result> &v) {
+  return string_to_byte(v->serialize_to_string());
+}
+std::shared_ptr<nr_result>
+nr_db_mem_data::deserialize_data_from_bytes(const bytes &data) {
+  std::shared_ptr<nr_result> v = std::make_shared<nr_result>();
+  auto str_data = byte_to_string(data);
+  v->deserialize_from_string(str_data);
+  return v;
+}
 };
 
-class nebulas_rank_cache_instance
-    : public util::singleton<nebulas_rank_cache_instance>,
-      public util::one_time_calculator<std::string, nr_ret_type,
-                                       nr_db_mem_data> {};
+nebulas_rank_cache::nebulas_rank_cache(fs::storage *s) : m_storage(s) {
+  m_calculator = std::make_unique<calculator_t>(s);
+}
 
 nr_ret_type nebulas_rank_cache::get_nr_score(const nr_function_t &func,
                                              block_height_t start_block,
@@ -57,8 +56,8 @@ nr_ret_type nebulas_rank_cache::get_nr_score(const nr_function_t &func,
 
   nr_ret_type result;
   std::string key = param_to_key(start_block, end_block, version);
-  bool status = nebulas_rank_cache_instance::instance()
-                    .get_cached_or_cal_if_not_or_ignore(key, result, func);
+  bool status =
+      m_calculator->get_cached_or_cal_if_not_or_ignore(key, result, func);
   if (!status) {
     result->set<p_result_status>(core::result_status::is_running);
   }
@@ -67,8 +66,7 @@ nr_ret_type nebulas_rank_cache::get_nr_score(const nr_function_t &func,
 
 nr_ret_type nebulas_rank_cache::get_nr_score(const std::string &handle) {
   nr_ret_type result;
-  bool status = nebulas_rank_cache_instance::instance().get_cached_or_ignore(
-      handle, result);
+  bool status = m_calculator->get_cached_or_ignore(handle, result);
   if (!status) {
     result->set<p_result_status>(core::result_status::no_cached);
   }
