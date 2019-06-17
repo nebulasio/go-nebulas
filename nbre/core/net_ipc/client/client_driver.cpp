@@ -29,8 +29,9 @@
 #include "fs/rocksdb_session_storage.h"
 #include "fs/storage_holder.h"
 #include "jit/jit_driver.h"
+#if 0
 #include "runtime/dip/dip_handler.h"
-#include "runtime/nr/impl/nr_handler.h"
+#endif
 #include "runtime/util.h"
 #include "runtime/version.h"
 #include <boost/filesystem.hpp>
@@ -40,166 +41,9 @@
 
 namespace neb {
 namespace core {
-namespace internal {
-
-client_driver_base::client_driver_base() : m_exit_flag(false) {}
-client_driver_base::~client_driver_base() {
-  LOG(INFO) << "to destroy client driver base";
-  if (m_timer_thread) {
-    m_timer_thread->join();
-  }
-}
-
-bool client_driver_base::init() {
-
-  m_context = (client_context *)context.get();
-
-  ff::initialize(4);
-  m_client = std::unique_ptr<nipc_client>(new nipc_client());
-  LOG(INFO) << "ipc client construct";
-  add_handlers();
-
-  //! we should make share wait_until_sync first
-
-  bool ret = m_client->start();
-  if (!ret)
-    return ret;
-
-  m_ipc_conn = m_client->connection();
-
-  auto p = std::make_shared<nbre_init_req>();
-
-  LOG(INFO) << "to send nbre_init_req";
-  m_ipc_conn->send(p);
-
-  return true;
-}
-
-void client_driver_base::run() {
-  neb::core::command_queue::instance().listen_command<neb::core::exit_command>(
-      this, [this](const std::shared_ptr<neb::core::exit_command> &) {
-        m_exit_flag = true;
-      });
-  neb::exception_queue &eq = neb::exception_queue::instance();
-  while (!m_exit_flag) {
-    std::shared_ptr<neb::neb_exception> ep = eq.pop_front();
-    handle_exception(ep);
-  }
-}
-
-void client_driver_base::handle_exception(
-    const std::shared_ptr<neb::neb_exception> &p) {
-
-  switch (p->type()) {
-    LOG(ERROR) << p->what();
-  case neb_exception::neb_std_exception:
-    neb::core::command_queue::instance().send_command(
-        std::make_shared<neb::core::exit_command>());
-    break;
-  case neb_exception::neb_shm_queue_failure:
-    neb::core::command_queue::instance().send_command(
-        std::make_shared<neb::core::exit_command>());
-    break;
-  case neb_exception::neb_shm_service_failure:
-    neb::core::command_queue::instance().send_command(
-        std::make_shared<neb::core::exit_command>());
-    break;
-  case neb_exception::neb_shm_session_already_start:
-    neb::core::command_queue::instance().send_command(
-        std::make_shared<neb::core::exit_command>());
-    break;
-  case neb_exception::neb_shm_session_timeout:
-    neb::core::command_queue::instance().send_command(
-        std::make_shared<neb::core::exit_command>());
-    break;
-  case neb_exception::neb_shm_session_failure:
-    neb::core::command_queue::instance().send_command(
-        std::make_shared<neb::core::exit_command>());
-    break;
-  case neb_exception::neb_configure_general_failure:
-    neb::core::command_queue::instance().send_command(
-        std::make_shared<neb::core::exit_command>());
-    break;
-  case neb_exception::neb_json_general_failure:
-    neb::core::command_queue::instance().send_command(
-        std::make_shared<neb::core::exit_command>());
-    break;
-  case neb_exception::neb_storage_exception_no_such_key:
-    neb::core::command_queue::instance().send_command(
-        std::make_shared<neb::core::exit_command>());
-    break;
-  case neb_exception::neb_storage_exception_no_init:
-    neb::core::command_queue::instance().send_command(
-        std::make_shared<neb::core::exit_command>());
-    break;
-  case neb_exception::neb_storage_general_failure:
-    neb::core::command_queue::instance().send_command(
-        std::make_shared<neb::core::exit_command>());
-    break;
-  default:
-    break;
-  }
-}
-
-void client_driver_base::init_timer_thread() {
-  if (m_timer_thread) {
-    return;
-  }
-  m_timer_thread = std::unique_ptr<std::thread>(new std::thread([this]() {
-    boost::asio::io_service io_service;
-
-    m_timer_loop =
-        std::unique_ptr<util::timer_loop>(new util::timer_loop(&io_service));
-    m_timer_loop->register_timer_and_callback(
-        neb::configuration::instance().ir_warden_time_interval(),
-        []() { ir_warden::instance().on_timer(); });
-
-    m_timer_loop->register_timer_and_callback(
-        1, []() { jit_driver::instance().timer_callback(); });
-
-    io_service.run();
-  }));
-}
-
-void client_driver_base::init_nbre() {
-
-  m_context->m_bc_storage = std::make_unique<fs::rocksdb_session_storage>();
-  m_context->m_bc_storage->init(configuration::instance().neb_db_dir(),
-                                fs::storage_open_for_readonly);
-
-  m_context->m_nbre_storage = std::make_unique<fs::rocksdb_storage>();
-  m_context->m_nbre_storage->open_database(
-      configuration::instance().nbre_db_dir(), fs::storage_open_for_readwrite);
-
-  m_context->m_blockchain =
-      std::make_unique<fs::blockchain>(m_context->blockchain_storage());
-
-  m_context->m_ir_processor = std::make_unique<fs::ir_processor>(
-      m_context->nbre_storage(), m_context->blockchain());
-
-  m_context->m_compatible_checker =
-      std::make_unique<compatible::compatible_checker>();
-  m_context->m_compatible_checker->init();
-
-  m_context->set_ready();
-
-  auto *rs = m_context->m_nbre_storage.get();
-
-  compatible::db_checker dc;
-  dc.update_db_if_needed();
-
-  neb::block_height_t height = 1;
-  try {
-    auto tmp = rs->get(neb::configuration::instance().nbre_max_height_name());
-    height = neb::byte_to_number<neb::block_height_t>(tmp);
-  } catch (const std::exception &e) {
-  }
-  LOG(INFO) << "init dip params with height " << height;
-  neb::rt::dip::dip_handler::instance().check_dip_params(height);
-}
-} // end namespace internal
 
 client_driver::client_driver() : internal::client_driver_base() {}
+
 client_driver::~client_driver() { LOG(INFO) << "to destroy client driver"; }
 
 void client_driver::add_handlers() {
@@ -311,6 +155,18 @@ void client_driver::add_handlers() {
         }
       });
 
+  m_client->add_handler<nbre_ir_transactions_req>(
+      [this](std::shared_ptr<nbre_ir_transactions_req> req) {
+        try {
+          ir_warden::instance().on_receive_ir_transactions(req);
+        } catch (const std::exception &e) {
+          LOG(ERROR) << "got exception " << typeid(e).name()
+                     << " with what: " << e.what();
+        }
+      });
+}
+
+void client_driver::add_nr_handlers() {
   m_client->add_handler<nbre_nr_handle_req>(
       [this](std::shared_ptr<nbre_nr_handle_req> req) {
         LOG(INFO) << "recv nbre_nr_handle_req";
@@ -323,8 +179,7 @@ void client_driver::add_handlers() {
 
           auto ack = new_ack_pkg<nbre_nr_handle_ack>(req);
           ack->set<p_nr_handle>(handle);
-          neb::rt::nr::nr_handler::instance().start(start_block, end_block,
-                                                    nr_version);
+          m_nr_handler->start(start_block, end_block, nr_version);
           m_ipc_conn->send(ack);
 
         } catch (const std::exception &e) {
@@ -339,8 +194,7 @@ void client_driver::add_handlers() {
         try {
           auto ack = new_ack_pkg<nbre_nr_result_by_handle_ack>(req);
           std::string nr_handle = req->get<p_nr_handle>();
-          auto nr_ret =
-              neb::rt::nr::nr_handler::instance().get_nr_result(nr_handle);
+          auto nr_ret = m_nr_handler->get_nr_result(nr_handle);
           if (!std::get<0>(nr_ret)) {
             ack->set<p_nr_result>("");
             m_ipc_conn->send(ack);
@@ -355,7 +209,7 @@ void client_driver::add_handlers() {
                      << " with what: " << e.what();
         }
       });
-
+#if 0
   m_client->add_handler<nbre_nr_result_by_height_req>(
       [this](std::shared_ptr<nbre_nr_result_by_height_req> req) {
         LOG(INFO) << "recv nbre_nr_result_by_height_req";
@@ -389,7 +243,11 @@ void client_driver::add_handlers() {
                      << " with what: " << e.what();
         }
       });
+#endif
+}
 
+void client_driver::add_dip_handlers() {
+#if 0
   m_client->add_handler<nbre_dip_reward_req>(
       [this](std::shared_ptr<nbre_dip_reward_req> req) {
         LOG(INFO) << "recv nbre_dip_reward_req";
@@ -405,16 +263,7 @@ void client_driver::add_handlers() {
                      << " with what: " << e.what();
         }
       });
-
-  m_client->add_handler<nbre_ir_transactions_req>(
-      [this](std::shared_ptr<nbre_ir_transactions_req> req) {
-        try {
-          ir_warden::instance().on_receive_ir_transactions(req);
-        } catch (const std::exception &e) {
-          LOG(ERROR) << "got exception " << typeid(e).name()
-                     << " with what: " << e.what();
-        }
-      });
+#endif
 }
 } // namespace core
 } // namespace neb

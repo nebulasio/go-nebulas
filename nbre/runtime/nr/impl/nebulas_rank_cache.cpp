@@ -72,6 +72,8 @@ nr_ret_type nebulas_rank_cache::get_nr_score(const std::string &handle) {
   }
   return result;
 }
+
+std::shared_ptr<nebulas_rank_cache> nr_cache;
 } // namespace nr
 
 } // namespace rt

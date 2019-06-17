@@ -29,7 +29,6 @@
 #include "runtime/nr/impl/nebulas_rank_algo.h"
 #include "runtime/nr/impl/nebulas_rank_cache.h"
 #include "runtime/nr/impl/nebulas_rank_calculator.h"
-#include "runtime/nr/impl/nr_handler.h"
 
 namespace neb {
 namespace rt {
@@ -53,22 +52,21 @@ nr_ret_type entry_point_nr_impl(compatible_uint64_t start_block,
   auto tdb_ptr = std::make_unique<neb::fs::transaction_db>(pba.get());
   auto adb_ptr = std::make_unique<neb::fs::account_db>(pba.get());
 
-  LOG(INFO) << "start block: " << start_block << " , end block: " << end_block;
-  neb::rt::nr::rank_params_t rp{a, b, c, d, theta, mu, lambda};
+  auto nra_ptr = std::make_unique<nebulas_rank_algo>();
+  auto nrc_ptr = std::make_unique<nebulas_rank_calculator>(
+      nra_ptr.get(), tdb_ptr.get(), adb_ptr.get());
 
-  std::vector<std::pair<std::string, std::string>> meta_info;
-  meta_info.push_back(
-      std::make_pair("start_height", std::to_string(start_block)));
-  meta_info.push_back(std::make_pair("end_height", std::to_string(end_block)));
-  meta_info.push_back(std::make_pair("version", std::to_string(version)));
-
-  nr_ret_type ret;
-  ret->set<p_start_block, p_end_block, p_nr_version>(start_block, end_block,
-                                                     version);
-  ret->set<p_nr_items>(
-      nebulas_rank::get_nr_score(tdb_ptr, adb_ptr, rp, start_block, end_block));
-  ret->set<p_result_status>(core::result_status::succ);
-  return ret;
+  auto gnr_ptr =
+      std::make_unique<general_nebulas_rank>(nra_ptr.get(), nr_cache.get());
+  rank_params_t rp;
+  rp.m_a = a;
+  rp.m_b = b;
+  rp.m_c = c;
+  rp.m_d = d;
+  rp.m_theta = theta;
+  rp.m_mu = mu;
+  rp.m_lambda = lambda;
+  return gnr_ptr->get_nr_score(rp, start_block, end_block, version);
 }
 
 } // namespace nr

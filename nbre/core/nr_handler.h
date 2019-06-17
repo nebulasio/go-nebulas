@@ -27,8 +27,7 @@
 #include "util/singleton.h"
 
 namespace neb {
-namespace rt {
-namespace nr {
+namespace core {
 
 class nr_handler : public util::singleton<nr_handler> {
 public:
@@ -42,7 +41,7 @@ public:
 
   std::string get_nr_handle(block_height_t height);
 
-  nr_ret_type get_nr_result(const std::string &nr_handle);
+  rt::nr::nr_ret_type get_nr_result(const std::string &nr_handle);
 
   bool get_nr_sum(floatxx_t &nr_sum, const std::string &handle);
   bool get_nr_addr_list(std::vector<address_t> &nr_addrs,
@@ -55,9 +54,6 @@ public:
                       uint64_t nr_version, const std::string &nr_handle);
 */
 protected:
-  nebulas_rank_cache m_cache;
-  compatible::compatible_checker m_checker;
 };
-} // namespace nr
-} // namespace rt
+} // namespace core
 } // namespace neb

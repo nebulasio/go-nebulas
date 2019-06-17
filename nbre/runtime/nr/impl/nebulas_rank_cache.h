@@ -61,6 +61,7 @@ protected:
       calculator_t;
   std::unique_ptr<calculator_t> m_calculator;
 };
+extern std::shared_ptr<nebulas_rank_cache> nr_cache;
 } // namespace nr
 } // namespace rt
 } // namespace neb
