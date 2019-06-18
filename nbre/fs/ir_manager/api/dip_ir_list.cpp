@@ -27,7 +27,8 @@ namespace fs {
 dip_ir_list::dip_ir_list(storage *storage)
     : internal::ir_item_list_base<dip_params_storage_t>(storage, "dip") {}
 
-dip_ir_list::item_type get_ir_param(const nbre::NBREIR &compiled_ir) {
+dip_ir_list::item_type
+dip_ir_list::get_ir_param(const nbre::NBREIR &compiled_ir) {
   rt::dip::dip_param_t param = rt::param_trait::get_param<rt::dip::dip_param_t>(
       compiled_ir, configuration::instance().dip_param_func_name());
 

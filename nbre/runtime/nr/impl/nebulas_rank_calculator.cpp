@@ -44,16 +44,14 @@ nebulas_rank_calculator::get_nr_score(const rank_params_t &rp,
   auto txs_ptr = m_tdb_ptr->read_transactions_from_db_with_duration(start_block,
                                                                     end_block);
   LOG(INFO) << "raw tx size: " << txs_ptr->size();
-  auto inter_txs_ptr = fs::algo::read_transactions_with_address_type(
+  auto inter_txs = fs::algo::read_transactions_with_address_type(
       *txs_ptr, NAS_ADDRESS_ACCOUNT_MAGIC_NUM, NAS_ADDRESS_ACCOUNT_MAGIC_NUM);
-  LOG(INFO) << "account to account: " << inter_txs_ptr->size();
-  auto succ_inter_txs_ptr =
-      fs::algo::read_transactions_with_succ(*inter_txs_ptr);
-  LOG(INFO) << "succ account to account: " << succ_inter_txs_ptr->size();
+  LOG(INFO) << "account to account: " << inter_txs.size();
+  auto succ_inter_txs = fs::algo::read_transactions_with_succ(inter_txs);
+  LOG(INFO) << "succ account to account: " << succ_inter_txs.size();
 
   // graph operation
-  auto txs_v_ptr =
-      m_algo->split_transactions_by_block_interval(*succ_inter_txs_ptr);
+  auto txs_v_ptr = m_algo->split_transactions_by_block_interval(succ_inter_txs);
   LOG(INFO) << "split by block interval: " << txs_v_ptr->size();
 
   m_algo->filter_empty_transactions_this_interval(*txs_v_ptr);
@@ -80,7 +78,7 @@ nebulas_rank_calculator::get_nr_score(const rank_params_t &rp,
   LOG(INFO) << "done with get in_out_vals";
 
   // median, weight, rank
-  auto accounts_ptr = m_algo->get_normal_accounts(*inter_txs_ptr);
+  auto accounts_ptr = m_algo->get_normal_accounts(inter_txs);
   LOG(INFO) << "account size: " << accounts_ptr->size();
 
   std::unordered_map<neb::address_t, neb::wei_t> addr_balance;

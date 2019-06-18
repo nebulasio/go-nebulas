@@ -77,7 +77,7 @@ std::string convert_nr_result_to_json(const nr_result &nr) {
 
   root.put("start_height", std::to_string(nr.get<p_start_block>()));
   root.put("end_height", std::to_string(nr.get<p_end_block>()));
-  root.put("version", std::to_string(nr.get<p_version>()));
+  root.put("version", std::to_string(nr.get<p_nr_version>()));
   std::vector<nr_item> nrs = nr.get<p_nr_items>();
   if (nrs.empty()) {
     boost::property_tree::ptree p;

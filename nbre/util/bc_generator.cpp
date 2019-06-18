@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "util/bc_generator.h"
+#include "core/execution_context.h"
 #include "crypto/hash.h"
 #include "fs/bc_storage_session.h"
 #include "fs/proto/trie.pb.h"
@@ -115,6 +116,7 @@ address_t get_address_from_account(corepb::Account *account) {
   return to_address(account->address());
 }
 
+generate_block::generate_block(fs::blockchain *bc) : m_blockchain(bc) {}
 generate_block::generate_block(all_accounts *accounts, uint64_t height)
     : m_all_accounts(accounts), m_height(height) {}
 
@@ -277,7 +279,7 @@ void generate_block::write_to_blockchain_db() {
       byte_to_string(from_fix_bytes(crypto::sha3_256_hash(block_str))));
 
   // 2. update to LIB
-  fs::blockchain::write_LIB_block(block.get());
+  m_blockchain->write_LIB_block(block.get());
   block->release_header();
 
   // 3. write all accounts to DB
@@ -294,15 +296,15 @@ void generate_block::write_to_blockchain_db() {
 
   std::string key = std::string("account") + std::to_string(m_height);
   std::string account_str = t_accounts.SerializeAsString();
-  fs::bc_storage_session::instance().put_bytes(string_to_byte(key),
-                                               string_to_byte(account_str));
+  m_blockchain->storage()->put_bytes(string_to_byte(key),
+                                     string_to_byte(account_str));
 }
 
 std::vector<std::shared_ptr<corepb::Account>>
 generate_block::read_accounts_in_height(block_height_t height) {
   std::string key = std::string("account") + std::to_string(height);
   auto account_str =
-      fs::bc_storage_session::instance().get_bytes(string_to_byte(key));
+      core::context->blockchain_storage()->get_bytes(string_to_byte(key));
   triepb::Node t_accounts;
   t_accounts.ParseFromArray(account_str.value(), account_str.size());
   std::vector<std::shared_ptr<corepb::Account>> ret;
@@ -319,7 +321,7 @@ generate_block::read_accounts_in_height(block_height_t height) {
 std::shared_ptr<corepb::Block>
 generate_block::read_block_with_height(block_height_t height) {
   std::unique_ptr<corepb::Block> block =
-      fs::blockchain::load_block_with_height(height);
+      core::context->blockchain()->load_block_with_height(height);
   return std::shared_ptr<corepb::Block>(std::move(block));
 }
 

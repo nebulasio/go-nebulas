@@ -40,7 +40,7 @@ public:
                      size_t block_trunk_size = 16);
 
   virtual void append_item(const bytes &item);
-  virtual std::vector<bytes> get_all_items();
+  virtual std::vector<bytes> get_all_items() const;
 
 protected:
   void read_index_table();
@@ -49,7 +49,7 @@ protected:
     return m_index_table.get<p_item_keys>().empty();
   }
   item_info_t get_last_live_block_info();
-  item_contents_t read_block_with_key(const bytes &key);
+  item_contents_t read_block_with_key(const bytes &key) const;
   void write_block_with_key(const bytes &key, item_contents_t &contents);
   void update_index_table(const item_info_t &info);
 
@@ -58,8 +58,8 @@ protected:
   std::string m_key_prefix;
   std::string m_last_item_key;
   size_t m_block_trunk_size;
-  item_index_table_t m_index_table;
-  boost::shared_mutex m_mutex;
+  mutable item_index_table_t m_index_table;
+  mutable boost::shared_mutex m_mutex;
   };
   } // namespace internal
 

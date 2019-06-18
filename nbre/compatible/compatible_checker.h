@@ -20,20 +20,19 @@
 #pragma once
 #include "common/common.h"
 #include "compatible/compatible_check_base.h"
+#include "compatible/version_check_interface.h"
 #include "runtime/dip/data_type.h"
 #include "runtime/nr/impl/data_type.h"
 
 namespace neb {
 namespace compatible {
-class version_check_interface;
 class compatible_checker : public compatible_check_base {
 public:
   virtual ~compatible_checker();
 
   virtual void init();
 
-  virtual bool is_ir_need_compile(const std::string &name,
-                                  uint64_t version) = 0;
+  virtual bool is_ir_need_compile(const std::string &name, version_t version);
 
   virtual optional<rt::nr::nr_ret_type>
   get_nr_result(const std::string &handle);

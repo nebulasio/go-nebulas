@@ -47,7 +47,6 @@ client_driver::~client_driver() { LOG(INFO) << "to destroy client driver"; }
 
 void client_driver::add_handlers() {
 
-#if 0
   LOG(INFO) << "client is " << m_client.get();
   m_client->add_handler<nbre_version_req>(
       [this](std::shared_ptr<nbre_version_req> req) {
@@ -104,11 +103,10 @@ void client_driver::add_handlers() {
         try {
           auto ack = new_ack_pkg<nbre_ir_list_ack>(req);
 
-          auto rs = neb::fs::storage_holder::instance().nbre_db_ptr();
-          auto irs_ptr = neb::fs::ir_api::get_ir_list(rs);
+          auto irs = context->ir_processor()->get_ir_names();
 
           boost::property_tree::ptree pt, root;
-          for (auto &ir : *irs_ptr) {
+          for (auto &ir : irs) {
             boost::property_tree::ptree child;
             child.put("", ir);
             pt.push_back(std::make_pair("", child));
@@ -133,12 +131,11 @@ void client_driver::add_handlers() {
           auto ack = new_ack_pkg<nbre_ir_versions_ack>(req);
           auto ir_name = req->get<p_ir_name>();
 
-          auto rs = neb::fs::storage_holder::instance().nbre_db_ptr();
-          auto ir_versions_ptr =
-              neb::fs::ir_api::get_ir_versions(ir_name.c_str(), rs);
+          auto ir_versions =
+              core::context->ir_processor()->get_ir_versions(ir_name);
 
           boost::property_tree::ptree pt, root;
-          for (auto &v : *ir_versions_ptr) {
+          for (auto &v : ir_versions) {
             boost::property_tree::ptree child;
             child.put("", v);
             pt.push_back(std::make_pair("", child));
@@ -164,7 +161,6 @@ void client_driver::add_handlers() {
                      << " with what: " << e.what();
         }
       });
-#endif
 }
 
 void client_driver::add_nr_handlers() {

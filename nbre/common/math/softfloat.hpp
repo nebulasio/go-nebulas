@@ -35,6 +35,8 @@
 
 #pragma once
 #include "softfloat.h"
+#include <string>
+#include <stdexcept>
 
 /*----------------------------------------------------------------------------
 |  _______                   _       _
@@ -92,6 +94,9 @@ template <typename T> class softfloat;
 
 template <> float16_t softfloat_cast<uint32_t, float16_t>(const uint32_t &v) {
     return ui32_to_f16(v);
+}
+template<> float32_t softfloat_cast<std::string, float32_t>(const std::string & v){
+  throw std::runtime_error("no impl here");
 }
 
 template <> float32_t softfloat_cast<uint32_t, float32_t>(const uint32_t &v) {

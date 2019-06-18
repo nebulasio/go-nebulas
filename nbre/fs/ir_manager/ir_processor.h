@@ -55,10 +55,15 @@ public:
   //! include param itself
   std::vector<nbre::NBREIR> get_ir_depends(const nbre::NBREIR &ir);
 
+  std::vector<std::string> get_ir_names() const;
+
+  std::vector<version_t> get_ir_versions(const std::string &name) const;
+
   virtual void parse_irs(
       util::wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> &q_txs);
 
   inline storage *storage() { return m_storage; }
+
   inline blockchain *blockchain() {
     return m_blockchain;
   }

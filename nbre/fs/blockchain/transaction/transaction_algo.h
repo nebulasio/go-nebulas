@@ -23,11 +23,11 @@
 namespace neb {
 namespace fs {
 namespace algo {
-static std::unique_ptr<std::vector<transaction_info_t>>
+std::vector<transaction_info_t>
 read_transactions_with_address_type(const std::vector<transaction_info_t> &txs,
                                     byte_t from_type, byte_t to_type);
 
-static std::unique_ptr<std::vector<transaction_info_t>>
+std::vector<transaction_info_t>
 read_transactions_with_succ(const std::vector<transaction_info_t> &txs);
 } // namespace algo
 } // namespace fs

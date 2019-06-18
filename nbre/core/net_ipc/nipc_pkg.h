@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #pragma once
+#include "common/address.h"
 #include "common/common.h"
 #include <ff/network.h>
 

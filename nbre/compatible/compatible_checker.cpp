@@ -24,9 +24,30 @@
 namespace neb {
 namespace compatible {
 
+compatible_checker::~compatible_checker() {}
+
+void compatible_checker::init() {}
 bool compatible_checker::is_ir_need_compile(const std::string &name,
-                                            uint64_t version) {
+                                            version_t version) {
   return false;
 }
+
+optional<rt::nr::nr_ret_type>
+compatible_checker::get_nr_result(const std::string &handle) {}
+
+optional<floatxx_t> compatible_checker::get_nr_sum(const std::string &handle) {}
+
+optional<std::vector<address_t>>
+compatible_checker::get_nr_addr_list(const std::string &handle) {}
+
+optional<rt::dip::dip_ret_type>
+compatible_checker::get_dip_result(const std::string &handle) {}
+
+optional<std::string> compatible_checker::get_nr_handle(block_height_t height) {
+
+}
+optional<std::string>
+compatible_checker::get_dip_handle(block_height_t height) {}
+
 } // namespace compatible
 } // namespace neb

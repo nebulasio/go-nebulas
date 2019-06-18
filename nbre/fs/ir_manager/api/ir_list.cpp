@@ -81,6 +81,25 @@ bytes ir_list::get_ir_brief_key_with_height(const std::string &ir_name,
   }
   return m_ir_item_list[ir_name]->get_ir_brief_key_with_height(height);
 }
+std::vector<std::string> ir_list::get_ir_names() const {
+  std::vector<std::string> ret;
+  for (auto &p : m_ir_item_list) {
+    auto t = p.second;
+    auto kt = t->get_ir_names();
+    ret.insert(ret.end(), kt.begin(), kt.end());
+  }
+  return ret;
+}
+
+std::vector<version_t>
+ir_list::get_ir_versions(const std::string &ir_name) const {
+  std::vector<version_t> ret;
+  auto it = m_ir_item_list.find(ir_name);
+  if (it == m_ir_item_list.end()) {
+    return ret;
+  }
+  return (it->second)->get_ir_versions();
+}
 
 } // namespace fs
 } // namespace neb

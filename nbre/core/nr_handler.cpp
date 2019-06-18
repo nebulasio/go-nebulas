@@ -18,7 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "runtime/nr/impl/nr_handler.h"
+#include "core/nr_handler.h"
 #include "common/configuration.h"
 #include "core/ir_warden.h"
 #include "fs/proto/ir.pb.h"
@@ -112,27 +112,29 @@ void nr_handler::start(block_height_t start_block, block_height_t end_block,
 std::string nr_handler::get_nr_handle(block_height_t start_block,
                                       block_height_t end_block,
                                       uint64_t version) {
-  return param_to_key(start_block, end_block, version);
+  return rt::param_to_key(start_block, end_block, version);
 }
 
 std::string nr_handler::get_nr_handle(block_height_t height) {
   throw std::runtime_error("no impl");
 }
 
-nr_ret_type nr_handler::get_nr_result(const std::string &nr_handle) {
+rt::nr::nr_ret_type nr_handler::get_nr_result(const std::string &nr_handle) {
 
-  nr_ret_type nr_result;
+  rt::nr::nr_ret_type nr_result;
+#if 0
   bool status = m_checker.get_nr_result(nr_result, nr_handle);
   if (!status) {
     nr_result = m_cache.get_nr_score(nr_handle);
   }
+#endif
   return nr_result;
 }
 bool nr_handler::get_nr_sum(floatxx_t &nr_sum, const std::string &handle) {
 
   //! TODO: we need compute NR if not exist
   nr_sum = floatxx_t();
-  nr_ret_type nr_result = get_nr_result(handle);
+  rt::nr::nr_ret_type nr_result = get_nr_result(handle);
   if (!core::is_succ(nr_result)) {
     return false;
   }
@@ -146,7 +148,7 @@ bool nr_handler::get_nr_addr_list(std::vector<address_t> &nr_addrs,
                                   const std::string &handle) {
   //! TODO: we need compute NR if not exist
   nr_addrs.clear();
-  nr_ret_type nr_result = get_nr_result(handle);
+  rt::nr::nr_ret_type nr_result = get_nr_result(handle);
   if (!core::is_succ(nr_result)) {
     return false;
   }

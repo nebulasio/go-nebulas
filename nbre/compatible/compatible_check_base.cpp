@@ -18,14 +18,14 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "compatible/compatible_check_base.h"
+#include "compatible/compatible_check_interface.h"
 
 namespace neb {
 namespace compatible {
-compatible_check_interface::~compatible_check_interface {}
+compatible_check_interface::~compatible_check_interface() {}
 
 compatible_check_base::~compatible_check_base() {}
-compatible_check_base::compatible_check_base(version_t v) : m_version(v) {}
+compatible_check_base::compatible_check_base() {}
 
-version_t compatible_check_base::rt_version() const { return m_version; }
 } // namespace compatible
 } // namespace neb

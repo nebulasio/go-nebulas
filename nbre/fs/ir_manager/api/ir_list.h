@@ -42,6 +42,10 @@ public:
   virtual nbre::NBREIR find_ir_at_height(const std::string &ir_name,
                                          block_height_t height);
 
+  virtual std::vector<std::string> get_ir_names() const;
+  virtual std::vector<version_t>
+  get_ir_versions(const std::string &ir_name) const;
+
   inline storage *storage() const { return m_storage; }
 
 protected:

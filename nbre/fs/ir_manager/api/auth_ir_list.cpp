@@ -24,7 +24,8 @@ namespace fs {
 auth_ir_list::auth_ir_list(storage *storage)
     : internal::ir_item_list_base<auth_params_storage_t>(storage, "auth") {}
 
-auth_ir_list::item_type get_ir_param(const nbre::NBREIR &compiled_ir) {
+auth_ir_list::item_type
+auth_ir_list::get_ir_param(const nbre::NBREIR &compiled_ir) {
   auth_param_storage_t ret;
   ret.set<p_start_block, p_version>(compiled_ir.height(),
                                     compiled_ir.version());

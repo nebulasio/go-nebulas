@@ -25,13 +25,8 @@ namespace compatible {
 
 class compatible_check_base : public compatible_check_interface {
 public:
-  compatible_check_base(version_t v);
+  compatible_check_base();
   virtual ~compatible_check_base();
-
-  virtual version_t rt_version() const;
-
-protected:
-  version_t m_version;
 };
 } // namespace compatible
 } // namespace neb

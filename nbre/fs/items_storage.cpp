@@ -85,7 +85,8 @@ item_info_t items_storage_base::get_last_live_block_info() {
   }
 }
 
-item_contents_t items_storage_base::read_block_with_key(const bytes &key) {
+item_contents_t
+items_storage_base::read_block_with_key(const bytes &key) const {
   item_contents_t ret;
   try {
     auto bs = m_db->get_bytes(key);
@@ -113,10 +114,11 @@ void items_storage_base::update_index_table(const item_info_t &info) {
   }
   m_index_table.set<p_item_keys>(infos);
 }
-std::vector<bytes> items_storage_base::get_all_items() {
+std::vector<bytes> items_storage_base::get_all_items() const {
 
+  items_storage_base *this_ptr = const_cast<items_storage_base *>(this);
   if (is_empty_index_table()) {
-    read_index_table();
+    this_ptr->read_index_table();
   }
   boost::shared_lock<boost::shared_mutex> _l(m_mutex);
 

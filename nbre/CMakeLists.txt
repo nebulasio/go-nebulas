@@ -136,6 +136,7 @@ file(GLOB_RECURSE nbre_fs_proto_src fs/proto/*.pb.cc)
 file(GLOB_RECURSE nbre_core_src core/*.cpp)
 file(GLOB_RECURSE nbre_util_src util/*.cpp)
 file(GLOB_RECURSE nbre_crypto_src crypto/*.cpp)
+file(GLOB_RECURSE nbre_compatible_src compatible/*.cpp)
 
 list(FILTER nbre_core_src EXCLUDE REGEX "core/driver.cpp")
 list(FILTER nbre_core_src EXCLUDE REGEX "core/neb_ipc*")
@@ -153,6 +154,7 @@ add_library(nbre_rt SHARED
   ${nbre_core_src}
   ${nbre_util_src}
   ${nbre_crypto_src}
+  ${nbre_compatible_src}
   )
 if(UNIX AND NOT APPLE)
   target_link_libraries(nbre_rt ${PROJECT_SOURCE_DIR}/lib/lib/libgflags.so ${llvm_libs} ${protobuf_lib} ${cpp_lib} ${Boost_LIBRARIES} ${extra_libs} ff_functionflow ff_net softfloat c++ cryptopp tcmalloc)
@@ -176,6 +178,7 @@ file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_fs fs/*.h fs/*.hpp)
 file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_util util/*.h util/*.hpp)
 file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_crypto crypto/*.h crypto/*.hpp)
 file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_runtime runtime/*.h runtime/*.hpp)
+file(GLOB_RECURSE DEPLOY_FILES_AND_DIRS_compatible compatible/*.h compatible/*.hpp)
 
 set(DEPLOY_FILES_AND_DIRS ${DEPLOY_FILES_AND_DIRS_common}
   ${DEPLOY_FILES_AND_DIRS_core}
@@ -183,7 +186,9 @@ set(DEPLOY_FILES_AND_DIRS ${DEPLOY_FILES_AND_DIRS_common}
   ${DEPLOY_FILES_AND_DIRS_fs}
   ${DEPLOY_FILES_AND_DIRS_util}
   ${DEPLOY_FILES_AND_DIRS_crypto}
-  ${DEPLOY_FILES_AND_DIRS_runtime})
+  ${DEPLOY_FILES_AND_DIRS_runtime}
+  ${DEPLOY_FILES_AND_DIRS_compatible}
+  )
 
 MACRO(INSTALL_HEADERS_WITH_DIRECTORY HEADER_LIST)
 

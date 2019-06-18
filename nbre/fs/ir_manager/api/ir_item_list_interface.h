@@ -36,6 +36,9 @@ public:
   virtual nbre::NBREIR get_ir(version_t v) = 0;
   virtual bytes get_ir_brief_key_with_height(block_height_t height) = 0;
   virtual nbre::NBREIR find_ir_at_height(block_height_t height) = 0;
+
+  virtual std::vector<std::string> get_ir_names() const = 0;
+  virtual std::vector<version_t> get_ir_versions() const = 0;
 };
 } // namespace internal
 } // namespace fs

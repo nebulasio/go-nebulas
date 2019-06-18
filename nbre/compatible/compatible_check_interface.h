@@ -37,7 +37,7 @@ public:
   virtual optional<rt::nr::nr_ret_type>
   get_nr_result(const std::string &handle) = 0;
 
-  virtual optional<floatxx_t> get_nr_sum(const std::string &handle);
+  virtual optional<floatxx_t> get_nr_sum(const std::string &handle) = 0;
 
   virtual optional<std::vector<address_t>>
   get_nr_addr_list(const std::string &handle) = 0;

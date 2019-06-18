@@ -118,15 +118,15 @@ struct get_param_helper<
 template <>
 struct get_param_helper<
     p_nr_result, typename ::ff::util::internal::nt_traits<p_nr_result>::type> {
-  template <typename PkgPtrType> static std::string(const PkgPtrType &pkg) {
-    std::string r = pkt->template get<p_nr_result>();
+  template <typename PkgPtrType> static std::string get(const PkgPtrType &pkg) {
+    std::string r = pkg->template get<p_nr_result>();
 
     nr_result nr;
     nr.deserialize_from_string(r);
-    std::string t = convert_nr_result_to_json(nr);
+    std::string t = ::neb::core::convert_nr_result_to_json(nr);
     return t;
   }
-}
+};
 // template <typename IT> struct get_param_helper<IT, std::string> {
 // template <typename PkgPtrType> static const char *get(const PkgPtrType &pkg)
 // { auto t = pkg->template get<IT>().c_str(); LOG(INFO) << "get param: " << t

@@ -20,6 +20,7 @@
 #pragma once
 #include "common/address.h"
 #include "common/nebulas_currency.h"
+#include "fs/blockchain.h"
 #include "fs/blockchain/blockchain_api.h"
 #include "fs/proto/block.pb.h"
 #include <random>
@@ -78,6 +79,7 @@ address_t get_address_from_account(corepb::Account *account);
 
 class generate_block {
 public:
+  generate_block(fs::blockchain *bc);
   generate_block(all_accounts *accounts, uint64_t height);
 
   std::shared_ptr<corepb::Account> gen_user_account(const nas &v = 10000_nas);
@@ -112,12 +114,12 @@ public:
   static std::shared_ptr<corepb::Block>
   read_block_with_height(block_height_t height);
 
-
 protected:
   all_accounts *m_all_accounts;
   uint64_t m_height;
   typedef std::shared_ptr<corepb::Transaction> transaction_ptr;
   std::vector<transaction_ptr> m_transactions;
+  fs::blockchain *m_blockchain;
 };
 } // namespace util
 } // namespace neb

@@ -112,6 +112,15 @@ std::vector<nbre::NBREIR> ir_processor::get_ir_depends(const nbre::NBREIR &ir) {
   return irs;
 }
 
+std::vector<std::string> ir_processor::get_ir_names() const {
+  return m_ir_list->get_ir_names();
+}
+
+std::vector<version_t>
+ir_processor::get_ir_versions(const std::string &name) const {
+  return m_ir_list->get_ir_versions(name);
+}
+
 void ir_processor::parse_irs(
     util::wakeable_queue<std::shared_ptr<nbre_ir_transactions_req>> &q_txs) {
   block_height_t last_height = m_nbre_block_height->get();

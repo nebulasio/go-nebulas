@@ -21,7 +21,7 @@
 
 namespace neb {
 namespace compatible {
-version_check_interface::~version_check_interface {}
+version_check_interface::~version_check_interface() {}
 
 version_check_base::~version_check_base() {}
 version_check_base::version_check_base(version_t v) : m_version(v) {}

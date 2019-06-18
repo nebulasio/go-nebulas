@@ -42,13 +42,13 @@ public:
     auto bs_str = const_cast<item_type &>(item).serialize_to_string();
     internal::items_storage_base::append_item(string_to_byte(bs_str));
   }
-  virtual std::vector<item_type> get_typed_items() {
+  virtual std::vector<item_type> get_typed_items() const {
     boost::shared_lock<boost::shared_mutex> _l(m_mutex);
     return get_typed_items_without_lock();
   }
 
 protected:
-  std::vector<item_type> get_typed_items_without_lock() {
+  std::vector<item_type> get_typed_items_without_lock() const {
 
     if (!m_items.empty()) {
       return m_items;
@@ -66,7 +66,7 @@ protected:
   }
 
 protected:
-  boost::shared_mutex m_mutex;
+  mutable boost::shared_mutex m_mutex;
   std::vector<item_type> m_items;
 };
 

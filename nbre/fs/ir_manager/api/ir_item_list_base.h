@@ -122,6 +122,25 @@ public:
     return get_raw_ir(pos->template get<p_version>());
   }
 
+  virtual std::vector<std::string> get_ir_names() const {
+    std::vector<std::string> ret;
+    std::vector<item_type> items = m_param_storage.get_typed_items();
+    if (items.empty()) {
+      return ret;
+    }
+    ret.push_back(m_ir_name);
+    return ret;
+  }
+
+  virtual std::vector<version_t> get_ir_versions() const {
+    std::vector<version_t> ret;
+    std::vector<item_type> items = m_param_storage.get_typed_items();
+    for (auto &item : items) {
+      ret.push_back(item.template get<p_version>());
+    }
+    return ret;
+  }
+
   virtual item_type get_ir_param(const nbre::NBREIR &compiled_ir) = 0;
 
 protected:

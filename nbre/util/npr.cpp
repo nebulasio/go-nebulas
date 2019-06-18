@@ -27,9 +27,9 @@
 namespace neb {
 namespace util {
 bool is_npr_tx(const corepb::Transaction &tx) {
-  auto &dst_type = neb::configuration::instance().ir_tx_payload_type();
+  std::string dst_type = neb::configuration::instance().ir_tx_payload_type();
 
-  auto &type = tx.data().type();
+  std::string type = tx.data().type();
   return type == dst_type;
 }
 

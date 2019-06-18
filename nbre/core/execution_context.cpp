@@ -24,6 +24,8 @@ namespace core {
 execution_context::execution_context()
     : m_cond_var(), m_mutex(), m_ready_flag(false) {}
 
+execution_context::~execution_context() {}
+
 bool execution_context::is_ready() const {
   std::unique_lock<std::mutex> _l(m_mutex);
   return m_ready_flag;
