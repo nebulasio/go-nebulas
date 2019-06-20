@@ -50,6 +50,11 @@ Nebulas execution need NVM and NBRE two dependent libraries. We provide stable v
 
 ```bash
 cd github.com/nebulasio/go-nebulas
+
+OS X:
+./install-native-libs.sh
+
+Linux:
 source install-native-libs.sh
 ```
 ##### *Note*:
@@ -58,6 +63,10 @@ The dependency libraries are not installed in the system directory, and there ar
 
 * *OS X*:
     * In the user's root directory to create ` lib ` folder, system to load the library path can read this path, ensure that the root directory of the current folder does not exist. All of these operations in ` install-native-libs.sh ` already processing.(`DYLD_LIBRARY_PATH` is not possible unless System Integrity Protection (SIP) is disabled)
+
+    ```
+    ./install-native-libs.sh
+    ```
 
 * *Linux - Ubuntu*
     * `install-native-libs.sh` export `LD_LIBRARY_PATH` for native libs.
@@ -85,7 +94,49 @@ The dependency libraries are not installed in the system directory, and there ar
 
 
 #### Build the neb binary.
-    * run `make build`
+   * run command
+   
+   ```
+   make build
+   ```
+   
+## Building from Docker
+
+Currently docker only supports the running environment hosted by **Ubuntu**. You can specify the config file by modifying the docker-compose environment configuration.
+
+- default docker compose config(version3):
+
+```
+version: '3'
+
+services:
+  
+  node:
+    image: nebulasio/go-nebulas
+    build:
+      context: ./docker
+    ports:
+      - '8680:8680'
+      - '8684:8684'
+      - '8685:8685'
+      - '8888:8888'
+      - '8086:8086'
+    volumes:
+      - .:/go/src/github.com/nebulasio/go-nebulas
+    environment:
+      - REGION=China
+      - config=mainnet/conf/config.conf
+    command: bash docker/scripts/neb.bash
+
+```
+
+ - install [docker](https://docs.docker.com/install/linux/docker-ce/ubuntu/) and [docker-compose](https://docs.docker.com/compose/install/)
+ - run docker command
+
+ ```
+ sudo docker-compose build
+ sudo docker-compose up -d
+ ```
 
 ## Run
 
