@@ -125,6 +125,9 @@ namespace SNVM{
       inline void SetChainID(uint32_t chain_id){ m_chain_id = chain_id; }
       inline uint32_t GetChainID(){ return m_chain_id; }
 
+      inline void SetStream(grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest> *stream){m_stream=stream;}
+      inline grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest>* GetStream(){return m_stream;}
+
       inline uint64_t GetBlockHeight(){
         if(config_bundle != nullptr)
           return config_bundle->block_height();
@@ -158,7 +161,7 @@ namespace SNVM{
       NVMDaemon* m_daemon = nullptr;                                                // backward pointer to daemon
 
       std::unique_ptr<std::stack<V8Engine*>> m_inner_engines = nullptr;                 // stack for keeping engines created because of inner contract calls
-      grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest> *m_stream;              // stream used to send/receive request
+      grpc::ServerReaderWriter<NVMDataResponse, NVMDataRequest> *m_stream = nullptr;    // stream used to send/receive request
       std::unique_ptr<std::unordered_map<std::string, SourceInfo>> engineSrcModules;    // clear it before each smart contract call
   };
 

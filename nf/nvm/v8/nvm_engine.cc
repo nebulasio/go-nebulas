@@ -258,6 +258,7 @@ grpc::Status SNVM::NVMDaemon::SmartContractCall(
       sc_ctx = new SCContext(this);
       uint32_t curr_chain_id = (uint32_t)configBundle.chain_id();
       sc_ctx->SetChainID(curr_chain_id);
+      sc_ctx->SetStream(stream);
       new_engine = CreateEngine();
       new_engine->limits_of_executed_instructions = configBundle.limits_exe_instruction();
       new_engine->limits_of_total_memory_size = configBundle.limits_total_mem_size();
@@ -273,21 +274,21 @@ grpc::Status SNVM::NVMDaemon::SmartContractCall(
       sc_ctx->SetConfigBundle(&configBundle);
       AddSCContext(new_engine, sc_ctx);
       char* exeResult = nullptr;
-      char* exe_result = nullptr;
-      int ret = sc_ctx->StartScriptExecution(scriptSrc, scriptType, 
-                            scriptHash, runnableSrc, moduleID, exeResult);
-      exe_result = exeResult;
+      int ret = sc_ctx->StartScriptExecution(scriptSrc, scriptType, scriptHash, runnableSrc, moduleID, exeResult);
 
-      std::cout<<">>>>After starting script execution, exe result is: "<<exe_result<<std::endl;
+      if(exeResult == nullptr)
+        std::cout<<">>>>the exe result is NULL"<<std::endl;
+      else
+        std::cout<<">>>>After starting script execution, exe result is: "<<exeResult<<std::endl;
       NVMDataResponse *response = new NVMDataResponse();
       NVMFinalResponse *finalResponse = new NVMFinalResponse();
       finalResponse->set_result(ret);
-      finalResponse->set_not_null(exe_result != nullptr);
+      finalResponse->set_not_null(exeResult != nullptr);
 
-      if(exe_result == nullptr){
-        exe_result = (char*)calloc(1, sizeof(char));
+      if(exeResult == nullptr){
+        exeResult = (char*)calloc(1, sizeof(char));
       }
-      finalResponse->set_msg(exe_result);
+      finalResponse->set_msg(exeResult);
 
       NVMStatsBundle *statsBundle = new NVMStatsBundle();
       sc_ctx->ReadExeStats(statsBundle);
@@ -306,8 +307,8 @@ grpc::Status SNVM::NVMDaemon::SmartContractCall(
         new_engine = nullptr;
         sc_ctx = nullptr;
       }
-      if(exe_result != nullptr){
-        free(exe_result);
+      if(exeResult != nullptr){
+        free(exeResult);
       }
       if(sc_ctx != nullptr)
         delete sc_ctx;
@@ -350,7 +351,7 @@ NVMCallbackResult* SNVM::SCContext::Callback(void* handler, NVMCallbackResponse*
 
         response.set_response_indx(++this->m_response_indx);
         response.set_lcs_handler((google::protobuf::uint64)this->GetCurrentEngineLcsHandler());
-        response.set_gcs_handler((google::protobuf::uint64)this->GetCurrentEngineGcsHandler()); // gcs handler is not used by now
+        response.set_gcs_handler((google::protobuf::uint64)this->GetCurrentEngineGcsHandler());     // gcs handler is not used by now
         std::cout<<"<><><><><> After setting handlers"<<std::endl;
         response.set_allocated_callback_response(callback_response);
         this->m_stream->Write(response);
@@ -487,19 +488,17 @@ void SNVM::NVMDaemon::LocalTest(){
   sc_ctx->SetConfigBundle(configBundle);
 
   char* exeResult = nullptr;
-  char* exe_result = nullptr;
   int ret = sc_ctx->StartScriptExecution(scriptSrc, scriptType, scriptHash, runnableSrc, moduleID, exeResult);
-  exe_result = exeResult;
 
   if(FG_DEBUG){
-    if(exe_result != nullptr)
-      std::cout<<">>>>Hey running is done, and running result is: "<<exe_result<<std::endl;
+    if(exeResult != nullptr)
+      std::cout<<">>>>Hey running is done, and running result is: "<<exeResult<<std::endl;
     else
       std::cout<<">>>>Hey running is done, and the running result is null! and the ret is: "<<ret<<std::endl;
   }
 
-  if(exe_result != nullptr)
-    free(exe_result);
+  if(exeResult != nullptr)
+    free(exeResult);
   if(engine != nullptr)
     DeleteEngine(engine);
   if(sc_ctx != nullptr)
