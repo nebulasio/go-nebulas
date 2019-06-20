@@ -26,6 +26,7 @@
 
 #include <iostream>
 #include <string>
+#include <cstring>
 
 static AttachLibVersionDelegateFunc alvDelegate = NULL;
 

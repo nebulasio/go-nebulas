@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <thread>
 
 using namespace v8;
