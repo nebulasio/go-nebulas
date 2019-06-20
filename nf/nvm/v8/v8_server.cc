@@ -17,17 +17,11 @@
 // <http://www.gnu.org/licenses/>.
 //
 
+#include <thread>
+
 #include "nvm_engine.h"
-#include "compatibility.h"
 
 #define MicroSecondDiff(newtv, oldtv) (1000000 * (unsigned long long)((newtv).tv_sec - (oldtv).tv_sec) + (newtv).tv_usec - (oldtv).tv_usec)  //milliseconds
-
-/*
-static int enable_tracer_injection = 0;
-static int strict_disallow_usage = 0;
-static size_t limits_of_executed_instructions = 0;
-static size_t limits_of_total_memory_size = 0;
-*/
 
 void logFuncOld(int level, const char *msg) {
   std::thread::id tid = std::this_thread::get_id();
@@ -162,7 +156,7 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
   pthread_attr_t attribute;
   pthread_attr_init(&attribute);
   pthread_attr_setstacksize(&attribute, 2 * 1024 * 1024);
-  pthread_attr_setdetachstate (&attribute, PTHREAD_CREATE_DETACHED);
+  //pthread_attr_setdetachstate (&attribute, PTHREAD_CREATE_DETACHED);
   struct timeval tcBegin, tcEnd;
   int rtn = gettimeofday(&tcBegin, nullptr);
   if (rtn != 0) {
@@ -190,7 +184,7 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
         break;
 
     } else {
-      usleep(10); //10 micro second loop .epoll_wait optimize
+      usleep(5); //10 micro second loop .epoll_wait optimize
       rtn = gettimeofday(&tcEnd, nullptr);
       if (rtn) {
         LogErrorf("CreateScriptThread get end time err:%d\n", rtn);
@@ -203,10 +197,17 @@ bool CreateScriptThread(v8ThreadContext *ctx) {
         LogErrorf("CreateScriptThread timeout timeout:%d diff:%d\n", timeout, diff);
         std::cout<<"CreateScriptThread timeout timeout:"<<timeout<<" diff:"<<diff<<std::endl;
         TerminateExecution(ctx->e);
+        ctx->output.ret = NVM_EXE_TIMEOUT_ERR;
+        ctx->is_finished = true;
         is_kill = true;
+        break;
       }
     }
+
   }
+
+  void *res;
+  pthread_join(thread, &res);
 
   return true;
 }
@@ -215,21 +216,21 @@ void RunServer(const char* addr_str){
 
   std::string engine_addr(addr_str);
 
-  if(gNVMEngine == nullptr){
+  if(gNVMDaemon == nullptr){
     const int concurrency_num = 1;
-    gNVMEngine = new SNVM::NVMEngine(concurrency_num);
+    gNVMDaemon = new SNVM::NVMDaemon(concurrency_num);
     std::cout<<"%%%%%%%%%%%% nvm engine is initialized!!!!!!!!!!!"<<std::endl;
   }
 
   grpc::ServerBuilder builder;
   builder.AddListeningPort(engine_addr, grpc::InsecureServerCredentials());
-  builder.RegisterService(gNVMEngine);
+  builder.RegisterService(gNVMDaemon);
   std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
   
   server->Wait();
 
-  if(gNVMEngine != nullptr)
-    delete gNVMEngine;
+  if(gNVMDaemon != nullptr)
+    delete gNVMDaemon;
 }
 
 int main(int argc, const char *argv[]) {
@@ -243,8 +244,8 @@ int main(int argc, const char *argv[]) {
 
   if(DEBUG){
     const int concurrency_num = 1;
-    SNVM::NVMEngine* engine = new SNVM::NVMEngine(concurrency_num);
-    engine->LocalTest();
+    SNVM::NVMDaemon* daemon = new SNVM::NVMDaemon(concurrency_num);
+    daemon->LocalTest();
 
   }else{
     if(argc > 1){

@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2017-2019 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -16,6 +16,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
+// Author: Samuel Chen <samuel.chen@nebulas.io>
 
 #include "event.h"
 #include "../engine.h"
@@ -69,6 +70,5 @@ void EventTriggerCallback(const FunctionCallbackInfo<Value> &info) {
   TRIGGER(e, *sTopic, *sData, &cnt);
 
   // record event usage.
-  // replace GetCurrentContext with context, since context is already fetched
-  IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
+  IncrCounter(isolate, context, cnt);
 }

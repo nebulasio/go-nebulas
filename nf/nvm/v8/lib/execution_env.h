@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2017-2019 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -17,13 +17,10 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#ifndef _NEBULAS_NF_NVM_V8_LIB_EXECUTION_ENV_H_
-#define _NEBULAS_NF_NVM_V8_LIB_EXECUTION_ENV_H_
+#pragma once
 
 #include <v8.h>
 
 using namespace v8;
 
 int SetupExecutionEnv(Isolate *isolate, Local<Context> &context);
-
-#endif // _NEBULAS_NF_NVM_V8_LIB_EXECUTION_ENV_H_

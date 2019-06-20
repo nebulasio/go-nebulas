@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2017-2019 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -16,13 +16,15 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
+// Author: Samuel Chen <samuel.chen@nebulas.io>
 
 #include "storage_object.h"
 #include "../engine.h"
 #include "instruction_counter.h"
 #include "logger.h"
-#include <math.h>
+#include "global.h"
 
+#include <math.h>
 #include <iostream>
 
 static StorageGetFunc GET = NULL;
@@ -132,19 +134,15 @@ void StorageGetCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
   size_t cnt = 0;
-  char *value = GET(handler->Value(), *String::Utf8Value(key->ToString()), &cnt);
+  char *value = GET(curr_engine, handler->Value(), *String::Utf8Value(key->ToString()), &cnt);
   if (value == NULL) {
     info.GetReturnValue().SetNull();
   } else {
     info.GetReturnValue().Set(String::NewFromUtf8(isolate, value));
     free(value);
   }
-
-  std::cout<<"***********  StorageGet increase counter to be: "<<cnt<<std::endl;
-
-  // record storage usage.
-  //IncrCounter(isolate, isolate->GetCurrentContext(), cnt);
 }
 
 void StoragePutCallback(const FunctionCallbackInfo<Value> &info) {
@@ -171,11 +169,12 @@ void StoragePutCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
   Local<String> key_str = key->ToString();
   Local<String> val_str = value->ToString();
 
   size_t cnt = 0;
-  int ret = PUT(handler->Value(), *String::Utf8Value(key_str),
+  int ret = PUT(curr_engine, handler->Value(), *String::Utf8Value(key_str),
                 *String::Utf8Value(val_str), &cnt);
   info.GetReturnValue().Set(ret);
 
@@ -201,7 +200,8 @@ void StorageDelCallback(const FunctionCallbackInfo<Value> &info) {
   }
 
   size_t cnt = 0;
-  int ret = DEL(handler->Value(), *String::Utf8Value(key->ToString()), &cnt);
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
+  int ret = DEL(curr_engine, handler->Value(), *String::Utf8Value(key->ToString()), &cnt);
   info.GetReturnValue().Set(ret);
 
   // record storage usage.

@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2017-2019 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -17,8 +17,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#ifndef _NEBULAS_NF_NVM_V8_LIB_EVENT_H_
-#define _NEBULAS_NF_NVM_V8_LIB_EVENT_H_
+#pragma once
 
 #include <v8.h>
 
@@ -26,5 +25,3 @@ using namespace v8;
 
 void NewNativeEventFunction(Isolate *isolate, Local<ObjectTemplate> globalTpl);
 void EventTriggerCallback(const FunctionCallbackInfo<Value> &info);
-
-#endif // _NEBULAS_NF_NVM_V8_LIB_EVENT_H_

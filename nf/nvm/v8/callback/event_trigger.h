@@ -15,6 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
+//
+// Author: Samuel Chen <samuel.chen@nebulas.io>
 
 #pragma once
 
@@ -22,4 +24,4 @@
 #include "../nvm_engine.h"
 #include "callback_util.h"
 
-void EventTrigger(void *handler, const char *topic, const char *data, size_t *cnt);
+void EventTrigger(V8Engine *engine, const char *topic, const char *data, size_t *cnt);

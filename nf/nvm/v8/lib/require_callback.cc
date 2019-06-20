@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2017-2019 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -16,6 +16,8 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
+// Author: Samuel Chen <samuel.chen@nebulas.io>
+
 #include "require_callback.h"
 #include "../engine.h"
 #include "file.h"
@@ -27,8 +29,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <v8.h>
-
 #include <iostream>
 
 using namespace v8;
@@ -58,14 +58,12 @@ static int readSource(Local<Context> context, const char *filename, char **data,
   }
 
   *lineOffset = 0;
-  //const char *content;
   std::string content;
 
   if(native_lib_flag){
      std::cout<<"^^^^^^^^^^^^^^ Before read source content with native lib flag is true"<<std::endl;
 
     if(fetchNativeJSLibContentDelegate != NULL){
-      //V8Engine *e = GetV8EngineInstance(context);
       content = fetchNativeJSLibContentDelegate(filename);
     }
 
@@ -95,8 +93,8 @@ void attachVersion(char *out, int maxoutlen, Local<Context> context, const char 
   std::string verlib;
   
   if (attachLibVersionDelegate != NULL) {
-    //V8Engine *e = GetV8EngineInstance(context);
-    verlib = attachLibVersionDelegate(libname);
+    V8Engine *e = GetV8EngineInstance(context);
+    verlib = attachLibVersionDelegate(e, libname);
   }
 
   if (verlib.length()>0) {

@@ -14,10 +14,12 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
-// 
+//
+// Author: Samuel Chen <samuel.chen@nebulas.io>
 
 #include "crypto.h"
 #include "../engine.h"
+#include "global.h"
 #include "instruction_counter.h"
 
 static Sha256Func sSha256 = NULL;
@@ -99,8 +101,8 @@ void Sha256Callback(const FunctionCallbackInfo<Value> &info) {
   }
 
   size_t cnt = 0;
-
-  char *value = sSha256(*String::Utf8Value(data->ToString()), &cnt);
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
+  char *value = sSha256(curr_engine, *String::Utf8Value(data->ToString()), &cnt);
   if (value == NULL) {
     info.GetReturnValue().SetNull();
   } else {
@@ -129,8 +131,8 @@ void Sha3256Callback(const FunctionCallbackInfo<Value> &info) {
   }
 
   size_t cnt = 0;
-
-  char *value = sSha3256(*String::Utf8Value(data->ToString()), &cnt);
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
+  char *value = sSha3256(curr_engine, *String::Utf8Value(data->ToString()), &cnt);
   if (value == NULL) {
     info.GetReturnValue().SetNull();
   } else {
@@ -159,8 +161,8 @@ void Ripemd160Callback(const FunctionCallbackInfo<Value> &info) {
   }
 
   size_t cnt = 0;
-
-  char *value = sRipemd160(*String::Utf8Value(data->ToString()), &cnt);
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
+  char *value = sRipemd160(curr_engine, *String::Utf8Value(data->ToString()), &cnt);
   if (value == NULL) {
     info.GetReturnValue().SetNull();
   } else {
@@ -204,8 +206,8 @@ void RecoverAddressCallback(const FunctionCallbackInfo<Value> &info) {
   }
 
   size_t cnt = 0;
-
-  char *value = sRecoverAddress(alg->ToInt32()->Int32Value(), *String::Utf8Value(data->ToString()), 
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
+  char *value = sRecoverAddress(curr_engine, alg->ToInt32()->Int32Value(), *String::Utf8Value(data->ToString()), 
                                *String::Utf8Value(sign->ToString()), &cnt);
   if (value == NULL) {
     info.GetReturnValue().SetNull();
@@ -235,8 +237,8 @@ void Md5Callback(const FunctionCallbackInfo<Value> &info) {
   }
 
   size_t cnt = 0;
-
-  char *value = sMd5(*String::Utf8Value(data->ToString()), &cnt);
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
+  char *value = sMd5(curr_engine, *String::Utf8Value(data->ToString()), &cnt);
   if (value == NULL) {
     info.GetReturnValue().SetNull();
   } else {
@@ -265,8 +267,8 @@ void Base64Callback(const FunctionCallbackInfo<Value> &info) {
   }
 
   size_t cnt = 0;
-
-  char *value = sBase64(*String::Utf8Value(data->ToString()), &cnt);
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
+  char *value = sBase64(curr_engine, *String::Utf8Value(data->ToString()), &cnt);
   if (value == NULL) {
     info.GetReturnValue().SetNull();
   } else {

@@ -16,6 +16,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
+// Author: Samuel Chen <samuel.chen@nebulas.io>
 
 #pragma once
 
@@ -41,9 +42,7 @@ namespace SNVM{
 
     class CompatManager{
         public:
-            explicit CompatManager(uint32_t chain_id){
-                curr_chain_id = chain_id;
-                std::cout<<"**** curr chain id: "<<curr_chain_id<<std::endl;
+            explicit CompatManager(){
                 MainNetVersionHeightMap.clear();
                 TestNetVersionHeightMap.clear();
                 MainNetVersionHeightMap["1.0.5"] = 467500;
@@ -61,59 +60,53 @@ namespace SNVM{
 
             void InitializeLibVersionManager();
 
-            std::string AttachVersionForLib(std::string&, uint64_t, std::string&);
+            std::string AttachVersionForLib(std::string&, uint64_t, std::string&, uint32_t);
 
-            std::string GetNearestInstructionCounterVersionAtHeight(uint64_t);
+            std::string GetNearestInstructionCounterVersionAtHeight(uint64_t, uint32_t);
 
             std::string AttachDefaultVersionLib(std::string&);
 
             std::string FindLastNearestLibVersion(std::string&, std::string&);
            
 
-            inline uint64_t GetNVMMemoryLimitWithoutInjectHeight(){
-                if(this->curr_chain_id == MainNetID){
+            inline uint64_t GetNVMMemoryLimitWithoutInjectHeight(uint32_t curr_chain_id){
+                if(curr_chain_id == MainNetID){
                     return MainNetNvmMemoryLimitWithoutInjectHeight;
-                }else if(this->curr_chain_id == TestNetID){
+                }else if(curr_chain_id == TestNetID){
                     return TestNetNvmMemoryLimitWithoutInjectHeight;
                 }else{
                     return 0;
                 }
             }
 
-            inline uint64_t GetNVMGasLimitWithoutTimeoutHeight(){
-                if(this->curr_chain_id == MainNetID){
+            inline uint64_t GetNVMGasLimitWithoutTimeoutHeight(uint32_t curr_chain_id){
+                if(curr_chain_id == MainNetID){
                     return MainNetNvmGasLimitWithoutTimeoutAtHeight;
-                }else if(this->curr_chain_id == TestNetID){
+                }else if(curr_chain_id == TestNetID){
                     return TestNetNvmGasLimitWithoutTimeoutAtHeight;
                 }else{
                     return 0;
                 } 
             }
 
-            inline uint64_t InnerContractCallAvailableHeight(){
-                if(this->curr_chain_id == MainNetID){
+            inline uint64_t InnerContractCallAvailableHeight(uint32_t curr_chain_id){
+                if(curr_chain_id == MainNetID){
                     return MainNetInnerContractCallAvailableAtHeight;
-                }else if(this->curr_chain_id == TestNetID){
+                }else if(curr_chain_id == TestNetID){
                     return TestNetInnerContractCallAvailableAtHeight;
                 }else{
                     return 0;
                 }
             }
 
-            inline uint64_t V8JSLibVersionControlHeight(){
-                if(this->curr_chain_id == MainNetID)
+            inline uint64_t V8JSLibVersionControlHeight(uint32_t curr_chain_id){
+                if(curr_chain_id == MainNetID)
                     return MainNetV8JSLibVersionControlHeight;
-                else if(this->curr_chain_id == TestNetID)
+                else if(curr_chain_id == TestNetID)
                     return TestNetV8JSLibVersionControlHeight;
                 else
                     return 0L;
             }
-
-            inline void SetChainID(uint32_t chain_id){
-                curr_chain_id = chain_id;
-            }
-
-            inline uint32_t GetChainID(){ return curr_chain_id; }
 
         private:
             // NvmMemoryLimitWithoutInjectHeight memory of nvm contract without inject code
@@ -143,8 +136,6 @@ namespace SNVM{
             std::unordered_map<std::string, uint64_t> MainNetVersionHeightMap;
             std::unordered_map<std::string, uint64_t> TestNetVersionHeightMap;
             std::unordered_map<std::string, uint64_t> LocalVersionHeightMap;
-
-            uint32_t curr_chain_id;
 
             // data structures
             std::unordered_map<std::string, std::vector<std::string>> lib_version_manager;          // js lib version manager

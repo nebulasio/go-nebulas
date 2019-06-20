@@ -15,11 +15,12 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
-
+//
+// Author: Samuel Chen <samuel.chen@nebulas.io>
 
 #include "event_trigger.h"
 
-void EventTrigger(void *handler, const char *topic, const char *data, size_t *cnt){
+void EventTrigger(V8Engine *engine, const char *topic, const char *data, size_t *cnt){
 
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(EVENT_TRIGGER_FUNC));
@@ -28,7 +29,7 @@ void EventTrigger(void *handler, const char *topic, const char *data, size_t *cn
 
   LogInfof("[Event] [%s] %s\n", topic, data);
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, engine, res);
   *cnt = (size_t)std::stoll(callback_res->result());
   if(callback_res != nullptr)
     delete callback_res;

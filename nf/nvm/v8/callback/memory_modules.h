@@ -15,6 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
+//
+// Author: Samuel Chen <samuel.chen@nebulas.io>
 
 #pragma once
 
@@ -22,10 +24,6 @@
 #include "../nvm_engine.h"
 #include "callback_util.h"
 
-std::string RequireDelegate(void *handler, const char *filename, size_t *lineOffset);
-
-std::string AttachLibVersionDelegate(const char *libname);
-
+std::string RequireDelegate(V8Engine* engine, const char *filename, size_t *lineOffset);
+std::string AttachLibVersionDelegate(V8Engine* engine, const char *libname);
 std::string FetchNativeJSLibContentDelegate(const char* file_path);
-
-void AddModule(void *handler, const char *filename, const char *source, size_t lineOffset);

@@ -17,8 +17,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#ifndef _NEBULAS_NF_NVM_V8_LIB_FILE_H_
-#define _NEBULAS_NF_NVM_V8_LIB_FILE_H_
+#pragma once
 
 #include <stddef.h>
 
@@ -40,5 +39,3 @@ char *readFile(const char *filepath, size_t *size);
 
 bool isFile(const char *file);
 bool getCurAbsolute(char *curCwd, int len);
-
-#endif // _NEBULAS_NF_NVM_V8_LIB_FILE_H_

@@ -16,6 +16,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
+// Author: Samuel Chen <samuel.chen@nebulas.io>
 
 #include "blockchain_modules.h"
 
@@ -23,17 +24,15 @@
 #include <stdlib.h>
 #include <string>
 
-#include <string.h>
-
 using namespace std;
 
-char *GetTxByHash(void *handler, const char *hash, size_t *gasCnt) {
+char *GetTxByHash(V8Engine* engine, void *handler, const char *hash, size_t *gasCnt) {
 
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(GET_TX_BY_HASH));
   res->add_func_params(std::string(hash));
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, handler, res);
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
   std::string resStr = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -49,13 +48,13 @@ char *GetTxByHash(void *handler, const char *hash, size_t *gasCnt) {
   return ret;
 }
 
-int GetAccountState(void *handler, const char *address, size_t *gasCnt, char **result, char **info) {
+int GetAccountState(V8Engine* engine, void *handler, const char *address, size_t *gasCnt, char **result, char **info) {
   
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(GET_ACCOUNT_STATE));
   res->add_func_params(std::string(address));
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, handler, res);
   int ret = (int)std::stoi(callback_res->result());
   bool not_null_flag = callback_res->not_null();
   std::string resStr = callback_res->extra(0);
@@ -83,14 +82,14 @@ int GetAccountState(void *handler, const char *address, size_t *gasCnt, char **r
   return ret;
 }
 
-int Transfer(void *handler, const char *to, const char *value, size_t *gasCnt) {
+int Transfer(V8Engine* engine, void *handler, const char *to, const char *value, size_t *gasCnt) {
 
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(TRANSFER));
   res->add_func_params(std::string(to));
   res->add_func_params(std::string(value));
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, handler, res);
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
   int ret = (int)std::stoi(callback_res->result());
   if(callback_res != nullptr)
@@ -99,13 +98,13 @@ int Transfer(void *handler, const char *to, const char *value, size_t *gasCnt) {
   return ret;
 }
 
-int VerifyAddress(void *handler, const char *address, size_t *gasCnt) {
+int VerifyAddress(V8Engine* engine, void *handler, const char *address, size_t *gasCnt) {
 
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(VERIFY_ADDR));
   res->add_func_params(std::string(address));
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, handler, res);
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
   int ret = (int)std::stoi(callback_res->result());
   if(callback_res != nullptr)
@@ -114,13 +113,13 @@ int VerifyAddress(void *handler, const char *address, size_t *gasCnt) {
   return ret;
 }
 
-int GetPreBlockHash(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info) {
+int GetPreBlockHash(V8Engine* engine, void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info) {
 
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(GET_PRE_BLOCK_HASH));
   res->add_func_params(std::to_string(offset));
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, handler, res);
   int ret = (int)std::stoi(callback_res->result());
   bool not_null_flag = callback_res->not_null();
   std::string resStr = callback_res->extra(0);
@@ -147,13 +146,13 @@ int GetPreBlockHash(void *handler, unsigned long long offset, size_t *gasCnt, ch
   return ret;  
 }
 
-int GetPreBlockSeed(void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info) {
+int GetPreBlockSeed(V8Engine* engine, void *handler, unsigned long long offset, size_t *gasCnt, char **result, char **info) {
 
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(GET_PRE_BLOCK_SEED));
   res->add_func_params(std::to_string(offset));
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, handler, res);
   int ret = (int)std::stoi(callback_res->result());
   bool not_null_flag = callback_res->not_null();
   std::string resStr = callback_res->extra(0);
@@ -181,6 +180,7 @@ int GetPreBlockSeed(void *handler, unsigned long long offset, size_t *gasCnt, ch
 }
 
 char *GetContractSource(
+    V8Engine* engine,
     void *handler,
     const char *address, 
     size_t *gasCnt){
@@ -189,7 +189,7 @@ char *GetContractSource(
   res->set_func_name(std::string(GET_CONTRACT_SRC));
   res->add_func_params(std::string(address));
   
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, handler, res);
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
   std::string srcStr = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -206,7 +206,9 @@ char *GetContractSource(
   return ret;
 }
 
-char *InnerContract(void *handler, 
+char *InnerContract(
+    V8Engine* engine,
+    void *handler, 
     const char *address,
     const char *funcName,
     const char *v,
@@ -220,7 +222,7 @@ char *InnerContract(void *handler,
   res->add_func_params(std::string(v));
   res->add_func_params(std::string(args));
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res, true);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, handler, res, true);
   *gasCnt = (size_t)std::stoull(callback_res->extra(0));
   std::string resStr = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -238,6 +240,7 @@ char *InnerContract(void *handler,
 }
 
 int GetLatestNebulasRank(
+    V8Engine* engine,
     void *handler, 
     const char *address, 
     size_t *gasCnt, 
@@ -248,7 +251,7 @@ int GetLatestNebulasRank(
   res->set_func_name(std::string(GET_LATEST_NR));
   res->add_func_params(std::string(address));
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, handler, res);
   int ret = (int)std::stoi(callback_res->result());
   bool not_null_flag = callback_res->not_null();
   std::string resStr = callback_res->extra(0);
@@ -276,6 +279,7 @@ int GetLatestNebulasRank(
 }
 
 int GetLatestNebulasRankSummary(
+    V8Engine* engine,
     void *handler, 
     size_t *gasCnt, 
     char **result, 
@@ -284,7 +288,7 @@ int GetLatestNebulasRankSummary(
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(GET_LATEST_NR_SUMMARY));
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, handler, res);
   int ret = (int)std::stoi(callback_res->result());
   bool not_null_flag = callback_res->not_null();
   std::string resStr = callback_res->extra(0);

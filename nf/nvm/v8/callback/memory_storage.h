@@ -15,6 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
+//
+// Author: Samuel Chen <samuel.chen@nebulas.io>
 
 #pragma once
 
@@ -22,9 +24,6 @@
 #include "../nvm_engine.h"
 #include "callback_util.h"
 
-void *CreateStorageHandler();
-void DeleteStorageHandler(void *handler);
-
-char *StorageGet(void *handler, const char *key, size_t *cnt);
-int StoragePut(void *handler, const char *key, const char *value, size_t *cnt);
-int StorageDel(void *handler, const char *key, size_t *cnt);
+char *StorageGet(V8Engine*, void *handler, const char *key, size_t *cnt);
+int StoragePut(V8Engine*, void *handler, const char *key, const char *value, size_t *cnt);
+int StorageDel(V8Engine*, void *handler, const char *key, size_t *cnt);

@@ -16,11 +16,11 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
+// Author: Samuel Chen <samuel.chen@nebulas.io>
 
 #include "blockchain.h"
 #include "global.h"
 #include "../engine.h"
-#include "global.h"
 #include "instruction_counter.h"
 #include "logger.h"
 #include "limits.h"
@@ -152,10 +152,9 @@ void GetTransactionByHashCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
   size_t cnt = 0;
-
-  char *value =
-      sGetTxByHash(handler->Value(), *String::Utf8Value(key->ToString()), &cnt);
+  char *value = sGetTxByHash(curr_engine, handler->Value(), *String::Utf8Value(key->ToString()), &cnt);
   if (value == NULL) {
     info.GetReturnValue().SetNull();
   } else {
@@ -189,11 +188,11 @@ void GetAccountStateCallback(const FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-
   size_t cnt = 0;
   char *result = NULL;
   char *exceptionInfo = NULL;
-  err = sGetAccountState(handler->Value(), *String::Utf8Value(key->ToString()), &cnt, &result, &exceptionInfo);
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
+  err = sGetAccountState(curr_engine, handler->Value(), *String::Utf8Value(key->ToString()), &cnt, &result, &exceptionInfo);
 
   DEAL_ERROR_FROM_GOLANG(err);
 
@@ -238,8 +237,8 @@ void TransferCallback(const FunctionCallbackInfo<Value> &info) {
   }
 
   size_t cnt = 0;
-
-  int ret = sTransfer(handler->Value(), *String::Utf8Value(address->ToString()),
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
+  int ret = sTransfer(curr_engine, handler->Value(), *String::Utf8Value(address->ToString()),
                       *String::Utf8Value(amount->ToString()), &cnt);
   info.GetReturnValue().Set(ret);
 
@@ -267,8 +266,8 @@ void VerifyAddressCallback(const FunctionCallbackInfo<Value> &info) {
   }
 
   size_t cnt = 0;
-
-  int ret = sVerifyAddress(handler->Value(),
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
+  int ret = sVerifyAddress(curr_engine, handler->Value(),
                            *String::Utf8Value(address->ToString()), &cnt);
   info.GetReturnValue().Set(ret);
 
@@ -315,7 +314,8 @@ void GetPreBlockHashCallback(const FunctionCallbackInfo<Value> &info) {
   size_t cnt = 0;
   char *result = NULL;
   char *exceptionInfo = NULL;
-  err = sGetPreBlockHash(handler->Value(), (unsigned long long)(v), &cnt, &result, &exceptionInfo);
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
+  err = sGetPreBlockHash(curr_engine, handler->Value(), (unsigned long long)(v), &cnt, &result, &exceptionInfo);
 
   DEAL_ERROR_FROM_GOLANG(err);  
 
@@ -372,7 +372,8 @@ void GetPreBlockSeedCallback(const FunctionCallbackInfo<Value> &info) {
   size_t cnt = 0;
   char *result = NULL;
   char *exceptionInfo = NULL;
-  err = sGetPreBlockSeed(handler->Value(), (unsigned long long)(v), &cnt, &result, &exceptionInfo);
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
+  err = sGetPreBlockSeed(curr_engine, handler->Value(), (unsigned long long)(v), &cnt, &result, &exceptionInfo);
 
   DEAL_ERROR_FROM_GOLANG(err);
 
@@ -409,7 +410,8 @@ void GetContractSourceCallback(const FunctionCallbackInfo<Value> &info) {
   }
 
   size_t cnt = 0;
-  char *value = sGetContractSource(handler->Value(), *String::Utf8Value(address->ToString()), &cnt);
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
+  char *value = sGetContractSource(curr_engine, handler->Value(), *String::Utf8Value(address->ToString()), &cnt);
 
   if (value == NULL) {
     info.GetReturnValue().SetNull();  //TODO: check the throwed exception
@@ -463,7 +465,8 @@ void RunInnerContractSourceCallBack(const FunctionCallbackInfo<Value> &info) {
   }
 
   size_t cnt = 0;
-  char *value = sRunInnerContract(handler->Value(),
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
+  char *value = sRunInnerContract(curr_engine, handler->Value(),
                            *String::Utf8Value(address->ToString()), *String::Utf8Value(funcName->ToString()),
                            *String::Utf8Value(val->ToString()), *String::Utf8Value(args->ToString()),
                            &cnt);
@@ -513,7 +516,8 @@ void GetLatestNebulasRankCallback(const FunctionCallbackInfo<Value> &info) {
   size_t cnt = 0;
   char* result = NULL;
   char* exceptionInfo = NULL;
-  err = sGetLatestNR(handler->Value(), *String::Utf8Value(address->ToString()), &cnt, &result, &exceptionInfo);
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
+  err = sGetLatestNR(curr_engine, handler->Value(), *String::Utf8Value(address->ToString()), &cnt, &result, &exceptionInfo);
 
   DEAL_ERROR_FROM_GOLANG(err);
 
@@ -548,7 +552,8 @@ void GetLatestNebulasRankSummaryCallback(const FunctionCallbackInfo<Value> &info
   size_t cnt = 0;
   char* result = NULL;
   char* exceptionInfo = NULL;
-  err = sGetLatestNRSum(handler->Value(), &cnt, &result, &exceptionInfo);
+  V8Engine* curr_engine = GetV8EngineInstance(isolate->GetCurrentContext());
+  err = sGetLatestNRSum(curr_engine, handler->Value(), &cnt, &result, &exceptionInfo);
 
   DEAL_ERROR_FROM_GOLANG(err);
 

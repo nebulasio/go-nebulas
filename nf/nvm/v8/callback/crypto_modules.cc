@@ -15,17 +15,18 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
+//
+// Author: Samuel Chen <samuel.chen@nebulas.io>
 
 
 #include "crypto_modules.h"
 
-char *Sha256(const char *data, size_t *counterVal){
-
+char *Sha256(V8Engine* engine, const char *data, size_t *counterVal){
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(SHA_256_FUNC));
   res->add_func_params(std::string(data));
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(nullptr, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, nullptr, res);
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -40,13 +41,12 @@ char *Sha256(const char *data, size_t *counterVal){
   return value;
 }
 
-char *Sha3256(const char *data, size_t *counterVal){
-
+char *Sha3256(V8Engine* engine, const char *data, size_t *counterVal){
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(SHA_3256_FUNC));
   res->add_func_params(std::string(data));
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(nullptr, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, nullptr, res);
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -61,13 +61,12 @@ char *Sha3256(const char *data, size_t *counterVal){
   return value;
 }
 
-char *Ripemd160(const char *data, size_t *counterVal){
-
+char *Ripemd160(V8Engine* engine, const char *data, size_t *counterVal){
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(RIPEMD_160_FUNC));
   res->add_func_params(std::string(data));
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(nullptr, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, nullptr, res);
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -82,15 +81,14 @@ char *Ripemd160(const char *data, size_t *counterVal){
   return value;
 }
 
-char *RecoverAddress(int alg, const char *data, const char *sign, size_t *counterVal){
-
+char *RecoverAddress(V8Engine* engine, int alg, const char *data, const char *sign, size_t *counterVal){
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(RECOVER_ADDRESS_FUNC));
   res->add_func_params(std::to_string(alg));
   res->add_func_params(std::string(data));
   res->add_func_params(std::string(sign));
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(nullptr, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, nullptr, res);
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -105,13 +103,12 @@ char *RecoverAddress(int alg, const char *data, const char *sign, size_t *counte
   return value;
 }
 
-char *Md5(const char *data, size_t *counterVal){
-
+char *Md5(V8Engine* engine, const char *data, size_t *counterVal){
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(MD5_FUNC));
   res->add_func_params(std::string(data));
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(nullptr, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, nullptr, res);
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -126,13 +123,12 @@ char *Md5(const char *data, size_t *counterVal){
   return value;
 }
 
-char *Base64(const char *data, size_t *counterVal){
-
+char *Base64(V8Engine* engine, const char *data, size_t *counterVal){
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(BASE64_FUNC));
   res->add_func_params(std::string(data));
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(nullptr, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, nullptr, res);
   *counterVal = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();

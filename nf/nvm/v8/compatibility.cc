@@ -16,8 +16,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-
-#include <string>
+// Author: Samuel Chen <samuel.chen@nebulas.io>
 
 #include "nvm_engine.h"
 #include "compatibility.h"
@@ -99,7 +98,6 @@ int32_t SNVM::CompareVersion(Version* a, Version* b){
 void SNVM::CompatManager::InitializeLibVersionManager(){
 
     std::string default_version("1.0.0");
-
     try{
         lib_version_manager.clear();
         
@@ -157,13 +155,13 @@ void SNVM::CompatManager::InitializeLibVersionManager(){
     }
 }
 
-std::string SNVM::CompatManager::GetNearestInstructionCounterVersionAtHeight(uint64_t block_height) {    
-    if(this->curr_chain_id == MainNetID){
+std::string SNVM::CompatManager::GetNearestInstructionCounterVersionAtHeight(uint64_t block_height, uint32_t curr_chain_id) {    
+    if(curr_chain_id == MainNetID){
         for(auto iter=this->MainNetVersions.begin(); iter!=this->MainNetVersions.end(); iter++){
             if(block_height >= this->MainNetVersionHeightMap[*iter])
                 return *iter;
         }
-    }else if(this->curr_chain_id == TestNetID){
+    }else if(curr_chain_id == TestNetID){
         for(auto iter=this->TestNetVersions.begin(); iter!=this->TestNetVersions.end(); iter++){
             if(block_height >= this->TestNetVersionHeightMap[*iter])
                 return *iter;
@@ -220,7 +218,8 @@ std::string SNVM::CompatManager::FindLastNearestLibVersion(std::string& deploy_v
 std::string SNVM::CompatManager::AttachVersionForLib(
     std::string& lib_name, 
     uint64_t block_height, 
-    std::string& meta_version){
+    std::string& meta_version,
+    uint32_t chain_id){
 
     std::string empty_res("");
 
@@ -231,14 +230,14 @@ std::string SNVM::CompatManager::AttachVersionForLib(
     if(lib_name.length()>=inst_counter_file_name.length() &&  (lib_name.compare(lib_name.length()-inst_counter_file_name.length(), 
             inst_counter_file_name.length(), inst_counter_file_name) == 0)){
 
-        std::string version = this->GetNearestInstructionCounterVersionAtHeight(block_height);
+        std::string version = this->GetNearestInstructionCounterVersionAtHeight(block_height, chain_id);
         std::string version_file_path = this->JSLibRootName + version 
                 + lib_name.substr(this->JSLibRootNameLen-1, lib_name.length()-this->JSLibRootNameLen+1);
         return version_file_path;
     }
 
 	// block after core.V8JSLibVersionControlHeight, inclusive
-	if(block_height >= this->V8JSLibVersionControlHeight()){
+	if(block_height >= this->V8JSLibVersionControlHeight(chain_id)){
 
         if(meta_version.length() == 0){
             LogDebugf("Contract meta is nil for %s at height: %lld", static_cast<const char*>(lib_name.c_str()), block_height);

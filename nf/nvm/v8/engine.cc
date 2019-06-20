@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2017-2019 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
-//
 
 #include "engine.h"
 #include "allocator.h"
@@ -29,11 +28,11 @@
 #include "v8_data_inc.h"
 #include <libplatform/libplatform.h>
 #include <assert.h>
-#include <string.h>
-#include <thread>
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
+#include <string>
+#include <thread>
 
 using namespace v8;
 
@@ -222,14 +221,22 @@ int Execute(char **result, V8Engine *e, const char *source,
   // Continue put objects to global object.
   SetGlobalObjectProperties(isolate, context, e, lcsHandler, gcsHandler);
 
+
+  std::cout<<">>>>>After set global obj"<<std::endl;
+
   // Setup execution env.
   if (SetupExecutionEnv(isolate, context)) {
     PrintAndReturnException(result, context, trycatch);
     return NVM_EXCEPTION_ERR;
   }
 
+    std::cout<<">>>>>After set up env"<<std::endl;
+
   int retTmp = delegate(result, isolate, source, source_line_offset, context,
                   trycatch, delegateContext);
+
+  std::cout<<">>>>>After delegate!!!!"<<std::endl;
+
   
   if (e->is_unexpected_error_happen) {
     return NVM_UNEXPECTED_ERR;

@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2017-2019 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -16,6 +16,7 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
+// Author: Samuel Chen <samuel.chen@nebulas.io>
 
 #pragma once
 
@@ -23,13 +24,13 @@
 #include "../nvm_engine.h"
 #include "callback_util.h"
 
-char *GetTxByHash(void *handler, const char *hash, size_t *gasCnt);
-int GetAccountState(void *handler, const char *addres, size_t *gasCnts, char **result, char **info);
-int Transfer(void *handler, const char *to, const char *value, size_t *gasCnt);
-int VerifyAddress(void *handler, const char *address, size_t *gasCnt);
-int GetPreBlockHash(void *handler, unsigned long long offset, size_t *counterVal, char **result, char **info);
-int GetPreBlockSeed(void *handler, unsigned long long offset, size_t *counterVal, char **result, char **info);
-char *GetContractSource(void *handler, const char *address, size_t *counterVal);
-char *InnerContract(void *handler, const char *address, const char *funcName, const char *v, const char *args, size_t *gasCnt);
-int GetLatestNebulasRank(void *handler, const char *addres, size_t *counterVal, char **result, char **info);
-int GetLatestNebulasRankSummary(void *handler, size_t *gasCnt, char **result, char **info);
+char *GetTxByHash(V8Engine*, void *handler, const char *hash, size_t *gasCnt);
+int GetAccountState(V8Engine*, void *handler, const char *addres, size_t *gasCnts, char **result, char **info);
+int Transfer(V8Engine*, void *handler, const char *to, const char *value, size_t *gasCnt);
+int VerifyAddress(V8Engine*, void *handler, const char *address, size_t *gasCnt);
+int GetPreBlockHash(V8Engine*, void *handler, unsigned long long offset, size_t *counterVal, char **result, char **info);
+int GetPreBlockSeed(V8Engine*, void *handler, unsigned long long offset, size_t *counterVal, char **result, char **info);
+char *GetContractSource(V8Engine*, void *handler, const char *address, size_t *counterVal);
+char *InnerContract(V8Engine*, void *handler, const char *address, const char *funcName, const char *v, const char *args, size_t *gasCnt);
+int GetLatestNebulasRank(V8Engine*, void *handler, const char *addres, size_t *counterVal, char **result, char **info);
+int GetLatestNebulasRankSummary(V8Engine*, void *handler, size_t *gasCnt, char **result, char **info);

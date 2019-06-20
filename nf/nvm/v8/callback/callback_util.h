@@ -15,6 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
+//
+// Author: Samuel Chen <samuel.chen@nebulas.io>
 
 #pragma once
 

@@ -15,9 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
-//
-#ifndef _NEBULAS_NF_NVM_V8_LIB_REQUIRE_CALLBACK_H_
-#define _NEBULAS_NF_NVM_V8_LIB_REQUIRE_CALLBACK_H_
+
+#pragma once
 
 #include <v8.h>
 
@@ -27,5 +26,3 @@ using namespace v8;
 void NewNativeRequireFunction(Isolate *isolate,
                               Local<ObjectTemplate> globalTpl);
 void RequireCallback(const v8::FunctionCallbackInfo<v8::Value> &info);
-
-#endif // _NEBULAS_NF_NVM_V8_LIB_REQUIRE_CALLBACK_H_

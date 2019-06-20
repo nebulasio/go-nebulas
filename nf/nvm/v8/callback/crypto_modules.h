@@ -15,6 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
+//
+// Author: Samuel Chen <samuel.chen@nebulas.io>
 
 #pragma once
 
@@ -22,15 +24,9 @@
 #include "../nvm_engine.h"
 #include "callback_util.h"
 
-
-char *Sha256(const char *data, size_t *counterVal);
-
-char *Sha3256(const char *data, size_t *counterVal);
-
-char *Ripemd160(const char *data, size_t *counterVal);
-
-char *RecoverAddress(int alg, const char *data, const char *sign, size_t *counterVal);
-
-char *Md5(const char *data, size_t *counterVal);
-
-char *Base64(const char *data, size_t *counterVal);
+char *Sha256(V8Engine*, const char *data, size_t *counterVal);
+char *Sha3256(V8Engine*, const char *data, size_t *counterVal);
+char *Ripemd160(V8Engine*, const char *data, size_t *counterVal);
+char *RecoverAddress(V8Engine*, int alg, const char *data, const char *sign, size_t *counterVal);
+char *Md5(V8Engine*, const char *data, size_t *counterVal);
+char *Base64(V8Engine*, const char *data, size_t *counterVal);

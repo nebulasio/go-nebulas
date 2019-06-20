@@ -1,4 +1,4 @@
-// Copyright (C) 2017 go-nebulas authors
+// Copyright (C) 2017-2019 go-nebulas authors
 //
 // This file is part of the go-nebulas library.
 //
@@ -16,39 +16,26 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
+// Author: Samuel Chen <samuel.chen@nebulas.io>
+
 #include "memory_storage.h"
 
 #include <atomic>
 #include <mutex>
 #include <string>
 #include <unordered_map>
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <string>
 
 static std::mutex mapMutex;
 static std::unordered_map<std::string, std::string> memoryMap;
-static std::atomic<uintptr_t> handlerCounter(1234);
 
-std::string genKey(void *handler, const char *key) {
-  uintptr_t prefix = (uintptr_t)handler;
-  std::string sKey = std::to_string(prefix);
-  sKey.append("-");
-  sKey.append(key);
-  return sKey;
-}
-
-void *CreateStorageHandler() { return (void *)handlerCounter.fetch_add(1); }
-
-void DeleteStorageHandler(void *handler) {}
-
-char* StorageGet(void* handler, const char *key, size_t *cnt){
+char* StorageGet(V8Engine* engine, void* handler, const char *key, size_t *cnt){
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(STORAGE_GET));
   res->add_func_params(std::string(key));
 
-  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(handler, res);
+  const NVMCallbackResult *callback_res = SNVM::DataExchangeCallback(engine, handler, res);
   *cnt = (size_t)std::stoull(callback_res->extra(0));
   std::string resString = callback_res->result();
   bool not_null_flag = callback_res->not_null();
@@ -62,13 +49,13 @@ char* StorageGet(void* handler, const char *key, size_t *cnt){
   return cStr;
 }
 
-int StoragePut(void* handler, const char* key, const char *value, size_t *cnt){
+int StoragePut(V8Engine* engine, void* handler, const char* key, const char *value, size_t *cnt){
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(STORAGE_PUT));
   res->add_func_params(std::string(key));
   res->add_func_params(std::string(value));
 
-  const NVMCallbackResult* callback_res = SNVM::DataExchangeCallback(handler, res);
+  const NVMCallbackResult* callback_res = SNVM::DataExchangeCallback(engine, handler, res);
   *cnt = (size_t)std::stoull(callback_res->extra(0));
   int resCode = std::stoi(callback_res->result());
   if(callback_res != nullptr)
@@ -77,12 +64,12 @@ int StoragePut(void* handler, const char* key, const char *value, size_t *cnt){
   return resCode;
 }
 
-int StorageDel(void* handler, const char* key, size_t *cnt){
+int StorageDel(V8Engine* engine, void* handler, const char* key, size_t *cnt){
   NVMCallbackResponse *res = new NVMCallbackResponse();
   res->set_func_name(std::string(STORAGE_DEL));
   res->add_func_params(std::string(key));
 
-  const NVMCallbackResult* callback_res = SNVM::DataExchangeCallback(handler, res);
+  const NVMCallbackResult* callback_res = SNVM::DataExchangeCallback(engine, handler, res);
   *cnt = (size_t)std::stoull(callback_res->extra(0));
   int resCode = std::stoi(callback_res->result());
   if(callback_res != nullptr)
