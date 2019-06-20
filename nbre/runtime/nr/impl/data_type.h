@@ -20,8 +20,6 @@
 
 #pragma once
 #include "core/net_ipc/nipc_pkg.h"
-#include "runtime/nr/graph/algo.h"
-#include "runtime/util.h"
 
 namespace neb {
 namespace fs {
@@ -43,8 +41,6 @@ struct rank_params_t {
   floatxx_t m_mu;
   floatxx_t m_lambda;
 };
-
-using uintxx_t = uint64_t;
 
 using nr_ret_type = std::shared_ptr<nr_result>;
 } // namespace nr

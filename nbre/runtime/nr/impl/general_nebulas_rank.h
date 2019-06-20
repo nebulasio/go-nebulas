@@ -20,10 +20,6 @@
 
 #pragma once
 #include "runtime/nr/impl/nebulas_rank_interface.h"
-#include "fs/blockchain/account/account_db_interface.h"
-#include "fs/blockchain/data_type.h"
-#include "fs/blockchain/transaction/transaction_db_interface.h"
-#include "runtime/nr/impl/data_type.h"
 
 
 namespace neb {

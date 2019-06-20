@@ -23,6 +23,7 @@
 #include "fs/blockchain/account/account_db_interface.h"
 #include "fs/blockchain/data_type.h"
 #include "fs/blockchain/transaction/transaction_db_interface.h"
+#include "runtime/nr/graph/algo.h"
 #include "runtime/nr/impl/data_type.h"
 
 #define BLOCK_INTERVAL_MAGIC_NUM 128

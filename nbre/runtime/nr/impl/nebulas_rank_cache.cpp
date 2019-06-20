@@ -18,6 +18,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "runtime/nr/impl/nebulas_rank_cache.h"
+#include "runtime/util.h"
 #include "util/db_mem_cache.h"
 #include "util/lru_cache.h"
 #include "util/one_time_calculator.h"

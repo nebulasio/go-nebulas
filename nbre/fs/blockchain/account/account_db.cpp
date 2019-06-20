@@ -31,14 +31,15 @@ account_db::account_db(neb::fs::blockchain_api_base *blockchain)
     : m_blockchain(blockchain) {}
 
 neb::wei_t account_db::get_balance(const neb::address_t &addr,
-                                   neb::block_height_t height) {
+                                   const neb::block_height_t &height) {
   auto corepb_account_ptr = m_blockchain->get_account_api(addr, height);
   std::string balance_str = corepb_account_ptr->balance();
   return storage_to_wei(neb::string_to_byte(balance_str));
 }
 
-neb::address_t account_db::get_contract_deployer(const neb::address_t &addr,
-                                                 neb::block_height_t height) {
+neb::address_t
+account_db::get_contract_deployer(const neb::address_t &addr,
+                                  const neb::block_height_t &height) {
   auto corepb_account_ptr = m_blockchain->get_account_api(addr, height);
   std::string birth_place = corepb_account_ptr->birth_place();
   auto corepb_txs_ptr = m_blockchain->get_transaction_api(birth_place, height);
@@ -46,7 +47,7 @@ neb::address_t account_db::get_contract_deployer(const neb::address_t &addr,
 }
 
 void account_db::init_height_address_val_internal(
-    neb::block_height_t start_block,
+    const neb::block_height_t &start_block,
     const std::unordered_map<neb::address_t, neb::wei_t> &addr_balance) {
 
   for (auto &ele : addr_balance) {
@@ -65,7 +66,7 @@ void account_db::init_height_address_val_internal(
 }
 
 void account_db::update_height_address_val_internal(
-    neb::block_height_t start_block,
+    const neb::block_height_t &start_block,
     const std::vector<neb::fs::transaction_info_t> &txs,
     std::unordered_map<neb::address_t, neb::wei_t> &addr_balance) {
 
@@ -144,7 +145,7 @@ void account_db::update_height_address_val_internal(
 
 neb::wei_t
 account_db::get_account_balance_internal(const neb::address_t &address,
-                                         neb::block_height_t height) {
+                                         const neb::block_height_t &height) {
 
   auto addr_it = m_addr_height_list.find(address);
   if (addr_it == m_addr_height_list.end()) {

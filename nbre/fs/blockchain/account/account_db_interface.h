@@ -28,19 +28,20 @@ namespace fs {
 class account_db_interface {
 public:
   virtual neb::wei_t get_balance(const neb::address_t &addr,
-                                 neb::block_height_t height) = 0;
+                                 const neb::block_height_t &height) = 0;
 
-  virtual neb::address_t get_contract_deployer(const neb::address_t &addr,
-                                               neb::block_height_t height) = 0;
+  virtual neb::address_t
+  get_contract_deployer(const neb::address_t &addr,
+                        const neb::block_height_t &height) = 0;
 
   virtual void update_height_address_val_internal(
-      neb::block_height_t start_block,
+      const neb::block_height_t &start_block,
       const std::vector<neb::fs::transaction_info_t> &txs,
       std::unordered_map<neb::address_t, neb::wei_t> &addr_balance) = 0;
 
   virtual neb::wei_t
   get_account_balance_internal(const neb::address_t &addr,
-                               neb::block_height_t height) = 0;
+                               const neb::block_height_t &height) = 0;
 };
 
 } // namespace fs

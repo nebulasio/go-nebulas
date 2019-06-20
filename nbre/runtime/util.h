@@ -24,8 +24,8 @@
 namespace neb {
 namespace rt {
 
-using str_sptr_t = std::shared_ptr<std::string>;
-using str_uptr_t = std::unique_ptr<std::string>;
+// using str_sptr_t = std::shared_ptr<std::string>;
+// using str_uptr_t = std::unique_ptr<std::string>;
 
 /*
 std::string meta_info_to_json(

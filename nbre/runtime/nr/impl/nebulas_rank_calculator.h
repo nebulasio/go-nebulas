@@ -19,7 +19,6 @@
 //
 
 #pragma once
-#include "common/common.h"
 #include "runtime/nr/impl/data_type.h"
 
 namespace neb {

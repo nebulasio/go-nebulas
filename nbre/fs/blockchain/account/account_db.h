@@ -30,21 +30,23 @@ public:
   account_db(neb::fs::blockchain_api_base *blockchain_ptr);
 
   virtual neb::wei_t get_balance(const neb::address_t &addr,
-                                 neb::block_height_t height);
-  virtual neb::address_t get_contract_deployer(const neb::address_t &addr,
-                                               neb::block_height_t height);
+                                 const neb::block_height_t &height);
+  virtual neb::address_t
+  get_contract_deployer(const neb::address_t &addr,
+                        const neb::block_height_t &height);
 
   virtual void update_height_address_val_internal(
-      neb::block_height_t start_block,
+      const neb::block_height_t &start_block,
       const std::vector<neb::fs::transaction_info_t> &txs,
       std::unordered_map<neb::address_t, neb::wei_t> &addr_balance);
 
-  virtual neb::wei_t get_account_balance_internal(const neb::address_t &addr,
-                                                  neb::block_height_t height);
+  virtual neb::wei_t
+  get_account_balance_internal(const neb::address_t &addr,
+                               const neb::block_height_t &height);
 
 protected:
   void init_height_address_val_internal(
-      neb::block_height_t start_block,
+      const neb::block_height_t &start_block,
       const std::unordered_map<neb::address_t, neb::wei_t> &addr_balance);
 
 protected:
