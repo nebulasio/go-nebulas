@@ -28,11 +28,12 @@ class account_db_interface;
 } // namespace fs
 
 namespace rt {
+class graph_algo;
 namespace nr {
 class nebulas_rank_algo;
 class nebulas_rank_calculator {
 public:
-  nebulas_rank_calculator(nebulas_rank_algo *algo,
+  nebulas_rank_calculator(graph_algo *galgo, nebulas_rank_algo *nralgo,
                           fs::transaction_db_interface *tdb_ptr,
                           fs::account_db_interface *adb_ptr);
 
@@ -41,7 +42,8 @@ public:
                                             neb::block_height_t end_block);
 
 protected:
-  nebulas_rank_algo *m_algo;
+  graph_algo *m_graph_algo;
+  nebulas_rank_algo *m_nr_algo;
   fs::transaction_db_interface *m_tdb_ptr;
   fs::account_db_interface *m_adb_ptr;
 };

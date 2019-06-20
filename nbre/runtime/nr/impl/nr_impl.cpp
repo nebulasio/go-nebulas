@@ -27,6 +27,7 @@
 #include "fs/blockchain/account/account_db.h"
 #include "fs/blockchain/blockchain_api_test.h"
 #include "fs/blockchain/transaction/transaction_db.h"
+#include "runtime/nr/graph/graph_algo.h"
 #include "runtime/nr/impl/general_nebulas_rank.h"
 #include "runtime/nr/impl/nebulas_rank_algo.h"
 #include "runtime/nr/impl/nebulas_rank_cache.h"
@@ -54,9 +55,10 @@ nr_ret_type entry_point_nr_impl(compatible_uint64_t start_block,
   auto tdb_ptr = std::make_unique<neb::fs::transaction_db>(pba.get());
   auto adb_ptr = std::make_unique<neb::fs::account_db>(pba.get());
 
+  auto ga_ptr = std::make_unique<graph_algo>();
   auto nra_ptr = std::make_unique<nebulas_rank_algo>();
   auto nrc_ptr = std::make_unique<nebulas_rank_calculator>(
-      nra_ptr.get(), tdb_ptr.get(), adb_ptr.get());
+      ga_ptr.get(), nra_ptr.get(), tdb_ptr.get(), adb_ptr.get());
 
   auto gnr_ptr =
       std::make_unique<general_nebulas_rank>(nrc_ptr.get(), nr_cache.get());

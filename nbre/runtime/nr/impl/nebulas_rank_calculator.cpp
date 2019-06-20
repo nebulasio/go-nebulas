@@ -22,6 +22,7 @@
 #include "fs/blockchain/account/account_db_interface.h"
 #include "fs/blockchain/transaction/transaction_algo.h"
 #include "fs/blockchain/transaction/transaction_db_interface.h"
+#include "runtime/nr/graph/graph_algo.h"
 #include "runtime/nr/impl/nebulas_rank_algo.h"
 
 namespace neb {
@@ -29,9 +30,10 @@ namespace rt {
 namespace nr {
 
 nebulas_rank_calculator::nebulas_rank_calculator(
-    nebulas_rank_algo *algo, fs::transaction_db_interface *tdb_ptr,
-    fs::account_db_interface *adb_ptr)
-    : m_algo(algo), m_tdb_ptr(tdb_ptr), m_adb_ptr(adb_ptr) {}
+    graph_algo *galgo, nebulas_rank_algo *nralgo,
+    fs::transaction_db_interface *tdb_ptr, fs::account_db_interface *adb_ptr)
+    : m_graph_algo(galgo), m_nr_algo(nralgo), m_tdb_ptr(tdb_ptr),
+      m_adb_ptr(adb_ptr) {}
 
 std::vector<nr_item>
 nebulas_rank_calculator::get_nr_score(const rank_params_t &rp,
@@ -51,38 +53,38 @@ nebulas_rank_calculator::get_nr_score(const rank_params_t &rp,
   LOG(INFO) << "succ account to account: " << succ_inter_txs.size();
 
   // graph operation
-  auto txs_v_ptr = m_algo->split_transactions_by_block_interval(succ_inter_txs);
-  LOG(INFO) << "split by block interval: " << txs_v_ptr->size();
+  auto txs_v = m_nr_algo->split_transactions_by_block_interval(succ_inter_txs);
+  LOG(INFO) << "split by block interval: " << txs_v.size();
 
-  m_algo->filter_empty_transactions_this_interval(*txs_v_ptr);
-  auto tgs_ptr = m_algo->build_transaction_graphs(*txs_v_ptr);
-  if (tgs_ptr->empty()) {
+  m_nr_algo->filter_empty_transactions_this_interval(txs_v);
+  auto tgs = m_nr_algo->build_transaction_graphs(txs_v);
+  if (tgs.empty()) {
     return std::vector<nr_item>();
   }
-  LOG(INFO) << "we have " << tgs_ptr->size() << " subgraphs.";
-  for (auto it = tgs_ptr->begin(); it != tgs_ptr->end(); it++) {
+  LOG(INFO) << "we have " << tgs.size() << " subgraphs.";
+  for (auto it = tgs.begin(); it != tgs.end(); it++) {
     transaction_graph *ptr = it->get();
-    graph_algo::non_recursive_remove_cycles_based_on_time_sequence(
+    m_graph_algo->non_recursive_remove_cycles_based_on_time_sequence(
         ptr->internal_graph());
-    graph_algo::merge_edges_with_same_from_and_same_to(ptr->internal_graph());
+    m_graph_algo->merge_edges_with_same_from_and_same_to(ptr->internal_graph());
   }
   LOG(INFO) << "done with remove cycle.";
 
-  transaction_graph *tg = neb::rt::graph_algo::merge_graphs(*tgs_ptr);
-  graph_algo::merge_topk_edges_with_same_from_and_same_to(tg->internal_graph());
+  transaction_graph *tg = m_graph_algo->merge_graphs(tgs);
+  m_graph_algo->merge_topk_edges_with_same_from_and_same_to(
+      tg->internal_graph());
   LOG(INFO) << "done with merge graphs.";
 
   // in_out amount
-  auto in_out_vals_p = graph_algo::get_in_out_vals(tg->internal_graph());
-  auto in_out_vals = *in_out_vals_p;
+  auto in_out_vals = m_graph_algo->get_in_out_vals(tg->internal_graph());
   LOG(INFO) << "done with get in_out_vals";
 
   // median, weight, rank
-  auto accounts_ptr = m_algo->get_normal_accounts(inter_txs);
-  LOG(INFO) << "account size: " << accounts_ptr->size();
+  auto accounts = m_nr_algo->get_normal_accounts(inter_txs);
+  LOG(INFO) << "account size: " << accounts.size();
 
   std::unordered_map<neb::address_t, neb::wei_t> addr_balance;
-  for (auto &acc : *accounts_ptr) {
+  for (auto &acc : accounts) {
     auto balance = m_adb_ptr->get_balance(acc, start_block);
     addr_balance.insert(std::make_pair(acc, balance));
   }
@@ -91,23 +93,19 @@ nebulas_rank_calculator::get_nr_score(const rank_params_t &rp,
                                                 addr_balance);
   LOG(INFO) << "done with set height address";
 
-  auto account_median_ptr = m_algo->get_account_balance_median(
-      start_block, *accounts_ptr, *txs_v_ptr, m_adb_ptr);
+  auto account_median = m_nr_algo->get_account_balance_median(
+      start_block, accounts, txs_v, m_adb_ptr);
   LOG(INFO) << "done with get account balance median";
-  auto account_weight_ptr = m_algo->get_account_weight(in_out_vals, m_adb_ptr);
+  auto account_weight = m_nr_algo->get_account_weight(in_out_vals, m_adb_ptr);
   LOG(INFO) << "done with get account weight";
 
-  auto account_median = *account_median_ptr;
-  auto account_weight = *account_weight_ptr;
-  auto account_rank_ptr =
-      m_algo->get_account_rank(account_median, account_weight, rp);
-  auto account_rank = *account_rank_ptr;
+  auto account_rank =
+      m_nr_algo->get_account_rank(account_median, account_weight, rp);
   LOG(INFO) << "account rank size: " << account_rank.size();
 
-  auto sorted_accounts_ptr = m_algo->sort_accounts(*accounts_ptr);
+  auto sorted_accounts = m_nr_algo->sort_accounts(accounts);
   std::vector<nr_item> infos;
-  for (auto it = sorted_accounts_ptr->begin(); it != sorted_accounts_ptr->end();
-       it++) {
+  for (auto it = sorted_accounts.begin(); it != sorted_accounts.end(); it++) {
     address_t addr = *it;
     if (in_out_vals.find(addr) != in_out_vals.end() &&
         account_median.find(addr) != account_median.end() &&

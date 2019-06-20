@@ -23,7 +23,7 @@
 #include "fs/blockchain/account/account_db_interface.h"
 #include "fs/blockchain/data_type.h"
 #include "fs/blockchain/transaction/transaction_db_interface.h"
-#include "runtime/nr/graph/algo.h"
+#include "runtime/nr/graph/graph_algo.h"
 #include "runtime/nr/impl/data_type.h"
 
 #define BLOCK_INTERVAL_MAGIC_NUM 128
@@ -33,7 +33,7 @@ namespace rt {
 namespace nr {
 class nebulas_rank_algo {
 public:
-  virtual std::unique_ptr<std::vector<std::vector<neb::fs::transaction_info_t>>>
+  virtual std::vector<std::vector<neb::fs::transaction_info_t>>
   split_transactions_by_block_interval(
       const std::vector<neb::fs::transaction_info_t> &txs,
       int32_t block_interval = BLOCK_INTERVAL_MAGIC_NUM);
@@ -41,32 +41,28 @@ public:
   virtual void filter_empty_transactions_this_interval(
       std::vector<std::vector<neb::fs::transaction_info_t>> &txs);
 
-  virtual std::unique_ptr<std::vector<transaction_graph_ptr_t>>
-  build_transaction_graphs(
+  virtual std::vector<transaction_graph_ptr_t> build_transaction_graphs(
       const std::vector<std::vector<neb::fs::transaction_info_t>> &txs);
 
-  virtual std::unique_ptr<std::unordered_set<address_t>>
+  virtual std::unordered_set<address_t>
   get_normal_accounts(const std::vector<neb::fs::transaction_info_t> &txs);
 
-  virtual std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
-  get_account_balance_median(
-      neb::block_height_t start_block,
+  virtual std::unordered_map<address_t, floatxx_t> get_account_balance_median(
+      const neb::block_height_t &start_block,
       const std::unordered_set<address_t> &accounts,
       const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
       fs::account_db_interface *db_ptr);
 
-  virtual std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
-  get_account_weight(
+  virtual std::unordered_map<address_t, floatxx_t> get_account_weight(
       const std::unordered_map<address_t, neb::rt::in_out_val_t> &in_out_vals,
       fs::account_db_interface *db_ptr);
 
-  virtual std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
-  get_account_rank(
+  virtual std::unordered_map<address_t, floatxx_t> get_account_rank(
       const std::unordered_map<address_t, floatxx_t> &account_median,
       const std::unordered_map<address_t, floatxx_t> &account_weight,
       const rank_params_t &rp);
 
-  virtual std::unique_ptr<std::vector<address_t>>
+  virtual std::vector<address_t>
   sort_accounts(const std::unordered_set<address_t> &accounts);
 
 protected:

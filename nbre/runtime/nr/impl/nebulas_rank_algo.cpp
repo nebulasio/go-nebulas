@@ -26,13 +26,12 @@ namespace neb {
 namespace rt {
 namespace nr {
 
-std::unique_ptr<std::vector<std::vector<neb::fs::transaction_info_t>>>
+std::vector<std::vector<neb::fs::transaction_info_t>>
 nebulas_rank_algo::split_transactions_by_block_interval(
     const std::vector<neb::fs::transaction_info_t> &txs,
     int32_t block_interval) {
 
-  auto ret =
-      std::make_unique<std::vector<std::vector<neb::fs::transaction_info_t>>>();
+  std::vector<std::vector<neb::fs::transaction_info_t>> ret;
 
   if (block_interval < 1 || txs.empty()) {
     return ret;
@@ -52,12 +51,12 @@ nebulas_rank_algo::split_transactions_by_block_interval(
     if (h < b + block_interval) {
       v.push_back(*it++);
     } else {
-      ret->push_back(v);
+      ret.push_back(v);
       v.clear();
       b += block_interval;
     }
     if (it == txs.end()) {
-      ret->push_back(v);
+      ret.push_back(v);
       break;
     }
   }
@@ -89,16 +88,15 @@ transaction_graph_ptr_t nebulas_rank_algo::build_graph_from_transactions(
   return ret;
 }
 
-std::unique_ptr<std::vector<transaction_graph_ptr_t>>
+std::vector<transaction_graph_ptr_t>
 nebulas_rank_algo::build_transaction_graphs(
     const std::vector<std::vector<neb::fs::transaction_info_t>> &txs) {
 
-  std::unique_ptr<std::vector<transaction_graph_ptr_t>> tgs =
-      std::make_unique<std::vector<transaction_graph_ptr_t>>();
+  std::vector<transaction_graph_ptr_t> tgs;
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
     auto p = build_graph_from_transactions(*it);
-    tgs->push_back(std::move(p));
+    tgs.push_back(std::move(p));
   }
   return tgs;
 }
@@ -112,30 +110,29 @@ block_height_t nebulas_rank_algo::get_max_height_this_block_interval(
   return txs.back().m_height;
 }
 
-std::unique_ptr<std::unordered_set<address_t>>
-nebulas_rank_algo::get_normal_accounts(
+std::unordered_set<address_t> nebulas_rank_algo::get_normal_accounts(
     const std::vector<neb::fs::transaction_info_t> &txs) {
 
-  auto ret = std::make_unique<std::unordered_set<address_t>>();
+  std::unordered_set<address_t> ret;
 
   for (auto it = txs.begin(); it != txs.end(); it++) {
     auto from = it->m_from;
-    ret->insert(from);
+    ret.insert(from);
 
     auto to = it->m_to;
-    ret->insert(to);
+    ret.insert(to);
   }
   return ret;
 }
 
-std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
+std::unordered_map<address_t, floatxx_t>
 nebulas_rank_algo::get_account_balance_median(
-    neb::block_height_t start_block,
+    const neb::block_height_t &start_block,
     const std::unordered_set<address_t> &accounts,
     const std::vector<std::vector<neb::fs::transaction_info_t>> &txs,
     fs::account_db_interface *db_ptr) {
 
-  auto ret = std::make_unique<std::unordered_map<address_t, floatxx_t>>();
+  std::unordered_map<address_t, floatxx_t> ret;
   std::unordered_map<address_t, std::vector<wei_t>> addr_balance_v;
 
   block_height_t max_height = start_block;
@@ -163,7 +160,7 @@ nebulas_rank_algo::get_account_balance_median(
     }
 
     floatxx_t normalized_median = wei_to_nas(median);
-    ret->insert(std::make_pair(it->first, math::max(zero, normalized_median)));
+    ret.insert(std::make_pair(it->first, math::max(zero, normalized_median)));
   }
 
   return ret;
@@ -184,12 +181,11 @@ floatxx_t nebulas_rank_algo::f_account_weight(floatxx_t in_val,
   return (in_val + out_val) * math::exp((zero - two) * tmp * tmp);
 }
 
-std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
-nebulas_rank_algo::get_account_weight(
+std::unordered_map<address_t, floatxx_t> nebulas_rank_algo::get_account_weight(
     const std::unordered_map<address_t, neb::rt::in_out_val_t> &in_out_vals,
     fs::account_db_interface *db_ptr) {
 
-  auto ret = std::make_unique<std::unordered_map<address_t, floatxx_t>>();
+  std::unordered_map<address_t, floatxx_t> ret;
 
   for (auto it = in_out_vals.begin(); it != in_out_vals.end(); it++) {
     wei_t in_val = it->second.m_in_val;
@@ -202,7 +198,7 @@ nebulas_rank_algo::get_account_weight(
     floatxx_t normalized_out_val = wei_to_nas(f_out_val);
 
     auto tmp = f_account_weight(normalized_in_val, normalized_out_val);
-    ret->insert(std::make_pair(it->first, tmp));
+    ret.insert(std::make_pair(it->first, tmp));
   }
   return ret;
 }
@@ -222,13 +218,12 @@ floatxx_t nebulas_rank_algo::f_account_rank(int64_t a, int64_t b, int64_t c,
   return ret;
 }
 
-std::unique_ptr<std::unordered_map<address_t, floatxx_t>>
-nebulas_rank_algo::get_account_rank(
+std::unordered_map<address_t, floatxx_t> nebulas_rank_algo::get_account_rank(
     const std::unordered_map<address_t, floatxx_t> &account_median,
     const std::unordered_map<address_t, floatxx_t> &account_weight,
     const rank_params_t &rp) {
 
-  auto ret = std::make_unique<std::unordered_map<address_t, floatxx_t>>();
+  std::unordered_map<address_t, floatxx_t> ret;
 
   for (auto it_m = account_median.begin(); it_m != account_median.end();
        it_m++) {
@@ -237,20 +232,20 @@ nebulas_rank_algo::get_account_rank(
       floatxx_t rank_val =
           f_account_rank(rp.m_a, rp.m_b, rp.m_c, rp.m_d, rp.m_theta, rp.m_mu,
                          rp.m_lambda, it_m->second, it_w->second);
-      ret->insert(std::make_pair(it_m->first, rank_val));
+      ret.insert(std::make_pair(it_m->first, rank_val));
     }
   }
 
   return ret;
 }
 
-std::unique_ptr<std::vector<address_t>> nebulas_rank_algo::sort_accounts(
+std::vector<address_t> nebulas_rank_algo::sort_accounts(
     const std::unordered_set<address_t> &accounts) {
-  auto ret = std::make_unique<std::vector<address_t>>();
+  std::vector<address_t> ret;
   for (auto &acc : accounts) {
-    ret->push_back(acc);
+    ret.push_back(acc);
   }
-  sort(ret->begin(), ret->end());
+  sort(ret.begin(), ret.end());
   return ret;
 }
 
