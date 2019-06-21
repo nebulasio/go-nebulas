@@ -36,10 +36,10 @@ blockchain_api::blockchain_api(blockchain *bc) : blockchain_api_base(bc) {}
 
 blockchain_api::~blockchain_api() {}
 
-std::unique_ptr<std::vector<transaction_info_t>>
+std::vector<transaction_info_t>
 blockchain_api::get_block_transactions_api(block_height_t height) {
 
-  auto ret = std::make_unique<std::vector<transaction_info_t>>();
+  std::vector<transaction_info_t> ret;
   // special for  block height 1
   if (height <= 1) {
     return ret;
@@ -69,11 +69,11 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
     std::vector<transaction_info_t> events;
     get_transfer_event(events_root_bytes, tx_hash_bytes, events, info);
 
-    ret->push_back(info);
+    ret.push_back(info);
     if (info.m_status) {
       for (auto &e : events) {
         e.m_status = info.m_status;
-        ret->push_back(e);
+        ret.push_back(e);
       }
     }
   }

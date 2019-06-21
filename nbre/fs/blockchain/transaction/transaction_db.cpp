@@ -27,15 +27,15 @@ namespace fs {
 transaction_db::transaction_db(blockchain_api_base *blockchain_ptr)
     : m_blockchain(blockchain_ptr) {}
 
-std::unique_ptr<std::vector<transaction_info_t>>
+std::vector<transaction_info_t>
 transaction_db::read_transactions_from_db_with_duration(
     block_height_t start_block, block_height_t end_block) {
 
-  auto ret = std::make_unique<std::vector<transaction_info_t>>();
+  std::vector<transaction_info_t> ret;
 
   for (block_height_t h = start_block; h < end_block; h++) {
     auto tmp = m_blockchain->get_block_transactions_api(h);
-    ret->insert(ret->end(), tmp->begin(), tmp->end());
+    ret.insert(ret.end(), tmp.begin(), tmp.end());
   }
   return ret;
 }

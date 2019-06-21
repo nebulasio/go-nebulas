@@ -26,7 +26,7 @@ namespace fs {
 
 class transaction_db_interface {
 public:
-  virtual std::unique_ptr<std::vector<transaction_info_t>>
+  virtual std::vector<transaction_info_t>
   read_transactions_from_db_with_duration(block_height_t start_block,
                                           block_height_t end_block) = 0;
 };

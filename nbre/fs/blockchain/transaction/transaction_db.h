@@ -30,7 +30,7 @@ class transaction_db : public transaction_db_interface {
 public:
   transaction_db(blockchain_api_base *blockchain_ptr);
 
-  virtual std::unique_ptr<std::vector<transaction_info_t>>
+  virtual std::vector<transaction_info_t>
   read_transactions_from_db_with_duration(block_height_t start_block,
                                           block_height_t end_block);
 

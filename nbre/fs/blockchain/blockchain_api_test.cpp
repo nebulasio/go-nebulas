@@ -29,9 +29,9 @@ blockchain_api_test::blockchain_api_test() : blockchain_api_base(nullptr) {}
 
 blockchain_api_test::~blockchain_api_test() {}
 
-std::unique_ptr<std::vector<transaction_info_t>>
+std::vector<transaction_info_t>
 blockchain_api_test::get_block_transactions_api(block_height_t height) {
-  auto ret = std::make_unique<std::vector<transaction_info_t>>();
+  std::vector<transaction_info_t> ret;
 
   auto block = get_block_with_height(height);
 
@@ -45,7 +45,7 @@ blockchain_api_test::get_block_transactions_api(block_height_t height) {
     info.m_to = to_address(tx.to());
     info.m_tx_value = storage_to_wei(string_to_byte(tx.value()));
     info.m_timestamp = tx.timestamp();
-    ret->push_back(info);
+    ret.push_back(info);
   }
 
   return ret;
