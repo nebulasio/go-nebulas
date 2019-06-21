@@ -37,22 +37,21 @@ std::vector<dip_item> dip_calculator::get_dip_reward(
     const nr::nr_ret_type &nr_result, floatxx_t alpha, floatxx_t beta,
     const dip_param_t &dip_param) {
 
-  auto it_txs = m_tdb_ptr->read_transactions_from_db_with_duration(start_block,
-                                                                   end_block);
-  auto txs = *it_txs;
+  auto txs = m_tdb_ptr->read_transactions_from_db_with_duration(start_block,
+                                                                end_block);
   LOG(INFO) << "transaction size " << txs.size();
 
   auto it_nr_infos = nr_result->get<p_nr_items>();
-  auto it_acc_to_contract_txs = fs::algo::read_transactions_with_address_type(
+  auto acc_to_contract_txs = fs::algo::read_transactions_with_address_type(
       txs, NAS_ADDRESS_ACCOUNT_MAGIC_NUM, NAS_ADDRESS_CONTRACT_MAGIC_NUM);
-  m_algo->ignore_account_transfer_contract(*it_acc_to_contract_txs, "binary");
-  LOG(INFO) << "account to contract size " << it_acc_to_contract_txs->size();
+  m_algo->ignore_account_transfer_contract(acc_to_contract_txs, "binary");
+  LOG(INFO) << "account to contract size " << acc_to_contract_txs.size();
   // dapp total votes
-  auto it_acc_to_contract_votes =
-      m_algo->account_to_contract_votes(*it_acc_to_contract_txs, it_nr_infos);
-  LOG(INFO) << "account to contract votes " << it_acc_to_contract_votes->size();
-  auto it_dapp_votes = m_algo->dapp_votes(*it_acc_to_contract_votes);
-  LOG(INFO) << "dapp votes size " << it_dapp_votes->size();
+  auto acc_to_contract_votes =
+      m_algo->account_to_contract_votes(acc_to_contract_txs, it_nr_infos);
+  LOG(INFO) << "account to contract votes " << acc_to_contract_votes.size();
+  auto dapp_votes = m_algo->dapp_votes(acc_to_contract_votes);
+  LOG(INFO) << "dapp votes size " << dapp_votes.size();
 
   // bonus pool in total
   address_t dip_reward_addr = to_address(dip_param.get<p_dip_reward_addr>());
@@ -65,19 +64,19 @@ std::vector<dip_item> dip_calculator::get_dip_reward(
   // bonus_total = adb_ptr->get_normalized_value(bonus_total);
 
   floatxx_t sum_votes(0);
-  for (auto &v : *it_dapp_votes) {
+  for (auto &v : dapp_votes) {
     sum_votes += v.second * v.second;
   }
   LOG(INFO) << "sum votes " << sum_votes;
 
   floatxx_t reward_sum(0);
   std::vector<dip_item> dip_infos;
-  for (auto &v : *it_dapp_votes) {
+  for (auto &v : dapp_votes) {
     dip_item di;
 
     floatxx_t reward_in_wei =
         v.second * v.second *
-        m_algo->participate_lambda(alpha, beta, *it_acc_to_contract_txs,
+        m_algo->participate_lambda(alpha, beta, acc_to_contract_txs,
                                    it_nr_infos) *
         bonus_total / sum_votes;
     reward_sum += reward_in_wei;

@@ -28,22 +28,19 @@ namespace rt {
 namespace dip {
 class dip_algo {
 public:
-  virtual auto account_call_contract_count(
-      const std::vector<neb::fs::transaction_info_t> &txs)
-      -> std::unique_ptr<std::unordered_map<
-          address_t, std::unordered_map<address_t, uint32_t>>>;
+  virtual std::unordered_map<address_t, std::unordered_map<address_t, uint32_t>>
+  account_call_contract_count(
+      const std::vector<neb::fs::transaction_info_t> &txs);
 
-  virtual auto
+  virtual std::unordered_map<address_t,
+                             std::unordered_map<address_t, floatxx_t>>
   account_to_contract_votes(const std::vector<neb::fs::transaction_info_t> &txs,
-                            const std::vector<nr_item> &nr_infos)
-      -> std::unique_ptr<std::unordered_map<
-          address_t, std::unordered_map<address_t, floatxx_t>>>;
+                            const std::vector<nr_item> &nr_infos);
 
-  virtual auto
+  virtual std::unordered_map<address_t, floatxx_t>
   dapp_votes(const std::unordered_map<address_t,
                                       std::unordered_map<address_t, floatxx_t>>
-                 &acc_contract_votes)
-      -> std::unique_ptr<std::unordered_map<address_t, floatxx_t>>;
+                 &acc_contract_votes);
 
   virtual floatxx_t
   participate_lambda(floatxx_t alpha, floatxx_t beta,

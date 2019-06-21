@@ -43,11 +43,11 @@ nebulas_rank_calculator::get_nr_score(const rank_params_t &rp,
   auto start_time = std::chrono::high_resolution_clock::now();
   LOG(INFO) << "start to read neb db transaction";
   // transactions in total and account inter transactions
-  auto txs_ptr = m_tdb_ptr->read_transactions_from_db_with_duration(start_block,
-                                                                    end_block);
-  LOG(INFO) << "raw tx size: " << txs_ptr->size();
+  auto txs = m_tdb_ptr->read_transactions_from_db_with_duration(start_block,
+                                                                end_block);
+  LOG(INFO) << "raw tx size: " << txs.size();
   auto inter_txs = fs::algo::read_transactions_with_address_type(
-      *txs_ptr, NAS_ADDRESS_ACCOUNT_MAGIC_NUM, NAS_ADDRESS_ACCOUNT_MAGIC_NUM);
+      txs, NAS_ADDRESS_ACCOUNT_MAGIC_NUM, NAS_ADDRESS_ACCOUNT_MAGIC_NUM);
   LOG(INFO) << "account to account: " << inter_txs.size();
   auto succ_inter_txs = fs::algo::read_transactions_with_succ(inter_txs);
   LOG(INFO) << "succ account to account: " << succ_inter_txs.size();
@@ -89,8 +89,7 @@ nebulas_rank_calculator::get_nr_score(const rank_params_t &rp,
     addr_balance.insert(std::make_pair(acc, balance));
   }
   LOG(INFO) << "done with get balance";
-  m_adb_ptr->update_height_address_val_internal(start_block, *txs_ptr,
-                                                addr_balance);
+  m_adb_ptr->update_height_address_val_internal(start_block, txs, addr_balance);
   LOG(INFO) << "done with set height address";
 
   auto account_median = m_nr_algo->get_account_balance_median(

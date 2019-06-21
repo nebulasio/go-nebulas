@@ -22,7 +22,6 @@
 
 #include "common/common.h"
 #include "common/math/softfloat.hpp"
-#include "runtime/dip/dip_handler.h"
 #include "runtime/dip/dip_reward.h"
 #include "runtime/stdrt.h"
 

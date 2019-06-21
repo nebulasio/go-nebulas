@@ -41,6 +41,7 @@ std::vector<dip_item> dip_reward::get_dip_reward(
     neb::block_height_t height, const std::vector<nr_item> &nr_result,
     neb::fs::transaction_db_interface *tdb_ptr,
     neb::fs::account_db_interface *adb_ptr, floatxx_t alpha, floatxx_t beta) {
+  return std::vector<dip_item>();
 }
 } // namespace dip
 } // namespace rt

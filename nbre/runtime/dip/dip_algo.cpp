@@ -36,20 +36,18 @@ void dip_algo::back_to_coinbase(std::vector<dip_item> &dip_infos,
   }
 }
 
-std::unique_ptr<
-    std::unordered_map<address_t, std::unordered_map<address_t, uint32_t>>>
+std::unordered_map<address_t, std::unordered_map<address_t, uint32_t>>
 dip_algo::account_call_contract_count(
     const std::vector<neb::fs::transaction_info_t> &txs) {
 
-  auto cnt = std::make_unique<
-      std::unordered_map<address_t, std::unordered_map<address_t, uint32_t>>>();
+  std::unordered_map<address_t, std::unordered_map<address_t, uint32_t>> cnt;
 
   for (auto &tx : txs) {
     address_t acc_addr = tx.m_from;
     address_t contract_addr = tx.m_to;
-    auto it = cnt->find(acc_addr);
+    auto it = cnt.find(acc_addr);
 
-    if (it != cnt->end()) {
+    if (it != cnt.end()) {
       std::unordered_map<address_t, uint32_t> &tmp = it->second;
       if (tmp.find(contract_addr) != tmp.end()) {
         tmp[contract_addr]++;
@@ -59,23 +57,20 @@ dip_algo::account_call_contract_count(
     } else {
       std::unordered_map<address_t, uint32_t> tmp;
       tmp.insert(std::make_pair(contract_addr, 1));
-      cnt->insert(std::make_pair(acc_addr, tmp));
+      cnt.insert(std::make_pair(acc_addr, tmp));
     }
   }
   return cnt;
 }
 
-std::unique_ptr<
-    std::unordered_map<address_t, std::unordered_map<address_t, floatxx_t>>>
+std::unordered_map<address_t, std::unordered_map<address_t, floatxx_t>>
 dip_algo::account_to_contract_votes(
     const std::vector<neb::fs::transaction_info_t> &txs,
     const std::vector<nr_item> &nr_infos) {
 
-  auto ret = std::make_unique<std::unordered_map<
-      address_t, std::unordered_map<address_t, floatxx_t>>>();
+  std::unordered_map<address_t, std::unordered_map<address_t, floatxx_t>> ret;
 
-  auto it_cnt = account_call_contract_count(txs);
-  auto cnt = *it_cnt;
+  auto cnt = account_call_contract_count(txs);
 
   for (auto &info : nr_infos) {
     address_t addr = to_address(info.get<p_nr_item_addr>());
@@ -94,26 +89,26 @@ dip_algo::account_to_contract_votes(
     for (auto &e : it_acc->second) {
       std::unordered_map<address_t, floatxx_t> tmp;
       tmp.insert(std::make_pair(e.first, e.second * score / sum_votes));
-      ret->insert(std::make_pair(addr, tmp));
+      ret.insert(std::make_pair(addr, tmp));
     }
   }
   return ret;
 }
 
-std::unique_ptr<std::unordered_map<address_t, floatxx_t>> dip_algo::dapp_votes(
+std::unordered_map<address_t, floatxx_t> dip_algo::dapp_votes(
     const std::unordered_map<address_t,
                              std::unordered_map<address_t, floatxx_t>>
         &acc_contract_votes) {
-  auto ret = std::make_unique<std::unordered_map<address_t, floatxx_t>>();
+  std::unordered_map<address_t, floatxx_t> ret;
 
   for (auto &it : acc_contract_votes) {
     for (auto &ite : it.second) {
-      auto iter = ret->find(ite.first);
-      if (iter != ret->end()) {
+      auto iter = ret.find(ite.first);
+      if (iter != ret.end()) {
         floatxx_t &tmp = iter->second;
         tmp += neb::math::sqrt(ite.second);
       } else {
-        ret->insert(std::make_pair(ite.first, neb::math::sqrt(ite.second)));
+        ret.insert(std::make_pair(ite.first, neb::math::sqrt(ite.second)));
       }
     }
   }

@@ -23,7 +23,6 @@
 #include "common/common.h"
 #include "common/configuration.h"
 #include "fs/blockchain/blockchain_api_test.h"
-#include "runtime/dip/dip_handler.h"
 #include "runtime/dip/dip_reward.h"
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -78,6 +77,7 @@ dip_param_t make_dip_param(block_height_t start_block,
                                                         block_interval, v);
   param.set<p_dip_reward_addr, p_dip_coinbase_addr>(
       std::to_string(reward_addr_bytes), std::to_string(coinbase_addr_bytes));
+  return param;
 }
 } // namespace dip
 } // namespace rt
