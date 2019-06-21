@@ -31,6 +31,16 @@ TEST(test_fs_util, simple) {
   EXPECT_TRUE(cur_dir.size() > 0);
   EXPECT_TRUE(tmp_dir.size() > 0);
 
+  std::string suffix_cur_path = "/go-nebulas/nbre/bin";
+  std::string ret = cur_path.substr(cur_path.size() - suffix_cur_path.size());
+  EXPECT_EQ(ret, suffix_cur_path);
+
+  std::string suffix_cur_dir = "/go-nebulas/nbre/..//nbre";
+  ret = cur_dir.substr(cur_dir.size() - suffix_cur_dir.size());
+  EXPECT_EQ(ret, suffix_cur_dir);
+
+  EXPECT_EQ(tmp_dir, "/tmp");
+
   std::string rocksdb_data_path =
       neb::fs::join_path(cur_dir, "test/data/read-data.db/CURRENT");
 

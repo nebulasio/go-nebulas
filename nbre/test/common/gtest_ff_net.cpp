@@ -18,16 +18,16 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "runtime/dip/dip_handler.h"
+#include "runtime/dip/data_type.h"
 #include <ff/network.h>
 #include <gtest/gtest.h>
 
 TEST(test_ff_net, seri_and_deseri) {
-  neb::rt::dip::dip_params_t param;
-  param.set<start_block>(1);
-  param.set<block_interval>(2);
-  param.set<reward_addr>(std::to_string(3));
-  param.set<coinbase_addr>(std::to_string(4));
+  neb::rt::dip::dip_param_t param;
+  param.set<p_start_block>(1);
+  param.set<p_block_interval>(2);
+  param.set<p_dip_reward_addr>(std::to_string(3));
+  param.set<p_dip_coinbase_addr>(std::to_string(4));
   param.set<p_version>(0);
   auto ret = param.serialize_to_string();
   // std::cout << ret << std::endl;

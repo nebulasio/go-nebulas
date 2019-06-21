@@ -18,6 +18,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 #include "fs/blockchain.h"
+#include "fs/rocksdb_session_storage.h"
+#include "fs/rocksdb_storage.h"
 #include "fs/util.h"
 #include "gtest_common.h"
 #include <gtest/gtest.h>
@@ -25,10 +27,11 @@
 TEST(test_fs, read_blockchain_transcations) {
   std::string db_path = get_db_path_for_read();
 
-  neb::fs::bc_storage_session::instance().init(db_path,
-                                               neb::fs::storage_open_default);
+  auto rss_ptr = std::make_unique<neb::fs::rocksdb_session_storage>();
+  rss_ptr->init(db_path, neb::fs::storage_open_default);
 
-  block_ptr_t block = neb::fs::blockchain::load_block_with_height(1);
+  auto bc_ptr = std::make_unique<neb::fs::blockchain>(rss_ptr.get());
+  block_ptr_t block = bc_ptr->load_block_with_height(1);
   auto header = block->header();
   EXPECT_EQ(header.timestamp(), 0);
 
@@ -141,10 +144,11 @@ TEST(test_fs, load_LIB_block) {
 
   std::string db_path = get_db_path_for_read();
 
-  neb::fs::bc_storage_session::instance().init(db_path,
-                                               neb::fs::storage_open_default);
-  std::shared_ptr<corepb::Block> block_ptr =
-      neb::fs::blockchain::load_LIB_block();
+  auto rss_ptr = std::make_unique<neb::fs::rocksdb_session_storage>();
+  rss_ptr->init(db_path, neb::fs::storage_open_default);
+
+  auto bc_ptr = std::make_unique<neb::fs::blockchain>(rss_ptr.get());
+  std::shared_ptr<corepb::Block> block_ptr = bc_ptr->load_LIB_block();
 
   EXPECT_EQ(block_ptr->height(), 23078);
   EXPECT_EQ(block_ptr->transactions_size(), 0);

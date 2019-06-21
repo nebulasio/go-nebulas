@@ -143,7 +143,7 @@ list(FILTER nbre_core_src EXCLUDE REGEX "core/neb_ipc*")
 list(FILTER nbre_common_src EXCLUDE REGEX "common/ipc*")
 
 #remove dip for building
-list(FILTER nbre_rt_src EXCLUDE REGEX "runtime/dip*")
+#list(FILTER nbre_rt_src EXCLUDE REGEX "runtime/dip*")
 
 add_library(nbre_rt SHARED
   ${nbre_jit_src}
@@ -167,7 +167,7 @@ else()
   add_subdirectory(test)
 endif()
 if(UNIX AND NOT APPLE)
-  add_subdirectory(benchmark)
+  #add_subdirectory(benchmark)
 endif()
 
 
@@ -204,5 +204,5 @@ ENDMACRO(INSTALL_HEADERS_WITH_DIRECTORY)
 INSTALL_HEADERS_WITH_DIRECTORY(DEPLOY_FILES_AND_DIRS)
 
 if(EXISTS "${PROJECT_SOURCE_DIR}/cmd/CMakeLists.txt")
-  add_subdirectory(cmd)
+  #add_subdirectory(cmd)
 endif()

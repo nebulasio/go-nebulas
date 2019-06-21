@@ -19,16 +19,25 @@
 //
 
 #include "common/configuration.h"
+#include "fs/blockchain.h"
+#include "fs/blockchain/blockchain_api.h"
 #include "fs/blockchain/transaction/transaction_db.h"
+#include "fs/rocksdb_session_storage.h"
+#include "test/fs/gtest_common.h"
 #include <gtest/gtest.h>
 
 TEST(test_fs, read_inter_transaction_from_db_with_duration) {
-  std::string neb_db_path = neb::configuration::instance().neb_db_dir();
-  neb::fs::blockchain_api ba;
-  neb::fs::transaction_db tdb(&ba);
+  std::string db_path = get_db_path_for_read();
 
-  auto txs = tdb.read_transactions_from_db_with_duration(204223, 204224);
-  for (auto &tx : *txs) {
+  auto rss_ptr = std::make_unique<neb::fs::rocksdb_session_storage>();
+  rss_ptr->init(db_path, neb::fs::storage_open_default);
+
+  auto bc_ptr = std::make_unique<neb::fs::blockchain>(rss_ptr.get());
+  auto bab_ptr = std::make_unique<neb::fs::blockchain_api>(bc_ptr.get());
+  auto tdb_ptr = std::make_unique<neb::fs::transaction_db>(bab_ptr.get());
+
+  auto txs = tdb_ptr->read_transactions_from_db_with_duration(19991, 19996);
+  for (auto &tx : txs) {
     LOG(INFO) << neb::address_to_base58(tx.m_from);
     LOG(INFO) << neb::address_to_base58(tx.m_to);
     LOG(INFO) << tx.m_tx_value;

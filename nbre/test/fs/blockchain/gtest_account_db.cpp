@@ -19,17 +19,17 @@
 //
 
 #include "common/configuration.h"
-#include "fs/bc_storage_session.h"
 #include "fs/blockchain.h"
 #include "fs/blockchain/trie/trie.h"
+#include "fs/rocksdb_session_storage.h"
+#include "test/fs/gtest_common.h"
 #include <gtest/gtest.h>
 
 TEST(test_fs, account_state) {
 
-  std::string neb_db_path = neb::configuration::instance().neb_db_dir();
-  neb::fs::bc_storage_session::instance().init(
-      neb_db_path, neb::fs::storage_open_for_readonly);
-  neb::fs::trie t;
+  std::string db_path = get_db_path_for_read();
+  auto rss_ptr = std::make_unique<neb::fs::rocksdb_session_storage>();
+  rss_ptr->init(db_path, neb::fs::storage_open_default);
 
   std::string root_hash_str =
       "6449f1c226e1e4d94837e1e813150b2500d0556ca67147e48c83126216362345";
@@ -39,8 +39,7 @@ TEST(test_fs, account_state) {
   neb::bytes addr_bytes = neb::bytes::from_base58(addr_base58);
 
   // get block
-  neb::bytes block_bytes =
-      neb::fs::bc_storage_session::instance().get_bytes(root_hash_bytes);
+  neb::bytes block_bytes = rss_ptr->get_bytes(root_hash_bytes);
   std::shared_ptr<corepb::Block> block = std::make_shared<corepb::Block>();
   bool ret = block->ParseFromArray(block_bytes.value(), block_bytes.size());
   if (!ret) {
@@ -51,6 +50,7 @@ TEST(test_fs, account_state) {
   neb::bytes state_root_bytes = neb::string_to_byte(state_root_str);
 
   // get trie node
+  neb::fs::trie t(rss_ptr.get());
   neb::bytes trie_node_bytes;
   t.get_trie_node(state_root_bytes, addr_bytes, trie_node_bytes);
 
