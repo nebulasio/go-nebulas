@@ -94,6 +94,10 @@ int32_t SNVM::CompareVersion(Version* a, Version* b){
     return 0;
 }
 
+void SNVM::CompatManager::InitializeHeightTimeoutMap(){
+    height_timeout_map.insert(std::pair<uint64_t, 
+            std::unordered_map<uint32_t, uint64_t>>(233584, std::unordered_map<uint32_t, uint64_t>{{MainNetID, 5000100}}));
+}
 
 void SNVM::CompatManager::InitializeLibVersionManager(){
 

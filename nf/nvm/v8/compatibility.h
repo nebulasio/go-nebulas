@@ -27,6 +27,9 @@
 
 const uint32_t MainNetID = 1;
 const uint32_t TestNetID = 1001;
+const uint32_t LocalNetID = 1111;
+
+const uint64_t DefaultTimeoutValueInMS = 5000000;
 
 namespace SNVM{
 
@@ -52,22 +55,21 @@ namespace SNVM{
                 LocalVersionHeightMap["1.0.5"] = 2;
                 LocalVersionHeightMap["1.1.0"] = 2;
                 InitializeLibVersionManager();
+                InitializeHeightTimeoutMap();
             }
             ~CompatManager(){
                 lib_version_manager.clear();
-                version_map.clear();
+                height_timeout_map.clear();
             }
 
+            void InitializeVersionMap();
+            void InitializeHeightTimeoutMap();
             void InitializeLibVersionManager();
 
             std::string AttachVersionForLib(std::string&, uint64_t, std::string&, uint32_t);
-
             std::string GetNearestInstructionCounterVersionAtHeight(uint64_t, uint32_t);
-
             std::string AttachDefaultVersionLib(std::string&);
-
             std::string FindLastNearestLibVersion(std::string&, std::string&);
-           
 
             inline uint64_t GetNVMMemoryLimitWithoutInjectHeight(uint32_t curr_chain_id){
                 if(curr_chain_id == MainNetID){
@@ -108,6 +110,17 @@ namespace SNVM{
                     return 0L;
             }
 
+            inline uint64_t GetTimeoutConfig(uint64_t block_height, uint32_t chain_id){
+                auto item = height_timeout_map.find(block_height);
+                if(item != height_timeout_map.end()){
+                    auto config = item->second.find(chain_id);
+                    if(config != item->second.end()){
+                        return config->second;
+                    }
+                }
+                return DefaultTimeoutValueInMS;
+            }
+
         private:
             // NvmMemoryLimitWithoutInjectHeight memory of nvm contract without inject code
             const uint64_t TestNetNvmMemoryLimitWithoutInjectHeight = 281800;
@@ -139,6 +152,6 @@ namespace SNVM{
 
             // data structures
             std::unordered_map<std::string, std::vector<std::string>> lib_version_manager;          // js lib version manager
-            std::unordered_map<uint32_t, std::unordered_map<std::string, uint64_t>> version_map;    // map<chain_id, map<"1.1.0", 123456>>
+            std::unordered_map<uint64_t, std::unordered_map<uint32_t, uint64_t>> height_timeout_map;// map<3156680, map<chain_id, 5000000>>
     };
 }

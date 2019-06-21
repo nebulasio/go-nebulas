@@ -253,6 +253,12 @@ namespace SNVM{
         }
       }
 
+      inline V8Engine* CreateV8Engine(uint64_t block_height, uint32_t chain_id){
+        V8Engine* new_engine = CreateEngine();
+        new_engine->timeout = GetTimeoutConfig(block_height, chain_id);
+        return new_engine;
+      }
+
     private:
       std::mutex m_mutex;
       int m_concurrency_scale = 1;                                                              // default concurrency number

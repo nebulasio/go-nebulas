@@ -259,7 +259,7 @@ grpc::Status SNVM::NVMDaemon::SmartContractCall(
       uint32_t curr_chain_id = (uint32_t)configBundle.chain_id();
       sc_ctx->SetChainID(curr_chain_id);
       sc_ctx->SetStream(stream);
-      new_engine = CreateEngine();
+      new_engine = CreateV8Engine(blockHeight, curr_chain_id);
       new_engine->limits_of_executed_instructions = configBundle.limits_exe_instruction();
       new_engine->limits_of_total_memory_size = configBundle.limits_total_mem_size();
       new_engine->lcs = (uintptr_t)lcsHandler;
@@ -480,7 +480,7 @@ void SNVM::NVMDaemon::LocalTest(){
   }
 
   SCContext* sc_ctx = new SCContext(gNVMDaemon);
-  V8Engine* engine = CreateEngine();
+  V8Engine* engine = CreateV8Engine(0L, LocalNetID);
   NVMConfigBundle* configBundle = new NVMConfigBundle();
   configBundle->set_limits_exe_instruction(400000000);
   configBundle->set_limits_total_mem_size(40000000);
@@ -516,7 +516,7 @@ V8Engine* SNVM::SCContext::CreateInnerContractEngine(
 
     if(this->m_inner_engines == nullptr)
       this->m_inner_engines = std::unique_ptr<std::stack<V8Engine*>>(new std::stack<V8Engine*>());
-    V8Engine* inner_engine = CreateEngine();
+    V8Engine* inner_engine = m_daemon->CreateV8Engine(blockHeight, m_chain_id);
     if(inner_engine != nullptr)
       this->m_inner_engines->push(inner_engine);
     ReadMemoryStatistics(this->engine);
