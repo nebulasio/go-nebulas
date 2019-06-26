@@ -56,7 +56,13 @@ blockchain_api_test::get_account_api(const address_t &addr,
                                      block_height_t height) {
   auto ret = std::make_unique<corepb::Account>();
 
-  auto accounts = util::generate_block::read_accounts_in_height(height);
+  std::vector<std::shared_ptr<corepb::Account>> accounts;
+
+  if (!height) {
+    accounts = util::generate_block::read_accounts_in_LIB();
+  } else {
+    accounts = util::generate_block::read_accounts_in_height(height);
+  }
 
   bool found_flag = false;
   for (auto &ap : accounts) {
@@ -76,20 +82,26 @@ blockchain_api_test::get_account_api(const address_t &addr,
 }
 
 std::unique_ptr<corepb::Transaction>
-blockchain_api_test::get_transaction_api(const std::string &tx_hash,
-                                         block_height_t height) {
+blockchain_api_test::get_transaction_api(const bytes &tx_hash) {
   auto ret = std::make_unique<corepb::Transaction>();
 
-  auto block = get_block_with_height(height);
+  auto block = get_LIB_block();
 
   for (int i = 0; i < block->transactions_size(); ++i) {
     corepb::Transaction tx = block->transactions(i);
-    if (tx.hash() == tx_hash) {
+    if (tx.hash() == neb::byte_to_string(tx_hash)) {
       *ret = tx;
       break;
     }
   }
 
+  return ret;
+}
+
+std::shared_ptr<corepb::Block> blockchain_api_test::get_LIB_block() {
+  std::shared_ptr<corepb::Block> ret = util::generate_block::read_LIB_block();
+  auto height = ret->height();
+  m_block_cache.set(height, ret);
   return ret;
 }
 

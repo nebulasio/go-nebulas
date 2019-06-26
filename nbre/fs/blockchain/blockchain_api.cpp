@@ -40,7 +40,7 @@ std::vector<transaction_info_t>
 blockchain_api::get_block_transactions_api(block_height_t height) {
 
   std::vector<transaction_info_t> ret;
-  // special for  block height 1
+  // special for block height 1
   if (height <= 1) {
     return ret;
   }
@@ -80,55 +80,16 @@ blockchain_api::get_block_transactions_api(block_height_t height) {
   return ret;
 }
 
-std::unique_ptr<event_info_t>
-blockchain_api::get_transaction_result_api(const neb::bytes &events_root,
-                                           const neb::bytes &tx_hash) {
-  trie t(m_blockchain->storage());
-  neb::bytes txs_result;
-
-  for (int64_t id = 1;; id++) {
-    neb::bytes id_bytes = neb::number_to_byte<neb::bytes>(id);
-    neb::bytes events_tx_hash = tx_hash;
-    events_tx_hash.append_bytes(id_bytes.value(), id_bytes.size());
-
-    neb::bytes trie_node_bytes;
-    bool ret = t.get_trie_node(events_root, events_tx_hash, trie_node_bytes);
-    if (!ret) {
-      break;
-    }
-    txs_result = trie_node_bytes;
-  }
-  assert(!txs_result.empty());
-
-  std::string json_str = neb::byte_to_string(txs_result);
-
-  return json_parse_event(json_str);
-}
-
-std::unique_ptr<event_info_t>
-blockchain_api::json_parse_event(const std::string &json) {
-  boost::property_tree::ptree pt;
-  std::stringstream ss(json);
-  boost::property_tree::read_json(ss, pt);
-
-  std::string topic = pt.get<std::string>("Topic");
-  assert(topic.compare("chain.transactionResult") == 0);
-
-  std::string data_json = pt.get<std::string>("Data");
-  ss = std::stringstream(data_json);
-  boost::property_tree::read_json(ss, pt);
-
-  int32_t status = pt.get<int32_t>("status");
-  wei_t gas_used = boost::lexical_cast<wei_t>(pt.get<std::string>("gas_used"));
-
-  auto ret = std::make_unique<event_info_t>(event_info_t{status, gas_used});
-  return ret;
-}
-
 std::unique_ptr<corepb::Account>
 blockchain_api::get_account_api(const address_t &addr, block_height_t height) {
 
-  auto block = m_blockchain->load_block_with_height(height);
+  std::unique_ptr<corepb::Block> block = std::make_unique<corepb::Block>();
+
+  if (!height) {
+    block = m_blockchain->load_LIB_block();
+  } else {
+    block = m_blockchain->load_block_with_height(height);
+  }
 
   // get block header account state
   std::string state_root_str = block->header().state_root();
@@ -154,12 +115,11 @@ blockchain_api::get_account_api(const address_t &addr, block_height_t height) {
 }
 
 std::unique_ptr<corepb::Transaction>
-blockchain_api::get_transaction_api(const std::string &tx_hash,
-                                    block_height_t height) {
+blockchain_api::get_transaction_api(const bytes &tx_hash) {
   auto corepb_txs_ptr = std::make_unique<corepb::Transaction>();
 
-  // suppose height is the latest block height
-  auto block = m_blockchain->load_block_with_height(height);
+  // suppose height is the latest irreversible block height
+  auto block = m_blockchain->load_LIB_block();
 
   // get block header transaction root
   std::string txs_root_str = block->header().txs_root();
@@ -167,9 +127,8 @@ blockchain_api::get_transaction_api(const std::string &tx_hash,
 
   // get trie node
   trie t(m_blockchain->storage());
-  neb::bytes tx_hash_bytes = neb::string_to_byte(tx_hash);
   neb::bytes trie_node_bytes;
-  bool ret = t.get_trie_node(txs_root_bytes, tx_hash_bytes, trie_node_bytes);
+  bool ret = t.get_trie_node(txs_root_bytes, tx_hash, trie_node_bytes);
   if (!ret) {
     return corepb_txs_ptr;
   }

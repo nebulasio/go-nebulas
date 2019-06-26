@@ -31,9 +31,7 @@ public:
 
   virtual neb::wei_t get_balance(const neb::address_t &addr,
                                  const neb::block_height_t &height);
-  virtual neb::address_t
-  get_contract_deployer(const neb::address_t &addr,
-                        const neb::block_height_t &height);
+  virtual neb::address_t get_contract_deployer(const neb::address_t &addr);
 
   virtual void update_height_address_val_internal(
       const neb::block_height_t &start_block,

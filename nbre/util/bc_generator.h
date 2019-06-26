@@ -110,9 +110,11 @@ public:
 
   static std::vector<std::shared_ptr<corepb::Account>>
   read_accounts_in_height(block_height_t height);
+  static std::vector<std::shared_ptr<corepb::Account>> read_accounts_in_LIB();
 
   static std::shared_ptr<corepb::Block>
   read_block_with_height(block_height_t height);
+  static std::shared_ptr<corepb::Block> read_LIB_block();
 
 protected:
   all_accounts *m_all_accounts;

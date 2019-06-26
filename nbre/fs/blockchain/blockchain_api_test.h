@@ -31,13 +31,14 @@ public:
   get_block_transactions_api(block_height_t height);
 
   virtual std::unique_ptr<corepb::Account>
-  get_account_api(const address_t &addr, block_height_t height);
+  get_account_api(const address_t &addr, block_height_t height = 0);
 
   virtual std::unique_ptr<corepb::Transaction>
-  get_transaction_api(const std::string &tx_hash, block_height_t height);
+  get_transaction_api(const bytes &tx_hash);
 
 protected:
   std::shared_ptr<corepb::Block> get_block_with_height(block_height_t height);
+  std::shared_ptr<corepb::Block> get_LIB_block();
 
 protected:
   util::lru_cache<block_height_t, std::shared_ptr<corepb::Block>> m_block_cache;

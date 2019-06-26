@@ -37,12 +37,11 @@ neb::wei_t account_db::get_balance(const neb::address_t &addr,
   return storage_to_wei(neb::string_to_byte(balance_str));
 }
 
-neb::address_t
-account_db::get_contract_deployer(const neb::address_t &addr,
-                                  const neb::block_height_t &height) {
-  auto corepb_account_ptr = m_blockchain->get_account_api(addr, height);
+neb::address_t account_db::get_contract_deployer(const neb::address_t &addr) {
+  auto corepb_account_ptr = m_blockchain->get_account_api(addr);
   std::string birth_place = corepb_account_ptr->birth_place();
-  auto corepb_txs_ptr = m_blockchain->get_transaction_api(birth_place, height);
+  auto corepb_txs_ptr =
+      m_blockchain->get_transaction_api(neb::string_to_byte(birth_place));
   return to_address(corepb_txs_ptr->from());
 }
 

@@ -34,9 +34,9 @@ public:
   get_block_transactions_api(block_height_t height) = 0;
 
   virtual std::unique_ptr<corepb::Account>
-  get_account_api(const address_t &addr, block_height_t height) = 0;
+  get_account_api(const address_t &addr, block_height_t height = 0) = 0;
   virtual std::unique_ptr<corepb::Transaction>
-  get_transaction_api(const std::string &tx_hash, block_height_t height) = 0;
+  get_transaction_api(const bytes &tx_hash) = 0;
 
 protected:
   blockchain *m_blockchain;
@@ -51,25 +51,20 @@ public:
   get_block_transactions_api(block_height_t height);
 
   virtual std::unique_ptr<corepb::Account>
-  get_account_api(const address_t &addr, block_height_t height);
+  get_account_api(const address_t &addr, block_height_t height = 0);
   virtual std::unique_ptr<corepb::Transaction>
-  get_transaction_api(const std::string &tx_hash, block_height_t height);
-
-  virtual std::unique_ptr<event_info_t>
-  get_transaction_result_api(const neb::bytes &events_root,
-                             const neb::bytes &tx_hash);
+  get_transaction_api(const bytes &tx_hash);
 
   virtual void get_transfer_event(const neb::bytes &events_root,
                                   const neb::bytes &tx_hash,
                                   std::vector<transaction_info_t> &events,
                                   transaction_info_t &info);
 
+protected:
   virtual void json_parse_event(const std::string &json,
                                 std::vector<transaction_info_t> &events,
                                 transaction_info_t &info);
 
-  virtual std::unique_ptr<event_info_t>
-  json_parse_event(const std::string &json);
 };
 } // namespace fs
 } // namespace neb

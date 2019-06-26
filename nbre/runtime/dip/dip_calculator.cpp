@@ -83,7 +83,7 @@ std::vector<dip_item> dip_calculator::get_dip_reward(
 
     di.set<p_dip_contract, p_dip_deployer, p_dip_reward_value>(
         std::to_string(v.first),
-        std::to_string(m_adb_ptr->get_contract_deployer(v.first, end_block)),
+        std::to_string(m_adb_ptr->get_contract_deployer(v.first)),
         reward_in_wei);
     dip_infos.push_back(di);
   }

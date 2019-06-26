@@ -318,10 +318,22 @@ generate_block::read_accounts_in_height(block_height_t height) {
   return ret;
 }
 
+std::vector<std::shared_ptr<corepb::Account>>
+generate_block::read_accounts_in_LIB() {
+  auto block = read_LIB_block();
+  return read_accounts_in_height(block->height());
+}
+
 std::shared_ptr<corepb::Block>
 generate_block::read_block_with_height(block_height_t height) {
   std::unique_ptr<corepb::Block> block =
       core::context->blockchain()->load_block_with_height(height);
+  return std::shared_ptr<corepb::Block>(std::move(block));
+}
+
+std::shared_ptr<corepb::Block> generate_block::read_LIB_block() {
+  std::unique_ptr<corepb::Block> block =
+      core::context->blockchain()->load_LIB_block();
   return std::shared_ptr<corepb::Block>(std::move(block));
 }
 
