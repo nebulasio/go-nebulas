@@ -35,6 +35,10 @@ public:
   virtual void put_bytes(const bytes &key, const bytes &val);
   virtual void del_by_bytes(const bytes &key);
 
+  virtual void enable_batch();
+  virtual void disable_batch();
+  virtual void flush();
+
 protected:
   thread_safe_map<bytes, bytes> m_memory;
 };

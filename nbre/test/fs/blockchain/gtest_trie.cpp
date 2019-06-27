@@ -23,7 +23,7 @@
 #include "fs/blockchain/trie/trie.h"
 #include <gtest/gtest.h>
 
-TEST(test_fs, key_to_route) {
+TEST(test_trie, key_to_route) {
 
   neb::bytes key(std::initializer_list<neb::byte_t>({0xa1, 0xf2}));
   neb::bytes route_expect(
@@ -36,7 +36,7 @@ TEST(test_fs, key_to_route) {
   }
 }
 
-TEST(test_fs, route_to_key) {
+TEST(test_trie, route_to_key) {
 
   neb::bytes route(std::initializer_list<neb::byte_t>({0xa, 0x1, 0xf, 0x2}));
   neb::bytes key_expect(std::initializer_list<neb::byte_t>({0xa1, 0xf2}));
@@ -48,4 +48,36 @@ TEST(test_fs, route_to_key) {
   }
 }
 
-TEST(test_fs, get_trie_node) {}
+TEST(test_trie, prefix_len_template) {
+  neb::bytes k1(std::initializer_list<neb::byte_t>({0x1, 0x2, 0x3, 0x4}));
+  neb::bytes k2(std::initializer_list<neb::byte_t>({0x1, 0x2, 0x4, 0x3}));
+  EXPECT_EQ(neb::fs::trie::prefix_len(k1, k2), 2);
+
+  k2 = std::initializer_list<neb::byte_t>({0x2, 0x1, 0x3, 0x4});
+  EXPECT_EQ(neb::fs::trie::prefix_len(k1, k2), 0);
+
+  k1 = std::initializer_list<neb::byte_t>({0x1, 0x2, 0x3, 0x4});
+  k2 = std::initializer_list<neb::byte_t>({0x1, 0x2, 0x3, 0x4});
+  EXPECT_EQ(neb::fs::trie::prefix_len(k1, k2), 4);
+
+  k2 = std::initializer_list<neb::byte_t>({0x5, 0x6, 0x7, 0x8});
+  EXPECT_EQ(neb::fs::trie::prefix_len(k1, k2), 0);
+}
+
+TEST(test_trie, prefix_len_partial_template) {
+  neb::bytes k1(std::initializer_list<neb::byte_t>({0x1, 0x2, 0x3, 0x4}));
+  neb::bytes k2(std::initializer_list<neb::byte_t>({0x1, 0x2, 0x4, 0x3}));
+  EXPECT_EQ(neb::fs::trie::prefix_len(k1, k2.value(), k2.size()), 2);
+
+  k2 = std::initializer_list<neb::byte_t>({0x2, 0x1, 0x3, 0x4});
+  EXPECT_EQ(neb::fs::trie::prefix_len(k1, k2.value(), k2.size()), 0);
+
+  k1 = std::initializer_list<neb::byte_t>({0x1, 0x2, 0x3, 0x4});
+  k2 = std::initializer_list<neb::byte_t>({0x1, 0x2, 0x3, 0x4});
+  EXPECT_EQ(neb::fs::trie::prefix_len(k1, k2.value(), k2.size()), 4);
+
+  k2 = std::initializer_list<neb::byte_t>({0x5, 0x6, 0x7, 0x8});
+  EXPECT_EQ(neb::fs::trie::prefix_len(k1, k2.value(), k2.size()), 0);
+}
+
+TEST(test_trie, get_trie_node) {}

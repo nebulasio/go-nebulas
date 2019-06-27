@@ -17,29 +17,17 @@
 // along with the go-nebulas library.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
+
 #include "fs/memory_storage.h"
+#include <gtest/gtest.h>
 
-namespace neb {
-namespace fs {
-memory_storage::memory_storage() = default;
-memory_storage::~memory_storage() = default;
-
-bytes memory_storage::get_bytes(const bytes &key) {
-  auto ret = m_memory.try_get_val(key);
-  if (!ret.first) {
-    throw storage_general_failure("get memory storage failed");
-  }
-  return ret.second;
+TEST(test_memory_storage, get_put_del) {
+  neb::fs::memory_storage ms;
+  EXPECT_NO_THROW(
+      ms.put_bytes(neb::string_to_byte("key"), neb::string_to_byte("val")));
+  auto ret = ms.get_bytes(neb::string_to_byte("key"));
+  EXPECT_EQ(ret, neb::string_to_byte("val"));
+  EXPECT_NO_THROW(ms.del_by_bytes(neb::string_to_byte("key")));
+  EXPECT_THROW(ms.get_bytes(neb::string_to_byte("key")),
+               neb::fs::storage_general_failure);
 }
-
-void memory_storage::put_bytes(const bytes &key, const bytes &val) {
-  m_memory.insert(key, val);
-}
-
-void memory_storage::del_by_bytes(const bytes &key) { m_memory.erase(key); }
-
-void memory_storage::enable_batch() {}
-void memory_storage::disable_batch() {}
-void memory_storage::flush() {}
-}
-} // namespace neb

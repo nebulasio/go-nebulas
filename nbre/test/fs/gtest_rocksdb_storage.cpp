@@ -42,51 +42,84 @@ std::string get_blockchain_path_for_read() {
   return neb::fs::join_path(cur_path, "../data.db/");
 }
 
-TEST(test_fs, positive_storage_read_bc) {
+TEST(test_rocksdb_storage, open_close_simple) {
   std::string db_path = get_db_path_for_read();
-
   neb::fs::rocksdb_storage rs;
-  EXPECT_THROW(rs.get(neb::fs::blockchain::Block_LIB),
-               neb::fs::storage_exception_no_init);
-  EXPECT_THROW(
-      rs.put(neb::fs::blockchain::Block_LIB, neb::string_to_byte("xxx")),
-      neb::fs::storage_exception_no_init);
-  EXPECT_THROW(rs.del(neb::fs::blockchain::Block_LIB),
-               neb::fs::storage_exception_no_init);
-
-  rs.open_database(db_path, neb::fs::storage_open_for_readonly);
-  neb::fs::rocksdb_storage rs2;
-  rs2.open_database(db_path, neb::fs::storage_open_for_readonly);
-
-  auto tail_block_hash = rs.get(neb::fs::blockchain::Block_LIB);
-
-  auto tail_bytes = rs.get_bytes(tail_block_hash);
-
-  corepb::Block block;
-  block.ParseFromArray(tail_bytes.value(), tail_bytes.size());
-  rs.close_database();
+  EXPECT_NO_THROW(
+      rs.open_database(db_path, neb::fs::storage_open_for_readonly));
+  EXPECT_NO_THROW(rs.close_database());
 }
 
-TEST(test_fs, storage_read_write) {
+TEST(test_rocksdb_storage, readonly_multi_open) {
   std::string db_path = get_db_path_for_read();
-
-  neb::fs::rocksdb_storage rs;
-  rs.open_database(db_path, neb::fs::storage_open_for_readonly);
+  neb::fs::rocksdb_storage rs1;
   neb::fs::rocksdb_storage rs2;
-  rs2.open_database(db_path, neb::fs::storage_open_for_readwrite);
+
+  EXPECT_NO_THROW(
+      rs1.open_database(db_path, neb::fs::storage_open_for_readonly));
+  EXPECT_NO_THROW(
+      rs2.open_database(db_path, neb::fs::storage_open_for_readonly));
+  EXPECT_NO_THROW(rs1.close_database());
+  EXPECT_NO_THROW(rs2.close_database());
+
+  EXPECT_NO_THROW(
+      rs1.open_database(db_path, neb::fs::storage_open_for_readonly));
+  EXPECT_NO_THROW(
+      rs2.open_database(db_path, neb::fs::storage_open_for_readonly));
+  EXPECT_NO_THROW(rs2.close_database());
+  EXPECT_NO_THROW(rs1.close_database());
 }
 
-TEST(test_fs, storage_write_write) {
+TEST(test_rocksdb_storage, readonly_and_readwrite_open) {
   std::string db_path = get_db_path_for_read();
-
-  neb::fs::rocksdb_storage rs;
-  rs.open_database(db_path, neb::fs::storage_open_for_readwrite);
+  neb::fs::rocksdb_storage rs1;
   neb::fs::rocksdb_storage rs2;
+
+  EXPECT_NO_THROW(
+      rs1.open_database(db_path, neb::fs::storage_open_for_readonly));
+  EXPECT_NO_THROW(
+      rs2.open_database(db_path, neb::fs::storage_open_for_readwrite));
+  EXPECT_NO_THROW(rs1.close_database());
+  EXPECT_NO_THROW(rs2.close_database());
+}
+
+TEST(test_rocksdb_storage, readwrite_multi_open) {
+  std::string db_path = get_db_path_for_read();
+  neb::fs::rocksdb_storage rs1;
+  neb::fs::rocksdb_storage rs2;
+
+  EXPECT_NO_THROW(
+      rs1.open_database(db_path, neb::fs::storage_open_for_readwrite));
   EXPECT_THROW(rs2.open_database(db_path, neb::fs::storage_open_for_readwrite),
                neb::fs::storage_general_failure);
 }
 
-TEST(test_fs, storage_batch_op) {
+TEST(test_rocksdb_storage, get_put_del_before_open) {
+  neb::fs::rocksdb_storage rs;
+  EXPECT_THROW(
+      rs.put_bytes(neb::string_to_byte("key"), neb::string_to_byte("val")),
+      neb::fs::storage_exception_no_init);
+  EXPECT_THROW(rs.get_bytes(neb::string_to_byte("key")),
+               neb::fs::storage_exception_no_init);
+  EXPECT_THROW(rs.del_by_bytes(neb::string_to_byte("key")),
+               neb::fs::storage_exception_no_init);
+}
+
+TEST(test_rocksdb_storage, get_put_del) {
+  std::string db_path = get_db_path_for_write();
+  neb::fs::rocksdb_storage rs;
+  rs.open_database(db_path, neb::fs::storage_open_for_readwrite);
+  EXPECT_NO_THROW(
+      rs.put_bytes(neb::string_to_byte("key"), neb::string_to_byte("val")));
+  auto ret = rs.get_bytes(neb::string_to_byte("key"));
+  EXPECT_EQ(ret, neb::string_to_byte("val"));
+  EXPECT_NO_THROW(rs.del_by_bytes(neb::string_to_byte("key")));
+  EXPECT_THROW(rs.get_bytes(neb::string_to_byte("key")),
+               neb::fs::storage_general_failure);
+  rs.close_database();
+}
+
+TEST(test_rocksdb_storage, storage_batch_op) {
   std::string db_path = get_db_path_for_write();
   neb::fs::rocksdb_storage rs;
   rs.open_database(db_path, neb::fs::storage_open_for_readwrite);
@@ -95,5 +128,6 @@ TEST(test_fs, storage_batch_op) {
   auto bytes = rs.get("123");
   int64_t value = neb::byte_to_number<int64_t>(bytes);
   EXPECT_EQ(value, 234);
+  rs.close_database();
 }
 

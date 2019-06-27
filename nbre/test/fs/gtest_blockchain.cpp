@@ -24,7 +24,7 @@
 #include "gtest_common.h"
 #include <gtest/gtest.h>
 
-TEST(test_fs, read_blockchain_transcations) {
+TEST(test_blockchain, read_blockchain_transcations) {
   std::string db_path = get_db_path_for_read();
 
   auto rss_ptr = std::make_unique<neb::fs::rocksdb_session_storage>();
@@ -65,7 +65,7 @@ TEST(test_fs, read_blockchain_transcations) {
 
   std::string payload = data.payload();
   std::string payload_base64 = neb::string_to_byte(payload).to_base58();
-  std::string want_base64(
+  std::string expect_base64(
       "98b9sMCBs5NGM8ryDcbAtRXDWDeZ8t62hAJjPxVTE6Pk4fWBFT9FUYJwSjZgMd19T9DUsFRb"
       "VbtMwtVNrALuTL6Sw4zkrhDMsHfQbSrSdmV6HmcwXWMLF93K52C8brF3yp8LxUkog4cYn9fy"
       "XYyfdaCtAjVfFrhwG47FcXRpFALo7vqeuQxqv48YZfQMwntiZbEb1KWYbQskEZVCvr2VFoYS"
@@ -107,10 +107,10 @@ TEST(test_fs, read_blockchain_transcations) {
       "qFRKzrbW1CWntBZ9THH6P39jLCpL2kUH8reiv5U4Bi436S7nbbZ7U1t1mVad1EDE8ex9oezu"
       "xrdjQRdKXFKcG7HraZfnLaXC5uoME74KcYFcFXjyKfJnHrZpY6AgjYzAzr8b3TmJH8Dbpj"
       "S");
-  EXPECT_EQ(payload_base64, want_base64);
+  EXPECT_EQ(payload_base64, expect_base64);
 }
 
-TEST(test_fs, throw_operation_db) {
+TEST(test_blockchain, throw_operation_db) {
   std::string db_path = get_db_path_for_read();
 
   neb::fs::rocksdb_storage rs;
@@ -139,8 +139,7 @@ TEST(test_fs, throw_operation_db) {
   EXPECT_THROW(rs.get("no_exist"), neb::fs::storage_general_failure);
 }
 
-
-TEST(test_fs, load_LIB_block) {
+TEST(test_blockchain, load_LIB_block) {
 
   std::string db_path = get_db_path_for_read();
 
