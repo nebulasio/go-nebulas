@@ -152,6 +152,7 @@ type Compatibility interface {
 	NvmValueCheckUpdateHeight() uint64
 	NbreAvailableHeight() uint64
 	Nrc20SecurityCheckHeight() uint64
+	NbreSplitHeight() uint64
 }
 
 // NebCompatibility ..
@@ -457,4 +458,9 @@ func NbreAvailableHeight(blockHeight uint64) bool {
 // Nrc20SecurityCheckAtHeight ..
 func Nrc20SecurityCheckAtHeight(blockHeight uint64) bool {
 	return blockHeight >= NebCompatibility.Nrc20SecurityCheckHeight()
+}
+
+// NbreSplitAtHeight ..
+func NbreSplitAtHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.NbreSplitHeight()
 }

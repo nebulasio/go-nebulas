@@ -37,6 +37,8 @@ type CompatibilityTestNet struct {
 	nbreAvailableHeight uint64
 
 	nrc20SecurityCheckHeight uint64
+
+	nbreSplitHeight uint64
 }
 
 // NewCompatibilityTestNet ..
@@ -67,6 +69,7 @@ func NewCompatibilityTestNet() Compatibility {
 		nvmValueCheckUpdateHeight:                         840000,
 		nbreAvailableHeight:                               1550000,
 		nrc20SecurityCheckHeight:                          1941257,
+		nbreSplitHeight:                                   2700000,
 	}
 }
 
@@ -158,4 +161,9 @@ func (c *CompatibilityTestNet) NbreAvailableHeight() uint64 {
 // Nrc20SecurityCheckHeight ..
 func (c *CompatibilityTestNet) Nrc20SecurityCheckHeight() uint64 {
 	return c.nrc20SecurityCheckHeight
+}
+
+// NbreSplitHeight ..
+func (c *CompatibilityTestNet) NbreSplitHeight() uint64 {
+	return c.nbreSplitHeight
 }

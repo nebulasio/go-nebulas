@@ -187,8 +187,8 @@ func TestAccess_CheckNRC20Transaction(t *testing.T) {
 	nrc20Contract := "n1qGqcvPWE45VGYZYNPd9VgA1KAAV1sRqfo"
 	access := &Access{
 		access: &corepb.Access{
-			Nrc20List:&corepb.Nrc20List{
-				Contracts:[]string{nrc20Contract},
+			Nrc20List: &corepb.Nrc20List{
+				Contracts: []string{nrc20Contract},
 			},
 		},
 	}

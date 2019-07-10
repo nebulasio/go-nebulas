@@ -75,6 +75,12 @@ var (
 	// rule: 1% per year, 1,000,000. 1 block per 15 seconds
 	// value: 10^8 * 1% / (365*24*3600/15) * 10^18 ≈ 0.47565 * 10^18
 	DIPReward, _ = util.NewUint128FromString("475650000000000000")
+
+	// NebulasRewardAddress Nebulas Council Recycling address
+	NebulasRewardAddress2, _ = AddressParse("n1bMN7dssdVCv7XtnF6tmwB59pxxrwvpNwP")
+
+	// NebulasRewardAddress Nebulas Council Recycling address
+	DIPRewardAddress2, _ = AddressParse("n1HXQWZbnCwK2QVyFuNSM47CVxEUq1GEhLc")
 )
 
 // BlockHeader of a block
@@ -1173,13 +1179,25 @@ func (block *Block) FetchExecutionResultEvent(txHash byteutils.Hash) (*state.Eve
 	return nil, ErrNotFoundTransactionResultEvent
 }
 
-func (block *Block) nebulasProjectAddress() *Address {
+func (block *Block) nebulasRewardAddress() *Address {
 	if block.ChainID() == MainNetID {
-		return NebulasRewardAddress
+		if NbreSplitAtHeight(block.height) {
+			return NebulasRewardAddress2
+		} else {
+			return NebulasRewardAddress
+		}
 	} else if block.ChainID() == TestNetID {
 		return block.Coinbase()
 	} else {
 		return block.Coinbase()
+	}
+}
+
+func (block *Block) dipRewardAddress() *Address {
+	if NbreSplitAtHeight(block.height) {
+		return DIPRewardAddress2
+	} else {
+		return block.dip.RewardAddress()
 	}
 }
 
@@ -1199,7 +1217,7 @@ func (block *Block) rewardCoinbaseForMint() error {
 		}
 
 		// nebulas reward
-		nebulasAddr := block.nebulasProjectAddress().Bytes()
+		nebulasAddr := block.nebulasRewardAddress().Bytes()
 		nebulasAcc, err := block.WorldState().GetOrCreateUserAccount(nebulasAddr)
 		if err != nil {
 			return err
@@ -1209,7 +1227,7 @@ func (block *Block) rewardCoinbaseForMint() error {
 		}
 
 		// dip reward.
-		dipAddr := block.dip.RewardAddress().Bytes()
+		dipAddr := block.dipRewardAddress().Bytes()
 		dipAcc, err := block.WorldState().GetOrCreateUserAccount(dipAddr)
 		if err != nil {
 			return err

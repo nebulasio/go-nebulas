@@ -37,6 +37,8 @@ type CompatibilityLocal struct {
 	nbreAvailableHeight uint64
 
 	nrc20SecurityCheckHeight uint64
+
+	nbreSplitHeight uint64
 }
 
 // NewCompatibilityLocal ..
@@ -67,6 +69,7 @@ func NewCompatibilityLocal() Compatibility {
 		nvmValueCheckUpdateHeight:       2,
 		nbreAvailableHeight:             2,
 		nrc20SecurityCheckHeight:        2,
+		nbreSplitHeight:                 3,
 	}
 }
 
@@ -158,4 +161,9 @@ func (c *CompatibilityLocal) NbreAvailableHeight() uint64 {
 // Nrc20SecurityCheckHeight ..
 func (c *CompatibilityLocal) Nrc20SecurityCheckHeight() uint64 {
 	return c.nrc20SecurityCheckHeight
+}
+
+// NbreSplitHeight ..
+func (c *CompatibilityLocal) NbreSplitHeight() uint64 {
+	return c.nbreSplitHeight
 }
