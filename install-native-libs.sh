@@ -100,6 +100,6 @@ export_libs() {
 }
 
 install_nvm
-install_nbre
+#install_nbre
 export_libs
     

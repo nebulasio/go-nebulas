@@ -22,7 +22,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -56,16 +55,6 @@ func newUint128FromIntWrapper(a int64) *util.Uint128 {
 }
 
 type testNR struct {
-}
-
-func (r *testNR) GetNRByAddress(addr *core.Address) (core.Data, error) {
-	if addr.String() != "n1FkntVUMPAsESuCAAPK711omQk19JotBjM" {
-		return nil, errors.New("nr not found")
-	}
-	data := &nr.NRItem{
-		Score: "10.09",
-	}
-	return data, nil
 }
 
 func (r *testNR) GetNRListByHeight(height uint64) (core.Data, error) {

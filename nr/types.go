@@ -38,7 +38,6 @@ var (
 type Neblet interface {
 	Config() *nebletpb.Config
 	BlockChain() *core.BlockChain
-	Nbre() core.Nbre
 }
 
 // NRItem nr item

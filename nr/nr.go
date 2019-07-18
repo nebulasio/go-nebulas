@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/golang-lru"
 
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/nf/nbre"
 )
 
 type NR struct {
@@ -45,23 +44,6 @@ func NewNR(neb Neblet) (*NR, error) {
 		cache: cache,
 	}
 	return nr, nil
-}
-
-// GetNRHandler returns the nr query handler
-func (n *NR) GetNRByAddress(addr *core.Address) (core.Data, error) {
-
-	height := n.neb.BlockChain().TailBlock().Height()
-	data, err := n.GetNRListByHeight(height)
-	if err != nil {
-		return nil, err
-	}
-	nrData := data.(*NRData)
-	for _, nr := range nrData.Nrs {
-		if nr.Address == addr.String() {
-			return nr, nil
-		}
-	}
-	return nil, ErrNRNotFound
 }
 
 // Since the calculation of NR takes time,
@@ -90,14 +72,11 @@ func (n *NR) GetNRListByHeight(height uint64) (nr core.Data, err error) {
 	if data, ok := n.cache.Get(height); ok {
 		nr = data.(*NRData)
 	} else {
-		data, err = n.neb.Nbre().Execute(nbre.CommandNRListByHeight, height)
+		nrData, err := n.getNRListCache(height)
 		if err != nil {
 			return nil, err
 		}
-		nrData := &NRData{}
-		if err = nrData.FromBytes([]byte(data.(string))); err != nil {
-			return nil, err
-		}
+
 		if len(nrData.Err) > 0 {
 			return nil, errors.New(nrData.Err)
 		}
@@ -113,12 +92,8 @@ func (n *NR) GetNRSummary(height uint64) (core.Data, error) {
 	if height < n.neb.Config().Nbre.StartHeight {
 		return nil, ErrNRSummaryNotFound
 	}
-	data, err := n.neb.Nbre().Execute(nbre.CommandNRSum, height)
+	sum, err := n.getNRSummaryCache(height)
 	if err != nil {
-		return nil, err
-	}
-	sum := &NRSummary{}
-	if err = sum.FromBytes([]byte(data.(string))); err != nil {
 		return nil, err
 	}
 	if len(sum.Err) > 0 {
@@ -127,36 +102,10 @@ func (n *NR) GetNRSummary(height uint64) (core.Data, error) {
 	return sum, nil
 }
 
-// GetNRHandler returns the nr query handler
-func (n *NR) GetNRHandle(start, end, version uint64) (string, error) {
-	if start < n.neb.Config().Nbre.StartHeight {
-		return "", ErrInvalidStartHeight
-	}
-	if start >= end {
-		return "", ErrInvalidHeightInterval
-	}
-	if end <= 0 || end > n.neb.BlockChain().TailBlock().Height() {
-		return "", ErrInvalidEndHeight
-	}
-	data, err := n.neb.Nbre().Execute(nbre.CommandNRHandler, start, end, version)
-	if err != nil {
-		return "", err
-	}
-	return data.(string), nil
+func (n *NR) getNRListCache(height uint64) (*NRData, error) {
+	return nil, nil
 }
 
-// GetNRList returns the nr list
-func (n *NR) GetNRListByHandle(handle []byte) (core.Data, error) {
-	data, err := n.neb.Nbre().Execute(nbre.CommandNRListByHandle, string(handle))
-	if err != nil {
-		return nil, err
-	}
-	nrData := &NRData{}
-	if err := nrData.FromBytes([]byte(data.(string))); err != nil {
-		return nil, err
-	}
-	if len(nrData.Err) > 0 {
-		return nil, errors.New(nrData.Err)
-	}
-	return nrData, nil
+func (n *NR) getNRSummaryCache(height uint64) (*NRSummary, error) {
+	return nil, nil
 }

@@ -48,7 +48,6 @@ type Neblet interface {
 	Config() *nebletpb.Config
 	AccountManager() core.AccountManager
 	BlockChain() *core.BlockChain
-	Nbre() core.Nbre
 }
 
 type DIPItem struct {

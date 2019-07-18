@@ -19,12 +19,10 @@
 package dip
 
 import (
-	"errors"
 	"time"
 
 	"github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/nf/nbre"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -239,21 +237,7 @@ func (d *Dip) generateRewardTx(start uint64, end uint64, version uint64, item *D
 
 // GetDipList returns dip info list
 func (d *Dip) GetDipList(height, version uint64) (core.Data, error) {
-	data, ok := d.checkCache(height)
-	if !ok {
-		dipData, err := d.neb.Nbre().Execute(nbre.CommandDIPList, height, version)
-		if err != nil {
-			return nil, err
-		}
-		data = &DIPData{}
-		if err := data.FromBytes([]byte(dipData.(string))); err != nil {
-			return nil, err
-		}
-		if len(data.Err) > 0 {
-			return nil, errors.New(data.Err)
-		}
-		d.cache.Add(height, data)
-	}
+	data, _ := d.checkCache(height)
 	return data, nil
 }
 

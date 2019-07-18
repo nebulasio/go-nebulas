@@ -27,7 +27,6 @@ import (
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
-	"github.com/nebulasio/go-nebulas/nf/nbre"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -50,7 +49,6 @@ type mockNeb struct {
 	config *nebletpb.Config
 	chain  *core.BlockChain
 	am     core.AccountManager
-	nbre   core.Nbre
 }
 
 func (n *mockNeb) Config() *nebletpb.Config {
@@ -65,45 +63,12 @@ func (n *mockNeb) BlockChain() *core.BlockChain {
 	return n.chain
 }
 
-func (n *mockNeb) Nbre() core.Nbre {
-	return n.nbre
-}
-
-type mockNbre struct {
-}
-
-func (m *mockNbre) Start() error {
-	return nil
-}
-
-func (m *mockNbre) Execute(command string, args ...interface{}) (interface{}, error) {
-	if command == nbre.CommandDIPList {
-		data := &DIPData{
-			StartHeight: 1,
-			EndHeight:   100,
-			Dips:        make([]*DIPItem, 1),
-		}
-		item := &DIPItem{
-			Address: dipAddr.String(),
-			Reward:  "1",
-		}
-		data.Dips[0] = item
-		bytes, _ := data.ToBytes()
-		return string(bytes), nil
-	} else {
-		return nil, nil
-	}
-}
-func (m *mockNbre) Stop() {
-}
-
 func testNeb(t *testing.T) *mockNeb {
 
 	neb := &mockNeb{
 		config: &nebletpb.Config{Chain: &nebletpb.ChainConfig{ChainId: 1},
 			Nbre: &nebletpb.NbreConfig{},
 		},
-		nbre: &mockNbre{},
 	}
 
 	account, _ := account.NewManager(neb)

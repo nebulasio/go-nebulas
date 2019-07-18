@@ -142,45 +142,6 @@ service ApiService {
             body: "*"
         };
     }
-
-    // get nr by address
-    rpc GetNRByAddress (GetNRByAddressRequest) returns (NRItem) {
-        option (google.api.http) = {
-            post: "/v1/user/nr"
-            body: "*"
-		};
-    }
-
-    // get latest nr list
-    rpc GetLatestNRList (NonParamsRequest) returns (GetNRListResponse) {
-        option (google.api.http) = {
-            get: "/v1/user/getLatestNrList"
-		};
-    }
-
-    // get nr handle with height interval
-    rpc GetNRHandle (GetNRHandleRequest) returns (GetNRHandleResponse) {
-        option (google.api.http) = {
-            post: "/v1/user/getNrHandle"
-            body: "*"
-		};
-    }
-
-    // get nr list by hash, which returned by `GetNRHash`
-    rpc GetNRListByHandle (GetNRListByHandleRequest) returns (GetNRListResponse) {
-        option (google.api.http) = {
-            post: "/v1/user/getNrListByHandle"
-            body: "*"
-		};
-    }
-
-    // get latest dip list
-    rpc GetDIPList (GetDIPListRequest) returns (GetDIPListResponse) {
-        option (google.api.http) = {
-            post: "/v1/user/getDipList"
-            body: "*"
-		};
-    }
 }
 
 service AdminService {
