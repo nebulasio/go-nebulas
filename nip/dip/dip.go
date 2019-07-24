@@ -237,12 +237,20 @@ func (d *Dip) generateRewardTx(start uint64, end uint64, version uint64, item *D
 
 // GetDipList returns dip info list
 func (d *Dip) GetDipList(height, version uint64) (core.Data, error) {
-	data, _ := d.checkCache(height)
+	data, err := d.checkCache(height)
+	if err != nil {
+		return nil, err
+	}
 	return data, nil
 }
 
-func (d *Dip) checkCache(height uint64) (*DIPData, bool) {
-	if data, ok := d.cache.Get(height); ok {
+func (d *Dip) checkCache(height uint64) (*DIPData, error) {
+	if d.cache.Len() == 0 {
+		d.loadCache()
+	}
+
+	key := (height-core.NrStartHeight)/core.NrIntervalHeight - 1
+	if data, ok := d.cache.Get(key); ok {
 		dipData := data.(*DIPData)
 		logging.VLog().WithFields(logrus.Fields{
 			"height":   height,
@@ -250,9 +258,9 @@ func (d *Dip) checkCache(height uint64) (*DIPData, bool) {
 			"end":      dipData.EndHeight,
 			"dataSize": len(dipData.Dips),
 		}).Debug("Success to find dip list in cache.")
-		return dipData, true
+		return dipData, nil
 	}
-	return nil, false
+	return nil, ErrDipNotFound
 }
 
 func (d *Dip) CheckReward(tx *core.Transaction) error {

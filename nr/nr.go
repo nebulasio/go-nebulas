@@ -19,9 +19,9 @@
 package nr
 
 import (
-	"errors"
-
 	"github.com/hashicorp/golang-lru"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 
 	"github.com/nebulasio/go-nebulas/core"
 )
@@ -29,19 +29,25 @@ import (
 type NR struct {
 	neb Neblet
 
-	cache *lru.Cache
+	nrCache  *lru.Cache
+	sumCache *lru.Cache
 }
 
 // NewNR create nr
 func NewNR(neb Neblet) (*NR, error) {
-	cache, err := lru.New(8)
+	nrCache, err := lru.New(CacheSize)
+	if err != nil {
+		return nil, err
+	}
+	sumCache, err := lru.New(CacheSize)
 	if err != nil {
 		return nil, err
 	}
 
 	nr := &NR{
-		neb:   neb,
-		cache: cache,
+		neb:      neb,
+		nrCache:  nrCache,
+		sumCache: sumCache,
 	}
 	return nr, nil
 }
@@ -63,31 +69,29 @@ func (n *NR) delayHeight() uint64 {
 }
 
 // GetNRListByHeight return nr list, which subtract the deplay height, ensure all node is equal.
-func (n *NR) GetNRListByHeight(height uint64) (nr core.Data, err error) {
+func (n *NR) GetNRListByHeight(height uint64) (core.Data, error) {
+	if core.NbreSplitAtHeight(height) {
+		return nil, core.ErrFuncDeprecated
+	}
+
 	height = height - n.delayHeight()
 	if height < n.neb.Config().Nbre.StartHeight {
 		return nil, ErrNRNotFound
 	}
 
-	if data, ok := n.cache.Get(height); ok {
-		nr = data.(*NRData)
-	} else {
-		nrData, err := n.getNRListCache(height)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(nrData.Err) > 0 {
-			return nil, errors.New(nrData.Err)
-		}
-		nr = nrData
-		n.cache.Add(height, nrData)
+	nr, err := n.getNRListCache(height)
+	if err != nil {
+		return nil, err
 	}
 	return nr, nil
 }
 
 // GetNRSummary return nr summary info, which subtract the deplay height, ensure all node is equal.
 func (n *NR) GetNRSummary(height uint64) (core.Data, error) {
+	if core.NbreSplitAtHeight(height) {
+		return nil, core.ErrFuncDeprecated
+	}
+
 	height = height - n.delayHeight()
 	if height < n.neb.Config().Nbre.StartHeight {
 		return nil, ErrNRSummaryNotFound
@@ -96,16 +100,45 @@ func (n *NR) GetNRSummary(height uint64) (core.Data, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(sum.Err) > 0 {
-		return nil, errors.New(sum.Err)
-	}
 	return sum, nil
 }
 
+// getNRListCache
 func (n *NR) getNRListCache(height uint64) (*NRData, error) {
-	return nil, nil
+	if n.nrCache.Len() == 0 {
+		n.loadNRCache()
+	}
+
+	key := (height-core.NrStartHeight)/core.NrIntervalHeight - 1
+	if data, ok := n.nrCache.Get(key); ok {
+		nrData := data.(*NRData)
+		logging.VLog().WithFields(logrus.Fields{
+			"height":   height,
+			"start":    nrData.StartHeight,
+			"end":      nrData.EndHeight,
+			"dataSize": len(nrData.Nrs),
+		}).Debug("Success to find nr list in cache.")
+		return nrData, nil
+	}
+	return nil, ErrNRNotFound
 }
 
+// getNRSummaryCache
 func (n *NR) getNRSummaryCache(height uint64) (*NRSummary, error) {
-	return nil, nil
+	if n.sumCache.Len() == 0 {
+		n.loadSumCache()
+	}
+
+	key := (height-core.NrStartHeight)/core.NrIntervalHeight - 1
+	if data, ok := n.sumCache.Get(key); ok {
+		sumData := data.(*NRSummary)
+		logging.VLog().WithFields(logrus.Fields{
+			"height": height,
+			"start":  sumData.StartHeight,
+			"end":    sumData.EndHeight,
+			"data":   sumData.Sum,
+		}).Debug("Success to find nr summary in cache.")
+		return sumData, nil
+	}
+	return nil, ErrNRSummaryNotFound
 }

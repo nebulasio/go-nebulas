@@ -19,8 +19,11 @@
 package dip
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/nebulasio/go-nebulas/storage"
 
 	"github.com/nebulasio/go-nebulas/account"
 	"github.com/nebulasio/go-nebulas/core"
@@ -217,4 +220,42 @@ func TestDip_CheckReward(t *testing.T) {
 			assert.Equal(t, tt.err, err)
 		})
 	}
+}
+
+func readNbreDB(key string) ([]byte, error) {
+	rs, err := storage.NewRocksStorage("../../mainnet/nbre/nbre.db")
+	if err != nil {
+		return nil, err
+	}
+	data, err := rs.Get([]byte(key))
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func TestDip_ReadDIP(t *testing.T) {
+	dbdata, err := readNbreDB("dip_rewards")
+	assert.Nil(t, err)
+	data := DipReward{}
+	err = json.Unmarshal(dbdata, &data)
+	assert.Nil(t, err)
+	items := make([]*DIPData, len(data.DipRewards))
+	for i, str := range data.DipRewards {
+		item := DIPData{}
+		err := json.Unmarshal([]byte(str), &item)
+		assert.Nil(t, err)
+		items[i] = &item
+	}
+	assert.Nil(t, err)
+	//recordData, err := json.Marshal(items)
+	//assert.Nil(t, err)
+	//util.FileWrite("./dip_data", recordData, true)
+}
+
+func TestNR_LoadCache(t *testing.T) {
+	neb := testNeb(t)
+	dip, err := NewDIP(neb)
+	assert.Nil(t, err)
+	dip.loadCache()
 }

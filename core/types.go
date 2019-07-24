@@ -58,6 +58,11 @@ const (
 	ContractAcceptFunc = "accept"
 )
 
+const (
+	NrStartHeight    = 2307000
+	NrIntervalHeight = 40320
+)
+
 var (
 	// PublicFuncNameChecker     in smart contract
 	PublicFuncNameChecker = regexp.MustCompile("^[a-zA-Z$][A-Za-z0-9_$]*$")
@@ -190,6 +195,9 @@ var (
 	ErrNrc20ArgsCheckFailed    = errors.New("transaction nrc20 args check failed")
 	ErrNrc20AddressCheckFailed = errors.New("transaction nrc20 address check failed")
 	ErrNrc20ValueCheckFailed   = errors.New("transaction nrc20 value check failed")
+
+	// func deprecated
+	ErrFuncDeprecated = errors.New("function deprecated")
 )
 
 // Default gas count

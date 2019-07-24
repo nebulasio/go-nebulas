@@ -26,6 +26,10 @@ import (
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 )
 
+const (
+	CacheSize = 128
+)
+
 // Error types
 var (
 	ErrInvalidStartHeight    = errors.New("invalid nr start height")
@@ -38,6 +42,10 @@ var (
 type Neblet interface {
 	Config() *nebletpb.Config
 	BlockChain() *core.BlockChain
+}
+
+type NRResults struct {
+	NrResults []string `json:"nr_results"`
 }
 
 // NRItem nr item
@@ -81,6 +89,10 @@ func (n *NRData) FromBytes(data []byte) error {
 		return err
 	}
 	return nil
+}
+
+type NRSums struct {
+	NrSums []string `json:"nr_sums"`
 }
 
 type NRSummary struct {

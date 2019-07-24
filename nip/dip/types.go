@@ -36,7 +36,7 @@ var (
 
 // const types
 const (
-	CacheSize = 8
+	CacheSize = 128
 
 	// DipRewardAddressPrivate dip reward rewardAddress:n1c6y4ctkMeZk624QWBTXuywmNpCWmJZiBq
 	DipRewardAddressPrivate = "42f0c8b5feb72301619046ca87e6cf2c605e94dae0e24c9cb3a0101dbb60337c"
@@ -48,6 +48,10 @@ type Neblet interface {
 	Config() *nebletpb.Config
 	AccountManager() core.AccountManager
 	BlockChain() *core.BlockChain
+}
+
+type DipReward struct {
+	DipRewards []string `json:"dip_rewards"`
 }
 
 type DIPItem struct {
