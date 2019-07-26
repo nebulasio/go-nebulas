@@ -22,6 +22,8 @@ import "C"
 import (
 	"unsafe"
 
+	"github.com/nebulasio/go-nebulas/core"
+
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -58,10 +60,12 @@ type TransferFromContractFailureEvent struct {
 
 // InnerTransferContractEvent event for inner transfer in contract
 type InnerContractEvent struct {
-	From  string `json:"from"`
-	To    string `json:"to"`
-	Value string `json:"value"`
-	Err   string `json:"error"`
+	From     string `json:"from"`
+	To       string `json:"to"`
+	Value    string `json:"value"`
+	Err      string `json:"error"`
+	Function string `json:"function,omitempty"`
+	Args     string `json:"args,omitempty"`
 }
 
 // EventTriggerFunc export EventTriggerFunc
@@ -95,7 +99,15 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char, gasCnt *C.siz
 	// calculate Gas.
 	*gasCnt = C.size_t(EventBaseGasCount + len(gTopic) + len(gData))
 
-	contractTopic := EventNameSpaceContract + "." + gTopic
+	var (
+		contractTopic string
+	)
+	// after split height, contract event track contract address
+	if core.NbreSplitAtHeight(e.ctx.block.Height()) {
+		contractTopic = EventNameSpaceContract + "." + e.ctx.contract.Address().String() + "." + gTopic
+	} else {
+		contractTopic = EventNameSpaceContract + "." + gTopic
+	}
 	event := &state.Event{Topic: contractTopic, Data: gData}
 	e.ctx.state.RecordEvent(engine.ctx.tx.Hash(), event)
 }
