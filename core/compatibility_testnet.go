@@ -69,7 +69,7 @@ func NewCompatibilityTestNet() Compatibility {
 		nvmValueCheckUpdateHeight:                         840000,
 		nbreAvailableHeight:                               1550000,
 		nrc20SecurityCheckHeight:                          1941257,
-		nbreSplitHeight:                                   3300000,
+		nbreSplitHeight:                                   2250000,
 	}
 }
 
