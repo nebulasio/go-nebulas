@@ -95,15 +95,14 @@ const (
 
 //engine_v8 private data
 var (
-	v8engineOnce         = sync.Once{}
-	storages             = make(map[uint64]*V8Engine, 1024)
-	storagesIdx          = uint64(0)
-	storagesLock         = sync.RWMutex{}
-	engines              = make(map[*C.V8Engine]*V8Engine, 1024)
-	enginesLock          = sync.RWMutex{}
-	sourceModuleCache, _ = lru.New(40960)
-	inject               = 0
-	hit                  = 0
+	v8engineOnce              = sync.Once{}
+	storages                  = make(map[uint64]*V8Engine, 1024)
+	storagesIdx               = uint64(0)
+	storagesLock              = sync.RWMutex{}
+	engines                   = make(map[*C.V8Engine]*V8Engine, 1024)
+	enginesLock               = sync.RWMutex{}
+	sourceModuleCache, _      = lru.New(40960)
+	instructionCounterVersion = "1.0.0"
 )
 
 // V8Engine v8 engine.
@@ -575,6 +574,12 @@ func (e *V8Engine) AddModule(id, source string, sourceLineOffset int) error {
 
 func (e *V8Engine) prepareRunnableContractScript(source, function, args string) (string, int, error) {
 	sourceLineOffset := 0
+
+	counterVersion := core.GetNearestInstructionCounterVersionAtHeight(e.ctx.block.Height())
+	if counterVersion != instructionCounterVersion {
+		instructionCounterVersion = counterVersion
+		ClearSourceModuleCache()
+	}
 
 	// add module.
 	const ModuleID string = "contract.js"
