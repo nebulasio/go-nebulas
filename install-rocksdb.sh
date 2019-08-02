@@ -81,7 +81,7 @@ install_rocksdb() {
       fi
       pushd $DEST
         git checkout v5.18.3
-        sudo ROCKSDB_DISABLE_GFLAGS=On make install-shared -j$PARALLEL
+        sudo make install-shared -j$PARALLEL
       popd
       ;;
     'Darwin')

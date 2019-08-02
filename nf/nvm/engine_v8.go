@@ -579,6 +579,10 @@ func (e *V8Engine) prepareRunnableContractScript(source, function, args string) 
 	if counterVersion != instructionCounterVersion {
 		instructionCounterVersion = counterVersion
 		ClearSourceModuleCache()
+		logging.VLog().WithFields(logrus.Fields{
+			"height":  e.ctx.block.Height(),
+			"version": instructionCounterVersion,
+		}).Info("Clear source module cache.")
 	}
 
 	// add module.

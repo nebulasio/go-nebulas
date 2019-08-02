@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with the go-nebulas library.  If not, see <http://www.gnu.org/licenses/>.
 
-# usage: source native-libs.sh
+# usage: source install-native-libs.sh
 
 CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" >/dev/null && pwd  )"
 #CUR_DIR="$( pwd )"
@@ -42,6 +42,10 @@ fi
 
 rm -rf $CUR_DIR/native-lib
 mkdir -p $CUR_DIR/native-lib
+
+install_rocksdb() {
+  $CUR_DIR/install-rocksdb.sh
+}
 
 install_nvm() {
   nvm_lib=$CUR_DIR/nf/nvm/native-lib
@@ -99,7 +103,20 @@ export_libs() {
   esac
 }
 
+install_vendor() {
+  if [ ! -d $CUR_DIR/vendor ]; then
+    pushd $CUR_DIR
+    wget $SOURCE_URL/setup/vendor/vendor.tar.gz
+    tar -zxf vendor.tar.gz
+    rm -rf vendor.tar.gz
+    popd
+  fi
+}
+
+install_rocksdb
 install_nvm
 #install_nbre
 export_libs
+
+install_vendor
     

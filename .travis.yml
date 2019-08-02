@@ -12,6 +12,7 @@ install:
 - tar -zxf vendor.tar.gz
 - go get github.com/tebeka/go2xunit
 script:
+- ./install-rocksdb.sh
 - source install-native-libs.sh
 - make build
 notifications:
