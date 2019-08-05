@@ -59,10 +59,10 @@ install_nvm() {
     rm -rf lib_nvm_$OS
     rm -rf lib_nvm_$OS.tar.gz
     popd
+    echo "install nvm lib..."
   fi
   libs=`ls $nvm_lib|grep .$DYLIB`
   for lib in $libs; do
-    echo "install nvm lib..."
     ln -s $nvm_lib/$lib  $CUR_DIR/native-lib/$lib
   done
 }
@@ -109,7 +109,7 @@ install_vendor() {
   if [ ! -d $CUR_DIR/vendor ]; then
     pushd $CUR_DIR
     echo "downloading vendor from remote..."
-    wget $SOURCE_URL/setup/vendor/vendor.tar.gz
+    wget $SOURCE_URL/setup/vendor/vendor.tar.gz -O vendor.tar.gz
     tar -zxf vendor.tar.gz
     rm -rf vendor.tar.gz
     popd

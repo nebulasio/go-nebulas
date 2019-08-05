@@ -6,9 +6,10 @@ ENV PATH ${GOPATH}/bin:/usr/local/go/bin:${PATH}
 RUN apt update && \
     apt install -y git build-essential protobuf-compiler sudo wget
 
-# Install Go1.11.5
-RUN wget https://dl.google.com/go/go1.11.5.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.11.5.linux-amd64.tar.gz
+# Install Go1.12.7
+RUN rm -rf /usr/local/go
+RUN wget https://dl.google.com/go/go1.12.7.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.12.7.linux-amd64.tar.gz
 
 ENV NEBULAS_SRC=${GOPATH}/src/github.com/nebulasio/go-nebulas
 WORKDIR ${NEBULAS_SRC}

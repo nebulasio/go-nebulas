@@ -84,6 +84,7 @@ install_rocksdb() {
         git checkout v5.18.3
         sudo make install-shared -j$PARALLEL
       popd
+      sudo ldconfig
       ;;
     'Darwin')
       xcode-select --install 2>/dev/null
@@ -93,14 +94,27 @@ install_rocksdb() {
   esac
 }
 
-prepare
+uninstall_rocksdb() {
+  echo "uninstall rocksdb..."
+  case $OS in
+    'Linux')
+      rm -rf $DEST
+      sudo rm -rf /usr/local/include/rocksdb
+      sudo rm -rf /usr/local/lib/librocksdb*
+      sudo ldconfig
+      ;;
+    'Darwin')
+      brew uninstall rocksdb
+      ;;
+    *) ;;
+  esac
+}
+
 check_install rocksdb
 if [ $? -ne 0 ]; then
+  prepare
   install_rocksdb
   if [ $? -eq 0 ]; then
-    sudo ldconfig
     echo "rocksdb install success"
   fi
-else
-  echo "rocksdb has been installed"
 fi
