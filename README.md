@@ -52,40 +52,25 @@ Nebulas execution need NVM and NBRE two dependent libraries. We provide stable v
 cd github.com/nebulasio/go-nebulas
 
 OS X:
-./install-native-libs.sh
+./setup.sh
 
 Linux:
-source install-native-libs.sh
+source setup.sh
 ```
 ##### *Note*:
 
 The dependency libraries are not installed in the system directory, and there are different path-loading methods used in Darwin and Linux systems.
 
 * *OS X*:
-    * In the user's root directory to create ` lib ` folder, system to load the library path can read this path, ensure that the root directory of the current folder does not exist. All of these operations in ` install-native-libs.sh ` already processing.(`DYLD_LIBRARY_PATH` is not possible unless System Integrity Protection (SIP) is disabled)
+    * In the user's root directory to create ` lib ` folder, system to load the library path can read this path, ensure that the root directory of the current folder does not exist. All of these operations in ` setup.sh ` already processing.(`DYLD_LIBRARY_PATH` is not possible unless System Integrity Protection (SIP) is disabled)
 
     ```
-    ./install-native-libs.sh
+    ./setup.sh
     ```
 
 * *Linux - Ubuntu*
-    * `install-native-libs.sh` export `LD_LIBRARY_PATH` for native libs.
-    * Because the CPU instruction set may vary from machine to machine, the pre-compiled nbre may not be available. **If the library you installed with the script is not available (it does not start after compilation), compile the nbre yourself:**
-    	* delete invalid libraries
-    	* prepare nbre build environment(It may take a long time, compile cmake, llvm, rocksdb and etc.)
-    	* build nbre
-    	* re-source the native libs
+    * `setup.sh` export `LD_LIBRARY_PATH` for native libs.
     
-    	```bash
-    	cd nbre
-    	rm -rf lib
-    	rm -rf lib_llvm
-    	./prepare.sh
-    	./build.sh
-    	cd ..
-    	source install-native-libs.sh
-    	```  	
-
 #### Install dependencies packages.
 
    * all golang dependencies will be stored in ./vendor.

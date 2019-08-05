@@ -68,6 +68,7 @@ check_install() {
 }
 
 install_rocksdb() {
+  echo "install rocksdb..."
   case $OS in
     'Linux')
       sudo apt-get install -y libsnappy-dev
