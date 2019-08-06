@@ -87,9 +87,9 @@ func TestNR_ReadSum(t *testing.T) {
 		items[i] = &item
 	}
 	assert.Nil(t, err)
-	// recordData, err := json.Marshal(items)
-	// assert.Nil(t, err)
-	// util.FileWrite("./sum_data", recordData, true)
+	//recordData, err := json.Marshal(items)
+	//assert.Nil(t, err)
+	//util.FileWrite("./nrdata/sum_data.json", recordData, true)
 }
 
 func TestNR_ReadNR(t *testing.T) {
@@ -106,9 +106,9 @@ func TestNR_ReadNR(t *testing.T) {
 		items[i] = &item
 	}
 	assert.Nil(t, err)
-	// recordData, err := json.Marshal(items)
-	// assert.Nil(t, err)
-	// util.FileWrite("./nr_data", recordData, true)
+	//recordData, err := json.Marshal(items)
+	//assert.Nil(t, err)
+	//util.FileWrite("./nrdata/nr_data.json", recordData, true)
 }
 
 func TestNR_LoadSumCache(t *testing.T) {

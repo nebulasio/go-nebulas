@@ -274,6 +274,10 @@ func (d *Dip) CheckReward(tx *core.Transaction) error {
 			return ErrInvalidDipAddress
 		}
 
+		if tx.To().Equals(core.DIPRewardAddress2) {
+			return nil
+		}
+
 		payload, err := tx.LoadPayload()
 		if err != nil {
 			return err

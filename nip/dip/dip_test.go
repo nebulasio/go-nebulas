@@ -250,7 +250,7 @@ func TestDip_ReadDIP(t *testing.T) {
 	assert.Nil(t, err)
 	//recordData, err := json.Marshal(items)
 	//assert.Nil(t, err)
-	//util.FileWrite("./dip_data", recordData, true)
+	//util.FileWrite("./dipdata/dip_data.json", recordData, true)
 }
 
 func TestNR_LoadCache(t *testing.T) {
