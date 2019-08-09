@@ -19,7 +19,7 @@ Mainnet is released, please check [here](https://github.com/nebulasio/wiki/blob/
 
 | Components | Version | Description |
 |----------|-------------|-------------|
-|[Golang](https://golang.org) | >= 1.11| The Go Programming Language |
+|[Golang](https://golang.org) | >= 1.2| The Go Programming Language |
 [Dep](https://github.com/golang/dep) | >= 0.3.1 | Dep is a dependency management tool for Go. |
 
 ### Build
