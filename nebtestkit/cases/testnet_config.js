@@ -54,6 +54,13 @@ var TestNet = function (env) {
         this.coinbase = "n1XkoVVjswb5Gek3rRufqjKNpwrDdsnQ7Hq";
         this.apiEndPoint = "http://127.0.0.1:8685";
 
+    } else if (env === "devnet") {
+
+        this.ChainId = 1111;
+        this.sourceAccount = new Wallet.Account("830ccbac2029b880eb07aa9a19c65ce6dad41702d409771eada791d6a6a83a1e");
+        this.coinbase = "n1XkoVVjswb5Gek3rRufqjKNpwrDdsnQ7Hq";
+        this.apiEndPoint = "http://47.92.203.173:9695";
+
     } else {
         console.log("====> could not found specified env: " + env + ", using local env instead");
         console.log("====> example: mocha cases/contract/xxx testneb2 -t 2000000");

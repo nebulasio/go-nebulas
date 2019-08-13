@@ -45,7 +45,7 @@ function prepareSource(done) {
 
         source = Account.NewAccount();
 
-        var tx = new Transaction(ChainID, originSource, source, neb.nasToBasic(1000), nonce + 1, "1000000", "200000");
+        var tx = new Transaction(ChainID, originSource, source, neb.nasToBasic(1000), nonce + 1, "20000000000", "200000");
         tx.signTransaction();
 
         console.log("cliam source tx:", tx.toString());
@@ -113,7 +113,7 @@ function cliamTokens(accounts, values, done) {
 }
 
 function sendTransaction(from, address, value, nonce) {
-    var transaction = new Transaction(ChainID, from, address, value, nonce, "1000000", "2000000");
+    var transaction = new Transaction(ChainID, from, address, value, nonce, "20000000000", "2000000");
     transaction.signTransaction();
     var rawTx = transaction.toProtoString();
     // console.log("send transaction:", transaction.toString());
@@ -149,7 +149,7 @@ function deployContract(done){
         "args": "[\"StandardToken\", \"NRC\", 18, \"1000000000\"]"
     };
 
-    var transaction = new Transaction(ChainID, deploy, deploy, "0", 1, "10000000", "2000000", contract);
+    var transaction = new Transaction(ChainID, deploy, deploy, "0", 1, "20000000000", "2000000", contract);
     transaction.signTransaction();
     var rawTx = transaction.toProtoString();
 
@@ -221,9 +221,10 @@ function testCall(testInput, testExpect, done) {
         "args": testInput.args
     };
     var from = Account.NewAccount();
-    neb.api.call(from.getAddressString(), contractAddr, "0", 1, "1000000", "2000000", contract).then(function (resp) {
+    neb.api.call(from.getAddressString(), contractAddr, "0", 1, "20000000000", "2000000", contract).then(function (resp) {
+        console.log("after call:", resp);
         var result = JSON.parse(resp.result);
-        console.log("result:", result);
+        // console.log("result:", result);
         expect(result).to.equal(testExpect.result);
         done();
     }).catch(function (err) {
@@ -266,7 +267,7 @@ function testTransfer(testInput, testExpect, done) {
             "function": "transfer",
             "args": args
         };
-        var tx = new Transaction(ChainID, from, contractAddr, "0", parseInt(resp.nonce) + 1, "1000000", "2000000", contract);
+        var tx = new Transaction(ChainID, from, contractAddr, "0", parseInt(resp.nonce) + 1, "20000000000", "2000000", contract);
         tx.signTransaction();
 
         console.log("raw tx:", tx.toString());
@@ -276,6 +277,7 @@ function testTransfer(testInput, testExpect, done) {
         checkTransaction(resp.txhash, function (receipt) {
             var resetContract = false;
             try {
+                // console.log("respinse", receipt);
                 expect(receipt).to.be.have.property('status').equal(testExpect.status);
 
                 balanceOfNRC20(from.getAddressString()).then(function (resp) {
@@ -373,7 +375,7 @@ function testApprove(testInput, testExpect, done) {
             "function": "approve",
             "args": args
         };
-        var tx = new Transaction(ChainID, from, contractAddr, "0", parseInt(resp.nonce) + 1, "1000000", "2000000", contract);
+        var tx = new Transaction(ChainID, from, contractAddr, "0", parseInt(resp.nonce) + 1, "20000000000", "2000000", contract);
         tx.signTransaction();
 
         console.log("raw tx:", tx.toString());
@@ -480,7 +482,7 @@ function testTransferFrom(testInput, testExpect, done) {
                     "function": "transferFrom",
                     "args": args
                 };
-                var tx = new Transaction(ChainID, from, contractAddr, "0", parseInt(fromState.nonce) + 1, "1000000", "2000000", contract);
+                var tx = new Transaction(ChainID, from, contractAddr, "0", parseInt(fromState.nonce) + 1, "20000000000", "2000000", contract);
                 tx.signTransaction();
 
                 console.log("raw tx:", tx.toString());
@@ -568,7 +570,7 @@ function approveNRC20(testInput, deployState, from, currentValue, done) {
             "function": "approve",
             "args": args
         };
-        var tx = new Transaction(ChainID, deploy, contractAddr, "0", parseInt(deployState.nonce) + 1, "1000000", "2000000", contract);
+        var tx = new Transaction(ChainID, deploy, contractAddr, "0", parseInt(deployState.nonce) + 1, "20000000000", "2000000", contract);
         tx.signTransaction();
         // console.log("approve tx:", tx.toString());
         neb.api.sendRawTransaction(tx.toProtoString()).then(function (resp) {
@@ -588,7 +590,7 @@ function balanceOfNRC20(address) {
         "function": "balanceOf",
         "args": "[\"" + address + "\"]"
     };
-    return neb.api.call(address, contractAddr, "0", 1, "1000000", "200000", contract)
+    return neb.api.call(address, contractAddr, "0", 1, "20000000000", "200000", contract);
 }
 
 function allowanceOfNRC20(owner, spender) {
@@ -596,7 +598,7 @@ function allowanceOfNRC20(owner, spender) {
         "function": "allowance",
         "args": "[\"" + owner + "\", \""+ spender +"\"]"
     };
-    return neb.api.call(owner, contractAddr, "0", 1, "1000000", "2000000", contract)
+    return neb.api.call(owner, contractAddr, "0", 1, "20000000000", "2000000", contract);
 }
 
 var testCase = {
@@ -660,7 +662,7 @@ testCase = {
         args: ""
     },
     "testExpect": {
-        result: "0"
+        exeFailed: true
     }
 };
 testCases.push(testCase);
@@ -687,7 +689,7 @@ testCase = {
         args: "[1]"
     },
     "testExpect": {
-        result: "0"
+        exeFailed: true
     }
 };
 testCases.push(testCase);
@@ -697,7 +699,7 @@ testCase = {
     "testInput": {
         isCall: true,
         function: "balanceOf",
-        args: "[\"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\"]"
+        args: "[\"n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE\"]"
     },
     "testExpect": {
         result: "0"
@@ -710,7 +712,7 @@ testCase = {
     "testInput": {
         isCall: true,
         function: "balanceOf",
-        args: ""
+        args: "[\"n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE\"]"
     },
     "testExpect": {
         result: "0"
@@ -726,7 +728,7 @@ testCase = {
         args: ""
     },
     "testExpect": {
-        result: "0"
+        exeFailed: true
     }
 };
 testCases.push(testCase);
@@ -736,10 +738,10 @@ testCase = {
     "testInput": {
         isCall: true,
         function: "allowance",
-        args: "[\"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\"]"
+        args: "[\"n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE\"]"
     },
     "testExpect": {
-        result: "0"
+        exeFailed: true
     }
 };
 testCases.push(testCase);
@@ -749,7 +751,7 @@ testCase = {
     "testInput": {
         isCall: true,
         function: "allowance",
-        args: "[\"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\""
+        args: "[\"n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE\""
     },
     "testExpect": {
         exeFailed: true,
@@ -763,10 +765,10 @@ testCase = {
     "testInput": {
         isCall: true,
         function: "allowance",
-        args: "[\"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\", 1]"
+        args: "[\"n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE\", 1]"
     },
     "testExpect": {
-        result: "0"
+        exeFailed: true
     }
 };
 testCases.push(testCase);
@@ -776,7 +778,7 @@ testCase = {
     "testInput": {
         isCall: true,
         function: "allowance",
-        args: "[\"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\",\"1a263547d167c74cf4b8f9166cfa244de0481c514a45aa2c\"]"
+        args: "[\"n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE\",\"n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE\"]"
     },
     "testExpect": {
         result: "0"
@@ -789,7 +791,7 @@ testCase = {
     "testInput": {
         isCall: true,
         function: "allowance",
-        args: ""
+        args: "[\"n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE\",\"n1FF1nz6tarkDVwWQkMnnwFPuPKUaQTdptE\"]"
     },
     "testExpect": {
         result: "0"
@@ -1012,7 +1014,7 @@ testCase = {
         args: ""
     },
     "testExpect": {
-        status: 1
+        status: 0
     }
 };
 testCases.push(testCase);
@@ -1149,6 +1151,21 @@ testCase = {
     },
     "testExpect": {
         status: 1
+    }
+};
+testCases.push(testCase);
+
+testCase = {
+    "name": "41. transfer value format error",
+    "testInput": {
+        isTransfer: true,
+        from: Account.NewAccount(),
+        transferValue: "10e1",
+        function: "transfer",
+        args: ""
+    },
+    "testExpect": {
+        status: 0
     }
 };
 testCases.push(testCase);
