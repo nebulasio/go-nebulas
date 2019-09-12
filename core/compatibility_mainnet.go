@@ -39,6 +39,8 @@ type CompatibilityMainNet struct {
 	nrc20SecurityCheckHeight uint64
 
 	nbreSplitHeight uint64
+
+	gasAdjustHeight uint64
 }
 
 // NewCompatibilityMainNet ..
@@ -69,6 +71,7 @@ func NewCompatibilityMainNet() Compatibility {
 		nbreAvailableHeight:                               2307000,
 		nrc20SecurityCheckHeight:                          2517131,
 		nbreSplitHeight:                                   2856400,
+		gasAdjustHeight:                                   3200000,
 	}
 }
 
@@ -165,4 +168,9 @@ func (c *CompatibilityMainNet) Nrc20SecurityCheckHeight() uint64 {
 // NbreSplitHeight ..
 func (c *CompatibilityMainNet) NbreSplitHeight() uint64 {
 	return c.nbreSplitHeight
+}
+
+// GasAdjustHeight ..
+func (c *CompatibilityMainNet) GasAdjustHeight() uint64 {
+	return c.gasAdjustHeight
 }

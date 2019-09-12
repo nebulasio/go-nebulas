@@ -153,6 +153,7 @@ type Compatibility interface {
 	NbreAvailableHeight() uint64
 	Nrc20SecurityCheckHeight() uint64
 	NbreSplitHeight() uint64
+	GasAdjustHeight() uint64
 }
 
 // NebCompatibility ..
@@ -463,4 +464,9 @@ func Nrc20SecurityCheckAtHeight(blockHeight uint64) bool {
 // NbreSplitAtHeight ..
 func NbreSplitAtHeight(blockHeight uint64) bool {
 	return blockHeight >= NebCompatibility.NbreSplitHeight()
+}
+
+// GasAdjustAtHeight ..
+func GasAdjustAtHeight(blockHeight uint64) bool {
+	return blockHeight >= NebCompatibility.GasAdjustHeight()
 }

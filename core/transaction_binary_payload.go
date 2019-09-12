@@ -106,8 +106,13 @@ func (payload *BinaryPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 		if exeErr == ErrExecutionFailed && len(result) > 0 {
 			exeErr = fmt.Errorf("Binary: %s", result)
 		}
-		if exeErr != nil {
-			return instructions, "", exeErr
+
+		if GasAdjustAtHeight(block.height) {
+			return instructions, result, exeErr
+		} else {
+			if exeErr != nil {
+				return instructions, "", exeErr
+			}
 		}
 	}
 
