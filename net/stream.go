@@ -156,6 +156,11 @@ func (s *Stream) String() string {
 	return fmt.Sprintf("Peer Stream: %s,%s", s.pid.Pretty(), addrStr)
 }
 
+// NodeId return node id
+func (s *Stream) NodeId() string {
+	return oldNodeIdCompatibility(s.node.id)
+}
+
 // SendProtoMessage send proto msg to buffer
 func (s *Stream) SendProtoMessage(messageName string, pb proto.Message, priority int) error {
 	data, err := proto.Marshal(pb)
@@ -512,7 +517,8 @@ func (s *Stream) close(reason error) {
 
 	// close stream.
 	if s.stream != nil {
-		s.stream.Close()
+		//s.stream.Close()
+		go libnet.FullClose(s.stream)
 	}
 }
 
@@ -532,7 +538,7 @@ func (s *Stream) onBye(message *NebMessage) error {
 // Hello say hello in the stream
 func (s *Stream) Hello() error {
 	msg := &netpb.Hello{
-		NodeId:        s.node.id.String(),
+		NodeId:        s.NodeId(),
 		ClientVersion: ClientVersion,
 	}
 	return s.WriteProtoMessage(HELLO, msg, ReservedCompressionClientFlag)
@@ -544,13 +550,14 @@ func (s *Stream) onHello(message *NebMessage) error {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
 
-	if msg.NodeId != s.pid.String() || !CheckClientVersionCompatibility(ClientVersion, msg.ClientVersion) {
+	if !s.CheckClientCompatibility(msg.NodeId, msg.ClientVersion) {
 		// invalid client, bye().
 		logging.VLog().WithFields(logrus.Fields{
-			"pid":               s.pid.Pretty(),
-			"address":           s.addr,
-			"ok.node_id":        msg.NodeId,
-			"ok.client_version": msg.ClientVersion,
+			"s.pid":              s.pid.Pretty(),
+			"s.node_id":		  s.pid.String(),
+			"s.address":          s.addr,
+			"msg.node_id":        msg.NodeId,
+			"msg.client_version": msg.ClientVersion,
 		}).Warn("Invalid NodeId or incompatible client version.")
 		return ErrShouldCloseConnectionAndExitLoop
 	}
@@ -572,7 +579,7 @@ func (s *Stream) onHello(message *NebMessage) error {
 func (s *Stream) Ok() error {
 	// send OK.
 	resp := &netpb.OK{
-		NodeId:        s.node.id.String(),
+		NodeId:        s.NodeId(),
 		ClientVersion: ClientVersion,
 	}
 
@@ -585,7 +592,7 @@ func (s *Stream) onOk(message *NebMessage) error {
 		return ErrShouldCloseConnectionAndExitLoop
 	}
 
-	if msg.NodeId != s.pid.String() || !CheckClientVersionCompatibility(ClientVersion, msg.ClientVersion) {
+	if !s.CheckClientCompatibility(msg.NodeId, msg.ClientVersion) {
 		// invalid client, bye().
 		logging.VLog().WithFields(logrus.Fields{
 			"pid":               s.pid.Pretty(),
@@ -689,9 +696,39 @@ func (s *Stream) getData(message *NebMessage) ([]byte, error) {
 	return data, nil
 }
 
+// checkClientIdCompatibility if two clients are compatible
+func (s *Stream) CheckClientCompatibility(id, version string) bool {
+	if id != oldNodeIdCompatibility(s.pid) {
+		return false
+	}
+	if !checkClientVersionCompatibility(ClientVersion, version) {
+		return false
+	}
+	return true
+}
+
+// oldNodeIdCompatibility returns the old version node id.
+// the v6.0.30 version, node id string is: fmt.Sprintf("<peer.ID %s*%s>", pid[:2], pid[len(pid)-6:])
+// for the old version, node is string is: fmt.Sprintf("<peer.ID %s>", pid[:6])
+func oldNodeIdCompatibility(peerID peer.ID) string {
+	pid := peerID.Pretty()
+
+	//All sha256 nodes start with Qm
+	//We can skip the Qm to make the peer.ID more useful
+	if strings.HasPrefix(pid, "Qm") {
+		pid = pid[2:]
+	}
+
+	maxRunes := 6
+	if len(pid) < maxRunes {
+		maxRunes = len(pid)
+	}
+	return fmt.Sprintf("<peer.ID %s>", pid[:maxRunes])
+}
+
 // CheckClientVersionCompatibility if two clients are compatible
 // If the clientVersion of node A is X.Y.Z, then node B must be X.Y.{} to be compatible with A.
-func CheckClientVersionCompatibility(v1, v2 string) bool {
+func checkClientVersionCompatibility(v1, v2 string) bool {
 	s1 := strings.Split(v1, ".")
 	s2 := strings.Split(v1, ".")
 

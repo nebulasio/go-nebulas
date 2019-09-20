@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/lestrrat/go-file-rotatelogs"
+	"github.com/lestrrat-go/file-rotatelogs"
 	"github.com/rifflock/lfshook"
 	"github.com/sirupsen/logrus"
 )
@@ -45,12 +45,8 @@ func NewFileRotateHooker(path string, age uint32) logrus.Hook {
 		filePath,
 		rotatelogs.WithLinkName(linkPath),
 		rotatelogs.WithRotationTime(time.Duration(3600)*time.Second),
+		rotatelogs.WithMaxAge(time.Duration(age) * time.Second),
 	)
-	// set log file max age
-	if age > 0 {
-		rotatelogs.WithMaxAge(time.Duration(age) * time.Second).Configure(writer)
-	}
-
 	if err != nil {
 		panic("Failed to create rotate logs. err:" + err.Error())
 	}

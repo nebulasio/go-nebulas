@@ -28,7 +28,6 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/libp2p/go-libp2p-interface-conn"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/metrics"
 	"github.com/nebulasio/go-nebulas/neblet"
@@ -69,9 +68,6 @@ func main() {
 		help()
 		return
 	}
-
-	// when set to false, NodeID check in stream.go should be ignore.
-	conn.EncryptConnections = true
 
 	// rand.
 	rand.Seed(time.Now().UnixNano())

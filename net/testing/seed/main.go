@@ -5,20 +5,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	"fmt"
 	"log"
 	"time"
 
-	crypto "github.com/libp2p/go-libp2p-crypto"
-	host "github.com/libp2p/go-libp2p-host"
-	inet "github.com/libp2p/go-libp2p-net"
-	peer "github.com/libp2p/go-libp2p-peer"
-	ps "github.com/libp2p/go-libp2p-peerstore"
-	swarm "github.com/libp2p/go-libp2p-swarm"
-	ma "github.com/multiformats/go-multiaddr"
+	"fmt"
 
-	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
-	multicodec "github.com/multiformats/go-multicodec"
+	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p-crypto"
+	"github.com/libp2p/go-libp2p-host"
+	inet "github.com/libp2p/go-libp2p-net"
+	"github.com/libp2p/go-libp2p-peer"
+	ma "github.com/multiformats/go-multiaddr"
+	"github.com/multiformats/go-multicodec"
 	json "github.com/multiformats/go-multicodec/json"
 )
 
@@ -91,12 +89,12 @@ func makeRandomHost(port int) host.Host {
 	pid, _ := peer.IDFromPublicKey(pub)
 	log.Println(pid.Pretty())
 	listen, _ := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port))
-	ps := ps.NewPeerstore()
-	ps.AddPrivKey(pid, priv)
-	ps.AddPubKey(pid, pub)
-	n, _ := swarm.NewNetwork(context.Background(),
-		[]ma.Multiaddr{listen}, pid, ps, nil)
-	return bhost.New(n)
+	opts := []libp2p.Option{
+		libp2p.ListenAddrs(listen),
+		libp2p.Identity(priv),
+	}
+	host, _ := libp2p.New(context.Background(), opts...)
+	return host
 }
 
 func main() {

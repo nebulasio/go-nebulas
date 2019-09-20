@@ -121,5 +121,5 @@ install_nvm
 #install_nbre
 export_libs
 
-install_vendor
+#install_vendor
     
