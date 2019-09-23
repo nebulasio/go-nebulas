@@ -23,7 +23,7 @@ import (
 	"encoding/base64"
 	"io/ioutil"
 
-	crypto "github.com/libp2p/go-libp2p-crypto"
+	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
 // LoadNetworkKeyFromFile load network priv key from file.

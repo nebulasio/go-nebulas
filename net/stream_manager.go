@@ -30,8 +30,8 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/gogo/protobuf/proto"
-	libnet "github.com/libp2p/go-libp2p-net"
-	peer "github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/nebulasio/go-nebulas/util/logging"
 )
 
@@ -90,7 +90,7 @@ func (sm *StreamManager) Stop() {
 }
 
 // Add a new stream into the stream manager
-func (sm *StreamManager) Add(s libnet.Stream, node *Node) {
+func (sm *StreamManager) Add(s network.Stream, node *Node) {
 	stream := NewStream(s, node)
 	sm.AddStream(stream)
 }

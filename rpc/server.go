@@ -4,10 +4,11 @@ import (
 	"errors"
 	"net"
 
+	gmiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
+
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/netutil"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/neblet/pb"
 	nebnet "github.com/nebulasio/go-nebulas/net"
@@ -68,8 +69,8 @@ func NewServer(neblet core.Neblet) *Server {
 	if cfg == nil {
 		logging.CLog().Fatal("Failed to find rpc config in config file.")
 	}
-	rpc := grpc.NewServer(grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(loggingStream)),
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(loggingUnary)),
+	rpc := grpc.NewServer(grpc.StreamInterceptor(gmiddleware.ChainStreamServer(loggingStream)),
+		grpc.UnaryInterceptor(gmiddleware.ChainUnaryServer(loggingUnary)),
 		grpc.MaxRecvMsgSize(MaxRecvMsgSize))
 
 	srv := &Server{neblet: neblet, rpcServer: rpc, rpcConfig: cfg}

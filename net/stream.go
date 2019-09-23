@@ -25,9 +25,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/helpers"
+
 	"github.com/gogo/protobuf/proto"
-	libnet "github.com/libp2p/go-libp2p-net"
-	peer "github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 	netpb "github.com/nebulasio/go-nebulas/net/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -65,7 +67,7 @@ type Stream struct {
 	syncMutex                 sync.Mutex
 	pid                       peer.ID
 	addr                      ma.Multiaddr
-	stream                    libnet.Stream
+	stream                    network.Stream
 	node                      *Node
 	handshakeSucceedCh        chan bool
 	messageNotifChan          chan int
@@ -82,7 +84,7 @@ type Stream struct {
 }
 
 // NewStream return a new Stream
-func NewStream(stream libnet.Stream, node *Node) *Stream {
+func NewStream(stream network.Stream, node *Node) *Stream {
 	return newStreamInstance(stream.Conn().RemotePeer(), stream.Conn().RemoteMultiaddr(), stream, node)
 }
 
@@ -91,7 +93,7 @@ func NewStreamFromPID(pid peer.ID, node *Node) *Stream {
 	return newStreamInstance(pid, nil, nil, node)
 }
 
-func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream libnet.Stream, node *Node) *Stream {
+func newStreamInstance(pid peer.ID, addr ma.Multiaddr, stream network.Stream, node *Node) *Stream {
 	return &Stream{
 		pid:                       pid,
 		addr:                      addr,
@@ -518,7 +520,7 @@ func (s *Stream) close(reason error) {
 	// close stream.
 	if s.stream != nil {
 		//s.stream.Close()
-		go libnet.FullClose(s.stream)
+		go helpers.FullClose(s.stream)
 	}
 }
 
@@ -554,7 +556,7 @@ func (s *Stream) onHello(message *NebMessage) error {
 		// invalid client, bye().
 		logging.VLog().WithFields(logrus.Fields{
 			"s.pid":              s.pid.Pretty(),
-			"s.node_id":		  s.pid.String(),
+			"s.node_id":          s.pid.String(),
 			"s.address":          s.addr,
 			"msg.node_id":        msg.NodeId,
 			"msg.client_version": msg.ClientVersion,

@@ -35,9 +35,9 @@ import (
 	netpb "github.com/nebulasio/go-nebulas/net/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
-	peer "github.com/libp2p/go-libp2p-peer"
-	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -222,14 +222,14 @@ func (table *RouteTable) onRouteTableChange() {
 }
 
 // GetRandomPeers get random peers
-func (table *RouteTable) GetRandomPeers(pid peer.ID) []peerstore.PeerInfo {
+func (table *RouteTable) GetRandomPeers(pid peer.ID) []peer.AddrInfo {
 
 	// change sync route algorithm from `NearestPeers` to `randomPeers`
 	var peers []peer.ID
 	allPeers := table.routeTable.ListPeers()
 	// Do not accept internal node synchronization routing requests.
 	if inArray(pid.Pretty(), table.internalNodeList) {
-		return []peerstore.PeerInfo{}
+		return []peer.AddrInfo{}
 	}
 
 	for _, v := range allPeers {
@@ -241,7 +241,7 @@ func (table *RouteTable) GetRandomPeers(pid peer.ID) []peerstore.PeerInfo {
 	if len(peers) > table.maxPeersCountForSyncResp {
 		peers = peers[:table.maxPeersCountForSyncResp]
 	}
-	ret := make([]peerstore.PeerInfo, len(peers))
+	ret := make([]peer.AddrInfo, len(peers))
 	for i, v := range peers {
 		ret[i] = table.peerStore.PeerInfo(v)
 	}

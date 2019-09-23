@@ -26,10 +26,10 @@ import (
 	"net"
 
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-crypto"
-	host "github.com/libp2p/go-libp2p-host"
-	libnet "github.com/libp2p/go-libp2p-net"
-	"github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -207,6 +207,8 @@ func initP2PNetworkKey(config *Config, node *Node) {
 		}).Warn("Failed to load network private key from file.")
 	}
 
+	peer.AdvancedEnableInlining = false
+
 	node.networkKey = networkKey
 	node.id, err = peer.IDFromPublicKey(networkKey.GetPublic())
 	if err != nil {
@@ -274,7 +276,7 @@ func initP2PSwarmNetwork(config *Config, node *Node) error {
 	return nil
 }
 
-func (node *Node) onStreamConnected(s libnet.Stream) {
+func (node *Node) onStreamConnected(s network.Stream) {
 	node.streamManager.Add(s, node)
 }
 

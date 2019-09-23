@@ -11,10 +11,10 @@ import (
 	"fmt"
 
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/libp2p/go-libp2p-host"
-	inet "github.com/libp2p/go-libp2p-net"
-	"github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multicodec"
 	json "github.com/multiformats/go-multicodec/json"
@@ -34,7 +34,7 @@ type Message struct {
 // write/read from a stream, so we can just carry the encoders
 // and bufios with us
 type WrappedStream struct {
-	stream inet.Stream
+	stream network.Stream
 	enc    multicodec.Encoder
 	dec    multicodec.Decoder
 	w      *bufio.Writer
@@ -47,7 +47,7 @@ type WrappedStream struct {
 // Finally, we should wrap.w.Flush() to actually send the data. Handling
 // incoming data works similarly with wrap.r.Read() for raw-reading and
 // wrap.dec.Decode() to decode.
-func WrapStream(s inet.Stream) *WrappedStream {
+func WrapStream(s network.Stream) *WrappedStream {
 	reader := bufio.NewReader(s)
 	writer := bufio.NewWriter(s)
 	// This is where we pick our specific multicodec. In order to change the
@@ -115,7 +115,7 @@ func main() {
 	// log.Printf("This is a conversation between %s and %s\n", h1.ID(), h2.ID())
 
 	// Define a stream handler for host number 2
-	h.SetStreamHandler(proto, func(stream inet.Stream) {
+	h.SetStreamHandler(proto, func(stream network.Stream) {
 		// wrappedStream := WrapStream(stream)
 		log.Println("start")
 		stream.Close()

@@ -45,7 +45,7 @@ func NewFileRotateHooker(path string, age uint32) logrus.Hook {
 		filePath,
 		rotatelogs.WithLinkName(linkPath),
 		rotatelogs.WithRotationTime(time.Duration(3600)*time.Second),
-		rotatelogs.WithMaxAge(time.Duration(age) * time.Second),
+		rotatelogs.WithMaxAge(time.Duration(age)*time.Second),
 	)
 	if err != nil {
 		panic("Failed to create rotate logs. err:" + err.Error())
