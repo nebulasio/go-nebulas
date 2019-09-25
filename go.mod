@@ -59,4 +59,20 @@ require (
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )
 
-replace github.com/grpc-ecosystem/grpc-gateway => github.com/nebulasio/grpc-gateway v1.11.2
+replace (
+	cloud.google.com/go => github.com/googleapis/google-cloud-go v0.46.3
+	github.com/grpc-ecosystem/grpc-gateway => github.com/nebulasio/grpc-gateway v1.11.2
+	go.opencensus.io => github.com/census-instrumentation/opencensus-go v0.22.1
+	golang.org/x/crypto => github.com/golang/crypto v0.0.0-20190923035154-9ee001bba392
+	golang.org/x/exp => github.com/golang/exp v0.0.0-20190919035709-81c71964d733 // indirect
+	golang.org/x/image => github.com/golang/image v0.0.0-20190910094157-69e4b8554b2a // indirect
+	golang.org/x/mobile => github.com/golang/mobile v0.0.0-20190910184405-b558ed863381 // indirect
+	golang.org/x/net => github.com/golang/net v0.0.0-20190921015927-1a5e07d1ff72
+	golang.org/x/sync => github.com/golang/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
+	golang.org/x/time => github.com/golang/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
+	golang.org/x/tools => github.com/golang/tools v0.0.0-20190920225731-5eefd052ad72 // indirect
+	google.golang.org/api => github.com/googleapis/google-api-go-client v0.10.0
+	google.golang.org/appengine => github.com/golang/appengine v1.6.3
+	google.golang.org/genproto => github.com/googleapis/go-genproto v0.0.0-20190916214212-f660b8655731
+	google.golang.org/grpc => github.com/grpc/grpc-go v1.23.2-0.20190911185613-23c3aca69110
+)
