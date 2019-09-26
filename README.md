@@ -20,7 +20,6 @@ Mainnet is released, please check [here](https://github.com/nebulasio/wiki/blob/
 | Components | Version | Description |
 |----------|-------------|-------------|
 |[Golang](https://golang.org) | >= 1.2| The Go Programming Language |
-[Dep](https://github.com/golang/dep) | >= 0.3.1 | Dep is a dependency management tool for Go. |
 
 ### Build
 
@@ -71,12 +70,6 @@ The dependency libraries are not installed in the system directory, and there ar
 * *Linux - Ubuntu*
     * `setup.sh` export `LD_LIBRARY_PATH` for native libs.
     
-#### Install dependencies packages.
-
-   * all golang dependencies will be stored in ./vendor.
-   * run `make dep` to install dependencies.
-   * If you failed to run this, please download our [vendor.tar.gz](http://develop-center.oss-cn-zhangjiakou.aliyuncs.com/setup/vendor/vendor.tar.gz) directly.
-
 
 #### Build the neb binary.
    * run command
