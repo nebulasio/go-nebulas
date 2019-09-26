@@ -68,6 +68,9 @@ require (
 
 replace (
 	cloud.google.com/go => github.com/googleapis/google-cloud-go v0.46.3
+	cloud.google.com/go/bigquery => github.com/googleapis/google-cloud-go/bigquery v1.0.1
+	cloud.google.com/go/datastore => github.com/googleapis/google-cloud-go/datastore v1.0.0
+	cloud.google.com/go/pubsub => github.com/googleapis/google-cloud-go/pubsub v1.0.1
 	github.com/grpc-ecosystem/grpc-gateway => github.com/nebulasio/grpc-gateway v1.11.2
 	go.opencensus.io => github.com/census-instrumentation/opencensus-go v0.22.1
 	golang.org/x/crypto => github.com/golang/crypto v0.0.0-20190923035154-9ee001bba392
