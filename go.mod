@@ -50,7 +50,10 @@ require (
 	golang.org/x/lint v0.0.0-20190909230951-414d861bb4ac
 	golang.org/x/mobile v0.0.0-20190910184405-b558ed863381 // indirect
 	golang.org/x/net v0.0.0-20190921015927-1a5e07d1ff72
+	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
+	golang.org/x/sys v0.0.0-20190924154521-2837fb4f24fe
+	golang.org/x/text v0.3.2
 	golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
 	golang.org/x/tools v0.0.0-20190920225731-5eefd052ad72 // indirect
 	google.golang.org/api v0.10.0 // indirect
@@ -71,7 +74,10 @@ replace (
 	golang.org/x/lint => github.com/golang/lint v0.0.0-20190909230951-414d861bb4ac
 	golang.org/x/mobile => github.com/golang/mobile v0.0.0-20190910184405-b558ed863381 // indirect
 	golang.org/x/net => github.com/golang/net v0.0.0-20190921015927-1a5e07d1ff72
+	golang.org/x/oauth2 => github.com/golang/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync => github.com/golang/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
+	golang.org/x/sys => github.com/golang/sys v0.0.0-20190924154521-2837fb4f24fe
+	golang.org/x/text => github.com/golang/text v0.3.2
 	golang.org/x/time => github.com/golang/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
 	golang.org/x/tools => github.com/golang/tools v0.0.0-20190920225731-5eefd052ad72 // indirect
 	google.golang.org/api => github.com/googleapis/google-api-go-client v0.10.0
