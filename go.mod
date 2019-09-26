@@ -49,6 +49,7 @@ require (
 	golang.org/x/image v0.0.0-20190910094157-69e4b8554b2a // indirect
 	golang.org/x/lint v0.0.0-20190909230951-414d861bb4ac
 	golang.org/x/mobile v0.0.0-20190910184405-b558ed863381 // indirect
+	golang.org/x/mod v0.1.0
 	golang.org/x/net v0.0.0-20190921015927-1a5e07d1ff72
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
@@ -56,6 +57,7 @@ require (
 	golang.org/x/text v0.3.2
 	golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
 	golang.org/x/tools v0.0.0-20190920225731-5eefd052ad72 // indirect
+	golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7
 	google.golang.org/api v0.10.0 // indirect
 	google.golang.org/appengine v1.6.3 // indirect
 	google.golang.org/genproto v0.0.0-20190916214212-f660b8655731
@@ -73,6 +75,7 @@ replace (
 	golang.org/x/image => github.com/golang/image v0.0.0-20190910094157-69e4b8554b2a // indirect
 	golang.org/x/lint => github.com/golang/lint v0.0.0-20190909230951-414d861bb4ac
 	golang.org/x/mobile => github.com/golang/mobile v0.0.0-20190910184405-b558ed863381 // indirect
+	golang.org/x/mod => github.com/golang/mod v0.1.1-0.20190911151517-c5eba5822913
 	golang.org/x/net => github.com/golang/net v0.0.0-20190921015927-1a5e07d1ff72
 	golang.org/x/oauth2 => github.com/golang/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync => github.com/golang/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
@@ -80,6 +83,7 @@ replace (
 	golang.org/x/text => github.com/golang/text v0.3.2
 	golang.org/x/time => github.com/golang/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
 	golang.org/x/tools => github.com/golang/tools v0.0.0-20190920225731-5eefd052ad72 // indirect
+	golang.org/x/xerrors => github.com/golang/xerrors v0.0.0-20190717185122-a985d3407aa7
 	google.golang.org/api => github.com/googleapis/google-api-go-client v0.10.0
 	google.golang.org/appengine => github.com/golang/appengine v1.6.3
 	google.golang.org/genproto => github.com/googleapis/go-genproto v0.0.0-20190916214212-f660b8655731
