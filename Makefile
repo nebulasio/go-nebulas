@@ -87,7 +87,7 @@ LIST := ./account/... ./cmd/... ./common/... ./consensus ./core/... ./crypto/...
 # LIST := $(ls -d */|grep -Ev "vendor|logs|nebtestkit|.db")/...
 
 test:
-	env GOCACHE=off $(CGO_CFLAGS) $(CGO_LDFLAGS) go test $(LIST) 2>&1 | tee $(TEST_REPORT); go2xunit -fail -input $(TEST_REPORT) -output $(TEST_XUNIT_REPORT)
+	$(CGO_CFLAGS) $(CGO_LDFLAGS) go test $(LIST) 2>&1 | tee $(TEST_REPORT); go2xunit -fail -input $(TEST_REPORT) -output $(TEST_XUNIT_REPORT)
 
 vet:
 	go vet $$(go list $(LIST)) 2>&1 | tee $(VET_REPORT)

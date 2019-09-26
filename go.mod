@@ -38,6 +38,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
+	github.com/tebeka/go2xunit v1.4.10 // indirect
 	github.com/tecbot/gorocksdb v0.0.0-20190705090504-162552197222
 	github.com/urfave/cli v1.22.1
 	github.com/willf/bitset v1.1.10 // indirect
@@ -46,6 +47,7 @@ require (
 	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
 	golang.org/x/exp v0.0.0-20190919035709-81c71964d733 // indirect
 	golang.org/x/image v0.0.0-20190910094157-69e4b8554b2a // indirect
+	golang.org/x/lint v0.0.0-20190909230951-414d861bb4ac
 	golang.org/x/mobile v0.0.0-20190910184405-b558ed863381 // indirect
 	golang.org/x/net v0.0.0-20190921015927-1a5e07d1ff72
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
@@ -66,6 +68,7 @@ replace (
 	golang.org/x/crypto => github.com/golang/crypto v0.0.0-20190923035154-9ee001bba392
 	golang.org/x/exp => github.com/golang/exp v0.0.0-20190919035709-81c71964d733 // indirect
 	golang.org/x/image => github.com/golang/image v0.0.0-20190910094157-69e4b8554b2a // indirect
+	golang.org/x/lint => github.com/golang/lint v0.0.0-20190909230951-414d861bb4ac
 	golang.org/x/mobile => github.com/golang/mobile v0.0.0-20190910184405-b558ed863381 // indirect
 	golang.org/x/net => github.com/golang/net v0.0.0-20190921015927-1a5e07d1ff72
 	golang.org/x/sync => github.com/golang/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
