@@ -19,7 +19,7 @@ Mainnet is released, please check [here](https://github.com/nebulasio/wiki/blob/
 
 | Components | Version | Description |
 |----------|-------------|-------------|
-|[Golang](https://golang.org) | >= 1.2| The Go Programming Language |
+|[Golang](https://golang.org) | >= 1.12| The Go Programming Language |
 
 ### Build
 
