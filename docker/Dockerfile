@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 ENV GOPATH /go
 ENV PATH ${GOPATH}/bin:/usr/local/go/bin:${PATH}
