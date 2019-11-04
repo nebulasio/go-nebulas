@@ -31,10 +31,10 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/core/pb"
+	corepb "github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/rpc/pb"
+	rpcpb "github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"golang.org/x/net/context"
@@ -130,6 +130,9 @@ func (s *APIService) Call(ctx context.Context, req *rpcpb.TransactionRequest) (*
 }
 
 func parseTransaction(neb core.Neblet, reqTx *rpcpb.TransactionRequest) (*core.Transaction, error) {
+	if reqTx == nil {
+		return nil, errors.New("transaction not found")
+	}
 	fromAddr, err := core.AddressParse(reqTx.From)
 	if err != nil {
 		return nil, err
