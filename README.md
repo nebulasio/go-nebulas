@@ -26,8 +26,7 @@ Mainnet is released, please check [here](https://github.com/nebulasio/wiki/blob/
 #### Checkout repo.
 
 ```bash
-cd $GOPATH/src
-go get -u -v github.com/nebulasio/go-nebulas
+git clone github.com/nebulasio/go-nebulas
 ```
 
 The project is under active development. New users may want to checkout and use the stable mainnet release in __master__.
@@ -80,7 +79,7 @@ The dependency libraries are not installed in the system directory, and there ar
    
 ## Building from Docker
 
-Currently docker only supports the running environment hosted by **Ubuntu**. You can specify the config file by modifying the docker-compose environment configuration.
+You can specify the config file by modifying the docker-compose environment configuration.
 
 - default docker compose config(version3):
 
