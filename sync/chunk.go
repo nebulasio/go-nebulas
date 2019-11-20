@@ -23,9 +23,9 @@ import (
 
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/core/pb"
+	corepb "github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/storage"
-	"github.com/nebulasio/go-nebulas/sync/pb"
+	syncpb "github.com/nebulasio/go-nebulas/sync/pb"
 
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
@@ -259,7 +259,7 @@ func verifyChunkData(chunkHeader *syncpb.ChunkHeader, chunkData *syncpb.ChunkDat
 				"chunkHeader.size":     len(chunkHeader.Headers),
 				"data.header.hash":     byteutils.Hex(block.Header.Hash),
 				"data.calculated.hash": byteutils.Hex(calculated),
-				"err": ErrInvalidBlockHashInChunk,
+				"err":                  ErrInvalidBlockHashInChunk,
 			}).Debug("Invalid block hash.")
 			return false, ErrInvalidBlockHashInChunk
 		}

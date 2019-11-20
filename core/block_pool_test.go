@@ -21,11 +21,10 @@ package core
 import (
 	"testing"
 
-	"github.com/nebulasio/go-nebulas/core/pb"
-
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	corepb "github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1"

@@ -26,9 +26,9 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/common/dag"
-	"github.com/nebulasio/go-nebulas/common/dag/pb"
-	"github.com/nebulasio/go-nebulas/consensus/pb"
-	"github.com/nebulasio/go-nebulas/core/pb"
+	dagpb "github.com/nebulasio/go-nebulas/common/dag/pb"
+	consensuspb "github.com/nebulasio/go-nebulas/consensus/pb"
+	corepb "github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"

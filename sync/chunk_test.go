@@ -22,13 +22,13 @@ import (
 	"time"
 
 	"github.com/nebulasio/go-nebulas/account"
+	corepb "github.com/nebulasio/go-nebulas/core/pb"
 
 	"github.com/nebulasio/go-nebulas/consensus/dpos"
 	"github.com/nebulasio/go-nebulas/util"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/stretchr/testify/assert"
 
 	"testing"

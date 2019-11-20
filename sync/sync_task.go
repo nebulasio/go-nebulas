@@ -26,12 +26,12 @@ import (
 	"sync"
 	"time"
 
+	syncpb "github.com/nebulasio/go-nebulas/sync/pb"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/net"
-	"github.com/nebulasio/go-nebulas/sync/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
 )

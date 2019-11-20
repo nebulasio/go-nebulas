@@ -28,7 +28,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/nebulasio/go-nebulas/core/pb"
+	corepb "github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/storage"
 	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
@@ -141,7 +141,7 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 		return nil, err
 	}
 	txPool.RegisterInNetwork(neb.NetService())
-	access, err := NewAccess(neb.Config().Chain.Access)
+	access, err := NewAccess(neb)
 	if err != nil {
 		return nil, err
 	}

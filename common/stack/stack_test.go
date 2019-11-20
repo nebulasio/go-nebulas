@@ -1,7 +1,10 @@
 package stack
 
-import "testing"
-import "github.com/stretchr/testify/assert"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestStack_Push(t *testing.T) {
 	stack := NewStack(3)

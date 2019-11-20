@@ -22,7 +22,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nebulasio/go-nebulas/core/pb"
+	corepb "github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -45,7 +45,7 @@ func TestNewAccess(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			access, err := NewAccess(tt.path)
+			access, err := NewAccess(testNeb(t))
 			assert.Equal(t, tt.wantErr, err != nil)
 			if err == nil {
 				assert.NotNil(t, access)

@@ -28,7 +28,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/nebulasio/go-nebulas/neblet/pb"
+	nebletpb "github.com/nebulasio/go-nebulas/neblet/pb"
 	"github.com/robertkrimen/otto"
 )
 

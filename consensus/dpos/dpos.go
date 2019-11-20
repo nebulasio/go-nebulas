@@ -22,13 +22,13 @@ import (
 	"time"
 
 	"github.com/nebulasio/go-nebulas/rpc"
-	"github.com/nebulasio/go-nebulas/rpc/pb"
+	rpcpb "github.com/nebulasio/go-nebulas/rpc/pb"
 	"golang.org/x/net/context"
 
 	"github.com/nebulasio/go-nebulas/core/state"
 	"github.com/nebulasio/go-nebulas/crypto/keystore"
 
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/net"
 	"github.com/nebulasio/go-nebulas/util/byteutils"

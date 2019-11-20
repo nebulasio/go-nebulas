@@ -69,11 +69,11 @@ type StagingTable struct {
 // NewStagingTable return new instance of StagingTable.
 func NewStagingTable(storage storage.Storage, tid interface{}, trieSameKeyCompatibility bool) *StagingTable {
 	tbl := &StagingTable{
-		storage:            storage,
-		globalVersion:      0,
-		parentStagingTable: nil,
-		versionizedValues:  make(stagingValuesMap),
-		tid:                tid,
+		storage:                         storage,
+		globalVersion:                   0,
+		parentStagingTable:              nil,
+		versionizedValues:               make(stagingValuesMap),
+		tid:                             tid,
 		prepareingGlobalVersion:         0,
 		preparedStagingTables:           make(map[interface{}]*StagingTable),
 		isTrieSameKeyCompatibility:      trieSameKeyCompatibility,
@@ -97,12 +97,12 @@ func (tbl *StagingTable) Prepare(tid interface{}) (*StagingTable, error) {
 	}
 
 	preparedTbl := &StagingTable{
-		storage:                 tbl.storage,
-		globalVersion:           0,
-		parentStagingTable:      tbl,
-		prepareingGlobalVersion: tbl.globalVersion,
-		versionizedValues:       make(stagingValuesMap),
-		tid:                     tid,
+		storage:                         tbl.storage,
+		globalVersion:                   0,
+		parentStagingTable:              tbl,
+		prepareingGlobalVersion:         tbl.globalVersion,
+		versionizedValues:               make(stagingValuesMap),
+		tid:                             tid,
 		preparedStagingTables:           make(map[interface{}]*StagingTable),
 		isTrieSameKeyCompatibility:      tbl.isTrieSameKeyCompatibility,
 		disableStrictGlobalVersionCheck: tbl.disableStrictGlobalVersionCheck,

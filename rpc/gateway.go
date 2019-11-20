@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"github.com/nebulasio/go-nebulas/neblet/pb"
-	"github.com/nebulasio/go-nebulas/rpc/pb"
+	nebletpb "github.com/nebulasio/go-nebulas/neblet/pb"
+	rpcpb "github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"

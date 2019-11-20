@@ -28,7 +28,7 @@ import (
 	"fmt"
 
 	"github.com/nebulasio/go-nebulas/rpc"
-	"github.com/nebulasio/go-nebulas/rpc/pb"
+	rpcpb "github.com/nebulasio/go-nebulas/rpc/pb"
 	"github.com/nebulasio/go-nebulas/util"
 	"golang.org/x/net/context"
 )

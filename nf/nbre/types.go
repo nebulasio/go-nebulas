@@ -25,7 +25,7 @@ import (
 
 	"encoding/json"
 
-	"github.com/nebulasio/go-nebulas/neblet/pb"
+	nebletpb "github.com/nebulasio/go-nebulas/neblet/pb"
 )
 
 // Error types

@@ -26,9 +26,12 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
+
+	"github.com/nebulasio/go-nebulas/util/logging"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/core/pb"
+	corepb "github.com/nebulasio/go-nebulas/core/pb"
 )
 
 const (
@@ -38,29 +41,92 @@ const (
 )
 
 type Access struct {
+	chain *BlockChain
+
+	quitCh chan bool
+
 	access *corepb.Access
+	local  *corepb.Access
 }
 
 // NewAccess returns the Access
-func NewAccess(path string) (*Access, error) {
-	if path != "" {
-		path, err := filepath.Abs(path)
-		if err != nil {
-			return nil, err
-		}
-		bytes, err := ioutil.ReadFile(path)
-		if err != nil {
-			return nil, err
-		}
-		content := string(bytes)
-
-		access := new(corepb.Access)
-		if err = proto.UnmarshalText(content, access); err != nil {
-			return nil, err
-		}
-		return &Access{access: access}, nil
+func NewAccess(neb Neblet) (*Access, error) {
+	access := &Access{
+		chain:  neb.BlockChain(),
+		quitCh: make(chan bool, 1),
 	}
-	return &Access{}, nil
+
+	if err := access.loadFromConfig(neb.Config().Chain.Access); err != nil {
+		return nil, err
+	}
+
+	return access, nil
+}
+
+// Start start route table syncLoop.
+func (a *Access) Start() {
+	logging.CLog().Info("Starting Access Sync...")
+
+	go a.syncLoop()
+}
+
+// Stop quit route table syncLoop.
+func (a *Access) Stop() {
+	logging.CLog().Info("Stopping Acccess Sync...")
+
+	a.quitCh <- true
+}
+
+func (a *Access) syncLoop() {
+	// Load access.
+	a.loadFromContract()
+
+	logging.CLog().Info("Started Access Sync.")
+
+	syncLoopTicker := time.NewTicker(time.Second * 15)
+
+	for {
+		select {
+		case <-a.quitCh:
+			logging.CLog().Info("Stopped Access Sync.")
+			return
+		case <-syncLoopTicker.C:
+			a.loadFromContract()
+		}
+	}
+}
+
+func (a *Access) loadFromConfig(path string) error {
+	if len(path) == 0 {
+		return nil
+	}
+	path, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+	bytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	content := string(bytes)
+
+	access := new(corepb.Access)
+	if err = proto.UnmarshalText(content, access); err != nil {
+		return err
+	}
+	a.local = access
+	return nil
+}
+
+func (a *Access) loadFromContract() error {
+	// load access from contract
+	if NodeUpdateAtHeight(a.chain.TailBlock().height) {
+		// TODO: load access from contract
+		// check if access contract account root hash change;
+		// if the root change, access is update, need sync from contract;
+		// if not change, ignore this loop.
+	}
+	return nil
 }
 
 // CheckTransaction Check that the transaction meets the conditions

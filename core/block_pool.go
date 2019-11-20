@@ -25,7 +25,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/nebulasio/go-nebulas/core/pb"
+	corepb "github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/crypto"
 	"github.com/nebulasio/go-nebulas/crypto/hash"
 	"github.com/nebulasio/go-nebulas/crypto/keystore/secp256k1/vrf/secp256k1VRF"
@@ -69,10 +69,10 @@ type linkedBlock struct {
 // NewBlockPool return new #BlockPool instance.
 func NewBlockPool(size int) (*BlockPool, error) {
 	bp := &BlockPool{
-		size: size,
+		size:                          size,
 		receiveBlockMessageCh:         make(chan net.Message, size),
 		receiveDownloadBlockMessageCh: make(chan net.Message, size),
-		quitCh: make(chan int, 1),
+		quitCh:                        make(chan int, 1),
 	}
 	var err error
 	bp.cache, err = lru.NewWithEvict(size, func(key interface{}, value interface{}) {

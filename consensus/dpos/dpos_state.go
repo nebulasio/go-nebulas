@@ -22,10 +22,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/consensus/pb"
+	consensuspb "github.com/nebulasio/go-nebulas/consensus/pb"
 
 	"github.com/nebulasio/go-nebulas/core"
-	"github.com/nebulasio/go-nebulas/core/pb"
+	corepb "github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/core/state"
 
 	"github.com/nebulasio/go-nebulas/common/trie"

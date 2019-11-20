@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/common/dag/pb"
+	dagpb "github.com/nebulasio/go-nebulas/common/dag/pb"
 	"github.com/stretchr/testify/assert"
 )
 

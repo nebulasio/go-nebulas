@@ -21,7 +21,7 @@ import (
 	"errors"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/nebulasio/go-nebulas/common/dag/pb"
+	dagpb "github.com/nebulasio/go-nebulas/common/dag/pb"
 )
 
 // Node struct

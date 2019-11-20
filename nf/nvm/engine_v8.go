@@ -186,9 +186,9 @@ func NewV8Engine(ctx *Context) *V8Engine {
 	})
 
 	engine := &V8Engine{
-		ctx:      ctx,
-		modules:  NewModules(),
-		v8engine: C.CreateEngine(),
+		ctx:                                     ctx,
+		modules:                                 NewModules(),
+		v8engine:                                C.CreateEngine(),
 		strictDisallowUsageOfInstructionCounter: 1, // enable by default.
 		enableLimits:                            true,
 		limitsOfExecutionInstructions:           0,
