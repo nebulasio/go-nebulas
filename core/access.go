@@ -41,7 +41,7 @@ const (
 )
 
 type Access struct {
-	chain *BlockChain
+	neb Neblet
 
 	quitCh chan bool
 
@@ -52,7 +52,7 @@ type Access struct {
 // NewAccess returns the Access
 func NewAccess(neb Neblet) (*Access, error) {
 	access := &Access{
-		chain:  neb.BlockChain(),
+		neb:    neb,
 		quitCh: make(chan bool, 1),
 	}
 
@@ -65,30 +65,30 @@ func NewAccess(neb Neblet) (*Access, error) {
 
 // Start start route table syncLoop.
 func (a *Access) Start() {
-	logging.CLog().Info("Starting Access Sync...")
+	logging.CLog().Info("Starting Access...")
 
 	go a.syncLoop()
 }
 
 // Stop quit route table syncLoop.
 func (a *Access) Stop() {
-	logging.CLog().Info("Stopping Acccess Sync...")
+	logging.CLog().Info("Stopping Acccess...")
 
 	a.quitCh <- true
 }
 
 func (a *Access) syncLoop() {
+	logging.CLog().Info("Started Access.")
+
 	// Load access.
 	a.loadFromContract()
-
-	logging.CLog().Info("Started Access Sync.")
 
 	syncLoopTicker := time.NewTicker(time.Second * 15)
 
 	for {
 		select {
 		case <-a.quitCh:
-			logging.CLog().Info("Stopped Access Sync.")
+			logging.CLog().Info("Stopped Access.")
 			return
 		case <-syncLoopTicker.C:
 			a.loadFromContract()
@@ -120,11 +120,11 @@ func (a *Access) loadFromConfig(path string) error {
 
 func (a *Access) loadFromContract() error {
 	// load access from contract
-	if NodeUpdateAtHeight(a.chain.TailBlock().height) {
-		// TODO: load access from contract
-		// check if access contract account root hash change;
-		// if the root change, access is update, need sync from contract;
-		// if not change, ignore this loop.
+	if NodeUpdateAtHeight(a.neb.BlockChain().TailBlock().height) {
+		//	// TODO: load access from contract
+		//	// check if access contract account root hash change;
+		//	// if the root change, access is update, need sync from contract;
+		//	// if not change, ignore this loop.
 	}
 	return nil
 }
