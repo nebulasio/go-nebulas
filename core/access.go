@@ -28,6 +28,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/util/byteutils"
+
 	"github.com/nebulasio/go-nebulas/util/logging"
 
 	"github.com/gogo/protobuf/proto"
@@ -44,6 +46,9 @@ type Access struct {
 	neb Neblet
 
 	quitCh chan bool
+
+	// access contract account rootHash
+	rootHash byteutils.Hash
 
 	access *corepb.Access
 	local  *corepb.Access
@@ -115,12 +120,13 @@ func (a *Access) loadFromConfig(path string) error {
 		return err
 	}
 	a.local = access
+	a.access = access
 	return nil
 }
 
 func (a *Access) loadFromContract() error {
 	// load access from contract
-	if NodeUpdateAtHeight(a.neb.BlockChain().TailBlock().height) {
+	if NodeUpdateAtHeight(a.neb.BlockChain().LIB().height) {
 		//	// TODO: load access from contract
 		//	// check if access contract account root hash change;
 		//	// if the root change, access is update, need sync from contract;

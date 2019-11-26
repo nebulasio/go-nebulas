@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/consensus/pod"
+
 	"github.com/nebulasio/go-nebulas/nr"
 
 	"net/http"
@@ -22,7 +24,6 @@ import (
 	"net"
 
 	"github.com/nebulasio/go-nebulas/account"
-	"github.com/nebulasio/go-nebulas/consensus/dpos"
 	"github.com/nebulasio/go-nebulas/core"
 	corepb "github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/metrics"
@@ -162,7 +163,7 @@ func (n *Neblet) Setup() {
 
 	// core
 	n.eventEmitter = core.NewEventEmitter(40960)
-	n.consensus = dpos.NewDpos()
+	n.consensus = pod.NewPoD()
 	n.blockChain, err = core.NewBlockChain(n)
 	if err != nil {
 		logging.CLog().WithFields(logrus.Fields{
