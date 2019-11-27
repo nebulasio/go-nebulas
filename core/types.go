@@ -45,6 +45,7 @@ const (
 	TxPayloadCallType     = "call"
 	TxPayloadProtocolType = "protocol"
 	TxPayloadDipType      = "dip"
+	TxPayloadPodType      = "pod"
 )
 
 // Const.

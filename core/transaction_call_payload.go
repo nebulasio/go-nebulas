@@ -105,6 +105,22 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 		return util.NewUint128(), "", ErrNilArgument
 	}
 
+	instructions, result, exeErr := executeContract(limitedGas, tx, block, ws, payload.Function, payload.Args)
+	if exeErr == ErrExecutionFailed && len(result) > 0 {
+		exeErr = fmt.Errorf("Call: %s", result)
+	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"tx.hash":      tx.Hash(),
+		"instructions": instructions,
+		"limitedGas":   limitedGas,
+	}).Debug("record gas of v8")
+
+	return instructions, result, exeErr
+}
+
+// executeContract execute contract
+func executeContract(limitedGas *util.Uint128, tx *Transaction, block *Block, ws WorldState, function string, args string) (*util.Uint128, string, error) {
 	// payloadGasLimit <= 0, v8 engine not limit the execution instructions
 	if limitedGas.Cmp(util.NewUint128()) <= 0 {
 		return util.NewUint128(), "", ErrOutOfGasLimit
@@ -120,11 +136,7 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 	if err != nil {
 		return util.NewUint128(), "", err
 	}
-	/* // useless owner.
-	owner, err := ws.GetOrCreateUserAccount(birthTx.from.Bytes())
-	if err != nil {
-		return util.NewUint128(), "", err
-	} */
+
 	deploy, err := LoadDeployPayload(birthTx.data.Payload) // ToConfirm: move deploy payload in ctx.
 	if err != nil {
 		return util.NewUint128(), "", err
@@ -146,7 +158,7 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 		}
 	}
 
-	result, exeErr := engine.Call(deploy.Source, deploy.SourceType, payload.Function, payload.Args)
+	result, exeErr := engine.Call(deploy.Source, deploy.SourceType, function, args)
 	gasCount := engine.ExecutionInstructions()
 	instructions, err := util.NewUint128FromInt(int64(gasCount))
 
@@ -162,18 +174,5 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 	if IsCompatibleStack(block.header.chainID, tx.hash) {
 		instructions = limitedGas
 	}
-	if exeErr == ErrExecutionFailed && len(result) > 0 {
-		exeErr = fmt.Errorf("Call: %s", result)
-	}
-	// if exeErr == ErrInnerExecutionFailed && len(result) > 0 {
-	// 	exeErr = fmt.Errorf("Inner Call: %s", result)
-	// }
-
-	logging.VLog().WithFields(logrus.Fields{
-		"tx.hash":      tx.Hash(),
-		"instructions": instructions,
-		"limitedGas":   limitedGas,
-	}).Debug("record gas of v8")
-
 	return instructions, result, exeErr
 }

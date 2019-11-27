@@ -125,26 +125,35 @@ func (d *Dynasty) loadFromConfig(genesis *corepb.Genesis, filePath string) error
 	return d.updateDynasty(dynasty)
 }
 
-func (d *Dynasty) loadFromContract(serial int64) error {
-	args := fmt.Sprintf("[%d]", serial)
-	callpayload, err := core.NewCallPayload("getMiners", args)
+func (d *Dynasty) callContract(function, args string) (string, error) {
+	callpayload, err := core.NewCallPayload(function, args)
 	if err != nil {
-		return err
+		return "", err
 	}
 	payload, err := callpayload.ToBytes()
 	if err != nil {
-		return err
+		return "", err
 	}
 	tx, err := core.NewTransaction(d.chain.ChainID(), core.NebulasRewardAddress, core.PoDContract, util.NewUint128(), 1, core.TxPayloadCallType, payload, core.TransactionGasPrice, core.TransactionMaxGas)
 	if err != nil {
-		return err
+		return "", err
 	}
 	result, err := d.chain.SimulateTransactionExecution(tx)
 	if err != nil {
+		return "", err
+	}
+	return result.Msg, nil
+}
+
+func (d *Dynasty) loadFromContract(serial int64) error {
+	args := fmt.Sprintf("[%d]", serial)
+	result, err := d.callContract(core.PoDMiners, args)
+	if err != nil {
 		return err
 	}
+
 	data := &corepb.Dynasty{}
-	if err := json.Unmarshal([]byte(result.Msg), data); err != nil {
+	if err := json.Unmarshal([]byte(result), data); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"serial": serial,
 			"result": result,
@@ -160,92 +169,74 @@ func (d *Dynasty) loadFromContract(serial int64) error {
 	return d.updateDynasty(data)
 }
 
+// dynasty serial number
+func (d *Dynasty) serial(timestamp int64) int64 {
+	if d.genesisTimestamp == 0 {
+		if second := d.chain.GetBlockOnCanonicalChainByHeight(2); second != nil {
+			d.genesisTimestamp = second.Timestamp() - BlockIntervalInMs/SecondInMs
+		} else {
+			return GenesisDynastySerial
+		}
+	}
+	if timestamp < d.genesisTimestamp {
+		return GenesisDynastySerial
+	}
+	interval := (timestamp - d.genesisTimestamp) * SecondInMs
+	return interval / DynastyIntervalInMs
+}
+
 // getDynastyTrie query dynasty trie
 func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
-
-	var (
-		interval   int64
-		curDynasty int64
-		tmpDynasty int64
-		dt         *trie.Trie
-	)
-
-	if d.genesisTimestamp == 0 {
-		curDynasty = GenesisDynasty
-		secondBlock := d.chain.GetBlockOnCanonicalChainByHeight(2)
-		if secondBlock != nil {
-			d.genesisTimestamp = secondBlock.Timestamp() - BlockIntervalInMs/SecondInMs
-		} else {
-			interval = BlockIntervalInMs
-		}
-	}
-	if d.genesisTimestamp > 0 {
-		// for the real genesis block, the timestamp is 0.
-		if timestamp < d.genesisTimestamp {
-			timestamp += d.genesisTimestamp
-		}
-		interval = (timestamp - d.genesisTimestamp) * SecondInMs
-		curDynasty = interval/DynastyIntervalInMs + 1
-	}
-
-	tmpDynasty = 0
 	// give a default dynasty trie
-	//dt = d.tries[GenesisDynastySerial]
+	dt := d.tries[GenesisDynastySerial]
+
+	serial := d.serial(timestamp)
+	interval := (timestamp - d.genesisTimestamp) * SecondInMs
 
 	// after the height, miner is selected by consensus contract
 	if !core.NodeUpdateAtHeight(d.chain.LIB().Height()) {
+		tmpDynasty := int64(0)
 		// eg: dynasty is: 1----3-----6, if serial={1,2}  dynasty=1, serial={3,4,5}, dynasty=3
 		for k, v := range d.tries {
 			start := int64(k)
 
-			if start < curDynasty && start >= tmpDynasty && interval > start*DynastyIntervalInMs {
+			if start < serial+1 && start >= tmpDynasty && interval > start*DynastyIntervalInMs {
 				tmpDynasty = start
 				dt = v
 			}
 		}
 	} else {
 		if interval%DynastyIntervalInMs == 0 {
-			d.loadFromContract(curDynasty)
+			d.loadFromContract(serial)
 		}
 
-		dt = d.tries[curDynasty]
-
+		temp := d.tries[serial]
 		// if dynasty not found in contract, use last dynasty.
-		if dt == nil {
-			tire, err := d.tailDynasty()
+		if temp == nil {
+			tail, err := d.tailDynasty()
 			if err != nil {
 				return nil, err
 			}
 
-			dt = tire
+			temp = tail
 
-			lsatDynasty := (d.chain.TailBlock().Timestamp()-d.genesisTimestamp)*SecondInMs/DynastyIntervalInMs + 1
 			logging.CLog().WithFields(logrus.Fields{
-				"timestamp":   timestamp,
-				"curDynasty":  curDynasty,
-				"lastDynasty": lsatDynasty,
-				"lastHeight":  d.chain.TailBlock().Height(),
+				"timestamp":  timestamp,
+				"serial":     serial,
+				"lastSerial": d.serial(d.chain.TailBlock().Timestamp()),
+				"lastHeight": d.chain.TailBlock().Height(),
 			}).Info("Use tail dynasty until the latest block dynasty is obtained.")
 		}
-	}
 
-	if dt == nil {
-		logging.CLog().WithFields(logrus.Fields{
-			"genesis":    d.genesisTimestamp,
-			"interval":   interval,
-			"timestamp":  timestamp,
-			"tmpDynasty": tmpDynasty,
-			"curDynasty": curDynasty,
-		}).Fatal("Failed to get dynasty with current genesis and dynasty.")
+		dt = temp
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
-		"interval":   interval,
-		"tmpDynasty": tmpDynasty,
-		"timestamp":  timestamp,
-		"curDynasty": curDynasty,
-		"dt":         dt,
-	}).Debug("dynasty info.")
+		"interval":  interval,
+		"timestamp": timestamp,
+		"serial":    serial,
+		"dt":        dt,
+	}).Debug("Dynasty info.")
 
 	dynastyTrie, err := dt.Clone()
 	if err != nil {
@@ -260,19 +251,34 @@ func (d *Dynasty) tailDynasty() (*trie.Trie, error) {
 	if err != nil {
 		return nil, err
 	}
-	miners := []string{}
-	for _, bytes := range tailDynasty {
+	miners := make([]string, len(tailDynasty))
+	for index, bytes := range tailDynasty {
 		addr, err := core.AddressParseFromBytes(bytes)
 		if err != nil {
 			return nil, err
 		}
-		miners = append(miners, addr.String())
+		miners[index] = addr.String()
 	}
 	tire, err := DynastyTire(miners, d.chain.Storage())
 	if err != nil {
 		return nil, err
 	}
 	return tire, nil
+}
+
+func (d *Dynasty) getParticipants() ([]string, error) {
+	result, err := d.callContract(core.PoDParticipants, "")
+	if err != nil {
+		return nil, err
+	}
+	participants := []string{}
+	if err := json.Unmarshal([]byte(result), participants); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"result": result,
+		}).Error("Failed to parse Participants from contract.")
+		return nil, err
+	}
+	return participants, nil
 }
 
 // TraverseDynasty return all members in the dynasty

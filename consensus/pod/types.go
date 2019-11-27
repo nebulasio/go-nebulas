@@ -45,8 +45,10 @@ const (
 	ConsensusSize            = DynastySize*2/3 + 1
 )
 
-// Errors in PoW Consensus
+// Errors in PoD Consensus
 var (
+	ErrNoHeartbeatWhenDisable = errors.New("cantnot heartbeat now, waiting for enable it again")
+
 	ErrInvalidBlockTimestamp      = errors.New("invalid block timestamp, should be same as consensus's timestamp")
 	ErrInvalidBlockInterval       = errors.New("invalid block interval")
 	ErrMissingConfigForDpos       = errors.New("missing configuration for Dpos")
@@ -61,7 +63,7 @@ var (
 	ErrInvalidArgument            = errors.New("invalid argument")
 )
 
-// Errors in dpos state
+// Errors in PoD state
 var (
 	ErrTooFewCandidates        = errors.New("the size of candidates in consensus is un-safe, should be greater than or equal " + strconv.Itoa(ConsensusSize))
 	ErrInitialDynastyNotEnough = errors.New("the size of initial dynasty in genesis block is un-safe, should be greater than or equal " + strconv.Itoa(ConsensusSize))

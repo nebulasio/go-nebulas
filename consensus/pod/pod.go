@@ -22,6 +22,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/nebulasio/go-nebulas/util"
+
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/core"
 	"github.com/nebulasio/go-nebulas/core/state"
@@ -684,6 +686,33 @@ func (pod *PoD) mintBlock(now int64) error {
 	return nil
 }
 
+func (pod *PoD) heartbeat(now int64) error {
+	nowInMs := now * SecondInMs
+	// only heartbeat once in a interval
+	if nowInMs%DynastyIntervalInMs != 0 {
+		return nil
+	}
+
+	// check mining enable
+	if !pod.enable {
+		return ErrNoHeartbeatWhenDisable
+	}
+
+	participants, err := pod.dynasty.getParticipants()
+	if err != nil {
+		return err
+	}
+
+	miner := pod.miner.String()
+	for _, v := range participants {
+		if miner == v {
+			return pod.sendTransaction(pod.dynasty.serial(now), core.PoDHeartbeat, nil)
+		}
+	}
+
+	return nil
+}
+
 func (pod *PoD) blockLoop() {
 	logging.CLog().Info("Started pod Mining.")
 	timeChan := time.NewTicker(time.Second).C
@@ -691,7 +720,9 @@ func (pod *PoD) blockLoop() {
 		select {
 		case now := <-timeChan:
 			metricsLruPoolSlotBlock.Update(int64(pod.slot.Len()))
-			pod.mintBlock(now.Unix())
+			timestamp := now.Unix()
+			pod.heartbeat(timestamp)
+			pod.mintBlock(timestamp)
 		case <-pod.quitCh:
 			logging.CLog().Info("Stopped pod Mining.")
 			return
@@ -721,4 +752,26 @@ func (pod *PoD) findProposer(now int64) (proposer byteutils.Hash, err error) {
 // NumberOfBlocksInDynasty number of blocks in one dynasty
 func (pod *PoD) NumberOfBlocksInDynasty() uint64 {
 	return uint64(DynastyIntervalInMs) / uint64(BlockIntervalInMs)
+}
+
+// sendTransaction send pod consensus transaction
+func (pod *PoD) sendTransaction(serial int64, action string, data []byte) error {
+	payload, err := core.NewPodPayload(serial, action, data)
+	if err != nil {
+		return err
+	}
+	bytes, err := payload.ToBytes()
+	if err != nil {
+		return err
+	}
+	acc, err := pod.chain.TailBlock().GetAccount(pod.miner.Bytes())
+	if err != nil {
+		return err
+	}
+	nonce := acc.Nonce() + 1
+	tx, err := core.NewTransaction(pod.chain.ChainID(), pod.miner, core.PoDContract, util.NewUint128(), nonce, core.TxPayloadPodType, bytes, core.TransactionGasPrice, core.TransactionMaxGas)
+	if err != nil {
+		return err
+	}
+	return pod.chain.TransactionPool().PushAndBroadcast(tx)
 }

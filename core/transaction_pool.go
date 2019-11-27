@@ -264,7 +264,12 @@ func (pool *TransactionPool) PushAndBroadcast(tx *Transaction) error {
 		return err
 	}
 
-	pool.ns.Broadcast(MessageTypeNewTx, tx, net.MessagePriorityNormal)
+	priority := net.MessagePriorityNormal
+	if tx.Type() == TxPayloadPodType {
+		priority = net.MessagePriorityHigh
+	}
+
+	pool.ns.Broadcast(MessageTypeNewTx, tx, priority)
 	return nil
 }
 
