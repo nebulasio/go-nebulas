@@ -28,8 +28,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nebulasio/go-nebulas/util/byteutils"
-
 	"github.com/nebulasio/go-nebulas/util/logging"
 
 	"github.com/gogo/protobuf/proto"
@@ -42,13 +40,15 @@ const (
 	NRC20FuncApprove      = "approve"
 )
 
+// Access contract functions
+const (
+	AccessFunc = "getAccess"
+)
+
 type Access struct {
 	neb Neblet
 
 	quitCh chan bool
-
-	// access contract account rootHash
-	rootHash byteutils.Hash
 
 	access *corepb.Access
 	local  *corepb.Access
@@ -127,12 +127,29 @@ func (a *Access) loadFromConfig(path string) error {
 func (a *Access) loadFromContract() error {
 	// load access from contract
 	if NodeUpdateAtHeight(a.neb.BlockChain().LIB().height) {
-		//	// TODO: load access from contract
-		//	// check if access contract account root hash change;
-		//	// if the root change, access is update, need sync from contract;
-		//	// if not change, ignore this loop.
+		// check if access contract account root hash change;
+		// if the root change, access is update, need sync from contract;
+		// if not change, ignore this loop.
+		result, err := a.neb.BlockChain().SimulateCallContract(AccessContract, AccessFunc, "")
+		if err != nil {
+			return err
+		}
+		access := new(corepb.Access)
+		if err = json.Unmarshal([]byte(result.Msg), access); err != nil {
+			return err
+		}
+		a.access = mergeAcceeData(access, a.local)
 	}
 	return nil
+}
+
+func mergeAcceeData(dest, src *corepb.Access) *corepb.Access {
+	dest.Blacklist.From = append(dest.Blacklist.From, src.Blacklist.From...)
+	dest.Blacklist.To = append(dest.Blacklist.To, src.Blacklist.To...)
+	dest.Blacklist.Contracts = append(dest.Blacklist.Contracts, src.Blacklist.Contracts...)
+
+	dest.Nrc20List.Contracts = append(dest.Nrc20List.Contracts, src.Nrc20List.Contracts...)
+	return dest
 }
 
 // CheckTransaction Check that the transaction meets the conditions

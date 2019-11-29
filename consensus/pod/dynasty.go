@@ -28,7 +28,6 @@ import (
 	"github.com/nebulasio/go-nebulas/core"
 	corepb "github.com/nebulasio/go-nebulas/core/pb"
 	"github.com/nebulasio/go-nebulas/storage"
-	"github.com/nebulasio/go-nebulas/util"
 	"github.com/nebulasio/go-nebulas/util/byteutils"
 	"github.com/nebulasio/go-nebulas/util/logging"
 	"github.com/sirupsen/logrus"
@@ -125,35 +124,15 @@ func (d *Dynasty) loadFromConfig(genesis *corepb.Genesis, filePath string) error
 	return d.updateDynasty(dynasty)
 }
 
-func (d *Dynasty) callContract(function, args string) (string, error) {
-	callpayload, err := core.NewCallPayload(function, args)
-	if err != nil {
-		return "", err
-	}
-	payload, err := callpayload.ToBytes()
-	if err != nil {
-		return "", err
-	}
-	tx, err := core.NewTransaction(d.chain.ChainID(), core.NebulasRewardAddress, core.PoDContract, util.NewUint128(), 1, core.TxPayloadCallType, payload, core.TransactionGasPrice, core.TransactionMaxGas)
-	if err != nil {
-		return "", err
-	}
-	result, err := d.chain.SimulateTransactionExecution(tx)
-	if err != nil {
-		return "", err
-	}
-	return result.Msg, nil
-}
-
 func (d *Dynasty) loadFromContract(serial int64) error {
 	args := fmt.Sprintf("[%d]", serial)
-	result, err := d.callContract(core.PoDMiners, args)
+	result, err := d.chain.SimulateCallContract(core.PoDContract, core.PoDMiners, args)
 	if err != nil {
 		return err
 	}
 
 	data := &corepb.Dynasty{}
-	if err := json.Unmarshal([]byte(result), data); err != nil {
+	if err := json.Unmarshal([]byte(result.Msg), data); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"serial": serial,
 			"result": result,
@@ -267,12 +246,12 @@ func (d *Dynasty) tailDynasty() (*trie.Trie, error) {
 }
 
 func (d *Dynasty) getParticipants() ([]string, error) {
-	result, err := d.callContract(core.PoDParticipants, "")
+	result, err := d.chain.SimulateCallContract(core.PoDContract, core.PoDParticipants, "")
 	if err != nil {
 		return nil, err
 	}
 	participants := []string{}
-	if err := json.Unmarshal([]byte(result), participants); err != nil {
+	if err := json.Unmarshal([]byte(result.Msg), participants); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"result": result,
 		}).Error("Failed to parse Participants from contract.")

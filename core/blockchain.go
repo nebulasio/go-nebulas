@@ -759,6 +759,23 @@ type SimulateResult struct {
 	Err     error
 }
 
+// SimulateCallContract simulate call contract
+func (bc *BlockChain) SimulateCallContract(contract *Address, function, args string) (*SimulateResult, error) {
+	callpayload, err := NewCallPayload(function, args)
+	if err != nil {
+		return nil, err
+	}
+	payload, err := callpayload.ToBytes()
+	if err != nil {
+		return nil, err
+	}
+	tx, err := NewTransaction(bc.chainID, NebulasRewardAddress, contract, util.NewUint128(), 1, TxPayloadCallType, payload, TransactionGasPrice, TransactionMaxGas)
+	if err != nil {
+		return nil, err
+	}
+	return bc.SimulateTransactionExecution(tx)
+}
+
 // SimulateTransactionExecution execute transaction in sandbox and rollback all changes, used to EstimateGas and Call api.
 func (bc *BlockChain) SimulateTransactionExecution(tx *Transaction) (*SimulateResult, error) {
 	if tx == nil {

@@ -104,7 +104,12 @@ func EventTriggerFunc(handler unsafe.Pointer, topic, data *C.char, gasCnt *C.siz
 	)
 	// after split height, contract event track contract address
 	if core.NbreSplitAtHeight(e.ctx.block.Height()) {
-		contractTopic = EventNameSpaceContract + "." + e.ctx.contract.Address().String() + "." + gTopic
+		if core.NodeUpdateAtHeight(e.ctx.block.Height()) {
+			addr, _ := core.AddressParseFromBytes(e.ctx.contract.Address())
+			contractTopic = EventNameSpaceContract + "." + addr.String() + "." + gTopic
+		} else {
+			contractTopic = EventNameSpaceContract + "." + e.ctx.contract.Address().String() + "." + gTopic
+		}
 	} else {
 		contractTopic = EventNameSpaceContract + "." + gTopic
 	}
