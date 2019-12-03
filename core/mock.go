@@ -155,6 +155,11 @@ func (c *mockConsensus) Setup(neb Neblet) error {
 func (c *mockConsensus) Start() {}
 func (c *mockConsensus) Stop()  {}
 
+// Serial return dynasty serial number
+func (pod *mockConsensus) Serial(timestamp int64) int64 {
+	return 0
+}
+
 func (c *mockConsensus) VerifyBlock(block *Block) error {
 	return nil
 }

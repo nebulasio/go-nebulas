@@ -48,6 +48,7 @@ const (
 // Errors in PoD Consensus
 var (
 	ErrNoHeartbeatWhenDisable = errors.New("cantnot heartbeat now, waiting for enable it again")
+	ErrMinerNotSignUp         = errors.New("Failed to send heartbeat, miner not sign up")
 
 	ErrInvalidBlockTimestamp      = errors.New("invalid block timestamp, should be same as consensus's timestamp")
 	ErrInvalidBlockInterval       = errors.New("invalid block interval")

@@ -312,6 +312,11 @@ func (dpos *Dpos) CheckDoubleMint(block *core.Block) bool {
 	return false
 }
 
+// Serial return dynasty serial number
+func (pod *Dpos) Serial(timestamp int64) int64 {
+	return GenesisDynastySerial
+}
+
 // VerifyBlock verify the block
 func (dpos *Dpos) VerifyBlock(block *core.Block) error {
 	tail := dpos.chain.TailBlock()

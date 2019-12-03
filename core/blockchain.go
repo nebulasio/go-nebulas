@@ -903,3 +903,54 @@ func (bc *BlockChain) LoadLIBFromStorage() (*Block, error) {
 
 	return LoadBlockFromStorage(hash, bc)
 }
+
+// StatisticalLastBlocks statistical last block states
+func (bc *BlockChain) StatisticalLastBlocks(serial int64) ([]*Statistics, error) {
+	statistics := make([]*Statistics, 0)
+	if serial > 0 {
+		lastSerial := serial - 1
+
+		// find last serial blocks
+		block := bc.TailBlock()
+		for bc.ConsensusHandler().Serial(block.Timestamp()) > lastSerial {
+			block = bc.GetBlock(block.ParentHash())
+		}
+
+		dynastyRoot, err := block.DynastyRoot()
+		if err != nil {
+			return nil, err
+		}
+
+		for {
+			preDynastyRoot, err := block.DynastyRoot()
+			if err != nil {
+				return nil, err
+			}
+			//
+			if !byteutils.Equal(dynastyRoot, preDynastyRoot) {
+				break
+			}
+
+			blockSerial := bc.ConsensusHandler().Serial(block.Timestamp())
+			for blockSerial <= lastSerial {
+				item := &Statistics{
+					Serial:     lastSerial,
+					Statistics: make(map[string]int),
+				}
+				statistics = append(statistics, item)
+				lastSerial--
+			}
+
+			item := statistics[len(statistics)-1]
+			miner := block.Miner().String()
+			item.Statistics[miner] = item.Statistics[miner] + 1
+
+			if block.height > 1 {
+				block = bc.GetBlock(block.ParentHash())
+			} else {
+				break
+			}
+		}
+	}
+	return statistics, nil
+}

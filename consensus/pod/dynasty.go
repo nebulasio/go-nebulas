@@ -33,7 +33,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Dynasty dpos dynasty
+// Dynasty pod dynasty
 type Dynasty struct {
 	chain *core.BlockChain
 
@@ -148,7 +148,7 @@ func (d *Dynasty) loadFromContract(serial int64) error {
 	return d.updateDynasty(data)
 }
 
-// dynasty serial number
+// serial dynasty serial number
 func (d *Dynasty) serial(timestamp int64) int64 {
 	if d.genesisTimestamp == 0 {
 		if second := d.chain.GetBlockOnCanonicalChainByHeight(2); second != nil {
@@ -248,13 +248,19 @@ func (d *Dynasty) tailDynasty() (*trie.Trie, error) {
 func (d *Dynasty) getParticipants() ([]string, error) {
 	result, err := d.chain.SimulateCallContract(core.PoDContract, core.PoDParticipants, "")
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"result": result,
+			"error":  err,
+		}).Error("Failed to get participants from contract.")
 		return nil, err
 	}
-	participants := []string{}
+	var (
+		participants []string
+	)
 	if err := json.Unmarshal([]byte(result.Msg), participants); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"result": result,
-		}).Error("Failed to parse Participants from contract.")
+		}).Debug("Failed to parse Participants from contract.")
 		return nil, err
 	}
 	return participants, nil

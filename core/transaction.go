@@ -115,6 +115,12 @@ func (tx *Transaction) SetTimestamp(timestamp int64) {
 	tx.timestamp = timestamp
 }
 
+// SetSignature update tx sign
+func (tx *Transaction) SetSignature(alg keystore.Algorithm, sign byteutils.Hash) {
+	tx.alg = alg
+	tx.sign = sign
+}
+
 // From return from address
 func (tx *Transaction) From() *Address {
 	return tx.from
@@ -621,7 +627,7 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 // simulateExecution simulate execution and return gasUsed, executionResult and executionErr, sysErr if occurred.
 func (tx *Transaction) simulateExecution(block *Block) (*SimulateResult, error) {
 	// hash is necessary in nvm
-	hash, err := tx.calHash()
+	hash, err := tx.HashTransaction()
 	if err != nil {
 		return nil, err
 	}
@@ -781,7 +787,7 @@ func (tx *Transaction) Sign(signature keystore.Signature) error {
 	if signature == nil {
 		return ErrNilArgument
 	}
-	hash, err := tx.calHash()
+	hash, err := tx.HashTransaction()
 	if err != nil {
 		return err
 	}
@@ -803,7 +809,7 @@ func (tx *Transaction) VerifyIntegrity(chainID uint32) error {
 	}
 
 	// check Hash.
-	wantedHash, err := tx.calHash()
+	wantedHash, err := tx.HashTransaction()
 	if err != nil {
 		return err
 	}
@@ -945,7 +951,7 @@ func GetTransaction(hash byteutils.Hash, ws WorldState) (*Transaction, error) {
 }
 
 // HashTransaction hash the transaction.
-func (tx *Transaction) calHash() (byteutils.Hash, error) {
+func (tx *Transaction) HashTransaction() (byteutils.Hash, error) {
 	hasher := sha3.New256()
 
 	value, err := tx.value.ToFixedSizeByteSlice()

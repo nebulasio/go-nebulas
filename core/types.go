@@ -199,6 +199,8 @@ var (
 
 	// func deprecated
 	ErrFuncDeprecated = errors.New("function deprecated")
+
+	ErrBlockStateCheckFailed = errors.New("Failed to check block state")
 )
 
 // Default gas count
@@ -238,6 +240,7 @@ type Consensus interface {
 	SuspendMining()
 	Pending() bool
 
+	Serial(timestamp int64) int64
 	VerifyBlock(*Block) error
 	ForkChoice() error
 	UpdateLIB()

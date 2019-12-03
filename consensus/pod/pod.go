@@ -20,6 +20,7 @@ package pod
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/util"
@@ -53,16 +54,18 @@ type PoD struct {
 
 	slot *lru.Cache
 
-	enable  bool
-	pending bool
+	enable     bool
+	pending    bool
+	launchBeat bool
 }
 
 // NewPoD create PoD.
 func NewPoD() *PoD {
 	pod := &PoD{
-		quitCh:  make(chan bool, 5),
-		enable:  false,
-		pending: true,
+		quitCh:     make(chan bool, 5),
+		enable:     false,
+		pending:    true,
+		launchBeat: false,
 	}
 	return pod
 }
@@ -302,14 +305,39 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 func (pod *PoD) CheckDoubleMint(block *core.Block) bool {
 	if preBlock, exist := pod.slot.Get(block.Timestamp()); exist {
 		if preBlock.(*core.Block).Hash().Equals(block.Hash()) == false {
-			logging.VLog().WithFields(logrus.Fields{
-				"curBlock": block,
-				"preBlock": preBlock.(*core.Block),
-			}).Warn("Found someone minted multiple blocks at same time.")
+			if core.NodeUpdateAtHeight(pod.chain.LIB().Height()) {
+				evil := core.AttackNotMiner
+				if preBlock.(*core.Block).Miner().Equals(block.Miner()) {
+					evil = core.AttackDoubleSpend
+				}
+				// submit double mint attack
+				witness := &core.Witness{
+					Timestamp: block.Timestamp(),
+					Miner:     block.Miner().String(),
+					Evil:      evil,
+				}
+				bytes, _ := witness.ToBytes()
+				err := pod.sendTransaction(block.Timestamp(), core.PoDWitness, bytes)
+				logging.VLog().WithFields(logrus.Fields{
+					"curBlock": block,
+					"preBlock": preBlock.(*core.Block),
+					"error":    err,
+				}).Warn("Found someone minted multiple blocks at same time.")
+			} else {
+				logging.VLog().WithFields(logrus.Fields{
+					"curBlock": block,
+					"preBlock": preBlock.(*core.Block),
+				}).Warn("Found someone minted multiple blocks at same time.")
+			}
 			return true
 		}
 	}
 	return false
+}
+
+// Serial return dynasty serial number
+func (pod *PoD) Serial(timestamp int64) int64 {
+	return pod.dynasty.serial(timestamp)
 }
 
 // VerifyBlock verify the block
@@ -382,7 +410,7 @@ func (pod *PoD) VerifyBlock(block *core.Block) error {
 	return nil
 }
 
-func (pod *PoD) generateRandomSeed(block *core.Block, adminService rpcpb.AdminServiceClient) error {
+func (pod *PoD) generateRandomSeed(block *core.Block) error {
 
 	ancestorHash, parentSeed, err := pod.chain.GetInputForVRFSigner(block.ParentHash(), block.Height())
 	if err != nil {
@@ -390,11 +418,15 @@ func (pod *PoD) generateRandomSeed(block *core.Block, adminService rpcpb.AdminSe
 	}
 
 	if pod.enableRemoteSignServer == true {
-		if adminService == nil {
-			return ErrInvalidArgument
+		conn, err := rpc.Dial(pod.remoteSignServer)
+		if err != nil {
+			return err
 		}
+		defer conn.Close()
+		client := rpcpb.NewAdminServiceClient(conn)
+
 		// generate VRF hash,proof
-		random, err := adminService.GenerateRandomSeed(
+		random, err := client.GenerateRandomSeed(
 			context.Background(),
 			&rpcpb.GenerateRandomSeedRequest{
 				Address:      pod.miner.String(),
@@ -404,38 +436,51 @@ func (pod *PoD) generateRandomSeed(block *core.Block, adminService rpcpb.AdminSe
 		if err != nil {
 			return err
 		}
+
 		block.SetRandomSeed(random.VrfSeed, random.VrfProof)
-		return nil
+	} else {
+		// generate VRF hash,proof
+		vrfSeed, vrfProof, err := pod.am.GenerateRandomSeed(pod.miner, ancestorHash, parentSeed)
+		if err != nil {
+			return err
+		}
+		block.SetRandomSeed(vrfSeed, vrfProof)
 	}
-
-	// generate VRF hash,proof
-	vrfSeed, vrfProof, err := pod.am.GenerateRandomSeed(pod.miner, ancestorHash, parentSeed)
-	if err != nil {
-		return err
-	}
-	block.SetRandomSeed(vrfSeed, vrfProof)
-
 	return nil
 }
 
-func (pod *PoD) remoteSignBlock(block *core.Block, adminService rpcpb.AdminServiceClient) error {
-	if adminService == nil {
-		return ErrInvalidArgument
+func (pod *PoD) signBlock(block *core.Block) error {
+	if pod.enableRemoteSignServer {
+		alg := keystore.SECP256K1
+		sign, err := pod.remoteSign(alg, block.Hash())
+		if err != nil {
+			return err
+		}
+		block.SetSignature(alg, sign)
+		return nil
+	} else {
+		return pod.am.SignBlock(pod.miner, block)
 	}
-	alg := keystore.SECP256K1
-	resp, err := adminService.SignHash(
-		context.Background(),
+}
+
+func (pod *PoD) remoteSign(alg keystore.Algorithm, hash byteutils.Hash) (byteutils.Hash, error) {
+	conn, err := rpc.Dial(pod.remoteSignServer)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	remoteSignClient := rpcpb.NewAdminServiceClient(conn)
+
+	result, err := remoteSignClient.SignHash(context.Background(),
 		&rpcpb.SignHashRequest{
 			Address: pod.miner.String(),
-			Hash:    block.Hash(),
+			Hash:    hash,
 			Alg:     uint32(alg),
 		})
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	block.SetSignature(alg, resp.Data)
-	return nil
+	return result.Data, nil
 }
 
 func (pod *PoD) unlock(passphrase string) error {
@@ -459,23 +504,8 @@ func (pod *PoD) newBlock(tail *core.Block, consensusState state.ConsensusState, 
 		return nil, err
 	}
 
-	var adminService rpcpb.AdminServiceClient
-	if pod.enableRemoteSignServer == true {
-		conn, err := rpc.Dial(pod.remoteSignServer)
-		defer func() {
-			if conn != nil {
-				conn.Close()
-			}
-		}()
-		if err != nil {
-			return nil, err
-		}
-		adminService = rpcpb.NewAdminServiceClient(conn)
-	}
-
 	if core.RandomAvailableAtHeight(block.Height()) {
-		err := pod.generateRandomSeed(block, adminService)
-		if err != nil {
+		if err := pod.generateRandomSeed(block); err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"block": block,
 				"err":   err,
@@ -496,12 +526,7 @@ func (pod *PoD) newBlock(tail *core.Block, consensusState state.ConsensusState, 
 		return nil, err
 	}
 
-	if pod.enableRemoteSignServer == true {
-		err = pod.remoteSignBlock(block, adminService)
-	} else {
-		err = pod.am.SignBlock(pod.miner, block)
-	}
-	if err != nil {
+	if err := pod.signBlock(block); err != nil {
 		logging.CLog().WithFields(logrus.Fields{
 			"miner": pod.miner,
 			"block": block,
@@ -651,6 +676,10 @@ func (pod *PoD) mintBlock(now int64) error {
 	}).Info("My turn to mint block")
 	metricsBlockPackingTime.Update(deadlineInMs - nowInMs)
 
+	if core.NodeUpdateAtHeight(pod.chain.LIB().Height()) {
+		pod.triggerState(now)
+	}
+
 	block, err := pod.newBlock(tail, consensusState, deadlineInMs)
 	if err != nil {
 		return err
@@ -687,29 +716,80 @@ func (pod *PoD) mintBlock(now int64) error {
 }
 
 func (pod *PoD) heartbeat(now int64) error {
-	nowInMs := now * SecondInMs
-	// only heartbeat once in a interval
-	if nowInMs%DynastyIntervalInMs != 0 {
-		return nil
-	}
-
 	// check mining enable
 	if !pod.enable {
 		return ErrNoHeartbeatWhenDisable
 	}
+
+	if pod.launchBeat {
+		nowInMs := now * SecondInMs
+		// only heartbeat once in a interval
+		if (nowInMs+DynastyIntervalInMs/2)%DynastyIntervalInMs != 0 {
+			return nil
+		}
+	}
+	pod.launchBeat = true
 
 	participants, err := pod.dynasty.getParticipants()
 	if err != nil {
 		return err
 	}
 
+	minerSignUp := false
 	miner := pod.miner.String()
 	for _, v := range participants {
 		if miner == v {
-			return pod.sendTransaction(pod.dynasty.serial(now), core.PoDHeartbeat, nil)
+			minerSignUp = true
+			break
 		}
 	}
 
+	if minerSignUp {
+		err = pod.sendTransaction(now, core.PoDHeartbeat, nil)
+	} else {
+		err = ErrMinerNotSignUp
+	}
+
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"miner":     pod.miner.String(),
+			"timestamp": now,
+			"err":       err,
+		}).Error("Failed to send heartbeat")
+	} else {
+		logging.VLog().WithFields(logrus.Fields{
+			"miner":     pod.miner.String(),
+			"timestamp": now,
+		}).Info("send miner heartbeat")
+	}
+
+	return err
+}
+
+// triggerState trigger the pod contract state machine
+// if next serial dynasty not found, we need generate it
+// and submit last serial block mint statics
+func (pod *PoD) triggerState(now int64) error {
+	serial := pod.dynasty.serial(now)
+	if pod.dynasty.tries[serial+1] == nil {
+		if err := pod.dynasty.loadFromContract(serial); err != nil {
+			return err
+		}
+	}
+	if pod.dynasty.tries[serial+1] == nil {
+		states, err := pod.chain.StatisticalLastBlocks(serial)
+		if err != nil {
+			return err
+		}
+		bytes, err := json.Marshal(states)
+		if err != nil {
+			return err
+		}
+		err = pod.sendTransaction(now, core.PoDState, bytes)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -721,7 +801,9 @@ func (pod *PoD) blockLoop() {
 		case now := <-timeChan:
 			metricsLruPoolSlotBlock.Update(int64(pod.slot.Len()))
 			timestamp := now.Unix()
-			pod.heartbeat(timestamp)
+			if core.NodeUpdateAtHeight(pod.chain.LIB().Height()) {
+				pod.heartbeat(timestamp)
+			}
 			pod.mintBlock(timestamp)
 		case <-pod.quitCh:
 			logging.CLog().Info("Stopped pod Mining.")
@@ -755,8 +837,8 @@ func (pod *PoD) NumberOfBlocksInDynasty() uint64 {
 }
 
 // sendTransaction send pod consensus transaction
-func (pod *PoD) sendTransaction(serial int64, action string, data []byte) error {
-	payload, err := core.NewPodPayload(serial, action, data)
+func (pod *PoD) sendTransaction(timestamp int64, action string, data []byte) error {
+	payload, err := core.NewPodPayload(pod.dynasty.serial(timestamp), action, data)
 	if err != nil {
 		return err
 	}
@@ -769,9 +851,34 @@ func (pod *PoD) sendTransaction(serial int64, action string, data []byte) error 
 		return err
 	}
 	nonce := acc.Nonce() + 1
-	tx, err := core.NewTransaction(pod.chain.ChainID(), pod.miner, core.PoDContract, util.NewUint128(), nonce, core.TxPayloadPodType, bytes, core.TransactionGasPrice, core.TransactionMaxGas)
+	tx, err := core.NewTransaction(pod.chain.ChainID(), pod.miner, core.PoDContract, util.NewUint128(), nonce, core.TxPayloadPodType, bytes, core.TransactionMaxGasPrice, core.TransactionMaxGas)
 	if err != nil {
 		return err
 	}
+	tx.SetTimestamp(timestamp)
+	hash, err := tx.HashTransaction()
+	if err != nil {
+		return err
+	}
+	tx.SetHash(hash)
+
+	if err := pod.signTransaction(tx); err != nil {
+		return err
+	}
+
 	return pod.chain.TransactionPool().PushAndBroadcast(tx)
+}
+
+func (pod *PoD) signTransaction(tx *core.Transaction) error {
+	if pod.enableRemoteSignServer {
+		alg := keystore.SECP256K1
+		sign, err := pod.remoteSign(alg, tx.Hash())
+		if err != nil {
+			return err
+		}
+		tx.SetSignature(alg, sign)
+		return nil
+	} else {
+		return pod.am.SignTransaction(pod.miner, tx)
+	}
 }

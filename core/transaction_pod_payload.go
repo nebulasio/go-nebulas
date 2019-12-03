@@ -23,17 +23,76 @@ import (
 	"fmt"
 
 	"github.com/nebulasio/go-nebulas/util"
+	"github.com/nebulasio/go-nebulas/util/logging"
+	"github.com/sirupsen/logrus"
 )
 
 // PoD Consensus contract functions
 const (
 	PoDHeartbeat = "heartbeat"
 	PoDState     = "state"
+	PoDWitness   = "witness"
 
 	PoDMiners       = "getMiners"
 	PoDCandidates   = "getCandidates"
 	PoDParticipants = "getParticipants"
 )
+
+const (
+	AttackDoubleSpend = "doubleSpend"
+	AttackNotMiner    = "notMiner"
+)
+
+type Witness struct {
+	Timestamp int64  `json:"timestamp"`
+	Miner     string `json:"miner"`
+	Evil      string `json:"evil"`
+}
+
+func (w *Witness) ToBytes() ([]byte, error) {
+	return json.Marshal(w)
+}
+
+func (w *Witness) FromBytes(data []byte) error {
+	if err := json.Unmarshal(data, w); err != nil {
+		return err
+	}
+	return nil
+}
+
+type Statistics struct {
+	Serial     int64          `json:"serial"`
+	Statistics map[string]int `json:"statistics"`
+}
+
+func (s *Statistics) Equals(state *Statistics) bool {
+	if s.Serial == state.Serial {
+		if s.Statistics == nil && state.Statistics == nil {
+			return true
+		}
+		if len(s.Statistics) != len(state.Statistics) {
+			return false
+		}
+		for k, v := range s.Statistics {
+			if state.Statistics[k] != v {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+func (s *Statistics) ToBytes() ([]byte, error) {
+	return json.Marshal(s)
+}
+
+func (s *Statistics) FromBytes(data []byte) error {
+	if err := json.Unmarshal(data, s); err != nil {
+		return err
+	}
+	return nil
+}
 
 // PodPayload carry pod data
 type PodPayload struct {
@@ -73,13 +132,66 @@ func (payload *PodPayload) BaseGasCount() *util.Uint128 {
 	return util.NewUint128()
 }
 
+// heartbeat submit participants heartbeat
 func (payload *PodPayload) heartbeat() (string, string, error) {
 	args := fmt.Sprintf("[%d]", payload.Serial)
 	return payload.Action, args, nil
 }
 
-func (payload *PodPayload) state(block *Block) (string, string, error) {
-	args := fmt.Sprintf("[%d]", payload.Serial)
+// state submit pod state
+func (payload *PodPayload) state(tx *Transaction, block *Block) (string, string, error) {
+	var (
+		states []*Statistics
+		err    error
+	)
+	if err = json.Unmarshal(payload.Data, states); err != nil {
+		return "", "", err
+	}
+
+	blockStates, err := block.txPool.bc.StatisticalLastBlocks(payload.Serial)
+	if err != nil {
+		return "", "", err
+	}
+	for _, blockState := range blockStates {
+		found := false
+		for _, state := range states {
+			if blockState.Equals(state) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			err = ErrBlockStateCheckFailed
+			logging.VLog().WithFields(logrus.Fields{
+				"tx.hash":    tx.Hash(),
+				"blockState": blockState,
+			}).Error("Failed to check block state statistics")
+			break
+		}
+	}
+
+	if err != nil {
+		return "", "", err
+	}
+
+	// args serialize
+	args := make([]interface{}, 2)
+	args[0] = payload.Serial + 1
+	args[1] = states
+	bytes, err := json.Marshal(args)
+	if err != nil {
+		return "", "", err
+	}
+	return payload.Action, string(bytes), nil
+}
+
+// witness submit node evil
+func (payload *PodPayload) witness(block *Block) (string, string, error) {
+	witness := new(Witness)
+	if err := witness.FromBytes(payload.Data); err != nil {
+		return "", "", nil
+	}
+	args := fmt.Sprintf("[%d, %s, %s]", witness.Timestamp, witness.Miner, witness.Evil)
 	return payload.Action, args, nil
 }
 
@@ -98,7 +210,9 @@ func (payload *PodPayload) Execute(limitedGas *util.Uint128, tx *Transaction, bl
 	case PoDHeartbeat:
 		function, args, err = payload.heartbeat()
 	case PoDState:
-		function, args, err = payload.state(block)
+		function, args, err = payload.state(tx, block)
+	case PoDWitness:
+		function, args, err = payload.witness(block)
 	default:
 		err = ErrInvalidArgument
 	}

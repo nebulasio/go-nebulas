@@ -1135,6 +1135,15 @@ func (block *Block) Dynasty() ([]byteutils.Hash, error) {
 	return ws.Dynasty()
 }
 
+//DynastyRoot return dynasty root
+func (block *Block) DynastyRoot() (byteutils.Hash, error) {
+	ws, err := block.WorldState().Clone()
+	if err != nil {
+		return nil, err
+	}
+	return ws.DynastyRoot(), nil
+}
+
 // GetAccount return the account with the given address on this block.
 func (block *Block) GetAccount(address byteutils.Hash) (state.Account, error) {
 	worldState, err := block.WorldState().Clone()

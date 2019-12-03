@@ -165,7 +165,7 @@ func NewGenesisBlock(conf *corepb.Genesis, chain *BlockChain) (*Block, error) {
 		return nil, err
 	}
 	declarationTx.timestamp = 0
-	hash, err := declarationTx.calHash()
+	hash, err := declarationTx.HashTransaction()
 	if err != nil {
 		return nil, err
 	}
