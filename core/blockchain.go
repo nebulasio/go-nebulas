@@ -937,6 +937,20 @@ func (bc *BlockChain) StatisticalLastBlocks(serial int64) ([]*Statistics, error)
 					Serial:     lastSerial,
 					Statistics: make(map[string]int),
 				}
+				// find block in this serial
+				if blockSerial == lastSerial {
+					dynasty, err := block.Dynasty()
+					if err != nil {
+						return nil, err
+					}
+					for _, v := range dynasty {
+						addr, err := AddressParseFromBytes(v)
+						if err != nil {
+							return nil, err
+						}
+						item.Statistics[addr.String()] = 0
+					}
+				}
 				statistics = append(statistics, item)
 				lastSerial--
 			}
