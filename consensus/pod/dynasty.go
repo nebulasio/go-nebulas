@@ -164,6 +164,24 @@ func (d *Dynasty) serial(timestamp int64) int64 {
 	return interval / DynastyIntervalInMs
 }
 
+// isProposer return if the miner is propser in that dynasty
+func (d *Dynasty) isProposer(now int64, miner byteutils.Hash) (bool, error) {
+	tire, err := d.getDynasty(now)
+	if err != nil {
+		return false, err
+	}
+	miners, err := TraverseDynasty(tire)
+	if err != nil {
+		return false, err
+	}
+	for _, v := range miners {
+		if byteutils.Equal(v, miner) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // getDynastyTrie query dynasty trie
 func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 	// give a default dynasty trie

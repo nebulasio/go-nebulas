@@ -60,6 +60,7 @@ type BlockChain struct {
 
 	cachedBlocks       *lru.Cache
 	detachedTailBlocks *lru.Cache
+	reversibleBlocks   *lru.Cache
 
 	// latest irreversible block
 	lib *Block
@@ -77,9 +78,6 @@ type BlockChain struct {
 	quitCh chan int
 
 	superNode bool
-
-	// deprecated
-	unsupportedKeyword string
 }
 
 const (
@@ -148,18 +146,17 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	txPool.setAccess(access)
 
 	var bc = &BlockChain{
-		chainID:            neb.Config().Chain.ChainId,
-		genesis:            neb.Genesis(),
-		bkPool:             blockPool,
-		txPool:             txPool,
-		storage:            neb.Storage(),
-		eventEmitter:       neb.EventEmitter(),
-		nvm:                neb.Nvm(),
-		nr:                 neb.Nr(),
-		dip:                neb.Dip(),
-		quitCh:             make(chan int, 1),
-		superNode:          neb.Config().Chain.SuperNode,
-		unsupportedKeyword: neb.Config().Chain.UnsupportedKeyword,
+		chainID:      neb.Config().Chain.ChainId,
+		genesis:      neb.Genesis(),
+		bkPool:       blockPool,
+		txPool:       txPool,
+		storage:      neb.Storage(),
+		eventEmitter: neb.EventEmitter(),
+		nvm:          neb.Nvm(),
+		nr:           neb.Nr(),
+		dip:          neb.Dip(),
+		quitCh:       make(chan int, 1),
+		superNode:    neb.Config().Chain.SuperNode,
 	}
 
 	bc.cachedBlocks, err = lru.New(128)
@@ -168,6 +165,11 @@ func NewBlockChain(neb Neblet) (*BlockChain, error) {
 	}
 
 	bc.detachedTailBlocks, err = lru.New(128)
+	if err != nil {
+		return nil, err
+	}
+
+	bc.reversibleBlocks, err = lru.New(128)
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +235,13 @@ func (bc *BlockChain) loop() {
 			logging.CLog().Info("Stopped BlockChain.")
 			return
 		case <-timerChan:
-			bc.ConsensusHandler().UpdateLIB()
+			hashs := bc.reversibleBlocks.Keys()
+			reversibleHashs := make([]byteutils.Hash, len(hashs))
+			for k, v := range hashs {
+				hash, _ := byteutils.FromHex(v.(string))
+				reversibleHashs[k] = hash
+			}
+			bc.ConsensusHandler().UpdateLIB(reversibleHashs)
 			metricsLruCacheBlock.Update(int64(bc.cachedBlocks.Len()))
 			metricsLruTailBlock.Update(int64(bc.detachedTailBlocks.Len()))
 		}
@@ -300,6 +308,7 @@ func (bc *BlockChain) LIB() *Block {
 // SetLIB update the latest irrversible block
 func (bc *BlockChain) SetLIB(lib *Block) {
 	bc.lib = lib
+	bc.reversibleBlocks.Remove(lib.Hash().Hex())
 }
 
 // EventEmitter return the eventEmitter.
@@ -330,6 +339,7 @@ func (bc *BlockChain) revertBlocks(from *Block, to *Block) error {
 			"block": reverted,
 		}).Warn("A block is reverted.")
 		revertTimes++
+		bc.reversibleBlocks.Remove(reverted.Hash().Hex())
 		blocks = append(blocks, reverted.String())
 
 		reverted = bc.GetBlock(reverted.header.parentHash)
@@ -379,6 +389,7 @@ func (bc *BlockChain) buildIndexByBlockHeight(from *Block, to *Block) error {
 		if err != nil {
 			return err
 		}
+		bc.reversibleBlocks.Add(to.Hash().Hex(), to)
 		blocks = append(blocks, to)
 		go bc.dropTxsInBlockFromTxPool(to)
 		to = bc.GetBlock(to.header.parentHash)

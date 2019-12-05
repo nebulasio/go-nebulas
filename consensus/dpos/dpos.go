@@ -197,7 +197,7 @@ func (dpos *Dpos) ForkChoice() error {
 }
 
 // UpdateLIB update the latest irrversible block
-func (dpos *Dpos) UpdateLIB() {
+func (dpos *Dpos) UpdateLIB(rversibleBlocks []byteutils.Hash) {
 	lib := dpos.chain.LIB()
 	tail := dpos.chain.TailBlock()
 	cur := tail

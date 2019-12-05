@@ -197,7 +197,7 @@ func (c *mockConsensus) ForkChoice() error {
 	return nil
 }
 
-func (c *mockConsensus) UpdateLIB() {}
+func (c *mockConsensus) UpdateLIB(rversibleBlocks []byteutils.Hash) {}
 
 func (c *mockConsensus) SuspendMining() {}
 func (c *mockConsensus) ResumeMining()  {}

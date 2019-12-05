@@ -52,7 +52,10 @@ type PoD struct {
 	enableRemoteSignServer bool
 	remoteSignServer       string
 
-	slot *lru.Cache
+	messageCh chan net.Message
+
+	slot       *lru.Cache
+	reversible *lru.Cache
 
 	enable     bool
 	pending    bool
@@ -66,6 +69,7 @@ func NewPoD() *PoD {
 		enable:     false,
 		pending:    true,
 		launchBeat: false,
+		messageCh:  make(chan net.Message, 128),
 	}
 	return pod
 }
@@ -111,19 +115,29 @@ func (pod *PoD) Setup(neblet core.Neblet) error {
 		return err
 	}
 	pod.slot = slot
+
+	reversible, err := lru.New(128)
+	if err != nil {
+		return err
+	}
+	pod.reversible = reversible
 	return nil
 }
 
 // Start start pod service.
 func (pod *PoD) Start() {
 	logging.CLog().Info("Starting pod Mining...")
+
+	pod.ns.Register(net.NewSubscriber(pod, pod.messageCh, true, MessageTypeWitness, net.MessageWeightZero))
 	go pod.blockLoop()
 }
 
 // Stop stop pod service.
 func (pod *PoD) Stop() {
 	logging.CLog().Info("Stopping pod Mining...")
+	pod.ns.Deregister(net.NewSubscriber(pod, pod.messageCh, true, MessageTypeWitness, net.MessageWeightZero))
 	pod.DisableMining()
+
 	pod.quitCh <- true
 }
 
@@ -200,7 +214,19 @@ func (pod *PoD) ForkChoice() error {
 }
 
 // UpdateLIB update the latest irrversible block
-func (pod *PoD) UpdateLIB() {
+func (pod *PoD) UpdateLIB(rversibleBlocks []byteutils.Hash) {
+
+	if pod.enable && core.NodeUpdateAtHeight(pod.chain.LIB().Height()) {
+		found, _ := pod.dynasty.isProposer(pod.chain.TailBlock().Timestamp(), pod.miner.Bytes())
+		if found {
+			if err := pod.broadcastWitness(rversibleBlocks); err != nil {
+				logging.VLog().WithFields(logrus.Fields{
+					"err": err,
+				}).Error("Failed to broadcast witness.")
+			}
+		}
+	}
+
 	lib := pod.chain.LIB()
 	tail := pod.chain.TailBlock()
 	cur := tail
@@ -218,27 +244,7 @@ func (pod *PoD) UpdateLIB() {
 		}
 		miners[byteutils.Hex(cur.ConsensusRoot().Proposer)] = true
 		if len(miners) >= ConsensusSize {
-			if err := pod.chain.StoreLIBHashToStorage(cur); err != nil {
-				logging.VLog().WithFields(logrus.Fields{
-					"tail": tail,
-					"lib":  cur,
-				}).Debug("Failed to store latest irreversible block.")
-				return
-			}
-			logging.CLog().WithFields(logrus.Fields{
-				"lib.new":          cur,
-				"lib.old":          lib,
-				"tail":             tail,
-				"miners.limit":     ConsensusSize,
-				"miners.supported": len(miners),
-			}).Info("Succeed to update latest irreversible block.")
-			pod.chain.SetLIB(cur)
-
-			e := &state.Event{
-				Topic: core.TopicLibBlock,
-				Data:  pod.chain.LIB().String(),
-			}
-			pod.chain.EventEmitter().Trigger(e)
+			pod.setLib(cur, len(miners))
 			return
 		}
 
@@ -261,6 +267,32 @@ func (pod *PoD) UpdateLIB() {
 		"miners.limit":     ConsensusSize,
 		"miners.supported": len(miners),
 	}).Debug("Failed to update latest irreversible block.")
+}
+
+func (pod *PoD) setLib(block *core.Block, confirmed int) {
+	if err := pod.chain.StoreLIBHashToStorage(block); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"tail": pod.chain.TailBlock(),
+			"lib":  block,
+		}).Debug("Failed to store latest irreversible block.")
+		return
+	}
+	logging.CLog().WithFields(logrus.Fields{
+		"lib.new":          block,
+		"lib.old":          pod.chain.LIB(),
+		"tail":             pod.chain.TailBlock(),
+		"miners.limit":     ConsensusSize,
+		"miners.supported": confirmed,
+	}).Info("Succeed to update latest irreversible block.")
+	pod.chain.SetLIB(block)
+
+	pod.reversible.Remove(block.Hash().Hex())
+
+	e := &state.Event{
+		Topic: core.TopicLibBlock,
+		Data:  pod.chain.LIB().String(),
+	}
+	pod.chain.EventEmitter().Trigger(e)
 }
 
 // Pending return if consensus can do mining now
@@ -305,34 +337,44 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 func (pod *PoD) CheckDoubleMint(block *core.Block) bool {
 	if preBlock, exist := pod.slot.Get(block.Timestamp()); exist {
 		if preBlock.(*core.Block).Hash().Equals(block.Hash()) == false {
-			if core.NodeUpdateAtHeight(pod.chain.LIB().Height()) {
-				evil := core.AttackNotMiner
-				if preBlock.(*core.Block).Miner().Equals(block.Miner()) {
-					evil = core.AttackDoubleSpend
-				}
-				// submit double mint attack
-				witness := &core.Witness{
-					Timestamp: block.Timestamp(),
-					Miner:     block.Miner().String(),
-					Evil:      evil,
-				}
-				bytes, _ := witness.ToBytes()
-				err := pod.sendTransaction(block.Timestamp(), core.PoDWitness, bytes)
-				logging.VLog().WithFields(logrus.Fields{
-					"curBlock": block,
-					"preBlock": preBlock.(*core.Block),
-					"error":    err,
-				}).Warn("Found someone minted multiple blocks at same time.")
-			} else {
-				logging.VLog().WithFields(logrus.Fields{
-					"curBlock": block,
-					"preBlock": preBlock.(*core.Block),
-				}).Warn("Found someone minted multiple blocks at same time.")
-			}
+
+			pod.reportEvil(preBlock.(*core.Block), block)
+
+			logging.VLog().WithFields(logrus.Fields{
+				"curBlock": block,
+				"preBlock": preBlock.(*core.Block),
+			}).Warn("Found someone minted multiple blocks at same time.")
 			return true
 		}
 	}
 	return false
+}
+
+func (pod *PoD) reportEvil(preBlock, block *core.Block) {
+	if !pod.enable || !core.NodeUpdateAtHeight(pod.chain.LIB().Height()) {
+		return
+	}
+
+	found, _ := pod.dynasty.isProposer(block.Timestamp(), pod.miner.Bytes())
+	if found {
+		evil := core.AttackNotMiner
+		if preBlock.Miner().Equals(block.Miner()) {
+			evil = core.AttackDoubleSpend
+		}
+		// submit double mint attack
+		witness := &core.Witness{
+			Timestamp: block.Timestamp(),
+			Miner:     block.Miner().String(),
+			Evil:      evil,
+		}
+		bytes, _ := witness.ToBytes()
+		err := pod.sendTransaction(block.Timestamp(), core.PoDWitness, bytes)
+		logging.VLog().WithFields(logrus.Fields{
+			"curBlock": block,
+			"preBlock": preBlock,
+			"error":    err,
+		}).Info("Found someone minted multiple blocks at same time.")
+	}
 }
 
 // Serial return dynasty serial number
@@ -676,9 +718,7 @@ func (pod *PoD) mintBlock(now int64) error {
 	}).Info("My turn to mint block")
 	metricsBlockPackingTime.Update(deadlineInMs - nowInMs)
 
-	if core.NodeUpdateAtHeight(pod.chain.LIB().Height()) {
-		pod.triggerState(now)
-	}
+	pod.triggerState(now)
 
 	block, err := pod.newBlock(tail, consensusState, deadlineInMs)
 	if err != nil {
@@ -719,6 +759,10 @@ func (pod *PoD) heartbeat(now int64) error {
 	// check mining enable
 	if !pod.enable {
 		return ErrNoHeartbeatWhenDisable
+	}
+
+	if !core.NodeUpdateAtHeight(pod.chain.LIB().Height()) {
+		return nil
 	}
 
 	if pod.launchBeat {
@@ -770,6 +814,10 @@ func (pod *PoD) heartbeat(now int64) error {
 // if next serial dynasty not found, we need generate it
 // and submit last serial block mint statics
 func (pod *PoD) triggerState(now int64) error {
+	if !pod.enable || !core.NodeUpdateAtHeight(pod.chain.LIB().Height()) {
+		return nil
+	}
+
 	serial := pod.dynasty.serial(now)
 	if pod.dynasty.tries[serial+1] == nil {
 		if err := pod.dynasty.loadFromContract(serial); err != nil {
@@ -801,13 +849,20 @@ func (pod *PoD) blockLoop() {
 		case now := <-timeChan:
 			metricsLruPoolSlotBlock.Update(int64(pod.slot.Len()))
 			timestamp := now.Unix()
-			if core.NodeUpdateAtHeight(pod.chain.LIB().Height()) {
-				pod.heartbeat(timestamp)
-			}
+			pod.heartbeat(timestamp)
 			pod.mintBlock(timestamp)
 		case <-pod.quitCh:
 			logging.CLog().Info("Stopped pod Mining.")
 			return
+		case message := <-pod.messageCh:
+			switch message.MessageType() {
+			case MessageTypeWitness:
+				pod.onWitnessReceived(message)
+			default:
+				logging.VLog().WithFields(logrus.Fields{
+					"messageName": message.MessageType(),
+				}).Warn("Received unknown message.")
+			}
 		}
 	}
 }

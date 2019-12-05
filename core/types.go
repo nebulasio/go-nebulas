@@ -243,7 +243,7 @@ type Consensus interface {
 	Serial(timestamp int64) int64
 	VerifyBlock(*Block) error
 	ForkChoice() error
-	UpdateLIB()
+	UpdateLIB([]byteutils.Hash)
 
 	NewState(*consensuspb.ConsensusRoot, storage.Storage, bool) (state.ConsensusState, error)
 	GenesisConsensusState(*BlockChain, *corepb.Genesis) (state.ConsensusState, error)

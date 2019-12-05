@@ -62,6 +62,8 @@ var (
 	ErrDoubleBlockMinted          = errors.New("double block minted")
 	ErrAppendNewBlockFailed       = errors.New("failed to append new block to real chain")
 	ErrInvalidArgument            = errors.New("invalid argument")
+	ErrInvalidProtoToWitness      = errors.New("protobuf message cannot be converted into Witness")
+	ErrInvalidWitnessSign         = errors.New("invalid witness sign")
 )
 
 // Errors in PoD state
@@ -93,4 +95,9 @@ var (
 	metricsBlockWaitingTime = metrics.NewGauge("neb.block.waiting")
 	metricsLruPoolSlotBlock = metrics.NewGauge("neb.block.lru.poolslot")
 	metricsMintBlock        = metrics.NewCounter("neb.block.mint")
+)
+
+// MessageType
+const (
+	MessageTypeWitness = "witness"
 )
