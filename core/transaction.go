@@ -727,6 +727,11 @@ func (tx *Transaction) recordGas(gasCnt *util.Uint128, ws WorldState) error {
 		return err
 	}
 
+	// There is no gas fee for the consensus transaction
+	if tx.Type() == TxPayloadPodType {
+		gasCost = util.NewUint128()
+	}
+
 	return ws.RecordGas(tx.from.String(), gasCost)
 }
 

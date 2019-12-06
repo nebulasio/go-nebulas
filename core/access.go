@@ -126,7 +126,7 @@ func (a *Access) loadFromConfig(path string) error {
 
 func (a *Access) loadFromContract() error {
 	// load access from contract
-	if NodeUpdateAtHeight(a.neb.BlockChain().LIB().height) {
+	if NodeUpdateAtHeight(a.neb.BlockChain().TailBlock().height) {
 		// check if access contract account root hash change;
 		// if the root change, access is update, need sync from contract;
 		// if not change, ignore this loop.

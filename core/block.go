@@ -53,34 +53,44 @@ var (
 	// VerifyExecutionTimeout 0 means unlimited
 	VerifyExecutionTimeout = 0
 
-	// NebulasRewardAddress Nebulas Council Recycling address
-	NebulasRewardAddress, _ = AddressParse("n1Rc66BjDF4LSoQ2uC9rbiMDnKMEV8ryG7k")
-
 	// BlockReward given to coinbase
 	// rule: 3% per year, 3,000,000. 1 block per 15 seconds
 	// value: 10^8 * 3% / (365*24*3600/15) * 10^18 ≈ 1.42694 * 10^18
 	BlockReward, _ = util.NewUint128FromString("1426940000000000000")
 
-	// CoinbaseReward given to coinbase after nbre available
+	// BlockRewardV2 given to coinbase after nbre available
 	// rule: 2% per year, 2,000,000. 1 block per 15 seconds
 	// value: 10^8 * 2% / (365*24*3600/15) * 10^18 ≈ 0.95129 * 10^18
-	CoinbaseReward, _ = util.NewUint128FromString("951290000000000000")
+	BlockRewardV2, _ = util.NewUint128FromString("951290000000000000")
 
-	// NebulasReward given to nebulas project address
+	// BlockRewardV3 given to coinbase
+	// rule: 2.5% per year, 3,000,000. 1 block per 15 seconds
+	// value: 10^8 * 2.5% / (365*24*3600/15) * 10^18 ≈ 1.18912 * 10^18
+	BlockRewardV3, _ = util.NewUint128FromString("1189120000000000000")
+
+	// GovernanceReward given to governance contract
+	// rule: 0.5% per year, 3,000,000. 1 block per 15 seconds
+	// value: 10^8 * 0.5% / (365*24*3600/15) * 10^18 ≈ 0.23782 * 10^18
+	GovernanceReward, _ = util.NewUint128FromString("237820000000000000")
+
+	// NebulasRewardV2 given to nebulas project address
 	// rule: 1% per year, 1,000,000. 1 block per 15 seconds
 	// value: 10^8 * 1% / (365*24*3600/15) * 10^18 ≈ 0.47565 * 10^18
-	NebulasReward, _ = util.NewUint128FromString("475650000000000000")
+	NebulasRewardV2, _ = util.NewUint128FromString("475650000000000000")
 
-	// DIPReward given to dip project address
+	// DIPRewardV2 given to dip project address
 	// rule: 1% per year, 1,000,000. 1 block per 15 seconds
 	// value: 10^8 * 1% / (365*24*3600/15) * 10^18 ≈ 0.47565 * 10^18
-	DIPReward, _ = util.NewUint128FromString("475650000000000000")
+	DIPRewardV2, _ = util.NewUint128FromString("475650000000000000")
 
 	// NebulasRewardAddress Nebulas Council Recycling address
-	NebulasRewardAddress2, _ = AddressParse("n1bMN7dssdVCv7XtnF6tmwB59pxxrwvpNwP")
+	NebulasRewardAddress, _ = AddressParse("n1Rc66BjDF4LSoQ2uC9rbiMDnKMEV8ryG7k")
 
 	// NebulasRewardAddress Nebulas Council Recycling address
-	DIPRewardAddress2, _ = AddressParse("n1HXQWZbnCwK2QVyFuNSM47CVxEUq1GEhLc")
+	NebulasRewardAddressV2, _ = AddressParse("n1bMN7dssdVCv7XtnF6tmwB59pxxrwvpNwP")
+
+	// NebulasRewardAddress Nebulas Council Recycling address
+	DIPRewardAddressV2, _ = AddressParse("n1HXQWZbnCwK2QVyFuNSM47CVxEUq1GEhLc")
 )
 
 // BlockHeader of a block
@@ -1191,7 +1201,7 @@ func (block *Block) FetchExecutionResultEvent(txHash byteutils.Hash) (*state.Eve
 func (block *Block) nebulasRewardAddress() *Address {
 	if block.ChainID() == MainNetID {
 		if NbreSplitAtHeight(block.height) {
-			return NebulasRewardAddress2
+			return NebulasRewardAddressV2
 		} else {
 			return NebulasRewardAddress
 		}
@@ -1204,16 +1214,33 @@ func (block *Block) nebulasRewardAddress() *Address {
 
 func (block *Block) dipRewardAddress() *Address {
 	if NbreSplitAtHeight(block.height) {
-		return DIPRewardAddress2
+		return DIPRewardAddressV2
 	} else {
 		return block.dip.RewardAddress()
 	}
 }
 
 func (block *Block) rewardCoinbaseForMint() error {
-	//after NbreAvailableHeight, reward give to coinbase, nebulas and dip address.
-	// the percent is: 2% coinbase, 1% nebulas,1% dip
-	if NbreAvailableHeight(block.height) {
+	if NodeUpdateAtHeight(block.height) {
+		coinbaseAddr := block.Coinbase().Bytes()
+		coinbaseAcc, err := block.WorldState().GetOrCreateUserAccount(coinbaseAddr)
+		if err != nil {
+			return err
+		}
+		if err = coinbaseAcc.AddBalance(BlockRewardV3); err != nil {
+			return err
+		}
+
+		govAcc, err := block.WorldState().GetOrCreateUserAccount(GovernanceContract.Bytes())
+		if err != nil {
+			return err
+		}
+		if err = govAcc.AddBalance(GovernanceReward); err != nil {
+			return err
+		}
+	} else if NbreAvailableHeight(block.height) {
+		//after NbreAvailableHeight, reward give to coinbase, nebulas and dip address.
+		// the percent is: 2% coinbase, 1% nebulas,1% dip
 
 		// coinbase reward
 		coinbaseAddr := block.Coinbase().Bytes()
@@ -1221,7 +1248,7 @@ func (block *Block) rewardCoinbaseForMint() error {
 		if err != nil {
 			return err
 		}
-		if err = coinbaseAcc.AddBalance(CoinbaseReward); err != nil {
+		if err = coinbaseAcc.AddBalance(BlockRewardV2); err != nil {
 			return err
 		}
 
@@ -1231,7 +1258,7 @@ func (block *Block) rewardCoinbaseForMint() error {
 		if err != nil {
 			return err
 		}
-		if err = nebulasAcc.AddBalance(NebulasReward); err != nil {
+		if err = nebulasAcc.AddBalance(NebulasRewardV2); err != nil {
 			return err
 		}
 
@@ -1241,7 +1268,7 @@ func (block *Block) rewardCoinbaseForMint() error {
 		if err != nil {
 			return err
 		}
-		if err = dipAcc.AddBalance(DIPReward); err != nil {
+		if err = dipAcc.AddBalance(DIPRewardV2); err != nil {
 			return err
 		}
 	} else {

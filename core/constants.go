@@ -25,4 +25,7 @@ var (
 
 	// PoDContract given to pod consensus contract
 	PoDContract, _ = AddressParse("n1HXQWZbnCwK2QVyFuNSM47CVxEUq1GEhLc")
+
+	// GovernanceContract given to governance contract
+	GovernanceContract, _ = AddressParse("n1HXQWZbnCwK2QVyFuNSM47CVxEUq1GEhLc")
 )

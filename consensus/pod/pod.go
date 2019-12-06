@@ -216,7 +216,7 @@ func (pod *PoD) ForkChoice() error {
 // UpdateLIB update the latest irrversible block
 func (pod *PoD) UpdateLIB(rversibleBlocks []byteutils.Hash) {
 
-	if pod.enable && core.NodeUpdateAtHeight(pod.chain.LIB().Height()) {
+	if pod.enable && core.NodeUpdateAtHeight(pod.chain.TailBlock().Height()) {
 		found, _ := pod.dynasty.isProposer(pod.chain.TailBlock().Timestamp(), pod.miner.Bytes())
 		if found {
 			if err := pod.broadcastWitness(rversibleBlocks); err != nil {
@@ -351,7 +351,7 @@ func (pod *PoD) CheckDoubleMint(block *core.Block) bool {
 }
 
 func (pod *PoD) reportEvil(preBlock, block *core.Block) {
-	if !pod.enable || !core.NodeUpdateAtHeight(pod.chain.LIB().Height()) {
+	if !pod.enable || !core.NodeUpdateAtHeight(pod.chain.TailBlock().Height()) {
 		return
 	}
 
@@ -362,13 +362,13 @@ func (pod *PoD) reportEvil(preBlock, block *core.Block) {
 			evil = core.AttackDoubleSpend
 		}
 		// submit double mint attack
-		witness := &core.Witness{
+		report := &core.Report{
 			Timestamp: block.Timestamp(),
 			Miner:     block.Miner().String(),
 			Evil:      evil,
 		}
-		bytes, _ := witness.ToBytes()
-		err := pod.sendTransaction(block.Timestamp(), core.PoDWitness, bytes)
+		bytes, _ := report.ToBytes()
+		err := pod.sendTransaction(block.Timestamp(), core.PoDReport, bytes)
 		logging.VLog().WithFields(logrus.Fields{
 			"curBlock": block,
 			"preBlock": preBlock,
@@ -761,7 +761,7 @@ func (pod *PoD) heartbeat(now int64) error {
 		return ErrNoHeartbeatWhenDisable
 	}
 
-	if !core.NodeUpdateAtHeight(pod.chain.LIB().Height()) {
+	if !core.NodeUpdateAtHeight(pod.chain.TailBlock().Height()) {
 		return nil
 	}
 
@@ -814,7 +814,7 @@ func (pod *PoD) heartbeat(now int64) error {
 // if next serial dynasty not found, we need generate it
 // and submit last serial block mint statics
 func (pod *PoD) triggerState(now int64) error {
-	if !pod.enable || !core.NodeUpdateAtHeight(pod.chain.LIB().Height()) {
+	if !pod.enable || !core.NodeUpdateAtHeight(pod.chain.TailBlock().Height()) {
 		return nil
 	}
 

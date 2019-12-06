@@ -191,7 +191,7 @@ func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 	interval := (timestamp - d.genesisTimestamp) * SecondInMs
 
 	// after the height, miner is selected by consensus contract
-	if !core.NodeUpdateAtHeight(d.chain.LIB().Height()) {
+	if !core.NodeUpdateAtHeight(d.chain.TailBlock().Height()) {
 		tmpDynasty := int64(0)
 		// eg: dynasty is: 1----3-----6, if serial={1,2}  dynasty=1, serial={3,4,5}, dynasty=3
 		for k, v := range d.tries {

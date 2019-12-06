@@ -31,7 +31,7 @@ import (
 const (
 	PoDHeartbeat = "heartbeat"
 	PoDState     = "state"
-	PoDWitness   = "witness"
+	PoDReport    = "report"
 
 	PoDMiners       = "getMiners"
 	PoDCandidates   = "getCandidates"
@@ -43,17 +43,17 @@ const (
 	AttackNotMiner    = "notMiner"
 )
 
-type Witness struct {
+type Report struct {
 	Timestamp int64  `json:"timestamp"`
 	Miner     string `json:"miner"`
 	Evil      string `json:"evil"`
 }
 
-func (w *Witness) ToBytes() ([]byte, error) {
+func (w *Report) ToBytes() ([]byte, error) {
 	return json.Marshal(w)
 }
 
-func (w *Witness) FromBytes(data []byte) error {
+func (w *Report) FromBytes(data []byte) error {
 	if err := json.Unmarshal(data, w); err != nil {
 		return err
 	}
@@ -185,9 +185,9 @@ func (payload *PodPayload) state(tx *Transaction, block *Block) (string, string,
 	return payload.Action, string(bytes), nil
 }
 
-// witness submit node evil
-func (payload *PodPayload) witness(block *Block) (string, string, error) {
-	witness := new(Witness)
+// report submit node evil
+func (payload *PodPayload) report(block *Block) (string, string, error) {
+	witness := new(Report)
 	if err := witness.FromBytes(payload.Data); err != nil {
 		return "", "", nil
 	}
@@ -211,8 +211,8 @@ func (payload *PodPayload) Execute(limitedGas *util.Uint128, tx *Transaction, bl
 		function, args, err = payload.heartbeat()
 	case PoDState:
 		function, args, err = payload.state(tx, block)
-	case PoDWitness:
-		function, args, err = payload.witness(block)
+	case PoDReport:
+		function, args, err = payload.report(block)
 	default:
 		err = ErrInvalidArgument
 	}

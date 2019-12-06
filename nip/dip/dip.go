@@ -65,7 +65,7 @@ func NewDIP(neb Neblet) (*Dip, error) {
 		quitCh:        make(chan int, 1),
 		isLooping:     false,
 		rewardAddress: addr,
-		rewardValue:   core.DIPReward,
+		rewardValue:   core.DIPRewardV2,
 	}
 	return dip, nil
 }
@@ -274,7 +274,7 @@ func (d *Dip) CheckReward(tx *core.Transaction) error {
 			return ErrInvalidDipAddress
 		}
 
-		if tx.To().Equals(core.DIPRewardAddress2) {
+		if tx.To().Equals(core.DIPRewardAddressV2) {
 			return nil
 		}
 
