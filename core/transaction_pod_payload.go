@@ -31,7 +31,7 @@ import (
 const (
 	PoDHeartbeat = "heartbeat"
 	PoDState     = "state"
-	PoDReport    = "report"
+	PoDReport    = "witness"
 
 	PoDMiners       = "getMiners"
 	PoDCandidates   = "getCandidates"
@@ -187,11 +187,11 @@ func (payload *PodPayload) state(tx *Transaction, block *Block) (string, string,
 
 // report submit node evil
 func (payload *PodPayload) report(block *Block) (string, string, error) {
-	witness := new(Report)
-	if err := witness.FromBytes(payload.Data); err != nil {
+	report := new(Report)
+	if err := report.FromBytes(payload.Data); err != nil {
 		return "", "", nil
 	}
-	args := fmt.Sprintf("[%d, %s, %s]", witness.Timestamp, witness.Miner, witness.Evil)
+	args := fmt.Sprintf("[%d, %s, %s]", report.Timestamp, report.Miner, report.Evil)
 	return payload.Action, args, nil
 }
 
