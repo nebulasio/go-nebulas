@@ -47,7 +47,16 @@ func (w *Witness) Hash() byteutils.Hash {
 
 // ToProto converts domain BlockHeader to proto BlockHeader
 func (w *Witness) ToProto() (proto.Message, error) {
-	return &consensuspb.Witness{}, nil
+	hashs := make([][]byte, len(w.blockHashs))
+	for k, v := range w.blockHashs {
+		hashs[k] = v
+	}
+	return &consensuspb.Witness{
+		Witness: w.witness,
+		Hash:    hashs,
+		Alg:     uint32(w.alg),
+		Sign:    w.sign,
+	}, nil
 }
 
 // FromProto converts proto BlockHeader to domain BlockHeader
@@ -55,7 +64,7 @@ func (w *Witness) FromProto(msg proto.Message) error {
 	if msg, ok := msg.(*consensuspb.Witness); ok {
 		if msg != nil {
 			w.witness = msg.Witness
-			hashs := []byteutils.Hash{}
+			hashs := make([]byteutils.Hash, len(msg.Hash))
 			for k, v := range msg.Hash {
 				hashs[k] = v
 			}

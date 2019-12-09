@@ -40,8 +40,8 @@ const (
 	AcceptedNetWorkDelayInMs = int64(3750)
 	MaxMintDurationInMs      = int64(5250)
 	MinMintDurationInMs      = int64(2250)
-	DynastyIntervalInMs      = int64(3150000)
-	DynastySize              = 21
+	DynastyIntervalInMs      = int64(525000)
+	DynastySize              = 7
 	ConsensusSize            = DynastySize*2/3 + 1
 )
 

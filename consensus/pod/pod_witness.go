@@ -39,6 +39,10 @@ func (pod *PoD) broadcastWitness(hashs []byteutils.Hash) error {
 		return err
 	}
 	pod.ns.Broadcast(MessageTypeWitness, witness, net.MessagePriorityNormal)
+	logging.VLog().WithFields(logrus.Fields{
+		"miner": pod.miner,
+		"hash":  hashs,
+	}).Debug("Broadcast witness to peers.")
 	return nil
 }
 
@@ -119,6 +123,11 @@ func (pod *PoD) onWitnessReceived(msg net.Message) error {
 	}
 
 	pod.ns.Relay(MessageTypeWitness, witness, net.MessagePriorityNormal)
+
+	logging.VLog().WithFields(logrus.Fields{
+		"msgType": msg.MessageType(),
+		"witness": witness,
+	}).Debug("Receive witness from peers.")
 	return nil
 }
 

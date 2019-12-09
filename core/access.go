@@ -88,7 +88,7 @@ func (a *Access) syncLoop() {
 	logging.CLog().Info("Started Access.")
 
 	// Load access.
-	a.loadFromContract()
+	//a.loadFromContract()
 
 	syncLoopTicker := time.NewTicker(time.Second * 15)
 
@@ -136,18 +136,21 @@ func (a *Access) loadFromContract() error {
 		// if the root change, access is update, need sync from contract;
 		// if not change, ignore this loop.
 		result, err := a.neb.BlockChain().SimulateCallContract(AccessContract, AccessFunc, "")
-		if err != nil {
+		if err != nil || result.Err != nil {
+			if result.Err != nil {
+				return result.Err
+			}
 			return err
 		}
 		access := new(corepb.Access)
 		if err = json.Unmarshal([]byte(result.Msg), access); err != nil {
 			return err
 		}
+		a.access = mergeAcceeData(access, a.local)
 		logging.VLog().WithFields(logrus.Fields{
 			"access": access,
 			"local":  a.local,
 		}).Debug("Load access from contract.")
-		a.access = mergeAcceeData(access, a.local)
 	}
 	return nil
 }

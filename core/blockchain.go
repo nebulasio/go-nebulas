@@ -238,7 +238,7 @@ func (bc *BlockChain) loop() {
 			hashs := bc.reversibleBlocks.Keys()
 			reversibleHashs := make([]byteutils.Hash, len(hashs))
 			for k, v := range hashs {
-				hash, _ := byteutils.FromHex(v.(string))
+				hash, _ := v.(byteutils.HexHash).Hash()
 				reversibleHashs[k] = hash
 			}
 			bc.ConsensusHandler().UpdateLIB(reversibleHashs)
