@@ -374,6 +374,16 @@ func (pod *PoD) reportEvil(preBlock, block *core.Block) {
 			"preBlock": preBlock,
 			"error":    err,
 		}).Info("Found someone minted multiple blocks at same time.")
+	} else {
+		dynasty, _ := block.Dynasty()
+		logging.VLog().WithFields(logrus.Fields{
+			"timestamp": block.Timestamp(),
+			"serial":    pod.dynasty.serial(block.Timestamp()),
+			"miner":     pod.miner,
+			"dynasty":   dynasty,
+			"curBlock":  block,
+			"preBlock":  preBlock,
+		}).Info("Not the dynasty proposer.")
 	}
 }
 
@@ -718,7 +728,14 @@ func (pod *PoD) mintBlock(now int64) error {
 	}).Info("My turn to mint block")
 	metricsBlockPackingTime.Update(deadlineInMs - nowInMs)
 
-	pod.triggerState(now)
+	err = pod.triggerState(now)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"timestamp": now,
+			"serial":    pod.dynasty.serial(now),
+			"err":       err,
+		}).Error("Failed to trigger state.")
+	}
 
 	block, err := pod.newBlock(tail, consensusState, deadlineInMs)
 	if err != nil {

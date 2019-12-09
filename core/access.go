@@ -28,6 +28,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/nebulasio/go-nebulas/util/logging"
 
 	"github.com/gogo/protobuf/proto"
@@ -96,7 +98,10 @@ func (a *Access) syncLoop() {
 			logging.CLog().Info("Stopped Access.")
 			return
 		case <-syncLoopTicker.C:
-			a.loadFromContract()
+			err := a.loadFromContract()
+			logging.VLog().WithFields(logrus.Fields{
+				"err": err,
+			}).Error("Failed to load access from contract.")
 		}
 	}
 }
@@ -138,6 +143,10 @@ func (a *Access) loadFromContract() error {
 		if err = json.Unmarshal([]byte(result.Msg), access); err != nil {
 			return err
 		}
+		logging.VLog().WithFields(logrus.Fields{
+			"access": access,
+			"local":  a.local,
+		}).Debug("Load access from contract.")
 		a.access = mergeAcceeData(access, a.local)
 	}
 	return nil

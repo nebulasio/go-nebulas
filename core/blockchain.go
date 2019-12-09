@@ -977,5 +977,10 @@ func (bc *BlockChain) StatisticalLastBlocks(serial int64) ([]*Statistics, error)
 			}
 		}
 	}
+
+	logging.VLog().WithFields(logrus.Fields{
+		"serial": serial,
+		"data":   statistics,
+	}).Debug("statistics last block.")
 	return statistics, nil
 }
