@@ -70,7 +70,7 @@ var (
 var (
 	ErrTooFewCandidates        = errors.New("the size of candidates in consensus is un-safe, should be greater than or equal " + strconv.Itoa(ConsensusSize))
 	ErrInitialDynastyNotEnough = errors.New("the size of initial dynasty in genesis block is un-safe, should be greater than or equal " + strconv.Itoa(ConsensusSize))
-	ErrInvalidDynasty          = errors.New("the size of initial dynasty in genesis block is invalid, should be equal " + strconv.Itoa(DynastySize))
+	ErrInvalidDynasty          = errors.New("the size of dynasty is invalid, should be equal " + strconv.Itoa(DynastySize))
 	ErrCloneDynastyTrie        = errors.New("Failed to clone dynasty trie")
 	ErrCloneNextDynastyTrie    = errors.New("Failed to clone next dynasty trie")
 	ErrCloneDelegateTrie       = errors.New("Failed to clone delegate trie")

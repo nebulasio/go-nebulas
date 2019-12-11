@@ -113,8 +113,13 @@ func (pod *PoD) onWitnessReceived(msg net.Message) error {
 			if reversibleSet == nil {
 				reversibleSet = mapset.NewSet()
 			}
-			reversibleSet.(mapset.Set).Add(witness.witness)
+			reversibleSet.(mapset.Set).Add(witness.witness.Hex())
 			if reversibleSet.(mapset.Set).Cardinality() >= ConsensusSize {
+				logging.VLog().WithFields(logrus.Fields{
+					"hash": v.Hex(),
+					"set":  reversibleSet,
+					"len":  reversibleSet.(mapset.Set).Cardinality(),
+				}).Debug("Update lib by bft witness.")
 				pod.setLib(block, reversibleSet.(mapset.Set).Cardinality())
 			} else {
 				pod.reversible.Add(block.Hash().Hex(), reversibleSet)

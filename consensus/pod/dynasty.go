@@ -57,6 +57,9 @@ func NewDynasty(neb core.Neblet) (*Dynasty, error) {
 
 func (d Dynasty) updateDynasty(dynasty *corepb.Dynasty) error {
 	for _, v := range dynasty.Candidate {
+		if len(v.Dynasty) != DynastySize {
+			return ErrInvalidDynasty
+		}
 		dynastyTrie, err := DynastyTire(v.Dynasty, d.chain.Storage())
 		if err != nil {
 			return err
@@ -127,15 +130,12 @@ func (d *Dynasty) loadFromConfig(genesis *corepb.Genesis, filePath string) error
 func (d *Dynasty) loadFromContract(serial int64) error {
 	args := fmt.Sprintf("[%d]", serial)
 	result, err := d.chain.SimulateCallContract(core.PoDContract, core.PoDMiners, args)
-	if err != nil || result.Err != nil {
+	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"serial": serial,
 			"result": result,
 			"err":    err,
 		}).Error("Failed to load Dynasty from contract.")
-		if result.Err != nil {
-			return result.Err
-		}
 		return err
 	}
 
@@ -273,20 +273,15 @@ func (d *Dynasty) tailDynasty() (*trie.Trie, error) {
 
 func (d *Dynasty) getParticipants() ([]string, error) {
 	result, err := d.chain.SimulateCallContract(core.PoDContract, core.PoDParticipants, "")
-	if err != nil || result.Err != nil {
+	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"result": result,
 			"error":  err,
 		}).Error("Failed to get participants from contract.")
-		if result.Err != nil {
-			return nil, result.Err
-		}
 		return nil, err
 	}
-	var (
-		participants []string
-	)
-	if err := json.Unmarshal([]byte(result.Msg), participants); err != nil {
+	var participants []string
+	if err := json.Unmarshal([]byte(result.Msg), &participants); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"result": result,
 		}).Debug("Failed to parse Participants from contract.")

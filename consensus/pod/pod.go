@@ -835,6 +835,11 @@ func (pod *PoD) triggerState(now int64) error {
 		return nil
 	}
 
+	logging.VLog().WithFields(logrus.Fields{
+		"miner":     pod.miner.String(),
+		"timestamp": now,
+	}).Debug("trigger state")
+
 	serial := pod.dynasty.serial(now)
 	if pod.dynasty.tries[serial+1] == nil {
 		if err := pod.dynasty.loadFromContract(serial); err != nil {

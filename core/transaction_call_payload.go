@@ -112,6 +112,7 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 
 	logging.VLog().WithFields(logrus.Fields{
 		"tx.hash":      tx.Hash(),
+		"function":     payload.Function,
 		"instructions": instructions,
 		"limitedGas":   limitedGas,
 	}).Debug("record gas of v8")
