@@ -345,14 +345,12 @@ func (block *Block) ChainID() uint32 {
 
 // Miner return block's miner, only block is sealed return value
 func (block *Block) Miner() *Address {
-	if block.Sealed() {
-		proposer := block.ConsensusRoot().Proposer
-		miner, err := AddressParseFromBytes(proposer)
-		if err == nil {
-			return miner
-		}
+	proposer := block.ConsensusRoot().Proposer
+	miner, err := AddressParseFromBytes(proposer)
+	if err != nil {
+		return nil
 	}
-	return nil
+	return miner
 }
 
 // Coinbase return block's coinbase
@@ -1128,6 +1126,8 @@ func (block *Block) execute() error {
 	if err := block.WorldState().Flush(); err != nil {
 		return err
 	}
+
+	block.sealed = true
 
 	endAt := time.Now().UnixNano()
 	metricsBlockVerifiedTime.Update(endAt - startAt)

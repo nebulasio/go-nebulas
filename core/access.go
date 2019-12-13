@@ -138,6 +138,11 @@ func (a *Access) loadFromContract() error {
 		// if the root change, access is update, need sync from contract;
 		// if not change, ignore this loop.
 		result, err := a.neb.BlockChain().SimulateCallContract(AccessContract, AccessFunc, "")
+		//logging.VLog().WithFields(logrus.Fields{
+		//	"result": result,
+		//	"local":  a.local,
+		//	"err": err,
+		//}).Debug("Load access from contract.")
 		if err != nil {
 			return err
 		}

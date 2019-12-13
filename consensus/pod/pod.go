@@ -216,8 +216,11 @@ func (pod *PoD) ForkChoice() error {
 // UpdateLIB update the latest irrversible block
 func (pod *PoD) UpdateLIB(rversibleBlocks []byteutils.Hash) {
 
-	if pod.enable && core.NodeUpdateAtHeight(pod.chain.TailBlock().Height()) {
+	if pod.enable && !pod.Pending() && core.NodeUpdateAtHeight(pod.chain.TailBlock().Height()) {
 		found, _ := pod.dynasty.isProposer(pod.chain.TailBlock().Timestamp(), pod.miner.Bytes())
+		logging.VLog().WithFields(logrus.Fields{
+			"found": found,
+		}).Debug("check updateLIB isProposer.")
 		if found {
 			if err := pod.broadcastWitness(rversibleBlocks); err != nil {
 				logging.VLog().WithFields(logrus.Fields{
@@ -312,7 +315,7 @@ func (pod *PoD) ResumeMining() {
 	pod.pending = false
 }
 
-func verifyBlockSign(miner *core.Address, block *core.Block) error {
+func (pod *PoD) verifyBlockSign(block *core.Block) error {
 	signer, err := core.RecoverSignerFromSignature(block.Alg(), block.Hash(), block.Signature())
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -322,12 +325,21 @@ func verifyBlockSign(miner *core.Address, block *core.Block) error {
 		}).Debug("Failed to recover block's miner.")
 		return err
 	}
-	if !miner.Equals(signer) {
+
+	found, err := pod.dynasty.isProposer(block.Timestamp(), signer.Bytes())
+	logging.VLog().WithFields(logrus.Fields{
+		"found": found,
+		"err":   err,
+		"block": block,
+	}).Debug("verifyBlockSign")
+	if err != nil {
+		return err
+	}
+	if !found {
 		logging.VLog().WithFields(logrus.Fields{
 			"signer": signer,
-			"miner":  miner,
 			"block":  block,
-		}).Debug("Failed to verify block's sign.")
+		}).Error("Failed to verify block's sign.")
 		return ErrInvalidBlockProposer
 	}
 	return nil
@@ -350,12 +362,15 @@ func (pod *PoD) CheckDoubleMint(block *core.Block) bool {
 	return false
 }
 
-func (pod *PoD) reportEvil(preBlock, block *core.Block) {
+func (pod *PoD) reportEvil(preBlock, block *core.Block) error {
 	if !pod.enable || !core.NodeUpdateAtHeight(pod.chain.TailBlock().Height()) {
-		return
+		return nil
 	}
 
-	found, _ := pod.dynasty.isProposer(block.Timestamp(), pod.miner.Bytes())
+	found, err := pod.dynasty.isProposer(block.Timestamp(), pod.miner.Bytes())
+	if err != nil {
+		return err
+	}
 	if found {
 		evil := core.AttackNotMiner
 		if preBlock.Miner().Equals(block.Miner()) {
@@ -367,13 +382,19 @@ func (pod *PoD) reportEvil(preBlock, block *core.Block) {
 			Miner:     block.Miner().String(),
 			Evil:      evil,
 		}
-		bytes, _ := report.ToBytes()
-		err := pod.sendTransaction(block.Timestamp(), core.PoDReport, bytes)
+		bytes, err := report.ToBytes()
+		if err != nil {
+			return err
+		}
+		err = pod.sendTransaction(block.Timestamp(), core.PoDReport, bytes)
 		logging.VLog().WithFields(logrus.Fields{
 			"curBlock": block,
 			"preBlock": preBlock,
 			"error":    err,
 		}).Info("Found someone minted multiple blocks at same time.")
+		if err != nil {
+			return err
+		}
 	} else {
 		dynasty, _ := block.Dynasty()
 		logging.VLog().WithFields(logrus.Fields{
@@ -385,6 +406,7 @@ func (pod *PoD) reportEvil(preBlock, block *core.Block) {
 			"preBlock":  preBlock,
 		}).Info("Not the dynasty proposer.")
 	}
+	return nil
 }
 
 // Serial return dynasty serial number
@@ -394,7 +416,6 @@ func (pod *PoD) Serial(timestamp int64) int64 {
 
 // VerifyBlock verify the block
 func (pod *PoD) VerifyBlock(block *core.Block) error {
-	tail := pod.chain.TailBlock()
 	// check timestamp
 	if block.Timestamp() != block.ConsensusRoot().Timestamp {
 		return ErrInvalidBlockTimestamp
@@ -404,48 +425,8 @@ func (pod *PoD) VerifyBlock(block *core.Block) error {
 		return ErrInvalidBlockInterval
 	}
 
-	var (
-		miners []byteutils.Hash
-		err    error
-	)
-
-	cs, err := pod.dynasty.getDynasty(block.Timestamp())
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"err":   err,
-			"tail":  tail,
-			"block": block,
-		}).Error("Failed to retrieve dynasty trie.")
-		return err
-	}
-	miners, err = TraverseDynasty(cs)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"err":   err,
-			"block": block,
-		}).Debug("Failed to get miners from dynasty.")
-		return err
-	}
-	proposer, err := FindProposer(block.Timestamp(), miners)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"proposer": proposer,
-			"err":      err,
-			"block":    block,
-		}).Debug("Failed to find proposer.")
-		return err
-	}
-	miner, err := core.AddressParseFromBytes(proposer)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"proposer": proposer,
-			"err":      err,
-			"block":    block,
-		}).Debug("Failed to parse proposer.")
-		return err
-	}
 	// check signature
-	if err := verifyBlockSign(miner, block); err != nil {
+	if err := pod.verifyBlockSign(block); err != nil {
 		return err
 	}
 
@@ -646,17 +627,17 @@ func (pod *PoD) checkProposer(tail *core.Block, nowInMs int64) (state.ConsensusS
 		return nil, ErrGenerateNextConsensusState
 	}
 	if consensusState.Proposer() == nil || !consensusState.Proposer().Equals(pod.miner.Bytes()) {
-		proposer := "nil"
-		if consensusState.Proposer() != nil {
-			proposer = consensusState.Proposer().Base58()
-		}
-		logging.VLog().WithFields(logrus.Fields{
-			"tail":     tail,
-			"now":      nowInMs,
-			"slot":     slotInMs,
-			"expected": proposer,
-			"actual":   pod.miner,
-		}).Debug("Not my turn, waiting...")
+		//proposer := "nil"
+		//if consensusState.Proposer() != nil {
+		//	proposer = consensusState.Proposer().Base58()
+		//}
+		//logging.VLog().WithFields(logrus.Fields{
+		//	"tail":     tail,
+		//	"now":      nowInMs,
+		//	"slot":     slotInMs,
+		//	"expected": proposer,
+		//	"actual":   pod.miner,
+		//}).Debug("Not my turn, waiting...")
 		return nil, ErrInvalidBlockProposer
 	}
 	return consensusState, nil
@@ -783,9 +764,8 @@ func (pod *PoD) heartbeat(now int64) error {
 	}
 
 	if pod.launchBeat {
-		nowInMs := now * SecondInMs
 		// only heartbeat once in a interval
-		if (nowInMs+DynastyIntervalInMs/2)%DynastyIntervalInMs != 0 {
+		if (now+DynastyIntervalInMs/(2*SecondInMs))%(DynastyIntervalInMs/SecondInMs) != 0 {
 			return nil
 		}
 	}
@@ -859,6 +839,11 @@ func (pod *PoD) triggerState(now int64) error {
 		if err != nil {
 			return err
 		}
+		logging.VLog().WithFields(logrus.Fields{
+			"miner":      pod.miner.String(),
+			"timestamp":  now,
+			"statistics": states,
+		}).Info("trigger block statistics ")
 	}
 	return nil
 }
@@ -887,25 +872,6 @@ func (pod *PoD) blockLoop() {
 			}
 		}
 	}
-}
-
-func (pod *PoD) findProposer(now int64) (proposer byteutils.Hash, err error) {
-	miners, err := pod.chain.TailBlock().WorldState().Dynasty()
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"err": err,
-		}).Debug("Failed to get miners from dynasty.")
-		return nil, err
-	}
-	proposer, err = FindProposer(now, miners)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"proposer": proposer,
-			"err":      err,
-		}).Debug("Failed to find proposer.")
-		return nil, err
-	}
-	return proposer, nil
 }
 
 // NumberOfBlocksInDynasty number of blocks in one dynasty

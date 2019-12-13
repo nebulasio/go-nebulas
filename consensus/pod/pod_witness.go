@@ -95,17 +95,15 @@ func (pod *PoD) onWitnessReceived(msg net.Message) error {
 		block := pod.chain.GetBlock(v)
 		if block != nil {
 			found, err := pod.dynasty.isProposer(block.Timestamp(), witness.witness)
+			logging.VLog().WithFields(logrus.Fields{
+				"msgType": msg.MessageType(),
+				"msg":     msg,
+				"found":   found,
+				"err":     err,
+			}).Debug("Check witness proposer in dynasty.")
+			// if witness is not the miner in block's dynasty, don't relay the message.
 			if err != nil || !found {
-				logging.VLog().WithFields(logrus.Fields{
-					"msgType": msg.MessageType(),
-					"msg":     msg,
-					"found":   found,
-					"err":     err,
-				}).Debug("Failed to check witness proposer in dynasty.")
-				// if witness is not the miner in block's dynasty, don't relay the message.
-				if err == nil {
-					return nil
-				}
+				return err
 			}
 
 			// find local reversible blocks and update to the lib

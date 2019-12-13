@@ -57,14 +57,16 @@ func NewDynasty(neb core.Neblet) (*Dynasty, error) {
 
 func (d Dynasty) updateDynasty(dynasty *corepb.Dynasty) error {
 	for _, v := range dynasty.Candidate {
-		if len(v.Dynasty) != DynastySize {
-			return ErrInvalidDynasty
+		if len(v.Dynasty) > 0 {
+			if len(v.Dynasty) != DynastySize {
+				return ErrInvalidDynasty
+			}
+			dynastyTrie, err := DynastyTire(v.Dynasty, d.chain.Storage())
+			if err != nil {
+				return err
+			}
+			d.tries[int64(v.Serial)] = dynastyTrie
 		}
-		dynastyTrie, err := DynastyTire(v.Dynasty, d.chain.Storage())
-		if err != nil {
-			return err
-		}
-		d.tries[int64(v.Serial)] = dynastyTrie
 	}
 	return nil
 }
@@ -135,7 +137,7 @@ func (d *Dynasty) loadFromContract(serial int64) error {
 			"serial": serial,
 			"result": result,
 			"err":    err,
-		}).Error("Failed to load Dynasty from contract.")
+		}).Error("Failed to load dynasty from contract.")
 		return err
 	}
 
@@ -144,14 +146,14 @@ func (d *Dynasty) loadFromContract(serial int64) error {
 		logging.VLog().WithFields(logrus.Fields{
 			"serial": serial,
 			"result": result,
-		}).Error("Failed to parse Dynasty from contract.")
+		}).Error("Failed to parse dynasty from contract.")
 		return err
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
 		"serial":  serial,
 		"dynasty": data,
-	}).Info("Load miners from contract")
+	}).Info("Load dynasty from contract")
 
 	return d.updateDynasty(data)
 }
@@ -178,14 +180,17 @@ func (d *Dynasty) isProposer(now int64, miner byteutils.Hash) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	miners, err := TraverseDynasty(tire)
+
+	iter, err := tire.Iterator(nil)
 	if err != nil {
 		return false, err
 	}
-	for _, v := range miners {
-		if byteutils.Equal(v, miner) {
+	exist, err := iter.Next()
+	for exist {
+		if byteutils.Equal(iter.Value(), miner) {
 			return true, nil
 		}
+		exist, err = iter.Next()
 	}
 	return false, nil
 }
@@ -237,7 +242,6 @@ func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
-		"interval":  interval,
 		"timestamp": timestamp,
 		"serial":    serial,
 		"dt":        dt,
@@ -252,19 +256,11 @@ func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 }
 
 func (d *Dynasty) tailDynasty() (*trie.Trie, error) {
-	tailDynasty, err := d.chain.TailBlock().Dynasty()
+	dynastyRoot, err := d.chain.TailBlock().DynastyRoot()
 	if err != nil {
 		return nil, err
 	}
-	miners := make([]string, len(tailDynasty))
-	for index, bytes := range tailDynasty {
-		addr, err := core.AddressParseFromBytes(bytes)
-		if err != nil {
-			return nil, err
-		}
-		miners[index] = addr.String()
-	}
-	tire, err := DynastyTire(miners, d.chain.Storage())
+	tire, err := trie.NewTrie(dynastyRoot, d.chain.Storage(), false)
 	if err != nil {
 		return nil, err
 	}

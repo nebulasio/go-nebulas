@@ -27,5 +27,5 @@ var (
 	PoDContract, _ = AddressParse("n1xS3BoziPPidb5nXDmGfH9pb4RHQMfyBe9")
 
 	// GovernanceContract given to governance contract
-	GovernanceContract, _ = AddressParse("n1gTeXSSfvVNq4wHMURpafDYfRRzBA4JwKN")
+	GovernanceContract, _ = AddressParse("n1xS3BoziPPidb5nXDmGfH9pb4RHQMfyBe9")
 )

@@ -917,6 +917,11 @@ func (bc *BlockChain) LoadLIBFromStorage() (*Block, error) {
 
 // StatisticalLastBlocks statistical last block states
 func (bc *BlockChain) StatisticalLastBlocks(serial int64) ([]*Statistics, error) {
+	logging.VLog().WithFields(logrus.Fields{
+		"serial":     serial,
+		"tail":       bc.TailBlock(),
+		"tailSerial": bc.ConsensusHandler().Serial(bc.TailBlock().Timestamp()),
+	}).Debug("start block statistics")
 	statistics := make([]*Statistics, 0)
 	if serial > 0 {
 		lastSerial := serial - 1
@@ -963,16 +968,32 @@ func (bc *BlockChain) StatisticalLastBlocks(serial int64) ([]*Statistics, error)
 					}
 				}
 				statistics = append(statistics, item)
+				logging.VLog().WithFields(logrus.Fields{
+					"serial":      serial,
+					"blockSerial": blockSerial,
+					"block":       block,
+					"lastSerial":  lastSerial,
+					"item":        item,
+				}).Debug("block statistics init")
 				lastSerial--
 			}
 
 			item := statistics[len(statistics)-1]
+			item.Start = block.height
 			miner := block.Miner().String()
 			item.Statistics[miner] = item.Statistics[miner] + 1
 
-			if block.height > 1 {
-				block = bc.GetBlock(block.ParentHash())
-			} else {
+			logging.VLog().WithFields(logrus.Fields{
+				"serial":      serial,
+				"blockSerial": blockSerial,
+				"height":      block.height,
+				"miner":       miner,
+				"item":        item,
+			}).Debug("block statistics record")
+
+			block = bc.GetBlock(block.ParentHash())
+			// Genesis block need not statistics
+			if byteutils.Equal(block.Hash(), GenesisHash) {
 				break
 			}
 		}
@@ -980,7 +1001,8 @@ func (bc *BlockChain) StatisticalLastBlocks(serial int64) ([]*Statistics, error)
 
 	logging.VLog().WithFields(logrus.Fields{
 		"serial": serial,
+		"size":   len(statistics),
 		"data":   statistics,
-	}).Debug("statistics last block.")
+	}).Debug("block statistics.")
 	return statistics, nil
 }

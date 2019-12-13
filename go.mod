@@ -8,6 +8,7 @@ require (
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/deckarep/golang-set v1.7.1
+	github.com/go-delve/delve v1.3.2 // indirect
 	github.com/gogo/protobuf v1.3.0
 	github.com/golang/mock v1.3.1
 	github.com/golang/protobuf v1.3.2

@@ -62,6 +62,7 @@ func (w *Report) FromBytes(data []byte) error {
 
 type Statistics struct {
 	Serial     int64          `json:"serial"`
+	Start      uint64         `json:"start"`
 	Statistics map[string]int `json:"statistics"`
 }
 
@@ -144,7 +145,7 @@ func (payload *PodPayload) state(tx *Transaction, block *Block) (string, string,
 		states []*Statistics
 		err    error
 	)
-	if err = json.Unmarshal(payload.Data, states); err != nil {
+	if err = json.Unmarshal(payload.Data, &states); err != nil {
 		return "", "", err
 	}
 
