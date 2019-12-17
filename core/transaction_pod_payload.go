@@ -68,6 +68,9 @@ type Statistics struct {
 
 func (s *Statistics) Equals(state *Statistics) bool {
 	if s.Serial == state.Serial {
+		if s.Start != state.Start {
+			return false
+		}
 		if s.Statistics == nil && state.Statistics == nil {
 			return true
 		}
@@ -149,9 +152,19 @@ func (payload *PodPayload) state(tx *Transaction, block *Block) (string, string,
 		return "", "", err
 	}
 
-	blockStates, err := block.txPool.bc.StatisticalLastBlocks(payload.Serial)
+	for _, v := range states {
+		logging.VLog().WithFields(logrus.Fields{
+			"tx.hash": tx.Hash(),
+			"states":  v,
+		}).Debug("load pod statistics")
+	}
+
+	blockStates, err := block.txPool.bc.StatisticalLastBlocks(payload.Serial, block)
 	if err != nil {
 		return "", "", err
+	}
+	if len(states) != len(blockStates) {
+		return "", "", ErrBlockStateCheckFailed
 	}
 	for _, blockState := range blockStates {
 		found := false
@@ -166,6 +179,7 @@ func (payload *PodPayload) state(tx *Transaction, block *Block) (string, string,
 			logging.VLog().WithFields(logrus.Fields{
 				"tx.hash":    tx.Hash(),
 				"blockState": blockState,
+				"count":      len(blockStates),
 			}).Error("Failed to check block state statistics")
 			break
 		}

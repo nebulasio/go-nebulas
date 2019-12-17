@@ -916,7 +916,7 @@ func (bc *BlockChain) LoadLIBFromStorage() (*Block, error) {
 }
 
 // StatisticalLastBlocks statistical last block states
-func (bc *BlockChain) StatisticalLastBlocks(serial int64) ([]*Statistics, error) {
+func (bc *BlockChain) StatisticalLastBlocks(serial int64, block *Block) ([]*Statistics, error) {
 	logging.VLog().WithFields(logrus.Fields{
 		"serial":     serial,
 		"tail":       bc.TailBlock(),
@@ -927,9 +927,11 @@ func (bc *BlockChain) StatisticalLastBlocks(serial int64) ([]*Statistics, error)
 		lastSerial := serial - 1
 
 		// find last serial blocks
-		block := bc.TailBlock()
 		for bc.ConsensusHandler().Serial(block.Timestamp()) > lastSerial {
 			block = bc.GetBlock(block.ParentHash())
+			if block == nil {
+				return nil, ErrBlockNotFound
+			}
 		}
 
 		dynastyRoot, err := block.DynastyRoot()
@@ -968,13 +970,13 @@ func (bc *BlockChain) StatisticalLastBlocks(serial int64) ([]*Statistics, error)
 					}
 				}
 				statistics = append(statistics, item)
-				logging.VLog().WithFields(logrus.Fields{
-					"serial":      serial,
-					"blockSerial": blockSerial,
-					"block":       block,
-					"lastSerial":  lastSerial,
-					"item":        item,
-				}).Debug("block statistics init")
+				//logging.VLog().WithFields(logrus.Fields{
+				//	"serial":      serial,
+				//	"blockSerial": blockSerial,
+				//	"block":       block,
+				//	"lastSerial":  lastSerial,
+				//	"item":        item,
+				//}).Debug("block statistics init")
 				lastSerial--
 			}
 
@@ -983,15 +985,18 @@ func (bc *BlockChain) StatisticalLastBlocks(serial int64) ([]*Statistics, error)
 			miner := block.Miner().String()
 			item.Statistics[miner] = item.Statistics[miner] + 1
 
-			logging.VLog().WithFields(logrus.Fields{
-				"serial":      serial,
-				"blockSerial": blockSerial,
-				"height":      block.height,
-				"miner":       miner,
-				"item":        item,
-			}).Debug("block statistics record")
+			//logging.VLog().WithFields(logrus.Fields{
+			//	"serial":      serial,
+			//	"blockSerial": blockSerial,
+			//	"height":      block.height,
+			//	"miner":       miner,
+			//	"item":        item,
+			//}).Debug("block statistics record")
 
 			block = bc.GetBlock(block.ParentHash())
+			if block == nil {
+				return nil, ErrBlockNotFound
+			}
 			// Genesis block need not statistics
 			if byteutils.Equal(block.Hash(), GenesisHash) {
 				break
@@ -1003,6 +1008,7 @@ func (bc *BlockChain) StatisticalLastBlocks(serial int64) ([]*Statistics, error)
 		"serial": serial,
 		"size":   len(statistics),
 		"data":   statistics,
+		"tail":   bc.TailBlock(),
 	}).Debug("block statistics.")
 	return statistics, nil
 }

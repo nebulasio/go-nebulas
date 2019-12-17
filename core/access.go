@@ -90,7 +90,7 @@ func (a *Access) syncLoop() {
 	// Load access.
 	//a.loadFromContract()
 
-	syncLoopTicker := time.NewTicker(time.Second * 15)
+	syncLoopTicker := time.NewTicker(time.Second * 15 * 4)
 
 	for {
 		select {

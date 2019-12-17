@@ -83,7 +83,7 @@ func NewTask(blockChain *core.BlockChain, netService net.Service, chunk *Chunk) 
 		quitCh:                                  make(chan bool, 1),
 		statusCh:                                make(chan bool, 1),
 		blockChain:                              blockChain,
-		syncPointBlock:                          blockChain.TailBlock(),
+		syncPointBlock:                          blockChain.LIB(),
 		netService:                              netService,
 		chunk:                                   chunk,
 		chainSyncPeers:                          nil,
@@ -199,7 +199,9 @@ func (st *Task) reset() {
 
 func (st *Task) setSyncPointToNewTail() {
 	st.chainSyncRetryCount = 0
-	st.syncPointBlock = st.blockChain.TailBlock()
+	if st.syncPointBlock.Height() > st.blockChain.TailBlock().Height() {
+		st.syncPointBlock = st.blockChain.TailBlock()
+	}
 }
 
 func (st *Task) setSyncPointToLastChunk() {
@@ -473,7 +475,8 @@ func (st *Task) processChunkData(message net.Message) {
 	chunk, ok := st.chainChunkData[st.chainChunkDataProcessPosition]
 	for ok {
 		// startAt := time.Now().Unix()
-		if err := st.chunk.processChunkData(chunk); err != nil {
+		last, err := st.chunk.processChunkData(chunk)
+		if err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"err": err,
 				"pid": message.MessageFrom(),
@@ -483,6 +486,7 @@ func (st *Task) processChunkData(message net.Message) {
 			return
 		}
 
+		st.syncPointBlock = last
 		st.chainChunkDataProcessPosition++
 		chunk, ok = st.chainChunkData[st.chainChunkDataProcessPosition]
 	}

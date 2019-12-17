@@ -290,7 +290,8 @@ func verifyChunkData(chunkHeader *syncpb.ChunkHeader, chunkData *syncpb.ChunkDat
 	return true, nil
 }
 
-func (c *Chunk) processChunkData(chunk *syncpb.ChunkData) error {
+func (c *Chunk) processChunkData(chunk *syncpb.ChunkData) (*core.Block, error) {
+	var last *core.Block
 	for k, v := range chunk.Blocks {
 		block := new(core.Block)
 		if err := block.FromProto(v); err != nil {
@@ -299,7 +300,7 @@ func (c *Chunk) processChunkData(chunk *syncpb.ChunkData) error {
 				"hash":  byteutils.Hex(v.Header.Hash),
 				"err":   err,
 			}).Debug("Failed to recover a block from proto data.")
-			return err
+			return nil, err
 		}
 		if err := c.blockChain.BlockPool().Push(block); err != nil {
 			logging.VLog().WithFields(logrus.Fields{
@@ -307,12 +308,13 @@ func (c *Chunk) processChunkData(chunk *syncpb.ChunkData) error {
 				"hash":  byteutils.Hex(v.Header.Hash),
 				"err":   err,
 			}).Debug("Failed to push a block into block pool.")
-			return err
+			return nil, err
 		}
+		last = block
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
 		"size": len(chunk.Blocks),
 	}).Debug("Succeed to process chunk.")
-	return nil
+	return last, nil
 }

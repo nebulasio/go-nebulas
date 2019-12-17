@@ -517,9 +517,12 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 		// Gas overflow, won't giveback the tx
 		return false, ErrGasFeeOverflow
 	}
-	if fromAcc.Balance().Cmp(limitedFee) < 0 {
-		// Balance is smaller than limitedFee, won't giveback the tx
-		return false, ErrInsufficientBalance
+
+	if tx.Type() != TxPayloadPodType {
+		if fromAcc.Balance().Cmp(limitedFee) < 0 {
+			// Balance is smaller than limitedFee, won't giveback the tx
+			return false, ErrInsufficientBalance
+		}
 	}
 
 	// step2. check gasLimit >= txBaseGas.
@@ -571,8 +574,10 @@ func VerifyExecution(tx *Transaction, block *Block, ws WorldState) (bool, error)
 	if balanceErr != nil {
 		return submitTx(tx, block, ws, gasUsed, ErrGasFeeOverflow, "Failed to add tx.value", "")
 	}
-	if fromAcc.Balance().Cmp(minBalanceRequired) < 0 {
-		return submitTx(tx, block, ws, gasUsed, ErrInsufficientBalance, "Failed to check balance >= gasLimit * gasPrice + value", "")
+	if tx.Type() != TxPayloadPodType {
+		if fromAcc.Balance().Cmp(minBalanceRequired) < 0 {
+			return submitTx(tx, block, ws, gasUsed, ErrInsufficientBalance, "Failed to check balance >= gasLimit * gasPrice + value", "")
+		}
 	}
 	var transferSubErr, transferAddErr error
 	transferSubErr = fromAcc.SubBalance(tx.value)
@@ -699,8 +704,10 @@ func (tx *Transaction) simulateExecution(block *Block) (*SimulateResult, error) 
 		}
 	}
 
-	// check balance.
-	err = checkBalanceForGasUsedAndValue(ws, fromAcc, tx.value, gasUsed, tx.gasPrice)
+	if tx.Type() != TxPayloadPodType {
+		// check balance.
+		err = checkBalanceForGasUsedAndValue(ws, fromAcc, tx.value, gasUsed, tx.gasPrice)
+	}
 	return &SimulateResult{gasUsed, result, err}, nil
 }
 

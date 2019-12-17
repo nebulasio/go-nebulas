@@ -216,17 +216,14 @@ func (pod *PoD) ForkChoice() error {
 // UpdateLIB update the latest irrversible block
 func (pod *PoD) UpdateLIB(rversibleBlocks []byteutils.Hash) {
 
-	if pod.enable && !pod.Pending() && core.NodeUpdateAtHeight(pod.chain.TailBlock().Height()) {
+	available := core.NodeUpdateAtHeight(pod.chain.TailBlock().Height())
+	if pod.enable && !pod.Pending() && available && len(rversibleBlocks) > 0 {
 		found, _ := pod.dynasty.isProposer(pod.chain.TailBlock().Timestamp(), pod.miner.Bytes())
 		logging.VLog().WithFields(logrus.Fields{
 			"found": found,
 		}).Debug("check updateLIB isProposer.")
 		if found {
-			if err := pod.broadcastWitness(rversibleBlocks); err != nil {
-				logging.VLog().WithFields(logrus.Fields{
-					"err": err,
-				}).Error("Failed to broadcast witness.")
-			}
+			go pod.broadcastWitness(rversibleBlocks)
 		}
 	}
 
@@ -350,12 +347,11 @@ func (pod *PoD) CheckDoubleMint(block *core.Block) bool {
 	if preBlock, exist := pod.slot.Get(block.Timestamp()); exist {
 		if preBlock.(*core.Block).Hash().Equals(block.Hash()) == false {
 
-			pod.reportEvil(preBlock.(*core.Block), block)
-
 			logging.VLog().WithFields(logrus.Fields{
 				"curBlock": block,
 				"preBlock": preBlock.(*core.Block),
 			}).Warn("Found someone minted multiple blocks at same time.")
+			pod.reportEvil(preBlock.(*core.Block), block)
 			return true
 		}
 	}
@@ -827,7 +823,7 @@ func (pod *PoD) triggerState(now int64) error {
 		}
 	}
 	if pod.dynasty.tries[serial+1] == nil {
-		states, err := pod.chain.StatisticalLastBlocks(serial)
+		states, err := pod.chain.StatisticalLastBlocks(serial, pod.chain.TailBlock())
 		if err != nil {
 			return err
 		}
@@ -843,7 +839,7 @@ func (pod *PoD) triggerState(now int64) error {
 			"miner":      pod.miner.String(),
 			"timestamp":  now,
 			"statistics": states,
-		}).Info("trigger block statistics ")
+		}).Info("trigger block statistics")
 	}
 	return nil
 }
@@ -909,7 +905,16 @@ func (pod *PoD) sendTransaction(timestamp int64, action string, data []byte) err
 		return err
 	}
 
-	return pod.chain.TransactionPool().PushAndBroadcast(tx)
+	logging.VLog().WithFields(logrus.Fields{
+		"miner":     pod.miner.String(),
+		"timestamp": timestamp,
+		"serial":    pod.dynasty.serial(timestamp),
+		"action":    action,
+		"tx":        tx,
+	}).Info("send pod tx")
+
+	go pod.chain.TransactionPool().PushAndBroadcast(tx)
+	return nil
 }
 
 func (pod *PoD) signTransaction(tx *core.Transaction) error {

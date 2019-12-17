@@ -36,6 +36,11 @@ func (pod *PoD) broadcastWitness(hashs []byteutils.Hash) error {
 		blockHashs: hashs,
 	}
 	if err := pod.signWitness(witness); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"miner": pod.miner,
+			"hash":  hashs,
+			"err":   err,
+		}).Error("Failed to sign witness.")
 		return err
 	}
 	pod.ns.Broadcast(MessageTypeWitness, witness, net.MessagePriorityNormal)
