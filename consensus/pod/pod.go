@@ -57,19 +57,22 @@ type PoD struct {
 	slot       *lru.Cache
 	reversible *lru.Cache
 
-	enable          bool
-	pending         bool
-	heartbeatSerial int64
+	enable  bool
+	pending bool
+
+	heartbeatSerial    int64
+	heartbeatTimestamp int64
 }
 
 // NewPoD create PoD.
 func NewPoD() *PoD {
 	pod := &PoD{
-		quitCh:          make(chan bool, 5),
-		enable:          false,
-		pending:         true,
-		heartbeatSerial: -1,
-		messageCh:       make(chan net.Message, 128),
+		quitCh:             make(chan bool, 5),
+		enable:             false,
+		pending:            true,
+		heartbeatSerial:    -1,
+		heartbeatTimestamp: 0,
+		messageCh:          make(chan net.Message, 128),
 	}
 	return pod
 }
@@ -767,8 +770,29 @@ func (pod *PoD) heartbeat(now int64) error {
 		return nil
 	}
 
-	serial := pod.dynasty.serial(now - 2*BlockIntervalInMs/SecondInMs)
-	if serial == pod.heartbeatSerial {
+	serial := pod.dynasty.serial(now)
+	if serial <= pod.heartbeatSerial {
+		return nil
+	}
+
+	// check if heartbeat record on chain
+	if (now-pod.heartbeatTimestamp)%(BlockIntervalInMs/SecondInMs) == 0 {
+		node, err := pod.dynasty.getNodeInfo(pod.miner)
+		if err != nil {
+			return err
+		}
+		logging.VLog().WithFields(logrus.Fields{
+			"miner":     pod.miner.String(),
+			"serial":    serial,
+			"timestamp": now,
+			"heartbeat": pod.heartbeatSerial,
+			"node":      node,
+		}).Debug("Load node info.")
+		if serial <= node.HeartbeatSerial {
+			pod.heartbeatSerial = node.HeartbeatSerial
+			return nil
+		}
+	} else {
 		return nil
 	}
 
@@ -795,15 +819,18 @@ func (pod *PoD) heartbeat(now int64) error {
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"miner":     pod.miner.String(),
+			"serial":    serial,
 			"timestamp": now,
 			"err":       err,
 		}).Error("Failed to send heartbeat")
 	} else {
-		pod.heartbeatSerial = serial
+		pod.heartbeatTimestamp = now
 
 		logging.VLog().WithFields(logrus.Fields{
 			"miner":     pod.miner.String(),
+			"serial":    serial,
 			"timestamp": now,
+			"heartbeat": pod.heartbeatSerial,
 		}).Info("Send miner heartbeat")
 	}
 

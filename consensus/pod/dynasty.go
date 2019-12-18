@@ -274,6 +274,26 @@ func (d *Dynasty) tailDynasty() (*trie.Trie, error) {
 	return tire, nil
 }
 
+func (d *Dynasty) getNodeInfo(miner *core.Address) (*core.NodeInfo, error) {
+	args := fmt.Sprintf("[\"%s\"]", miner.String())
+	result, err := d.chain.SimulateCallContract(core.PoDContract, core.PoDNodeInfo, args)
+	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"result": result,
+			"error":  err,
+		}).Error("Failed to get node from contract.")
+		return nil, err
+	}
+	node := &core.NodeInfo{}
+	if err := json.Unmarshal([]byte(result.Msg), node); err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"result": result,
+		}).Debug("Failed to parse node from contract.")
+		return nil, err
+	}
+	return node, nil
+}
+
 func (d *Dynasty) getParticipants() ([]string, error) {
 	result, err := d.chain.SimulateCallContract(core.PoDContract, core.PoDParticipants, "")
 	if err != nil {

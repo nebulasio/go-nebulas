@@ -36,6 +36,7 @@ const (
 	PoDMiners       = "getMiners"
 	PoDCandidates   = "getCandidates"
 	PoDParticipants = "getParticipants"
+	PoDNodeInfo     = "getNodeInfo"
 )
 
 const (
@@ -96,6 +97,12 @@ func (s *Statistics) FromBytes(data []byte) error {
 		return err
 	}
 	return nil
+}
+
+type NodeInfo struct {
+	Id              string `json:"id"`
+	HeartbeatSerial int64  `json:"heartbeat_serial"`
+	// TODO: return more info later
 }
 
 // PodPayload carry pod data
