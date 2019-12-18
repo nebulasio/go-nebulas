@@ -185,6 +185,7 @@ func (d *Dynasty) isProposer(now int64, miner byteutils.Hash) (bool, error) {
 		"timestamp":  now,
 		"serial":     d.serial(now),
 		"lastHeight": d.chain.TailBlock().Height(),
+		"miner":      miner,
 	}).Debug("isProposer.")
 
 	iter, err := tire.Iterator(nil)

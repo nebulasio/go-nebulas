@@ -152,12 +152,12 @@ func (payload *PodPayload) state(tx *Transaction, block *Block) (string, string,
 		return "", "", err
 	}
 
-	for _, v := range states {
-		logging.VLog().WithFields(logrus.Fields{
-			"tx.hash": tx.Hash(),
-			"states":  v,
-		}).Debug("load pod statistics")
-	}
+	//for _, v := range states {
+	//	logging.VLog().WithFields(logrus.Fields{
+	//		"tx.hash": tx.Hash(),
+	//		"states":  v,
+	//	}).Debug("load pod statistics")
+	//}
 
 	blockStates, err := block.txPool.bc.StatisticalLastBlocks(payload.Serial, block)
 	if err != nil {

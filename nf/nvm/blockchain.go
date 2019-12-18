@@ -853,7 +853,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		return nil
 	}
 
-	logging.VLog().Infof("end cal val:%v,gascount:%v,gasSum:%v, engine index:%v", val, gasCout, gasSum, index)
+	//logging.VLog().Debug("end cal val:%v,gascount:%v,gasSum:%v, engine index:%v", val, gasCout, gasSum, index)
 	return C.CString(string(val))
 }
 

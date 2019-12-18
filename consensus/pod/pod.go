@@ -351,7 +351,7 @@ func (pod *PoD) CheckDoubleMint(block *core.Block) bool {
 				"curBlock": block,
 				"preBlock": preBlock.(*core.Block),
 			}).Warn("Found someone minted multiple blocks at same time.")
-			pod.reportEvil(preBlock.(*core.Block), block)
+			go pod.reportEvil(preBlock.(*core.Block), block)
 			return true
 		}
 	}
@@ -364,6 +364,13 @@ func (pod *PoD) reportEvil(preBlock, block *core.Block) error {
 	}
 
 	found, err := pod.dynasty.isProposer(block.Timestamp(), pod.miner.Bytes())
+	logging.VLog().WithFields(logrus.Fields{
+		"timestamp": block.Timestamp(),
+		"serial":    pod.dynasty.serial(block.Timestamp()),
+		"miner":     pod.miner,
+		"curBlock":  block.Hash(),
+		"preBlock":  preBlock.Hash(),
+	}).Debug("check evil reporter.")
 	if err != nil {
 		return err
 	}
@@ -384,23 +391,24 @@ func (pod *PoD) reportEvil(preBlock, block *core.Block) error {
 		}
 		err = pod.sendTransaction(block.Timestamp(), core.PoDReport, bytes)
 		logging.VLog().WithFields(logrus.Fields{
-			"curBlock": block,
-			"preBlock": preBlock,
-			"error":    err,
-		}).Info("Found someone minted multiple blocks at same time.")
+			"timestamp": block.Timestamp(),
+			"serial":    pod.dynasty.serial(block.Timestamp()),
+			"miner":     pod.miner,
+			"curBlock":  block,
+			"preBlock":  preBlock,
+			"error":     err,
+		}).Info("Send report evil tx.")
 		if err != nil {
 			return err
 		}
 	} else {
-		dynasty, _ := block.Dynasty()
 		logging.VLog().WithFields(logrus.Fields{
 			"timestamp": block.Timestamp(),
 			"serial":    pod.dynasty.serial(block.Timestamp()),
 			"miner":     pod.miner,
-			"dynasty":   dynasty,
-			"curBlock":  block,
-			"preBlock":  preBlock,
-		}).Info("Not the dynasty proposer.")
+			"curBlock":  block.Hash(),
+			"preBlock":  preBlock.Hash(),
+		}).Info("Not the dynasty proposer for report evil.")
 	}
 	return nil
 }
@@ -810,10 +818,10 @@ func (pod *PoD) triggerState(now int64) error {
 		return nil
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
-		"miner":     pod.miner.String(),
-		"timestamp": now,
-	}).Debug("trigger state")
+	//logging.VLog().WithFields(logrus.Fields{
+	//	"miner":     pod.miner.String(),
+	//	"timestamp": now,
+	//}).Debug("trigger state")
 
 	serial := pod.dynasty.serial(now)
 	if pod.dynasty.tries[serial+1] == nil {
@@ -836,6 +844,7 @@ func (pod *PoD) triggerState(now int64) error {
 		}
 		logging.VLog().WithFields(logrus.Fields{
 			"miner":      pod.miner.String(),
+			"serial":     serial,
 			"timestamp":  now,
 			"statistics": states,
 		}).Info("trigger block statistics")

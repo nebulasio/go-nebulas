@@ -348,6 +348,10 @@ func (block *Block) Miner() *Address {
 	proposer := block.ConsensusRoot().Proposer
 	miner, err := AddressParseFromBytes(proposer)
 	if err != nil {
+		logging.VLog().WithFields(logrus.Fields{
+			"block": block,
+			"err":   err,
+		}).Warn("Failed to get block miner.")
 		return nil
 	}
 	return miner
