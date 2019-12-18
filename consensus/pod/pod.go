@@ -57,19 +57,19 @@ type PoD struct {
 	slot       *lru.Cache
 	reversible *lru.Cache
 
-	enable     bool
-	pending    bool
-	launchBeat bool
+	enable          bool
+	pending         bool
+	heartbeatSerial int64
 }
 
 // NewPoD create PoD.
 func NewPoD() *PoD {
 	pod := &PoD{
-		quitCh:     make(chan bool, 5),
-		enable:     false,
-		pending:    true,
-		launchBeat: false,
-		messageCh:  make(chan net.Message, 128),
+		quitCh:          make(chan bool, 5),
+		enable:          false,
+		pending:         true,
+		heartbeatSerial: -1,
+		messageCh:       make(chan net.Message, 128),
 	}
 	return pod
 }
@@ -759,13 +759,10 @@ func (pod *PoD) heartbeat(now int64) error {
 		return nil
 	}
 
-	if pod.launchBeat {
-		// only heartbeat once in a interval
-		if (now+DynastyIntervalInMs/(2*SecondInMs))%(DynastyIntervalInMs/SecondInMs) != 0 {
-			return nil
-		}
+	serial := pod.dynasty.serial(now - 2*BlockIntervalInMs/SecondInMs)
+	if serial == pod.heartbeatSerial {
+		return nil
 	}
-	pod.launchBeat = true
 
 	participants, err := pod.dynasty.getParticipants()
 	if err != nil {
@@ -794,10 +791,12 @@ func (pod *PoD) heartbeat(now int64) error {
 			"err":       err,
 		}).Error("Failed to send heartbeat")
 	} else {
+		pod.heartbeatSerial = serial
+
 		logging.VLog().WithFields(logrus.Fields{
 			"miner":     pod.miner.String(),
 			"timestamp": now,
-		}).Info("send miner heartbeat")
+		}).Info("Send miner heartbeat")
 	}
 
 	return err
@@ -913,8 +912,7 @@ func (pod *PoD) sendTransaction(timestamp int64, action string, data []byte) err
 		"tx":        tx,
 	}).Info("send pod tx")
 
-	go pod.chain.TransactionPool().PushAndBroadcast(tx)
-	return nil
+	return pod.chain.TransactionPool().PushAndBroadcast(tx)
 }
 
 func (pod *PoD) signTransaction(tx *core.Transaction) error {

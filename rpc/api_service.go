@@ -379,7 +379,7 @@ func (s *APIService) toBlockResponse(block *core.Block, fullFillTransaction bool
 	lib := neb.BlockChain().LIB()
 
 	isFinality := false
-	if lib.Height() > block.Height() {
+	if lib.Height() >= block.Height() {
 		isFinality = true
 	}
 	resp := &rpcpb.BlockResponse{

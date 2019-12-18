@@ -102,9 +102,9 @@ func (pod *PoD) onWitnessReceived(msg net.Message) error {
 			found, err := pod.dynasty.isProposer(block.Timestamp(), witness.witness)
 			logging.VLog().WithFields(logrus.Fields{
 				"msgType": msg.MessageType(),
-				"msg":     msg,
-				"found":   found,
-				"err":     err,
+				//"msg":     msg,
+				"found": found,
+				"err":   err,
 			}).Debug("Check witness proposer in dynasty.")
 			// if witness is not the miner in block's dynasty, don't relay the message.
 			if err != nil || !found {

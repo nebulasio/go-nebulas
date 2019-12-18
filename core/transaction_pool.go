@@ -209,12 +209,12 @@ func (pool *TransactionPool) loop() {
 			}
 
 			if err := pool.PushAndRelay(tx); err != nil {
-				logging.VLog().WithFields(logrus.Fields{
-					"func":        "TxPool.loop",
-					"messageType": msg.MessageType(),
-					"transaction": tx,
-					"err":         err,
-				}).Debug("Failed to push a tx into tx pool.")
+				//logging.VLog().WithFields(logrus.Fields{
+				//	"func":        "TxPool.loop",
+				//	"messageType": msg.MessageType(),
+				//	"transaction": tx,
+				//	"err":         err,
+				//}).Debug("Failed to push a tx into tx pool.")
 				continue
 			}
 		}
