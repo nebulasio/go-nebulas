@@ -102,7 +102,7 @@ func (s *Statistics) FromBytes(data []byte) error {
 type NodeInfo struct {
 	Id              string `json:"id"`
 	HeartbeatSerial int64  `json:"heartbeat_serial"`
-	// TODO: return more info later
+	Miner           string `json:"miner"`
 }
 
 // PodPayload carry pod data

@@ -223,7 +223,7 @@ func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 			}
 		}
 	} else {
-		if interval%DynastyIntervalInMs == 0 {
+		if d.tries[serial] == nil && interval%DynastyIntervalInMs == 0 {
 			d.loadFromContract(serial)
 		}
 
@@ -248,11 +248,11 @@ func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 		dt = temp
 	}
 
-	logging.VLog().WithFields(logrus.Fields{
-		"timestamp": timestamp,
-		"serial":    serial,
-		"dt":        dt,
-	}).Debug("Dynasty info.")
+	//logging.VLog().WithFields(logrus.Fields{
+	//	"timestamp": timestamp,
+	//	"serial":    serial,
+	//	"dt":        dt,
+	//}).Debug("Dynasty info.")
 
 	dynastyTrie, err := dt.Clone()
 	if err != nil {
@@ -294,7 +294,7 @@ func (d *Dynasty) getNodeInfo(miner *core.Address) (*core.NodeInfo, error) {
 	return node, nil
 }
 
-func (d *Dynasty) getParticipants() ([]string, error) {
+func (d *Dynasty) getParticipants() ([]*core.NodeInfo, error) {
 	result, err := d.chain.SimulateCallContract(core.PoDContract, core.PoDParticipants, "")
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
@@ -303,7 +303,7 @@ func (d *Dynasty) getParticipants() ([]string, error) {
 		}).Error("Failed to get participants from contract.")
 		return nil, err
 	}
-	var participants []string
+	participants := []*core.NodeInfo{}
 	if err := json.Unmarshal([]byte(result.Msg), &participants); err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"result": result,

@@ -44,10 +44,10 @@ func (pod *PoD) broadcastWitness(hashs []byteutils.Hash) error {
 		return err
 	}
 	pod.ns.Broadcast(MessageTypeWitness, witness, net.MessagePriorityNormal)
-	logging.VLog().WithFields(logrus.Fields{
-		"miner": pod.miner,
-		"hash":  hashs,
-	}).Debug("Broadcast witness to peers.")
+	//logging.VLog().WithFields(logrus.Fields{
+	//	"miner": pod.miner,
+	//	"hash":  hashs,
+	//}).Debug("Broadcast witness to peers.")
 	return nil
 }
 
@@ -100,14 +100,13 @@ func (pod *PoD) onWitnessReceived(msg net.Message) error {
 		block := pod.chain.GetBlock(v)
 		if block != nil {
 			found, err := pod.dynasty.isProposer(block.Timestamp(), witness.witness)
-			logging.VLog().WithFields(logrus.Fields{
-				"msgType": msg.MessageType(),
-				//"msg":     msg,
-				"found": found,
-				"err":   err,
-			}).Debug("Check witness proposer in dynasty.")
+			//logging.VLog().WithFields(logrus.Fields{
+			//	"msgType": msg.MessageType(),
+			//	"found": found,
+			//	"err":   err,
+			//}).Debug("Check witness proposer in dynasty.")
 			// if witness is not the miner in block's dynasty, don't relay the message.
-			if err != nil || !found {
+			if !found || err != nil {
 				return err
 			}
 
@@ -132,10 +131,10 @@ func (pod *PoD) onWitnessReceived(msg net.Message) error {
 
 	pod.ns.Relay(MessageTypeWitness, witness, net.MessagePriorityNormal)
 
-	logging.VLog().WithFields(logrus.Fields{
-		"msgType": msg.MessageType(),
-		"witness": witness,
-	}).Debug("Receive witness from peers.")
+	//logging.VLog().WithFields(logrus.Fields{
+	//	"msgType": msg.MessageType(),
+	//	"witness": witness,
+	//}).Debug("Receive witness from peers.")
 	return nil
 }
 

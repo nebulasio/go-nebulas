@@ -362,7 +362,12 @@ func (pod *PoD) CheckDoubleMint(block *core.Block) bool {
 }
 
 func (pod *PoD) reportEvil(preBlock, block *core.Block) error {
-	if !pod.enable || !core.NodeUpdateAtHeight(pod.chain.TailBlock().Height()) {
+	// check mining enable
+	if !pod.enable || pod.pending {
+		return nil
+	}
+
+	if !core.NodeUpdateAtHeight(pod.chain.TailBlock().Height()) {
 		return nil
 	}
 
@@ -762,7 +767,7 @@ func (pod *PoD) mintBlock(now int64) error {
 
 func (pod *PoD) heartbeat(now int64) error {
 	// check mining enable
-	if !pod.enable {
+	if !pod.enable || pod.pending {
 		return ErrNoHeartbeatWhenDisable
 	}
 
@@ -775,9 +780,12 @@ func (pod *PoD) heartbeat(now int64) error {
 		return nil
 	}
 
+	minerSignUp := false
+	miner := pod.miner.String()
+
 	// check if heartbeat record on chain
 	if (now-pod.heartbeatTimestamp)%(BlockIntervalInMs/SecondInMs) == 0 {
-		node, err := pod.dynasty.getNodeInfo(pod.miner)
+		participants, err := pod.dynasty.getParticipants()
 		if err != nil {
 			return err
 		}
@@ -786,62 +794,64 @@ func (pod *PoD) heartbeat(now int64) error {
 			"serial":    serial,
 			"timestamp": now,
 			"heartbeat": pod.heartbeatSerial,
-			"node":      node,
-		}).Debug("Load node info.")
-		if serial <= node.HeartbeatSerial {
-			pod.heartbeatSerial = node.HeartbeatSerial
-			return nil
+		}).Debug("Load participants.")
+
+		for _, v := range participants {
+			if miner == v.Miner {
+				minerSignUp = true
+				if serial <= v.HeartbeatSerial {
+					pod.heartbeatSerial = v.HeartbeatSerial
+					return nil
+				}
+				break
+			}
 		}
 	} else {
 		return nil
 	}
 
-	participants, err := pod.dynasty.getParticipants()
-	if err != nil {
-		return err
-	}
-
-	minerSignUp := false
-	miner := pod.miner.String()
-	for _, v := range participants {
-		if miner == v {
-			minerSignUp = true
-			break
-		}
-	}
-
 	if minerSignUp {
-		err = pod.sendTransaction(now, core.PoDHeartbeat, nil)
+		if err := pod.sendTransaction(now, core.PoDHeartbeat, nil); err != nil {
+			logging.VLog().WithFields(logrus.Fields{
+				"miner":     pod.miner.String(),
+				"serial":    serial,
+				"timestamp": now,
+				"err":       err,
+			}).Error("Failed to send heartbeat")
+			return err
+		}
 	} else {
-		err = ErrMinerNotSignUp
-	}
-
-	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"miner":     pod.miner.String(),
 			"serial":    serial,
 			"timestamp": now,
-			"err":       err,
+			"err":       ErrMinerNotSignUp,
 		}).Error("Failed to send heartbeat")
-	} else {
-		pod.heartbeatTimestamp = now
-
-		logging.VLog().WithFields(logrus.Fields{
-			"miner":     pod.miner.String(),
-			"serial":    serial,
-			"timestamp": now,
-			"heartbeat": pod.heartbeatSerial,
-		}).Info("Send miner heartbeat")
+		return ErrMinerNotSignUp
 	}
 
-	return err
+	pod.heartbeatTimestamp = now
+
+	logging.VLog().WithFields(logrus.Fields{
+		"miner":     pod.miner.String(),
+		"serial":    serial,
+		"timestamp": now,
+		"heartbeat": pod.heartbeatSerial,
+	}).Info("Send miner heartbeat")
+
+	return nil
 }
 
 // triggerState trigger the pod contract state machine
 // if next serial dynasty not found, we need generate it
 // and submit last serial block mint statics
 func (pod *PoD) triggerState(now int64) error {
-	if !pod.enable || !core.NodeUpdateAtHeight(pod.chain.TailBlock().Height()) {
+	// check mining enable
+	if !pod.enable || pod.pending {
+		return nil
+	}
+
+	if !core.NodeUpdateAtHeight(pod.chain.TailBlock().Height()) {
 		return nil
 	}
 
