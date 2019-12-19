@@ -181,12 +181,12 @@ func (d *Dynasty) isProposer(now int64, miner byteutils.Hash) (bool, error) {
 		return false, err
 	}
 
-	logging.CLog().WithFields(logrus.Fields{
-		"timestamp":  now,
-		"serial":     d.serial(now),
-		"lastHeight": d.chain.TailBlock().Height(),
-		"miner":      miner,
-	}).Debug("isProposer.")
+	//logging.VLog().WithFields(logrus.Fields{
+	//	"timestamp":  now,
+	//	"serial":     d.serial(now),
+	//	"lastHeight": d.chain.TailBlock().Height(),
+	//	"miner":      miner,
+	//}).Debug("isProposer.")
 
 	iter, err := tire.Iterator(nil)
 	if err != nil {

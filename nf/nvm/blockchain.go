@@ -831,7 +831,7 @@ func InnerContractFunc(handler unsafe.Pointer, address *C.char, funcName *C.char
 		return nil
 	}
 
-	logging.VLog().Debugf("begin create New V8,intance:%v, mem:%v", remainInstruction, remainMem)
+	//logging.VLog().Debugf("begin create New V8,intance:%v, mem:%v", remainInstruction, remainMem)
 	engineNew := NewV8Engine(newCtx)
 	defer engineNew.Dispose()
 	engineNew.SetExecutionLimits(remainInstruction, remainMem)

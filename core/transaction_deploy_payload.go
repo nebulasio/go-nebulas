@@ -151,7 +151,7 @@ func (payload *DeployPayload) Execute(limitedGas *util.Uint128, tx *Transaction,
 		"tx.hash":      tx.Hash(),
 		"instructions": instructions,
 		"limitedGas":   limitedGas,
-	}).Debug("record gas of v8")
+	}).Debug("execute deploy payload")
 
 	return instructions, result, exeErr
 }

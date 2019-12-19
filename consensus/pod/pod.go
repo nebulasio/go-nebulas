@@ -780,7 +780,7 @@ func (pod *PoD) heartbeat(now int64) error {
 		return nil
 	}
 
-	minerSignUp := false
+	minerParticipate := false
 	miner := pod.miner.String()
 
 	// check if heartbeat record on chain
@@ -798,7 +798,7 @@ func (pod *PoD) heartbeat(now int64) error {
 
 		for _, v := range participants {
 			if miner == v.Miner {
-				minerSignUp = true
+				minerParticipate = true
 				if serial <= v.HeartbeatSerial {
 					pod.heartbeatSerial = v.HeartbeatSerial
 					return nil
@@ -810,7 +810,7 @@ func (pod *PoD) heartbeat(now int64) error {
 		return nil
 	}
 
-	if minerSignUp {
+	if minerParticipate {
 		if err := pod.sendTransaction(now, core.PoDHeartbeat, nil); err != nil {
 			logging.VLog().WithFields(logrus.Fields{
 				"miner":     pod.miner.String(),
@@ -825,9 +825,9 @@ func (pod *PoD) heartbeat(now int64) error {
 			"miner":     pod.miner.String(),
 			"serial":    serial,
 			"timestamp": now,
-			"err":       ErrMinerNotSignUp,
+			"err":       ErrMinerParticipate,
 		}).Error("Failed to send heartbeat")
-		return ErrMinerNotSignUp
+		return ErrMinerParticipate
 	}
 
 	pod.heartbeatTimestamp = now

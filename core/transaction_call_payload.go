@@ -115,7 +115,7 @@ func (payload *CallPayload) Execute(limitedGas *util.Uint128, tx *Transaction, b
 		"function":     payload.Function,
 		"instructions": instructions,
 		"limitedGas":   limitedGas,
-	}).Debug("record gas of v8")
+	}).Debug("execute call payload")
 
 	return instructions, result, exeErr
 }

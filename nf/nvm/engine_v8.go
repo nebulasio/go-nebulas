@@ -282,10 +282,10 @@ func (e *V8Engine) SetExecutionLimits(limitsOfExecutionInstructions, limitsOfTot
 	e.v8engine.limits_of_executed_instructions = C.size_t(limitsOfExecutionInstructions)
 	e.v8engine.limits_of_total_memory_size = C.size_t(limitsOfTotalMemorySize)
 
-	logging.VLog().WithFields(logrus.Fields{
-		"limits_of_executed_instructions": limitsOfExecutionInstructions,
-		"limits_of_total_memory_size":     limitsOfTotalMemorySize,
-	}).Debug("set execution limits.")
+	//logging.VLog().WithFields(logrus.Fields{
+	//	"limits_of_executed_instructions": limitsOfExecutionInstructions,
+	//	"limits_of_total_memory_size":     limitsOfTotalMemorySize,
+	//}).Debug("set execution limits.")
 
 	e.limitsOfExecutionInstructions = limitsOfExecutionInstructions
 	e.limitsOfTotalMemorySize = limitsOfTotalMemorySize
