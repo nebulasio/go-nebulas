@@ -103,6 +103,7 @@ type NodeInfo struct {
 	Id              string `json:"id"`
 	HeartbeatSerial int64  `json:"heartbeat_serial"`
 	Miner           string `json:"miner"`
+	Score           string `json:"score"`
 }
 
 // PodPayload carry pod data
