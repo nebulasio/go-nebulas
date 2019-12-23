@@ -386,6 +386,17 @@ func (pod *PoD) reportEvil(preBlock, block *core.Block) error {
 		evil := core.AttackNotMiner
 		if preBlock.Miner().Equals(block.Miner()) {
 			evil = core.AttackDoubleSpend
+		} else {
+			//FIXME: Current block mint strategy is, no new block mint dynasty, use the last block mint dynasty
+			// Therefore, for the non - block node block temporarily do not punish, to prevent accidental injury.
+			logging.VLog().WithFields(logrus.Fields{
+				"timestamp": block.Timestamp(),
+				"serial":    pod.dynasty.serial(block.Timestamp()),
+				"miner":     pod.miner,
+				"curBlock":  block.Hash(),
+				"preBlock":  preBlock.Hash(),
+			}).Warn("Not the miner for report evil.")
+			return nil
 		}
 		// submit double mint attack
 		report := &core.Report{
