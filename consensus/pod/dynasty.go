@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 
 	"github.com/gogo/protobuf/proto"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebulasio/go-nebulas/common/trie"
 	"github.com/nebulasio/go-nebulas/core"
 	corepb "github.com/nebulasio/go-nebulas/core/pb"
@@ -39,14 +40,20 @@ type Dynasty struct {
 
 	genesisTimestamp int64
 
-	tries map[int64]*trie.Trie
+	//tries map[int64]*trie.Trie
+	tries *lru.Cache
 }
 
 // NewDynasty create dynasty
 func NewDynasty(neb core.Neblet) (*Dynasty, error) {
+	tries, err := lru.New(128)
+	if err != nil {
+		return nil, err
+	}
 	dynasty := &Dynasty{
 		chain: neb.BlockChain(),
-		tries: make(map[int64]*trie.Trie),
+		//tries: make(map[int64]*trie.Trie),
+		tries: tries,
 	}
 	if err := dynasty.loadFromConfig(neb.Genesis(), neb.Config().Chain.Dynasty); err != nil {
 		return nil, err
@@ -65,7 +72,8 @@ func (d Dynasty) updateDynasty(dynasty *corepb.Dynasty) error {
 			if err != nil {
 				return err
 			}
-			d.tries[int64(v.Serial)] = dynastyTrie
+			//d.tries[int64(v.Serial)] = dynastyTrie
+			d.tries.Add(int64(v.Serial), dynastyTrie)
 		}
 	}
 	return nil
@@ -205,7 +213,7 @@ func (d *Dynasty) isProposer(now int64, miner byteutils.Hash) (bool, error) {
 // getDynastyTrie query dynasty trie
 func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 	// give a default dynasty trie
-	dt := d.tries[GenesisDynastySerial]
+	dt, _ := d.tries.Get(GenesisDynastySerial)
 
 	serial := d.serial(timestamp)
 	interval := (timestamp - d.genesisTimestamp) * SecondInMs
@@ -214,12 +222,12 @@ func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 	if !core.NodeUpdateAtHeight(d.chain.TailBlock().Height()) {
 		tmpDynasty := int64(0)
 		// eg: dynasty is: 1----3-----6, if serial={1,2}  dynasty=1, serial={3,4,5}, dynasty=3
-		for k, v := range d.tries {
-			start := int64(k)
+		for _, v := range d.tries.Keys() {
+			start := v.(int64)
 
 			if start < serial+1 && start >= tmpDynasty && interval > start*DynastyIntervalInMs {
 				tmpDynasty = start
-				dt = v
+				dt, _ = d.tries.Get(v)
 			}
 		}
 	} else {
@@ -227,12 +235,20 @@ func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 			d.loadFromContract(serial)
 		}
 
-		temp := d.tries[serial]
+		temp, _ := d.tries.Get(serial)
 		// if dynasty not found in contract, use last dynasty.
 		if temp == nil {
-			tail, err := d.tailDynasty()
+			dynastyRoot, err := d.chain.TailBlock().DynastyRoot()
 			if err != nil {
 				return nil, err
+			}
+			tail, err := trie.NewTrie(dynastyRoot, d.chain.Storage(), false)
+			if err != nil {
+				return nil, err
+			}
+			tailSerial := d.serial(d.chain.TailBlock().Timestamp())
+			if tailSerial == serial {
+				d.tries.Add(serial, tail)
 			}
 
 			temp = tail
@@ -254,24 +270,12 @@ func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 	//	"dt":        dt,
 	//}).Debug("Dynasty info.")
 
-	dynastyTrie, err := dt.Clone()
+	dynastyTrie, err := dt.(*trie.Trie).Clone()
 	if err != nil {
 		return nil, err
 	}
 
 	return dynastyTrie, nil
-}
-
-func (d *Dynasty) tailDynasty() (*trie.Trie, error) {
-	dynastyRoot, err := d.chain.TailBlock().DynastyRoot()
-	if err != nil {
-		return nil, err
-	}
-	tire, err := trie.NewTrie(dynastyRoot, d.chain.Storage(), false)
-	if err != nil {
-		return nil, err
-	}
-	return tire, nil
 }
 
 func (d *Dynasty) getNodeInfo(miner *core.Address) (*core.NodeInfo, error) {

@@ -872,12 +872,12 @@ func (pod *PoD) triggerState(now int64) error {
 	//}).Debug("trigger state")
 
 	serial := pod.dynasty.serial(now)
-	if pod.dynasty.tries[serial+1] == nil {
+	if _, ok := pod.dynasty.tries.Get(serial + 1); ok {
 		if err := pod.dynasty.loadFromContract(serial); err != nil {
 			return err
 		}
 	}
-	if pod.dynasty.tries[serial+1] == nil {
+	if _, ok := pod.dynasty.tries.Get(serial + 1); ok {
 		states, err := pod.chain.StatisticalLastBlocks(serial, pod.chain.TailBlock())
 		if err != nil {
 			return err
