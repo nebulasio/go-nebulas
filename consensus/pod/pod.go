@@ -340,7 +340,7 @@ func (pod *PoD) verifyBlockSign(block *core.Block) error {
 			"signer": signer,
 			"block":  block,
 		}).Error("Failed to verify block's sign.")
-		return ErrInvalidBlockProposer
+		return core.ErrInvalidBlockProposer
 	}
 	return nil
 }
@@ -661,7 +661,7 @@ func (pod *PoD) checkProposer(tail *core.Block, nowInMs int64) (state.ConsensusS
 		//	"expected": proposer,
 		//	"actual":   pod.miner,
 		//}).Debug("Not my turn, waiting...")
-		return nil, ErrInvalidBlockProposer
+		return nil, core.ErrInvalidBlockProposer
 	}
 	return consensusState, nil
 }

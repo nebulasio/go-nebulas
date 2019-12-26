@@ -53,7 +53,6 @@ var (
 	ErrInvalidBlockTimestamp      = errors.New("invalid block timestamp, should be same as consensus's timestamp")
 	ErrInvalidBlockInterval       = errors.New("invalid block interval")
 	ErrMissingConfigForDpos       = errors.New("missing configuration for Dpos")
-	ErrInvalidBlockProposer       = errors.New("invalid block proposer")
 	ErrCannotMintWhenPending      = errors.New("cannot mint block now, waiting for cancel pending again")
 	ErrCannotMintWhenDisable      = errors.New("cannot mint block now, waiting for enable it again")
 	ErrWaitingBlockInLastSlot     = errors.New("cannot mint block now, waiting for last block")

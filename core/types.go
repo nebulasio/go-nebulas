@@ -111,6 +111,7 @@ var (
 	ErrDoubleBlockMinted      = errors.New("double block minted")
 	ErrVRFProofFailed         = errors.New("VRF proof failed")
 	ErrInvalidBlockRandom     = errors.New("invalid block random")
+	ErrInvalidBlockProposer   = errors.New("invalid block proposer")
 
 	ErrInvalidChainID           = errors.New("invalid transaction chainID")
 	ErrInvalidTransactionSigner = errors.New("invalid transaction signer")

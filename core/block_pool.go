@@ -368,6 +368,14 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 			"block": block,
 			"err":   err,
 		}).Debug("Failed to check block integrity.")
+		if err == ErrInvalidBlockProposer {
+			tail := pool.bc.TailBlock()
+			blockSerial := pool.bc.ConsensusHandler().Serial(block.Timestamp())
+			tailSerial := pool.bc.ConsensusHandler().Serial(tail.Timestamp())
+			if blockSerial > tailSerial {
+				return pool.startChainSync(int(block.height-tail.height), sender, block)
+			}
+		}
 		return err
 	}
 
@@ -415,29 +423,7 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 	// find parent in Chain.
 	var parentBlock *Block
 	if parentBlock = bc.GetBlock(lb.parentHash); parentBlock == nil {
-		// still not found, wait to parent block from network.
-		if sender == NoSender {
-			return ErrMissingParentBlock
-		}
-
-		// do sync if there are so many empty slots.
-		if gap > ChunkSize {
-			if bc.StartActiveSync() {
-				logging.CLog().WithFields(logrus.Fields{
-					"tail":    bc.tailBlock,
-					"block":   block,
-					"offline": gap,
-					"limit":   ChunkSize,
-				}).Warn("Offline too long, pend mining and restart sync from others.")
-			}
-			return ErrInvalidBlockCannotFindParentInLocalAndTrySync
-		}
-		if !bc.IsActiveSyncing() {
-			if err := pool.downloadParent(sender, lb.block); err != nil {
-				return err
-			}
-		}
-		return ErrInvalidBlockCannotFindParentInLocalAndTryDownload
+		return pool.startChainSync(gap, sender, lb.block)
 	}
 
 	if sender != NoSender {
@@ -463,6 +449,32 @@ func (pool *BlockPool) push(sender string, block *Block) error {
 
 	// notify consensus to handle new block.
 	return pool.bc.ConsensusHandler().ForkChoice()
+}
+
+func (pool *BlockPool) startChainSync(gap int, sender string, block *Block) error {
+	// still not found, wait to parent block from network.
+	if sender == NoSender {
+		return ErrMissingParentBlock
+	}
+
+	// do sync if there are so many empty slots.
+	if gap > ChunkSize {
+		if pool.bc.StartActiveSync() {
+			logging.CLog().WithFields(logrus.Fields{
+				"tail":    pool.bc.tailBlock,
+				"block":   block,
+				"offline": gap,
+				"limit":   ChunkSize,
+			}).Warn("Offline too long, pend mining and restart sync from others.")
+		}
+		return ErrInvalidBlockCannotFindParentInLocalAndTrySync
+	}
+	if !pool.bc.IsActiveSyncing() {
+		if err := pool.downloadParent(sender, block); err != nil {
+			return err
+		}
+	}
+	return ErrInvalidBlockCannotFindParentInLocalAndTryDownload
 }
 
 func vrfProof(block *Block, ancestorHash, parentSeed []byte) error {
