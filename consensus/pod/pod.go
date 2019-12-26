@@ -877,7 +877,7 @@ func (pod *PoD) triggerState(now int64) error {
 			return err
 		}
 	}
-	if _, ok := pod.dynasty.tries.Get(serial + 1); ok {
+	if _, ok := pod.dynasty.tries.Get(serial + 1); !ok {
 		states, err := pod.chain.StatisticalLastBlocks(serial, pod.chain.TailBlock())
 		if err != nil {
 			return err

@@ -231,7 +231,7 @@ func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 			}
 		}
 	} else {
-		if interval%DynastyIntervalInMs == 0 {
+		if !d.tries.Contains(serial) {
 			d.loadFromContract(serial)
 		}
 
