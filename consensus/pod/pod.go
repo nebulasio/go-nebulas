@@ -872,7 +872,7 @@ func (pod *PoD) triggerState(now int64) error {
 	//}).Debug("trigger state")
 
 	serial := pod.dynasty.serial(now)
-	if _, ok := pod.dynasty.tries.Get(serial + 1); ok {
+	if _, ok := pod.dynasty.tries.Get(serial + 1); !ok {
 		if err := pod.dynasty.loadFromContract(serial); err != nil {
 			return err
 		}
