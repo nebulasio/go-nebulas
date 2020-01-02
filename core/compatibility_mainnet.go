@@ -71,7 +71,7 @@ func NewCompatibilityMainNet() Compatibility {
 		nbreAvailableHeight:                               2307000,
 		nrc20SecurityCheckHeight:                          2517131,
 		nbreSplitHeight:                                   2856400,
-		nodeUpdateHeight:                                  3500000,
+		nodeUpdateHeight:                                  4000000,
 	}
 }
 

@@ -149,6 +149,7 @@ func (st *Task) startSyncLoop() {
 		// start get chunk data.
 		logging.VLog().Info("Starting GetChainData from peers.")
 
+		st.chainSyncRetryCount = 0
 		st.sendChunkDataRequest()
 
 		getChunkTimeoutTicker := time.NewTicker(10 * time.Second)
@@ -160,6 +161,16 @@ func (st *Task) startSyncLoop() {
 				logging.VLog().Info("Stopped sync loop.")
 				return
 			case <-getChunkTimeoutTicker.C:
+				if st.chainSyncRetryCount > GetChunkDataTimeout {
+					logging.CLog().WithFields(logrus.Fields{
+						"from":                st.syncPointBlock,
+						"chainSyncPeers":      st.chainSyncPeers,
+						"chainSyncRetryCount": st.chainSyncRetryCount,
+					}).Warn("Get chunk data timeout. Go to next one.")
+					st.reset()
+					st.setSyncPointToNewTail()
+					break SYNC_STEP_2
+				}
 				// for the timeout peer, send message again.
 				st.checkChainGetChunkTimeout()
 			case <-st.chinGetChunkDataDoneCh:
@@ -371,6 +382,13 @@ func (st *Task) checkChainGetChunkTimeout() {
 	// lock.
 	st.syncMutex.Lock()
 	defer st.syncMutex.Unlock()
+
+	logging.VLog().WithFields(logrus.Fields{
+		"syncPointBlockHeight": st.syncPointBlock.Height(),
+		"syncPointBlockHash":   st.syncPointBlock.Hash().String(),
+	}).Infof("Get Chunk at %d times.", st.chainSyncRetryCount)
+
+	st.chainSyncRetryCount++
 
 	for i := 0; i <= st.chainChunkDataSyncPosition; i++ {
 		t := st.chainChunkDataStatus[i]

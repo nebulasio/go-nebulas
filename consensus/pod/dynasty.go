@@ -74,6 +74,11 @@ func (d Dynasty) updateDynasty(dynasty *corepb.Dynasty) error {
 			}
 			//d.tries[int64(v.Serial)] = dynastyTrie
 			d.tries.Add(int64(v.Serial), dynastyTrie)
+
+			logging.VLog().WithFields(logrus.Fields{
+				"serial":  v.Serial,
+				"dynasty": v.Dynasty,
+			}).Info("Update dynasty.")
 		}
 	}
 	return nil
@@ -157,11 +162,6 @@ func (d *Dynasty) loadFromContract(serial int64) error {
 		}).Error("Failed to parse dynasty from contract.")
 		return err
 	}
-
-	logging.VLog().WithFields(logrus.Fields{
-		"serial":  serial,
-		"dynasty": data,
-	}).Info("Load dynasty from contract")
 
 	return d.updateDynasty(data)
 }
