@@ -60,6 +60,7 @@ type PoD struct {
 	enable  bool
 	pending bool
 
+	participants       []*core.NodeInfo
 	heartbeatSerial    int64
 	heartbeatTimestamp int64
 }
@@ -800,6 +801,8 @@ func (pod *PoD) heartbeat(now int64) error {
 		if err != nil {
 			return err
 		}
+		pod.participants = participants
+
 		logging.VLog().WithFields(logrus.Fields{
 			"miner":     pod.miner.String(),
 			"serial":    serial,
@@ -864,6 +867,18 @@ func (pod *PoD) triggerState(now int64) error {
 
 	if !core.NodeUpdateAtHeight(pod.chain.TailBlock().Height()) {
 		return nil
+	}
+
+	minerParticipate := false
+	miner := pod.miner.String()
+	for _, v := range pod.participants {
+		if miner == v.Miner {
+			minerParticipate = true
+			break
+		}
+	}
+	if !minerParticipate {
+		return ErrMinerParticipate
 	}
 
 	//logging.VLog().WithFields(logrus.Fields{
