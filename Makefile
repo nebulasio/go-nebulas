@@ -77,7 +77,7 @@ dep:
 	$(DEPINSTALL) dep ensure -v
 
 build:
-	cd cmd/neb; $(CGO_CFLAGS) $(CGO_LDFLAGS) go build $(LDFLAGS) -o ../../$(NEBBINARY)
+	cd cmd/neb; GOPROXY=https://goproxy.io $(CGO_CFLAGS) $(CGO_LDFLAGS) go build $(LDFLAGS) -o ../../$(NEBBINARY)
 	$(BUUILDLOG)
 
 build-linux:
