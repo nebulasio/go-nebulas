@@ -21,11 +21,11 @@ package core
 // TODO: update if contract is ready
 var (
 	// AccessContract given to access config load contract.
-	AccessContract, _ = AddressParse("n1wRERsLCoGsh2YZu7Qy74iFrraJwnV9gKX")
+	AccessContract, _ = AddressParse("n1k9FLZRns76zsDMwbU7JWXTqwiERtci29w")
 
 	// PoDContract given to pod consensus contract
-	PoDContract, _ = AddressParse("n1xS3BoziPPidb5nXDmGfH9pb4RHQMfyBe9")
+	PoDContract, _ = AddressParse("n1m7Z2Tb8naWuFvWM6NBwwjd5kfXqMWwDNE")
 
 	// GovernanceContract given to governance contract
-	GovernanceContract, _ = AddressParse("n1xS3BoziPPidb5nXDmGfH9pb4RHQMfyBe9")
+	GovernanceContract, _ = AddressParse("n1o4CXpEPipHNCzJ4LuZBHagccN3fhRcXfJ")
 )
