@@ -733,14 +733,7 @@ func (pod *PoD) mintBlock(now int64) error {
 	}).Info("My turn to mint block")
 	metricsBlockPackingTime.Update(deadlineInMs - nowInMs)
 
-	err = pod.triggerState(now)
-	if err != nil {
-		logging.VLog().WithFields(logrus.Fields{
-			"timestamp": now,
-			"serial":    pod.dynasty.serial(now),
-			"err":       err,
-		}).Error("Failed to trigger state.")
-	}
+	go pod.triggerState(now)
 
 	block, err := pod.newBlock(tail, consensusState, deadlineInMs)
 	if err != nil {

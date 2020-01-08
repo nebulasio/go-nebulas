@@ -922,6 +922,9 @@ func (bc *BlockChain) StatisticalLastBlocks(serial int64, block *Block) ([]*Stat
 		"tail":       bc.TailBlock(),
 		"tailSerial": bc.ConsensusHandler().Serial(bc.TailBlock().Timestamp()),
 	}).Debug("start block statistics")
+
+	start := time.Now().Unix()
+
 	statistics := make([]*Statistics, 0)
 	if serial > 0 {
 		lastSerial := serial - 1
@@ -1005,10 +1008,11 @@ func (bc *BlockChain) StatisticalLastBlocks(serial int64, block *Block) ([]*Stat
 	}
 
 	logging.VLog().WithFields(logrus.Fields{
-		"serial": serial,
-		"size":   len(statistics),
-		"data":   statistics,
-		"tail":   bc.TailBlock(),
+		"serial":   serial,
+		"size":     len(statistics),
+		"data":     statistics,
+		"tail":     bc.TailBlock(),
+		"duration": time.Now().Unix() - start,
 	}).Debug("block statistics.")
 	return statistics, nil
 }
