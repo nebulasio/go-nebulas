@@ -1000,8 +1000,8 @@ func (bc *BlockChain) StatisticalLastBlocks(serial int64, block *Block) ([]*Stat
 			if block == nil {
 				return nil, ErrBlockNotFound
 			}
-			// Genesis block need not statistics
-			if byteutils.Equal(block.Hash(), GenesisHash) {
+			// start block statistics after pod launch
+			if !NodeUpdateAtHeight(block.height) {
 				break
 			}
 		}
