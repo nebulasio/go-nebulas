@@ -915,6 +915,16 @@ func (bc *BlockChain) LoadLIBFromStorage() (*Block, error) {
 	return LoadBlockFromStorage(hash, bc)
 }
 
+func (bc *BlockChain) statisticalSerial() int64 {
+	if bc.chainID == MainNetID {
+		return 0 //TODO: need to update
+	} else if bc.chainID == TestNetID {
+		return 17712
+	} else {
+		return 0
+	}
+}
+
 // StatisticalLastBlocks statistical last block states
 func (bc *BlockChain) StatisticalLastBlocks(serial int64, block *Block) ([]*Statistics, error) {
 	logging.VLog().WithFields(logrus.Fields{
@@ -953,6 +963,11 @@ func (bc *BlockChain) StatisticalLastBlocks(serial int64, block *Block) ([]*Stat
 			}
 
 			blockSerial := bc.ConsensusHandler().Serial(block.Timestamp())
+
+			if blockSerial < bc.statisticalSerial() {
+				break
+			}
+
 			for blockSerial <= lastSerial {
 				item := &Statistics{
 					Serial:     lastSerial,
