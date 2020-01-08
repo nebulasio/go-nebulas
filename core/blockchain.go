@@ -964,6 +964,10 @@ func (bc *BlockChain) StatisticalLastBlocks(serial int64, block *Block) ([]*Stat
 
 			blockSerial := bc.ConsensusHandler().Serial(block.Timestamp())
 
+			if blockSerial < bc.statisticalSerial() {
+				break
+			}
+
 			for blockSerial <= lastSerial {
 				item := &Statistics{
 					Serial:     lastSerial,
@@ -994,12 +998,10 @@ func (bc *BlockChain) StatisticalLastBlocks(serial int64, block *Block) ([]*Stat
 				lastSerial--
 			}
 
-			if blockSerial >= bc.statisticalSerial() {
-				item := statistics[len(statistics)-1]
-				item.Start = block.height
-				miner := block.Miner().String()
-				item.Statistics[miner] = item.Statistics[miner] + 1
-			}
+			item := statistics[len(statistics)-1]
+			item.Start = block.height
+			miner := block.Miner().String()
+			item.Statistics[miner] = item.Statistics[miner] + 1
 
 			//logging.VLog().WithFields(logrus.Fields{
 			//	"serial":      serial,
