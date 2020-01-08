@@ -155,21 +155,33 @@ func (a *Access) loadFromContract() error {
 			"access": access,
 			"local":  a.local,
 		}).Debug("Load access from contract.")
-		a.access = mergeAcceeData(access, a.local)
+		a.access = mergeAccessData(access, a.local)
 	}
 	return nil
 }
 
-func mergeAcceeData(dest, src *corepb.Access) *corepb.Access {
+func mergeAccessData(dest, src *corepb.Access) *corepb.Access {
 	if dest == nil {
 		return src
 	}
 	if src != nil {
-		dest.Blacklist.From = append(dest.Blacklist.From, src.Blacklist.From...)
-		dest.Blacklist.To = append(dest.Blacklist.To, src.Blacklist.To...)
-		dest.Blacklist.Contracts = append(dest.Blacklist.Contracts, src.Blacklist.Contracts...)
+		if dest.Blacklist == nil {
+			dest.Blacklist = src.Blacklist
+		} else {
+			if src.Blacklist != nil {
+				dest.Blacklist.From = append(dest.Blacklist.From, src.Blacklist.From...)
+				dest.Blacklist.To = append(dest.Blacklist.To, src.Blacklist.To...)
+				dest.Blacklist.Contracts = append(dest.Blacklist.Contracts, src.Blacklist.Contracts...)
+			}
+		}
 
-		dest.Nrc20List.Contracts = append(dest.Nrc20List.Contracts, src.Nrc20List.Contracts...)
+		if dest.Nrc20List == nil {
+			dest.Nrc20List = src.Nrc20List
+		} else {
+			if src.Nrc20List != nil {
+				dest.Nrc20List.Contracts = append(dest.Nrc20List.Contracts, src.Nrc20List.Contracts...)
+			}
+		}
 	}
 	return dest
 }
