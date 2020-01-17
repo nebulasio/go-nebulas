@@ -63,6 +63,7 @@ type PoD struct {
 	participants       []*core.NodeInfo
 	heartbeatSerial    int64
 	heartbeatTimestamp int64
+	heartbeatTryCount  int64
 }
 
 // NewPoD create PoD.
@@ -73,6 +74,7 @@ func NewPoD() *PoD {
 		pending:            true,
 		heartbeatSerial:    -1,
 		heartbeatTimestamp: 0,
+		heartbeatTryCount:  0,
 		messageCh:          make(chan net.Message, 128),
 	}
 	return pod
@@ -785,6 +787,13 @@ func (pod *PoD) heartbeat(now int64) error {
 		return nil
 	}
 
+	if serial > pod.dynasty.serial(pod.heartbeatTimestamp) {
+		pod.heartbeatTryCount = 0
+	}
+	if pod.heartbeatTryCount >= HeartbeatMaxTryCount {
+		return ErrHeartbeatTryCount
+	}
+
 	minerParticipate := false
 	miner := pod.miner.String()
 
@@ -808,6 +817,7 @@ func (pod *PoD) heartbeat(now int64) error {
 				minerParticipate = true
 				if serial <= v.HeartbeatSerial {
 					pod.heartbeatSerial = v.HeartbeatSerial
+					pod.heartbeatTryCount = 0
 					return nil
 				}
 				break
@@ -838,6 +848,7 @@ func (pod *PoD) heartbeat(now int64) error {
 	}
 
 	pod.heartbeatTimestamp = now
+	pod.heartbeatTryCount++
 
 	logging.VLog().WithFields(logrus.Fields{
 		"miner":     pod.miner.String(),

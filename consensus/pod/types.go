@@ -31,6 +31,7 @@ const (
 	DefaultMaxUnlockDuration time.Duration = 1<<63 - 1
 	GenesisDynasty                         = 1
 	GenesisDynastySerial                   = 0
+	HeartbeatMaxTryCount                   = 10
 )
 
 // Consensus Related Constants
@@ -49,6 +50,7 @@ const (
 var (
 	ErrNoHeartbeatWhenDisable = errors.New("cantnot heartbeat now, waiting for enable it again")
 	ErrMinerParticipate       = errors.New("Failed to send pod tx, miner not participate in pod")
+	ErrHeartbeatTryCount      = errors.New("Out of heartbeat try count")
 
 	ErrInvalidBlockTimestamp      = errors.New("invalid block timestamp, should be same as consensus's timestamp")
 	ErrInvalidBlockInterval       = errors.New("invalid block interval")
