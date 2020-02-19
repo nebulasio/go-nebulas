@@ -148,7 +148,7 @@ export_libs() {
       # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CUR_DIR/native-lib
       result=`ldconfig -p | grep -c nebulas`
       if [ $result -eq 0 ]; then
-        echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CUR_DIR/native-lib' >> $HOME/.bashrc
+        echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:$CUR_DIR/native-lib" >> $HOME/.bashrc
         source $HOME/.bashrc
         echo "Added $CUR_DIR/native-lib to the LD_LIBRARY_PATH environment variable in $HOME/.bashrc."
       fi

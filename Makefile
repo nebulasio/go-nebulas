@@ -40,7 +40,6 @@ ifeq ($(OS),Darwin)
 	LDCONFIG=
 	NEBBINARY=$(BINARY)
 	BUUILDLOG=
-	LDPATH=
 	DBCHECK=brew list | grep -c rocksdb
 else
 	DYLIB=.so
@@ -48,7 +47,6 @@ else
 	LDCONFIG=sudo /sbin/ldconfig
 	NEBBINARY=$(BINARY)-$(COMMIT)
 	BUUILDLOG=-rm -f $(BINARY); ln -s $(BINARY)-$(COMMIT) $(BINARY)
-	LDPATH=export $(BUILD_DIR)/native-lib
 	DBCHECK=ldconfig -p | grep -c rocksdb
 endif
 
@@ -113,7 +111,7 @@ check-lib:
 build: check build-neb
 
 build-neb:
-	cd cmd/neb; GOPROXY=https://goproxy.io $(LDPATH) $(CGO_CFLAGS) $(CGO_LDFLAGS) go build $(LDFLAGS) -o ../../$(NEBBINARY)
+	cd cmd/neb; GOPROXY=https://goproxy.io $(CGO_CFLAGS) $(CGO_LDFLAGS) go build $(LDFLAGS) -o ../../$(NEBBINARY)
 	$(BUUILDLOG)
 
 #build-linux:
