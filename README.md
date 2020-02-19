@@ -117,11 +117,17 @@ services:
 
 ## Run
 
-### Run seed node
-Starting a Nebulas seed node is simple. After the build step above, run a command:
+### Run node
+Starting a Nebulas node is simple. After the build step above, run a command:
 
 ```bash
 ./neb [-c /path/to/config.conf]
+```
+
+Quick start please use script and added check(***Recommend***):
+
+```bash
+./start.sh mainnet|testnet|[-c /path/to/config.conf]
 ```
 
 > tips: more details about configuration, please refer to [`template.conf`](https://github.com/nebulasio/wiki/blob/master/resources/conf/template.conf)

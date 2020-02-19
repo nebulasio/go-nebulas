@@ -43,13 +43,64 @@ fi
 rm -rf $CUR_DIR/native-lib
 mkdir -p $CUR_DIR/native-lib
 
+prepare() {
+  if [ "$OS" = "Darwin" ]; then
+    if ! hash brew 2>/dev/null; then
+      echo "install brew for macOS"
+      /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    fi
+  fi
+
+  if ! hash wget 2>/dev/null; then
+    case $OS in
+      'Linux')
+        sudo apt-get update
+        sudo apt install -y wget
+        ;;
+      'Darwin')
+        brew install wget
+        ;;
+      *) ;;
+    esac
+  fi
+}
+
+install_go() {
+  if [ "$OS" = "Darwin" ]; then
+    if ! hash brew 2>/dev/null; then
+      echo "install brew for macOS"
+      /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    fi
+  fi
+
+  if ! hash go 2>/dev/null; then
+    case $OS in
+      'Linux')
+        wget -c https://dl.google.com/go/go1.13.8.linux-amd64.tar.gz
+        sudo tar -C /usr/local -xzf go1.13.8.linux-amd64.tar.gz
+        # echo "Add /usr/local/go/bin to the PATH environment variable. You can do this by adding this line to your /etc/profile (for a system-wide installation) | $HOME/.profile | $HOME/.bashrc:"
+        # echo '    export PATH=$PATH:/usr/local/go/bin    '
+        # echo "For more go install details visit: https://golang.org/"
+        echo 'export PATH=$PATH:/usr/local/go/bin' >> $HOME/.bashrc
+        source $HOME/.bashrc
+        echo "Added /usr/local/go/bin to the PATH environment variable in $HOME/.bashrc."
+        ;;
+      'Darwin')
+        brew install go
+        ;;
+      *) ;;
+    esac
+    echo "install go success!"
+  fi
+}
+
 install_rocksdb() {
   $CUR_DIR/install-rocksdb.sh
 }
 
 install_nvm() {
   nvm_lib=$CUR_DIR/nf/nvm/native-lib
-  if [ ! -d $nvm_lib ]; then
+  if [ ! -f $nvm_lib/libnebulasv8.$DYLIB ]; then
     echo "downloading nvm lib from remote..."
     mkdir -p $nvm_lib
     pushd $nvm_lib
@@ -59,7 +110,7 @@ install_nvm() {
     rm -rf lib_nvm_$OS
     rm -rf lib_nvm_$OS.tar.gz
     popd
-    echo "install nvm lib..."
+    echo "install nvm lib success!"
   fi
   libs=`ls $nvm_lib|grep .$DYLIB`
   for lib in $libs; do
@@ -94,7 +145,13 @@ install_nbre() {
 export_libs() {
   case $OS in
     'Linux')
-      export LD_LIBRARY_PATH=$CUR_DIR/native-lib:$LD_LIBRARY_PATH
+      # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CUR_DIR/native-lib
+      result=`ldconfig -p | grep -c nebulas`
+      if [ $result -eq 0 ]; then
+        echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CUR_DIR/native-lib' >> $HOME/.bashrc
+        source $HOME/.bashrc
+        echo "Added $CUR_DIR/native-lib to the LD_LIBRARY_PATH environment variable in $HOME/.bashrc."
+      fi
       ;;
     'Darwin')
       if [ ! -d ~/lib ]; then
@@ -105,21 +162,9 @@ export_libs() {
   esac
 }
 
-install_vendor() {
-  if [ ! -d $CUR_DIR/vendor ]; then
-    pushd $CUR_DIR
-    echo "downloading vendor from remote..."
-    wget $SOURCE_URL/setup/vendor/vendor.tar.gz -O vendor.tar.gz
-    tar -zxf vendor.tar.gz
-    rm -rf vendor.tar.gz
-    popd
-  fi
-}
-
+prepare
+install_go
 install_rocksdb
 install_nvm
 #install_nbre
-export_libs
-
-#install_vendor
-    
+export_libs    
