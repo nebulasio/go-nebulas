@@ -21,6 +21,7 @@ package core
 import (
 	"crypto/rand"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
@@ -376,6 +377,16 @@ func (bc *BlockChain) triggerNewTailInfo(blocks []*Block) {
 			if err == nil {
 				for _, e := range events {
 					bc.eventEmitter.Trigger(e)
+				}
+			}
+			if v.Type() == TxPayloadPodType {
+				payload, _ := v.LoadPayload()
+				podPayload := payload.(*PodPayload)
+				if podPayload.Action == PoDState {
+					bc.eventEmitter.Trigger(&state.Event{
+						Topic: TopicPodStateUpdate,
+						Data:  strconv.FormatInt(podPayload.Serial, 10),
+					})
 				}
 			}
 		}

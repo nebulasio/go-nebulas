@@ -21,6 +21,7 @@ package pod
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"github.com/nebulasio/go-nebulas/util"
@@ -64,6 +65,8 @@ type PoD struct {
 	heartbeatSerial    int64
 	heartbeatTimestamp int64
 	heartbeatTryCount  int64
+
+	eventSub *core.EventSubscriber
 }
 
 // NewPoD create PoD.
@@ -76,6 +79,7 @@ func NewPoD() *PoD {
 		heartbeatTimestamp: 0,
 		heartbeatTryCount:  0,
 		messageCh:          make(chan net.Message, 128),
+		eventSub:           core.NewEventSubscriber(128, []string{core.TopicPodStateUpdate}),
 	}
 	return pod
 }
@@ -135,6 +139,8 @@ func (pod *PoD) Start() {
 	logging.CLog().Info("Starting pod Mining...")
 
 	pod.ns.Register(net.NewSubscriber(pod, pod.messageCh, true, MessageTypeWitness, net.MessageWeightZero))
+	pod.chain.EventEmitter().Register(pod.eventSub)
+
 	go pod.blockLoop()
 }
 
@@ -143,6 +149,7 @@ func (pod *PoD) Stop() {
 	logging.CLog().Info("Stopping pod Mining...")
 	pod.ns.Deregister(net.NewSubscriber(pod, pod.messageCh, true, MessageTypeWitness, net.MessageWeightZero))
 	pod.DisableMining()
+	pod.chain.EventEmitter().Deregister(pod.eventSub)
 
 	pod.quitCh <- true
 }
@@ -940,6 +947,15 @@ func (pod *PoD) blockLoop() {
 				logging.VLog().WithFields(logrus.Fields{
 					"messageName": message.MessageType(),
 				}).Warn("Received unknown message.")
+			}
+		case event := <-pod.eventSub.EventChan():
+			serial, err := strconv.ParseInt(event.Data, 10, 64)
+			if err == nil {
+				go pod.dynasty.loadFromContract(serial)
+			} else {
+				logging.VLog().WithFields(logrus.Fields{
+					"err": err,
+				}).Warn("Failed to parse pod state event")
 			}
 		}
 	}

@@ -52,6 +52,9 @@ const (
 
 	// TopicInnerTransferContract inner transfer
 	TopicInnerContract = "chain.innerContract"
+
+	// TopicPodStateUpdate update pod state
+	TopicPodStateUpdate = "chain.podStateUpdate"
 )
 
 // EventSubscriber subscriber object
