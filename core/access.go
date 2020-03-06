@@ -137,7 +137,7 @@ func (a *Access) loadFromContract() error {
 		// check if access contract account root hash change;
 		// if the root change, access is update, need sync from contract;
 		// if not change, ignore this loop.
-		result, err := a.neb.BlockChain().SimulateCallContract(AccessContract, AccessFunc, "")
+		result, err := a.neb.BlockChain().SimulateCallContract(NodeAccessContract(), AccessFunc, "")
 		//logging.VLog().WithFields(logrus.Fields{
 		//	"result": result,
 		//	"local":  a.local,

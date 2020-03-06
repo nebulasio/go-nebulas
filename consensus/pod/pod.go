@@ -981,7 +981,7 @@ func (pod *PoD) sendTransaction(timestamp int64, action string, data []byte) err
 		return err
 	}
 	nonce := acc.Nonce() + 1
-	tx, err := core.NewTransaction(pod.chain.ChainID(), pod.miner, core.PoDContract, util.NewUint128(), nonce, core.TxPayloadPodType, bytes, core.TransactionMaxGasPrice, core.TransactionMaxGas)
+	tx, err := core.NewTransaction(pod.chain.ChainID(), pod.miner, core.NodePodContract(), util.NewUint128(), nonce, core.TxPayloadPodType, bytes, core.TransactionMaxGasPrice, core.TransactionMaxGas)
 	if err != nil {
 		return err
 	}

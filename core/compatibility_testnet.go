@@ -41,10 +41,20 @@ type CompatibilityTestNet struct {
 	nbreSplitHeight uint64
 
 	nodeUpdateHeight uint64
+
+	nodeStartSerial        uint64
+	nodeAccessContract     *Address
+	nodePodContract        *Address
+	nodeGovernanceContract *Address
 }
 
 // NewCompatibilityTestNet ..
 func NewCompatibilityTestNet() Compatibility {
+
+	nodeAccessContract, _ := AddressParse("n1k9FLZRns76zsDMwbU7JWXTqwiERtci29w")
+	nodePodContract, _ := AddressParse("n1k9FLZRns76zsDMwbU7JWXTqwiERtci29w")
+	nodeGovernanceContract, _ := AddressParse("n1k9FLZRns76zsDMwbU7JWXTqwiERtci29w")
+
 	return &CompatibilityTestNet{
 		transferFromContractEventRecordableHeight:        199666,
 		acceptFuncAvailableHeight:                        199666,
@@ -73,6 +83,11 @@ func NewCompatibilityTestNet() Compatibility {
 		nrc20SecurityCheckHeight:                          1941257,
 		nbreSplitHeight:                                   2250000,
 		nodeUpdateHeight:                                  3140200,
+
+		nodeStartSerial:        17712,
+		nodeAccessContract:     nodeAccessContract,
+		nodePodContract:        nodePodContract,
+		nodeGovernanceContract: nodeGovernanceContract,
 	}
 }
 
@@ -174,4 +189,24 @@ func (c *CompatibilityTestNet) NbreSplitHeight() uint64 {
 // NodeUpdateHeight ..
 func (c *CompatibilityTestNet) NodeUpdateHeight() uint64 {
 	return c.nodeUpdateHeight
+}
+
+// NodeStartSerial ..
+func (c *CompatibilityTestNet) NodeStartSerial() uint64 {
+	return c.nodeStartSerial
+}
+
+// NodeAccessContract ..
+func (c *CompatibilityTestNet) NodeAccessContract() *Address {
+	return c.nodeAccessContract
+}
+
+// NodePodContract ..
+func (c *CompatibilityTestNet) NodePodContract() *Address {
+	return c.nodePodContract
+}
+
+// NodeGovernanceContract ..
+func (c *CompatibilityTestNet) NodeGovernanceContract() *Address {
+	return c.nodeGovernanceContract
 }

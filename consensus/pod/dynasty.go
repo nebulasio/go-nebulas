@@ -144,7 +144,7 @@ func (d *Dynasty) loadFromConfig(genesis *corepb.Genesis, filePath string) error
 
 func (d *Dynasty) loadFromContract(serial int64) error {
 	args := fmt.Sprintf("[%d]", serial)
-	result, err := d.chain.SimulateCallContract(core.PoDContract, core.PoDMiners, args)
+	result, err := d.chain.SimulateCallContract(core.NodePodContract(), core.PoDMiners, args)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"serial": serial,
@@ -280,7 +280,7 @@ func (d *Dynasty) getDynasty(timestamp int64) (*trie.Trie, error) {
 
 func (d *Dynasty) getNodeInfo(miner *core.Address) (*core.NodeInfo, error) {
 	args := fmt.Sprintf("[\"%s\"]", miner.String())
-	result, err := d.chain.SimulateCallContract(core.PoDContract, core.PoDNodeInfo, args)
+	result, err := d.chain.SimulateCallContract(core.NodePodContract(), core.PoDNodeInfo, args)
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"result": result,
@@ -299,7 +299,7 @@ func (d *Dynasty) getNodeInfo(miner *core.Address) (*core.NodeInfo, error) {
 }
 
 func (d *Dynasty) getParticipants() ([]*core.NodeInfo, error) {
-	result, err := d.chain.SimulateCallContract(core.PoDContract, core.PoDParticipants, "")
+	result, err := d.chain.SimulateCallContract(core.NodePodContract(), core.PoDParticipants, "")
 	if err != nil {
 		logging.VLog().WithFields(logrus.Fields{
 			"result": result,

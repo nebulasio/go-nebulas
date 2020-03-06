@@ -1235,7 +1235,7 @@ func (block *Block) rewardCoinbaseForMint() error {
 			return err
 		}
 
-		govAcc, err := block.WorldState().GetOrCreateUserAccount(GovernanceContract.Bytes())
+		govAcc, err := block.WorldState().GetOrCreateUserAccount(NodeGovernanceContract().Bytes())
 		if err != nil {
 			return err
 		}

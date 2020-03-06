@@ -41,10 +41,19 @@ type CompatibilityLocal struct {
 	nbreSplitHeight uint64
 
 	nodeUpdateHeight uint64
+
+	nodeStartSerial        uint64
+	nodeAccessContract     *Address
+	nodePodContract        *Address
+	nodeGovernanceContract *Address
 }
 
 // NewCompatibilityLocal ..
 func NewCompatibilityLocal() Compatibility {
+	nodeAccessContract, _ := AddressParse("n1wRERsLCoGsh2YZu7Qy74iFrraJwnV9gKX")
+	nodePodContract, _ := AddressParse("n1xS3BoziPPidb5nXDmGfH9pb4RHQMfyBe9")
+	nodeGovernanceContract, _ := AddressParse("n1tD8Lh4vxWpha1K1hmZ7ZuCg86THvFyYwr")
+
 	return &CompatibilityLocal{
 		transferFromContractEventRecordableHeight:         2,
 		acceptFuncAvailableHeight:                         2,
@@ -73,6 +82,11 @@ func NewCompatibilityLocal() Compatibility {
 		nrc20SecurityCheckHeight:        2,
 		nbreSplitHeight:                 3,
 		nodeUpdateHeight:                3,
+
+		nodeStartSerial:        0,
+		nodeAccessContract:     nodeAccessContract,
+		nodePodContract:        nodePodContract,
+		nodeGovernanceContract: nodeGovernanceContract,
 	}
 }
 
@@ -174,4 +188,24 @@ func (c *CompatibilityLocal) NbreSplitHeight() uint64 {
 // NodeUpdateHeight ..
 func (c *CompatibilityLocal) NodeUpdateHeight() uint64 {
 	return c.nodeUpdateHeight
+}
+
+// NodeStartSerial ..
+func (c *CompatibilityLocal) NodeStartSerial() uint64 {
+	return c.nodeStartSerial
+}
+
+// NodeAccessContract ..
+func (c *CompatibilityLocal) NodeAccessContract() *Address {
+	return c.nodeAccessContract
+}
+
+// NodePodContract ..
+func (c *CompatibilityLocal) NodePodContract() *Address {
+	return c.nodePodContract
+}
+
+// NodeGovernanceContract ..
+func (c *CompatibilityLocal) NodeGovernanceContract() *Address {
+	return c.nodeGovernanceContract
 }

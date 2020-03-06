@@ -975,7 +975,7 @@ func (bc *BlockChain) StatisticalLastBlocks(serial int64, block *Block) ([]*Stat
 
 			blockSerial := bc.ConsensusHandler().Serial(block.Timestamp())
 
-			if blockSerial < bc.statisticalSerial() {
+			if blockSerial < int64(NodeStartSerial()) {
 				break
 			}
 
