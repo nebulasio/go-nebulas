@@ -52,8 +52,8 @@ type CompatibilityMainNet struct {
 func NewCompatibilityMainNet() Compatibility {
 
 	nodeAccessContract, _ := AddressParse("n1k9FLZRns76zsDMwbU7JWXTqwiERtci29w")
-	nodePodContract, _ := AddressParse("n1k9FLZRns76zsDMwbU7JWXTqwiERtci29w")
-	nodeGovernanceContract, _ := AddressParse("n1k9FLZRns76zsDMwbU7JWXTqwiERtci29w")
+	nodePodContract, _ := AddressParse("n1m7Z2Tb8naWuFvWM6NBwwjd5kfXqMWwDNE")
+	nodeGovernanceContract, _ := AddressParse("n1o4CXpEPipHNCzJ4LuZBHagccN3fhRcXfJ")
 
 	return &CompatibilityMainNet{
 		transferFromContractEventRecordableHeight:        225666,
