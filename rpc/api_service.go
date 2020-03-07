@@ -61,7 +61,7 @@ func (s *APIService) GetNebState(ctx context.Context, req *rpcpb.NonParamsReques
 	resp.Tail = tail.Hash().String()
 	resp.Lib = lib.Hash().String()
 	resp.Height = tail.Height()
-	resp.Synchronized = neb.IsActiveSyncing()
+	resp.Synchronized = neb.IsActiveSyncing() != true
 	resp.ProtocolVersion = net.NebProtocolID
 	resp.Version = neb.Config().App.Version
 
