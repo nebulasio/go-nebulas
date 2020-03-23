@@ -51,9 +51,9 @@ type CompatibilityMainNet struct {
 // NewCompatibilityMainNet ..
 func NewCompatibilityMainNet() Compatibility {
 
-	nodeAccessContract, _ := AddressParse("n1k9FLZRns76zsDMwbU7JWXTqwiERtci29w")
-	nodePodContract, _ := AddressParse("n1m7Z2Tb8naWuFvWM6NBwwjd5kfXqMWwDNE")
-	nodeGovernanceContract, _ := AddressParse("n1o4CXpEPipHNCzJ4LuZBHagccN3fhRcXfJ")
+	nodeAccessContract, _ := AddressParse("n1qoE37piKgEcaLt4nKeL7bkMP75jTaDLJW")
+	nodePodContract, _ := AddressParse("n1twYK6xjGKKxqSwyNVWRx7n3PfedEw3Cog")
+	nodeGovernanceContract, _ := AddressParse("n1vymx3icTNJfPPiuVkyuwugPqf22ZpMxxo")
 
 	return &CompatibilityMainNet{
 		transferFromContractEventRecordableHeight:        225666,
@@ -81,9 +81,9 @@ func NewCompatibilityMainNet() Compatibility {
 		nbreAvailableHeight:                               2307000,
 		nrc20SecurityCheckHeight:                          2517131,
 		nbreSplitHeight:                                   2856400,
-		nodeUpdateHeight:                                  4000000,
+		nodeUpdateHeight:                                  4167000,
 
-		nodeStartSerial:        0,
+		nodeStartSerial:        19887,
 		nodeAccessContract:     nodeAccessContract,
 		nodePodContract:        nodePodContract,
 		nodeGovernanceContract: nodeGovernanceContract,
