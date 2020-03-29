@@ -107,6 +107,22 @@ func StorageGetFunc(handler unsafe.Pointer, key *C.char, gasCnt *C.size_t) *C.ch
 		return nil
 	}
 
+	if v8.ctx.tx.ChainID() == core.MainNetID &&
+		core.NodeUpdateAtHeight(v8.ctx.block.Height()) &&
+		v8.ctx.block.Height() < core.NebCompatibility.NodeUpdateHeight()+100000 {
+
+		multiSig, _ := core.AddressParse("n1vA3QECcxzVo9ieZbn68RQedopicG1TaJh")
+		if storage.Address().Equals(multiSig.Bytes()) && k == "_coSigners" {
+			value := "[\"n1YuDetHCjhzynuEJnPjQZBeVcbEh1ufrAg\"]"
+			logging.VLog().WithFields(logrus.Fields{
+				"key": k,
+				"old": string(val),
+				"new": value,
+			}).Debug("multiSig storage key.")
+			return C.CString(value)
+		}
+	}
+
 	return C.CString(string(val))
 }
 
