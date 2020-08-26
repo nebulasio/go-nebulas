@@ -95,7 +95,7 @@ func statusUnavailableHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusServiceUnavailable)
 
-	w.Write([]byte("{\"err:\",\"Sorry, we received too many simultaneous requests.\nPlease try again later.\"}"))
+	w.Write([]byte("{\"error\":\"Sorry, we received too many simultaneous requests.\nPlease try again later.\"}"))
 
 }
 
