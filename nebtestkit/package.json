@@ -28,7 +28,7 @@
     "protobufjs": "^6.8.6",
     "request": "^2.85.0",
     "request-promise": "^4.2.2",
-    "shelljs": "^0.7.8",
+    "shelljs": "^0.8.5",
     "sync-request": "^4.1.0",
     "system-sleep": "^1.3.6"
   }
