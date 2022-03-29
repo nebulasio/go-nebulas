@@ -3,65 +3,50 @@ module github.com/nebulasio/go-nebulas
 go 1.12
 
 require (
-	cloud.google.com/go v0.46.3 // indirect
 	github.com/VividCortex/godaemon v0.0.0-20150910212227-3d9f6e0b234f
-	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/deckarep/golang-set v1.7.1
-	github.com/go-delve/delve v1.3.2 // indirect
-	github.com/gogo/protobuf v1.3.0
+	github.com/facebookgo/ensure v0.0.0-20200202191622-63f1cf65ac4c // indirect
+	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052 // indirect
+	github.com/facebookgo/subset v0.0.0-20200203212716-c811ad88dec4 // indirect
+	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
+	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.3.1
 	github.com/golang/protobuf v1.3.2
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 	github.com/google/go-cmp v0.3.1 // indirect
-	github.com/google/pprof v0.0.0-20190908185732-236ed259b199 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
 	github.com/grpc-ecosystem/grpc-gateway v1.11.2
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/influxdata/influxdb v1.7.8
-	github.com/kr/pty v1.1.8 // indirect
+	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
+	github.com/jonboulle/clockwork v0.2.3 // indirect
 	github.com/lestrrat-go/file-rotatelogs v2.2.0+incompatible
 	github.com/lestrrat-go/strftime v0.0.0-20190725011945-5c849dd2c51d // indirect
 	github.com/libp2p/go-libp2p v0.3.1
 	github.com/libp2p/go-libp2p-core v0.2.2
 	github.com/libp2p/go-libp2p-kbucket v0.2.1
 	github.com/libp2p/go-libp2p-peerstore v0.1.3
-	github.com/libp2p/go-libp2p-swarm v0.2.1
 	github.com/multiformats/go-multiaddr v0.0.4
 	github.com/multiformats/go-multicodec v0.1.6
 	github.com/peterh/liner v1.1.0
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
-	github.com/rogpeppe/fastuuid v1.2.0 // indirect
-	github.com/rogpeppe/go-internal v1.3.2 // indirect
 	github.com/rs/cors v1.7.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
-	github.com/tebeka/go2xunit v1.4.10 // indirect
+	github.com/tebeka/strftime v0.1.5 // indirect
 	github.com/tecbot/gorocksdb v0.0.0-20190705090504-162552197222
 	github.com/urfave/cli v1.22.1
 	github.com/willf/bitset v1.1.10 // indirect
 	github.com/willf/bloom v2.0.3+incompatible
 	go.opencensus.io v0.22.1 // indirect
 	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
-	golang.org/x/exp v0.0.0-20190919035709-81c71964d733 // indirect
-	golang.org/x/image v0.0.0-20190910094157-69e4b8554b2a // indirect
-	golang.org/x/lint v0.0.0-20190909230951-414d861bb4ac
-	golang.org/x/mobile v0.0.0-20190910184405-b558ed863381 // indirect
-	golang.org/x/mod v0.1.0
 	golang.org/x/net v0.0.0-20190921015927-1a5e07d1ff72
-	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
-	golang.org/x/sys v0.0.0-20190924154521-2837fb4f24fe
-	golang.org/x/text v0.3.2
-	golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
-	golang.org/x/tools v0.0.0-20190920225731-5eefd052ad72 // indirect
-	golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7
-	google.golang.org/api v0.10.0 // indirect
-	google.golang.org/appengine v1.6.3 // indirect
+	golang.org/x/sys v0.0.0-20190924154521-2837fb4f24fe // indirect
 	google.golang.org/genproto v0.0.0-20190916214212-f660b8655731
 	google.golang.org/grpc v1.23.1
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
